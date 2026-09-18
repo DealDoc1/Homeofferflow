@@ -39,6 +39,35 @@ def sample_data():
 
 
 class Txr1507RendererTests(unittest.TestCase):
+    def test_second_page_identifies_all_clients_and_the_brokerage(self):
+        for names in (["Example Buyer"], ["Example Buyer One", "Example Buyer Two"]):
+            with self.subTest(names=names):
+                rendered = render_txr_1507(blank_two_page_pdf(),
+                    {**sample_data(), "client_names": names},
+                    {"legal_name": "Example Brokerage"}, {})
+                spans = []
+                PdfReader(io.BytesIO(rendered)).pages[1].extract_text(
+                    visitor_text=lambda text, cm, tm, font, size: spans.append((text, tm, size)))
+                header = [(text, tm, size) for text, tm, size in spans if tm[5] == 752 and text.strip()]
+                self.assertEqual(len(header), 1)
+                self.assertEqual(header[0][0].strip(), ", ".join(names) + " and Example Brokerage")
+                self.assertGreaterEqual(header[0][1][4], 244.13)
+                self.assertLessEqual(header[0][1][4] + txr_1507.stringWidth(
+                    header[0][0].strip(), txr_1507.FONT, header[0][2]), 576.10)
+
+    def test_party_header_uses_existing_brokerage_name_fallbacks(self):
+        for key in ("legal_name", "name", "dba_name"):
+            with self.subTest(key=key), patch.object(txr_1507, "_draw_party_header") as draw:
+                txr_1507._overlay(sample_data(), {key: "Example Brokerage"}, {})
+                self.assertEqual(draw.call_args.args[1:], (sample_data()["client_names"], "Example Brokerage"))
+
+    def test_long_party_header_references_defined_parties_instead_of_clipping_names(self):
+        with patch.object(txr_1507, "_draw") as draw:
+            txr_1507._draw_party_header(None, ["Long Legal Name " * 12] * 2, "Example Brokerage")
+        self.assertEqual(draw.call_args.args[1], "Client(s) and Broker identified in Paragraph 1")
+        self.assertEqual(draw.call_args.args[2:], (246, 752))
+        self.assertEqual(draw.call_args.kwargs["size"], 8)
+
     def test_checkbox_mark_stays_within_the_small_source_cell(self):
         class RecordingCanvas:
             def __init__(self):

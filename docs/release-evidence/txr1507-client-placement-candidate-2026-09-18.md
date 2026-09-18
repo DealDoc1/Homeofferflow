@@ -68,3 +68,31 @@ replacement/re-signing separate; do not move signatures on the executed file.
 Record the remaining provider check in the morning report. No publishing,
 deployment, customer email, API send, or new paid resource occurred in this
 correction pass. Existing publication/cost restrictions remain unchanged.
+
+## Page-two identification follow-up - September 18
+
+The real completed example also exposed an empty page-two party-identification
+blank. The overlay had no draw operation for it. The local renderer now writes
+the supplied client name(s) and brokerage name into the measured source blank
+(x=244.13..576.10, top-origin rule y=42.48). Text starts at x=246, PDF y=752,
+using eight points, reduced only to seven where necessary. If the complete
+names still cannot fit, the header reads "Client(s) and Broker identified in
+Paragraph 1" instead of clipping a name or obscuring the printed heading.
+Paragraph 1 remains the authoritative party-identification section.
+
+Three new tests verify one/two clients in the generated PDF header, the existing
+brokerage-name fallback fields, and the long-name reference behavior. All 27
+focused renderer/bounds/signer-map tests pass. Two regenerated synthetic
+unsigned specimens (broker and associate) were rendered and all four pages
+visually inspected under the PDF skill workflow. Header text clears the
+printed label and rule. No signature coordinate or reference-map change was
+made in this follow-up, and no client document was edited.
+
+Full discovery: 2,063 tests in 20.377 seconds; 2,061 pass and the same two
+approved-map reference checks fail. This is still not a release-ready claim.
+
+The existing SignWell QA browser tab was rechecked: Google displays
+"Complete sign-in using your passkey" and "Verify it's you". The tab is retained
+for the owner to complete authentication. No new packet was sent, and no
+customer agreement was canceled, replaced, or resent. This authentication
+check is separate from completed-provider placement verification.

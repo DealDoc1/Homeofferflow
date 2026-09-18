@@ -10,6 +10,7 @@ from io import BytesIO
 from textwrap import wrap
 
 from pypdf import PdfReader, PdfWriter
+from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.pdfgen.canvas import Canvas
 
 
@@ -61,9 +62,25 @@ def _draw_signing_role_check(c, x, y):
     c.line(x + 1, y + 3, x + 6, y - 2)
 
 
+def _draw_party_header(c, clients, broker_name):
+    """Identify page two without running beyond its measured title blank."""
+    parties = " and ".join(filter(None, (
+        ", ".join(_clean(name) for name in clients), _clean(broker_name),
+    )))
+    # Source: blank x=244.13..576.10, top-origin rule y=42.48.
+    # Do not crop a legal name or shrink it to unreadable text. Paragraph 1
+    # remains the authoritative party identification for unusually long names.
+    for size in (8, 7.5, 7):
+        if stringWidth(parties, FONT, size) <= 328:
+            _draw(c, parties, 246, 752, size=size)
+            return
+    _draw(c, "Client(s) and Broker identified in Paragraph 1", 246, 752, size=8)
+
+
 def _overlay(data, brokerage, associate):
     """Return an overlay PDF for the exact two-page TXR-1507 source."""
     clients = data["client_names"]
+    broker_name = brokerage.get("legal_name") or brokerage.get("name") or brokerage.get("dba_name")
     compensation = data["compensation"]
     packet = BytesIO()
     canvas = Canvas(packet, pagesize=(PAGE_WIDTH, PAGE_HEIGHT))
@@ -71,7 +88,7 @@ def _overlay(data, brokerage, associate):
 
     # Page 1 - parties, market area, term, services, and compensation.
     _draw(canvas, ", ".join(clients), 286, 645, size=8)
-    _draw(canvas, brokerage.get("legal_name") or brokerage.get("name") or brokerage.get("dba_name"), 338, 632, size=8)
+    _draw(canvas, broker_name, 338, 632, size=8)
     _draw_wrapped(canvas, data["market_area"], 93, 556, 82, size=8, line_height=10)
     _draw(canvas, data["term_start"], 224, 519, size=8)
     _draw(canvas, data["term_end"], 431, 519, size=8)
@@ -96,6 +113,7 @@ def _overlay(data, brokerage, associate):
 
     # Page 2 - intermediary choice, printed names, and license fields. The
     # signature/date widgets are supplied separately to SignWell.
+    _draw_party_header(canvas, clients, broker_name)
     if data["intermediary"] == "authorized":
         _draw_check(canvas, 178, 637)
     else:
@@ -104,7 +122,6 @@ def _overlay(data, brokerage, associate):
         # vertical center as the first cell.
         _draw_check(canvas, 234, 637)
 
-    broker_name = brokerage.get("legal_name") or brokerage.get("name") or brokerage.get("dba_name")
     broker_license = brokerage.get("license_number") or ""
     # ``hof_agent_profiles`` provides ``agent_name``.  Keep it visible on
     # the source when the same person is assigned as the signing associate.
