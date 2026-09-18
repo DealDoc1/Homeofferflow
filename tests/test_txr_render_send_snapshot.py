@@ -50,6 +50,7 @@ class RenderSendFixture:
         self.edit_during_download = False
         self.edit_identity_during_download = False
         self.independent = False
+        self.broker_signer = None
         self.hide_record = False
         self.client = AsyncMock()
         self.client.get.side_effect = self.get
@@ -139,10 +140,64 @@ class RenderSendFixture:
             return asyncio.run(MODULE._send_txr_agreement_for_signature(USER, {
                 'agreementId': RECORD_ID, 'clientEmails': self.emails,
                 'confirmedRecipients': self.recipients,
+                'brokerSigner': self.broker_signer,
             }))
 
 
 class TxrRenderSendSnapshotTests(unittest.TestCase):
+    def independent_broker(self, code='TXR-1507', count=1):
+        f = RenderSendFixture(self, code, 'broker', count)
+        f.independent = True
+        f.profile.update(brokerage_name='Independent Office', brokerage_license='1234567')
+        f.broker_signer = {'name': 'Selected Broker', 'email': 'chosen-broker@example.test'}
+        f.recipients[-1] = {'id': 'broker', **f.broker_signer}
+        return f
+
+    def test_independent_broker_contact_reaches_saved_request_pdf_and_delivery(self):
+        for code in ('TXR-1501', 'TXR-1507'):
+            for count in (1, 2):
+                with self.subTest(code=code, count=count):
+                    f = self.independent_broker(code, count)
+                    self.assertTrue(f.run()['ok'])
+                    self.assertEqual(f.row['agreement_data']['broker_signer'], f.broker_signer)
+                    self.assertEqual(f.document['recipients'][-1], {'id': 'broker', **f.broker_signer})
+                    text = '\n'.join(p.extract_text() for p in PdfReader(BytesIO(
+                        base64.b64decode(f.document['files'][0]['file_base64']))).pages)
+                    self.assertIn('Independent Office', text)
+                    self.assertNotIn('QA Brokerage', text)
+                    self.assertEqual(f.sends, 1)
+                    self.assertFalse(f.document['apply_signing_order'])
+
+    def test_saved_broker_request_reconciles_without_new_document_or_email(self):
+        for resubmit_contact in (True, False):
+            with self.subTest(resubmit_contact=resubmit_contact):
+                f = self.independent_broker()
+                f.run()
+                # Simulate a successful provider send whose final row update
+                # was not observed by the client. Retry uses the same journal.
+                f.row['status'] = 'draft'
+                if not resubmit_contact:
+                    f.broker_signer = None
+                result = f.run()
+                self.assertTrue(result['recovered'])
+                self.assertEqual(f.sends, 1)
+
+    def test_changed_saved_broker_or_duplicate_email_never_sends(self):
+        f = self.independent_broker()
+        f.run()
+        f.row['status'] = 'draft'
+        f.broker_signer = {'name': 'Changed', 'email': 'changed@example.test'}
+        with self.assertRaisesRegex(ValueError, 'already saved'):
+            f.run()
+        self.assertEqual(f.sends, 1)
+        f = self.independent_broker()
+        f.broker_signer['email'] = f.emails[0]
+        f.recipients[-1]['email'] = f.emails[0]
+        with self.assertRaisesRegex(ValueError, 'different signing email'):
+            f.run()
+        self.assertEqual(f.downloads, 0)
+        self.assertIsNone(f.document)
+
     def test_real_render_and_delivery_use_one_source_and_one_owned_draft(self):
         for code in ('TXR-1501', 'TXR-1507'):
             for role in ('associate', 'broker'):

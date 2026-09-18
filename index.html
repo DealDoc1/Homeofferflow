@@ -22823,10 +22823,13 @@ function routeAfterMagicLinkIfNeeded() {
       const status = modal.querySelector('#hofStandaloneSendStatus');
       const form = new FormData(event.currentTarget);
       const confirmedRecipients = signers.map(signer => ({
-        id: signer.id, name: signer.name,
+        id: signer.id,
+        name: signer.nameEditable ? String(form.get(`signerName${signer.id}`) || '').trim() : signer.name,
         email: signer.emailEditable ? String(form.get(`clientEmail${signer.id}`) || '').trim() : signer.email
       }));
-      const clientEmails = confirmedRecipients.filter((_, index) => signers[index].emailEditable).map(signer => signer.email);
+      const clientEmails = confirmedRecipients.filter(signer => !['broker', 'associate'].includes(signer.id)).map(signer => signer.email);
+      const enteredBroker = signers.find(signer => signer.id === 'broker' && signer.nameEditable);
+      const brokerSigner = enteredBroker ? confirmedRecipients.find(signer => signer.id === 'broker') : undefined;
       const uniqueEmails = new Set(confirmedRecipients.map(signer => signer.email.toLowerCase()));
       if (uniqueEmails.size !== confirmedRecipients.length) {
         status.className = 'hof-iabs-status error';
@@ -22836,7 +22839,7 @@ function routeAfterMagicLinkIfNeeded() {
       const submit = event.currentTarget.querySelector('button[type="submit"]');
       submit.disabled = true; status.textContent = 'Sending securely…';
       try {
-        const response = await fetch('/api/admin-dashboard', { method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${token()}`}, body:JSON.stringify({ action:'send_txr_agreement_for_signature', agreementId:agreement.id, clientEmails, confirmedRecipients }) });
+        const response = await fetch('/api/admin-dashboard', { method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${token()}`}, body:JSON.stringify({ action:'send_txr_agreement_for_signature', agreementId:agreement.id, clientEmails, confirmedRecipients, brokerSigner }) });
         const result = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(result.error || 'Could not send the signature request.');
         status.className = 'hof-iabs-status ready'; status.textContent = result.message || 'Signature request sent.';
@@ -22874,7 +22877,9 @@ function routeAfterMagicLinkIfNeeded() {
       if (!modal.isConnected) return;
       if (!Array.isArray(result.recipients) || !result.recipients.length) throw new Error('This document has no signing recipients.');
       signers = result.recipients;
-      modal.querySelector('#hofStandaloneSigningRecipients').innerHTML = signers.map(signer => `<label>${escape(signer.label)}: ${escape(signer.name)}<input ${signer.emailEditable ? `name="clientEmail${escape(signer.id)}" required autocomplete="email"` : 'readonly'} type="email" maxlength="254" value="${escape(signer.email || '')}"></label>`).join('');
+      modal.querySelector('#hofStandaloneSigningRecipients').innerHTML = signers.map(signer => signer.nameEditable
+        ? `<div class="hof-agreement-grid hof-agreement-wide" style="margin:0"><label>Broker's name<input name="signerName${escape(signer.id)}" required maxlength="120" autocomplete="off" value="${escape(signer.name || '')}"></label><label>Broker's email<input name="clientEmail${escape(signer.id)}" required type="email" maxlength="254" autocomplete="off" value="${escape(signer.email || '')}"></label></div>`
+        : `<label>${escape(signer.label)}: ${escape(signer.name)}<input ${signer.emailEditable ? `name="clientEmail${escape(signer.id)}" required autocomplete="email"` : 'readonly'} type="email" maxlength="254" value="${escape(signer.email || '')}"></label>`).join('');
       modal.querySelector('#hofStandaloneSendStatus').textContent = '';
       modal.querySelector('button[type="submit"]').disabled = false;
     } catch (error) {

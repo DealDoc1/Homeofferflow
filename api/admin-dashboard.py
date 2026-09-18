@@ -3889,11 +3889,14 @@ async def _render_owned_representation_agreement(user, agreement, *, for_signing
         "compensation": {key: agreement_data.get(key, "") for key in compensation_keys},
     }
     if fingerprint_context is not None:
+        # Broker contact is already bound through the resolved brokerage and
+        # recipients. Exclude its persisted duplicate from overlay answers so
+        # first send and saved-request retry have the same render fingerprint.
         fingerprint_context.update(
             source_sha256=hashlib.sha256(response.content).hexdigest(),
             brokerage=brokerage, profile=profile,
             render_data={key: value for key, value in render_data.items()
-                         if key not in {signwell_delivery.JOURNAL_KEY, "client_emails",
+                         if key not in {signwell_delivery.JOURNAL_KEY, "client_emails", "broker_signer",
                                         "signwellStatus", "signwellDocumentId", "signwellLastStatusRefresh"}},
         )
         # Bind overlay changes as well as signer geometry. Existing tracked
@@ -4013,23 +4016,41 @@ def _standalone_signer_labels(agreement):
     return labels if len(labels) == len(names) else [f"Signer {index}" for index in range(1, len(names) + 1)]
 
 
-def _txr_signwell_recipients(agreement, client_emails, brokerage, agent_user):
-    client_names = agreement.get("client_names") or []
+def _standalone_professional_role(agreement):
     agreement_data = agreement.get("agreement_data") or {}
     form_code = str(agreement.get("form_code") or "")
     signer_plan = str(agreement_data.get("signer_plan") or "")
+    if form_code in TXR_BUYER_SELLER_SIGNING_FORM_CODES:
+        return None
+    if form_code == TXR_1508_FORM_CODE:
+        return "associate" if signer_plan == "associate_and_clients" else "broker"
+    if form_code == TXR_1506_FORM_CODE:
+        return "associate" if signer_plan == "consumers_and_associate" else "broker"
+    return "associate" if signer_plan == "clients_and_associate" else "broker"
+
+
+def _parse_broker_signer(value):
+    if not isinstance(value, dict):
+        raise ValueError("Enter your broker's name and email address.")
+    name = value.get("name")
+    email = value.get("email")
+    if (not isinstance(name, str) or not name.strip() or len(name.strip()) > 120
+            or any(ord(char) < 32 for char in name)):
+        raise ValueError("Enter your broker's name (up to 120 characters).")
+    if not isinstance(email, str) or len(email.strip()) > 254 or not _valid_email(email):
+        raise ValueError("Enter a valid broker contact email address.")
+    return {"name": name.strip(), "email": email.strip()}
+
+
+def _txr_signwell_recipients(agreement, client_emails, brokerage, agent_user, *, allow_incomplete_broker=False):
+    client_names = agreement.get("client_names") or []
+    role = _standalone_professional_role(agreement)
     recipients = [
         {"id": str(index), "name": client_names[index - 1], "email": client_emails[index - 1]}
         for index in range(1, len(client_names) + 1)
     ]
-    if form_code in TXR_BUYER_SELLER_SIGNING_FORM_CODES:
+    if role is None:
         return recipients
-    if form_code == TXR_1508_FORM_CODE:
-        role = "associate" if signer_plan == "associate_and_clients" else "broker"
-    elif form_code == TXR_1506_FORM_CODE:
-        role = "associate" if signer_plan == "consumers_and_associate" else "broker"
-    else:
-        role = "associate" if signer_plan == "clients_and_associate" else "broker"
     if role == "associate":
         associate_email = str(agent_user.get("email") or "").strip()
         associate_name = str(agent_user.get("name") or "Broker associate").strip()
@@ -4040,16 +4061,38 @@ def _txr_signwell_recipients(agreement, client_emails, brokerage, agent_user):
         broker_email = str(brokerage.get("contact_email") or "").strip()
         broker_name = str(brokerage.get("contact_name") or brokerage.get("name") or "Broker").strip()
         if not _valid_email(broker_email):
-            raise ValueError("The brokerage needs a valid broker contact email before broker signing can be sent.")
+            if not allow_incomplete_broker:
+                raise ValueError("Enter your broker's name and a valid broker contact email before sending.")
+            broker_name, broker_email = "", ""
         recipients.append({"id": role, "name": broker_name, "email": broker_email})
     return recipients
 
 
-async def _standalone_signing_recipients(user, agreement, client_emails, *, professional_context=None):
+async def _standalone_signing_recipients(user, agreement, client_emails, *, professional_context=None, broker_signer=None, allow_incomplete_broker=False):
     """Resolve the same account-linked signers for preview and delivery."""
-    if str(agreement.get("form_code") or "") in TXR_BUYER_SELLER_SIGNING_FORM_CODES:
+    role = _standalone_professional_role(agreement)
+    if broker_signer is not None and role != "broker":
+        raise ValueError("This document does not request a separate broker signer.")
+    if role is None:
         return _txr_signwell_recipients(agreement, client_emails, {}, {})
     context = await _representation_professional_context(user)
+    saved_broker = (agreement.get("agreement_data") or {}).get("broker_signer")
+    if role == "broker":
+        selected = _parse_broker_signer(saved_broker) if saved_broker is not None else None
+        if broker_signer is not None:
+            entered = _parse_broker_signer(broker_signer)
+            if selected is not None:
+                if (entered["name"] != selected["name"]
+                        or entered["email"].casefold() != selected["email"].casefold()):
+                    raise ValueError("The broker contact is already saved. Reopen Send for signature to review it.")
+            elif _valid_email(context["brokerage"].get("contact_email")):
+                raise ValueError("The broker contact is already saved. Reopen Send for signature to review it.")
+            else:
+                selected = entered
+        if selected:
+            context["brokerage"] = {**context["brokerage"],
+                                    "contact_name": selected["name"], "contact_email": selected["email"]}
+            context["broker_signer"] = selected
     if professional_context is not None:
         professional_context.update(context)
     profile = context["profile"]
@@ -4057,6 +4100,7 @@ async def _standalone_signing_recipients(user, agreement, client_emails, *, prof
         agreement, client_emails, context["brokerage"],
         {"email": user.get("email") or profile.get("agent_email"),
          "name": profile.get("agent_name") or user.get("email")},
+        allow_incomplete_broker=allow_incomplete_broker,
     )
 
 
@@ -4086,7 +4130,7 @@ async def _standalone_signing_recipient_preview(user, agreement_id):
     saved_emails = (agreement.get("agreement_data") or {}).get("client_emails")
     emails = saved_emails if (_tracked_signature_journal(agreement) and isinstance(saved_emails, list)
                              and len(saved_emails) == len(names)) else [""] * len(names)
-    recipients = await _standalone_signing_recipients(user, agreement, emails)
+    recipients = await _standalone_signing_recipients(user, agreement, emails, allow_incomplete_broker=True)
     labels = _standalone_signer_labels(agreement)
     for index, recipient in enumerate(recipients):
         editable = index < len(names)
@@ -4094,6 +4138,9 @@ async def _standalone_signing_recipient_preview(user, agreement_id):
         recipient["label"] = labels[index] if editable else (
             "Associate signer (your account)" if recipient["id"] == "associate" else "Broker signer"
         )
+        if recipient["id"] == "broker" and not recipient["email"]:
+            recipient["emailEditable"] = True
+            recipient["nameEditable"] = True
     return {"agreementId": agreement_uuid, "recipients": recipients}
 
 
@@ -4291,9 +4338,12 @@ async def _send_txr_agreement_for_signature(user, data):
         raise ValueError("Each signer must use a different signing email.")
     professional_context = {}
     recipients = await _standalone_signing_recipients(
-        user, agreement, client_emails, professional_context=professional_context)
+        user, agreement, client_emails, professional_context=professional_context,
+        broker_signer=data.get("brokerSigner"))
     _validate_confirmed_signing_recipients(recipients, data.get("confirmedRecipients"))
     agreement_data = dict(agreement.get("agreement_data") or {})
+    if professional_context.get("broker_signer"):
+        agreement_data["broker_signer"] = professional_context["broker_signer"]
     current_map_revision = _current_txr_signing_map_revision(form_code, agreement_data)
     agreement_data["client_emails"] = client_emails
     client_count = len(client_names)

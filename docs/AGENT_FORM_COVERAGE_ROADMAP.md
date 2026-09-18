@@ -6,8 +6,13 @@ Representation PDF identity and broker recipients now resolve from the agent's
 own profile/optional active organization, not the shared source host. No-seat
 associate use and a consistent render/recipient snapshot are locally tested.
 This is **not deployed or live-provider verified**; source-PDF footer branding
-and independent separate-broker contact entry remain follow-up work. See
+remains follow-up work. See
 [professional-identity evidence](release-evidence/representation-professional-identity-2026-09-18.md).
+Independent separate-broker contact entry is now implemented in the existing
+recipient-review screen, with saved-request recovery and no seat requirement.
+Local runtime and mobile/desktop browser checks pass; this is **not deployed or
+live-provider verified**. See
+[independent-broker evidence](release-evidence/independent-broker-signing-2026-09-18.md).
 
 TXR-1507 short-form answer review found misplaced lease-compensation values and
 overflow risks. Supported values now fit source-measured blanks or continue in

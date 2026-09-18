@@ -69,3 +69,10 @@ database query/mutation, public push, deployment, build or paid test occurred.
   silently treat the agent as the broker. Associate signing needs no seat.
 - Production release and actual completed-provider verification remain pending.
   Existing client documents and source files were not modified or replaced.
+
+## Subsequent local continuation
+
+The independent separate-broker contact workflow above was subsequently
+implemented and tested locally; see
+[independent-broker signing](independent-broker-signing-2026-09-18.md).
+It is not deployed/live-provider verified. The static source footer issue remains.
