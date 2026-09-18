@@ -99,11 +99,27 @@ class StandaloneRecipientPreviewTests(unittest.TestCase):
              patch("lib.txr_1508.render_txr_1508", return_value=b"%PDF-rendered") as render:
             factory.return_value.__aenter__.return_value = client
             contacts = asyncio.run(MODULE._standalone_signing_recipient_preview(USER, AGREEMENT_ID))
-            pdf = asyncio.run(MODULE._render_representation_draft_preview(USER, AGREEMENT_ID, for_signing=True))
+            render_context = {}
+            pdf = asyncio.run(MODULE._render_representation_draft_preview(USER, AGREEMENT_ID, for_signing=True, fingerprint_context=render_context))
         self.assertEqual(contacts["recipients"][0]["name"], "Customer One")
         self.assertEqual(pdf, b"%PDF-rendered")
         self.assertTrue(render.call_args.args[1]["_for_signing"])
+        self.assertEqual(len(render_context['source_sha256']), 64)
+        self.assertEqual(render_context['render_data']['client_names'], ['Customer One'])
+        self.assertIn('brokerage', render_context)
+        self.assertIn('profile', render_context)
         client.post.assert_not_awaited()
+
+    def test_saved_request_prefills_confirmed_client_email(self):
+        draft = showing_draft()
+        draft['signwell_document_id'] = 'existing'
+        draft['agreement_data'].update(client_emails=['customer@example.com'],
+            _hof_signature_delivery={'version': 1, 'document_id': 'existing'})
+        get = AsyncMock(side_effect=[[draft], [{'name': 'Office'}]])
+        with patch.object(MODULE, '_get', get), patch.object(MODULE, '_get_optional', AsyncMock(return_value=[])):
+            result = asyncio.run(MODULE._standalone_signing_recipient_preview(USER, AGREEMENT_ID))
+        self.assertEqual(result['recipients'][0]['email'], 'customer@example.com')
+        self.assertNotIn('_hof_signature_delivery', str(result))
 
     def test_existing_provider_record_blocks_every_retry_preparation_step(self):
         for status in ("draft", "failed"):

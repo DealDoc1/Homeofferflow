@@ -21,7 +21,8 @@ class CustomerWorkspaceLanguageTests(unittest.TestCase):
         self.assertIn("Review your prepared documents here.", HTML)
         self.assertIn("confirm the recipients and signer plan before anything is sent.", HTML)
         self.assertIn("const canRetryUnsent = agreement.status === 'failed' && !agreement.signwell_document_id;", HTML)
-        self.assertIn("const canSend = signingEnabled && signingFormCodes.has(agreement.form_code) && (agreement.status === 'draft' || canRetryUnsent);", HTML)
+        self.assertIn("const canRetrySaved = agreement.canRetrySavedRequest === true && ['draft', 'failed'].includes(agreement.status);", HTML)
+        self.assertIn("const canSend = signingEnabled && signingFormCodes.has(agreement.form_code) && ((!agreement.signwell_document_id && (agreement.status === 'draft' || canRetryUnsent)) || canRetrySaved);", HTML)
         self.assertIn("Retry signature request", HTML)
 
     def test_brokerage_profile_uses_finished_product_language(self):

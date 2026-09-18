@@ -312,10 +312,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   window.cleanOfferStatus = function(status) {
     const raw = String(status || 'Draft').trim();
     const compact = raw.toLowerCase().replace(/[_\s-]+/g, ' ');
-    if (compact.includes('buyer signatures complete')) return 'Buyer Signed';
-    if (compact.includes('completed') || compact === 'complete') return 'Buyer Signed';
-    if (compact.includes('signed')) return 'Buyer Signed';
+    if (['draft not sent', 'not sent', 'unsigned'].includes(compact)) return 'Draft - not sent';
+    if (compact === 'pending') return 'Partially Buyer Signed';
     if (compact.includes('partial')) return 'Partially Buyer Signed';
+    if (['buyer signatures complete', 'completed', 'complete', 'signed', 'buyer signed', 'fully signed'].includes(compact)) return 'Buyer Signed';
     if (compact.includes('viewed')) return 'Buyer Viewed';
     if (compact.includes('awaiting') || compact.includes('sent')) return 'Sent for Buyer Signature';
     if (compact.includes('created') || compact.includes('generated')) return 'Generated';
@@ -332,10 +332,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     // an older top-level status remains from an earlier refresh. Never let an
     // awaiting label hide completed buyer signatures in the workspace.
     const completedStatus = signwellStatuses.find(value => {
-      const normalized = String(value).toLowerCase();
-      return !normalized.includes('partial') && (normalized.includes('complete') || normalized.includes('fully signed') || normalized.includes('buyer signed'));
+      const normalized = String(value).trim().toLowerCase().replace(/[_\s-]+/g, ' ');
+      return ['buyer signatures complete', 'completed', 'complete', 'fully signed', 'buyer signed'].includes(normalized);
     });
-    const signwellStatus = completedStatus || signwellStatuses[0] || '';
+    const signwellStatus = offer.signwell_status || completedStatus || signwellStatuses[0] || '';
     const baseStatus = offer.status || d.status || 'Draft';
     return signwellStatus ? signwellStatus : baseStatus;
   };
@@ -4037,27 +4037,26 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
     <div class="wizard-step" id="stepSuccess">
       <div class="hof-interview-guide" data-hof-guide="stepSuccess">
-        <div class="hof-guide-kicker">✨ Done</div>
-        <div class="hof-guide-title">Your offer packet is on its way.</div>
-        <div class="hof-guide-copy">Check your inbox for the generated documents and signature request. Save a copy for your records before sending anything onward.</div>
-        <div class="hof-guide-chip-row"><span class="hof-guide-chip"><strong>✓</strong> Generated</span><span class="hof-guide-chip"><strong>✓</strong> Emailed</span><span class="hof-guide-chip"><strong>✓</strong> Ready</span></div>
+        <div class="hof-guide-kicker">Delivery &amp; signing</div>
+        <div class="hof-guide-title">Your offer packet</div>
+        <div class="hof-guide-copy">Review the delivery and signing status below.</div>
       </div>
       <div style="text-align:center; max-width:640px; margin:0 auto;">
-        <div style="width:72px; height:72px; border-radius:999px; background:rgba(74,140,111,0.18); border:1px solid rgba(74,140,111,0.45); display:flex; align-items:center; justify-content:center; font-size:2rem; margin:0 auto 1rem;">✅</div>
+        <div style="width:72px; height:72px; border-radius:999px; background:rgba(74,140,111,0.18); border:1px solid rgba(74,140,111,0.45); display:flex; align-items:center; justify-content:center; font-size:2rem; margin:0 auto 1rem;">📄</div>
         <h2 id="successHeading">Payment successful</h2>
         <p class="step-desc" id="successMessage">Check your email — your offer packet is ready. You can safely close this page after saving the email/PDF.</p>
         <div id="successBrokerageBrand" class="notice" style="display:none; text-align:left; margin-top:1rem; align-items:center; gap:.75rem;"></div>
 
         <div class="notice sage" style="text-align:left; margin-top:1.25rem;">
           <strong>Next steps</strong><br/>
-          1. Check your email for your HomeOfferFlow offer packet.<br/>
+          <span id="successDeliveryStep">1. Check the delivery email shown below for your HomeOfferFlow offer packet.</span><br/>
           <span id="successSignatureStep">2. Watch for a separate SignWell email if buyer-side signatures are enabled.</span><br/>
           3. Review the PDF carefully before sending, signing, or relying on it.<br/>
           <span id="successRevisionStep">4. If the seller or listing agent sends revised documents later, compare them carefully before signing.</span>
         </div>
 
         <div id="successEmailBox" style="margin-top:1rem; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.10); border-radius:12px; padding:1rem; text-align:left;">
-          <div style="font-size:0.78rem; color:var(--gray); text-transform:uppercase; letter-spacing:0.05em; font-weight:700;">Sent to</div>
+          <div id="successEmailLabel" style="font-size:0.78rem; color:var(--gray); text-transform:uppercase; letter-spacing:0.05em; font-weight:700;">Delivery email</div>
           <div id="successEmail" style="font-size:1rem; font-weight:800; color:var(--white); margin-top:0.25rem;">the email you entered</div>
         </div>
 
@@ -5530,6 +5529,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       localStorage.removeItem('hof_auth_pending');
     } catch (e) {}
     hofAuth.session = null;
+    window.hofClearApprovedFormCatalog?.();
     hofAuth.accountProfile = null;
     hofAuth.myOffers = [];
     hofAuth.subscription = null;
@@ -5578,6 +5578,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       }
 
       client.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_OUT' || session?.access_token !== hofAuth.session?.access_token ||
+            session?.user?.id !== hofAuth.session?.user?.id) {
+          window.hofClearApprovedFormCatalog?.();
+        }
         hofAuth.session = session || null;
         if (session?.user?.user_metadata?.role) {
           hofAuth.role = session.user.user_metadata.role;
@@ -8095,14 +8099,18 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       d.signwell?.response?.document_status,
       d.signwell?.status
     ].filter(Boolean);
-    // Prefer a completed provider status across the persisted aliases. This
-    // prevents stale awaiting rows from staying in the signing queue after a
-    // newer completed status is available in the same owned offer record.
+    // A current provider draft has not been sent, even if an older nested
+    // response still says completed or the record already has a document ID.
+    const latestProviderStatus = String(signwellStatuses[0] || '').toLowerCase().replace(/[_\s-]+/g, ' ');
+    if (['draft', 'created', 'generated', 'saved', 'draft not sent'].includes(latestProviderStatus)) return 'Draft - not sent';
+    // The canonical column is refreshed by the authenticated status route.
+    // Historical response aliases are a fallback only, never an override of
+    // a newer draft, partial, cancelled, or other explicit provider status.
     const completedStatus = signwellStatuses.find(value => {
-      const normalized = String(value).toLowerCase();
-      return !normalized.includes('partial') && (normalized.includes('complete') || normalized.includes('fully signed') || normalized.includes('buyer signed'));
+      const normalized = String(value).trim().toLowerCase().replace(/[_\s-]+/g, ' ');
+      return ['buyer signatures complete', 'completed', 'complete', 'fully signed', 'buyer signed'].includes(normalized);
     });
-    const signwellStatus = completedStatus || signwellStatuses[0] || '';
+    const signwellStatus = offer.signwell_status || completedStatus || signwellStatuses[0] || '';
 
     const signwellDocumentId =
       offer.signwell_document_id ||
@@ -8116,7 +8124,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const baseStatus = signwellStatus || offer.status || 'Draft';
     const compact = String(baseStatus || '').toLowerCase().replace(/[_\s-]+/g, ' ');
 
-    if (signwellDocumentId && (compact.includes('created') || compact.includes('generated') || compact.includes('sent') || compact.includes('pending'))) {
+    if (compact === 'pending') return 'Partially Signed';
+    if (signwellDocumentId && ['sent', 'shared', 'sent for signature'].includes(compact)) {
       return 'Awaiting Buyer Signature';
     }
 
@@ -8129,7 +8138,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     if (status.includes('declined')) return 'declined';
     if (status.includes('expired')) return 'declined';
     if (status.includes('partial')) return 'partial';
-    if (status.includes('signed')) return 'signed';
+    if (['buyer signatures complete', 'signed', 'buyer signed', 'fully signed', 'completed', 'complete'].includes(status)) return 'signed';
     if (status.includes('viewed')) return 'viewed';
     if (status.includes('awaiting')) return 'awaiting';
 
@@ -8140,16 +8149,18 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const raw = String(status || 'Draft').trim();
     const compact = raw.toLowerCase().replace(/[_\s-]+/g, ' ');
 
+    if (['draft not sent', 'not sent', 'unsigned'].includes(compact)) return 'Draft - not sent';
+    if (compact === 'buyer signatures complete') return 'Buyer Signatures Complete';
+    if (['cancelled', 'canceled'].includes(compact)) return 'Cancelled';
     if (compact.includes('awaiting')) return 'Awaiting Buyer Signature';
     if (compact.includes('buyer signature')) return 'Awaiting Buyer Signature';
     if (compact.includes('sent')) return 'Awaiting Buyer Signature';
-    if (compact.includes('pending')) return 'Awaiting Buyer Signature';
+    if (compact === 'pending') return 'Partially Signed';
     if (compact.includes('viewed')) return 'Viewed';
     if (compact.includes('in progress')) return 'Partially Signed';
     if (compact.includes('partial')) return 'Partially Signed';
     if (compact.includes('buyer signatures complete')) return 'Buyer Signatures Complete';
-    if (compact.includes('signed')) return 'Buyer Signatures Complete';
-    if (compact.includes('completed') || compact === 'complete') return 'Buyer Signatures Complete';
+    if (['signed', 'fully signed', 'buyer signed', 'completed', 'complete'].includes(compact)) return 'Buyer Signatures Complete';
     if (compact.includes('declined')) return 'Declined';
     if (compact.includes('expired')) return 'Expired';
 
@@ -8231,7 +8242,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const updated = formatOfferDateTime(o.last_updated || o.created_at) || '—';
       const generatedAt = o.generated_at || d.generatedAt || '';
       const hasSignwellDoc = !!(o.signwell_document_id || d.signwellDocumentId || d.signwell?.document_id || d.signwell?.response?.id);
-      const canRetryBuyerSigning = !hasSignwellDoc && ['generated', 'generation failed'].includes(String(o.status || '').toLowerCase());
+      const canRetryBuyerSigning = (!hasSignwellDoc || d._hof_signature_delivery?.version === 1) && ['generated', 'generation failed'].includes(String(o.status || '').toLowerCase());
       const signingBucket = getOfferSigningBucket(o);
       const signingLabel = signingBucket === 'signed' ? 'Buyer signatures complete'
         : signingBucket === 'partial' ? 'Partially signed'
@@ -8308,9 +8319,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         body: JSON.stringify({ action: 'retry_offer_signature', offerId })
       });
       const result = await response.json().catch(() => ({}));
-      if (!response.ok || !result.ok) throw new Error(result.error || 'Signature delivery is temporarily unavailable. Your offer is saved and no one was emailed.');
-      window.announceWorkspaceStatus?.('Buyer signature request sent.');
-      await loadMyOffers();
+      if (!response.ok || !result.ok) throw new Error(result.error || 'Delivery could not be confirmed. Check your offer’s signature status.');
+      window.announceWorkspaceStatus?.(result.message || 'Buyer signature request sent.');
+      try { await loadMyOffers(); } catch (_) {
+        window.announceWorkspaceStatus?.((result.message || 'Buyer signature request sent.') + ' Your offer list could not refresh. Check its status from your account.');
+      }
     } catch (error) {
       window.announceWorkspaceStatus?.(error.message || 'Signature delivery is temporarily unavailable.');
       if (buttonEl) { buttonEl.disabled = false; buttonEl.textContent = original; }
@@ -10196,7 +10209,7 @@ function routeAfterMagicLinkIfNeeded() {
     }
     if (signing) {
       signing.textContent = paragraph4Forms.length
-        ? `Buyers sign the offer package first. Sellers then sign the included ${paragraph4Forms.join(' and ')}. Seller acceptance and any other seller-side signatures remain with the seller or listing side.`
+        ? `Buyers and sellers receive signing invitations together. Sellers sign only the included ${paragraph4Forms.join(' and ')}. Seller acceptance and any other seller-side signatures remain with the seller or listing side.`
         : 'HomeOfferFlow routes buyer signatures, buyer dates, and buyer initials. Seller acceptance and seller-side signatures remain with the seller or listing side.';
     }
     if (revision) {
@@ -10581,6 +10594,27 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
 
+  function packetDeliverySummary(email, options = {}, data = {}) {
+    const recipient = data.buyerEmail || email || 'the delivery email shown below';
+    if (options.checkoutConfirmationPending) {
+      return { recipient, label: 'Delivery email',
+        message: 'We’ll email a receipt and your offer packet after payment is confirmed.',
+        signing: '2. Signing invitations will follow when payment and packet preparation are complete.' };
+    }
+    if (options.packetGenerated === true) {
+      const signing = options.signwell;
+      return { recipient, label: 'Documents emailed to',
+        message: `Your offer documents were emailed to ${recipient}.`,
+        signing: signing?.ok === true
+          ? '2. SignWell has sent the signing invitations. Each signer can sign independently.'
+          : signing?.enabled === false
+            ? '2. No signing invitation was sent. Review the emailed PDF before arranging signatures.'
+            : '2. The signing invitation was not sent. Open My Offers and choose Retry signing for this offer.' };
+    }
+    return { recipient, label: 'Delivery email', message: 'Check the delivery email shown below for your offer packet.',
+      signing: '2. Check the offer’s signing status in My Offers before expecting a SignWell invitation.' };
+  }
+
   function showPaymentSuccess(email, options = {}) {
     const checkoutConfirmationPending = options.checkoutConfirmationPending === true;
     window.__hofPaymentReturn = true;
@@ -10603,6 +10637,8 @@ function routeAfterMagicLinkIfNeeded() {
     const successMessage = document.getElementById('successMessage');
     const successHeading = document.getElementById('successHeading');
     const successSignatureStep = document.getElementById('successSignatureStep');
+    const successDeliveryStep = document.getElementById('successDeliveryStep');
+    const deliverySummary = packetDeliverySummary(email, options, state.data);
     const successRevisionStep = document.getElementById('successRevisionStep');
     const accountWorkflow = ['agent', 'investor'].includes(state.data.userType || '');
     const paragraph4Forms = [
@@ -10610,19 +10646,18 @@ function routeAfterMagicLinkIfNeeded() {
       state.data.leaseFixture === 'yes' ? 'Fixture Lease Addendum' : ''
     ].filter(Boolean);
 
-    if (successEmail) successEmail.textContent = email || state.data.buyerEmail || 'the email you entered';
-    if (successHeading) successHeading.textContent = accountWorkflow
-      ? 'Packet generated'
-      : checkoutConfirmationPending ? 'We’re confirming your checkout' : 'Payment successful';
-    if (successMessage) successMessage.textContent = accountWorkflow
-      ? 'Your offer package has been generated. Check your email for the documents and signature request.'
-      : checkoutConfirmationPending
-        ? 'We’ll email a receipt and your offer packet after payment is confirmed.'
-        : 'Check your email — your offer packet is ready.';
+    if (successEmail) successEmail.textContent = deliverySummary.recipient;
+    const successEmailLabel = document.getElementById('successEmailLabel');
+    if (successEmailLabel) successEmailLabel.textContent = deliverySummary.label;
+    if (successDeliveryStep) successDeliveryStep.textContent = `1. Check ${deliverySummary.recipient} for the offer documents.`;
+    if (successHeading) successHeading.textContent = checkoutConfirmationPending
+      ? 'We’re confirming your checkout'
+      : options.packetGenerated === true ? 'Packet generated' : 'Your offer packet';
+    if (successMessage) successMessage.textContent = deliverySummary.message;
     if (successSignatureStep) {
-      successSignatureStep.textContent = paragraph4Forms.length
-        ? `2. Buyers sign first. Sellers then receive SignWell for the included ${paragraph4Forms.join(' and ')}.`
-        : '2. Watch for a separate SignWell email when buyer signatures are enabled.';
+      successSignatureStep.textContent = paragraph4Forms.length && options.signwell?.ok === true
+        ? `2. Buyers and sellers receive signing invitations together. Sellers sign the included ${paragraph4Forms.join(' and ')}.`
+        : deliverySummary.signing;
     }
     if (successRevisionStep) {
       successRevisionStep.textContent = accountWorkflow
@@ -11412,7 +11447,7 @@ function routeAfterMagicLinkIfNeeded() {
       );
 
       window.__hofSubscriptionPacketGenerated = true;
-      showPaymentSuccess(email);
+      showPaymentSuccess(email, { packetGenerated: true, signwell: result.signwell });
     } catch (err) {
       console.error('Subscribed packet generation failed:', err);
       const failure = packetGenerationFailureDetails(err);
@@ -17693,16 +17728,15 @@ function routeAfterMagicLinkIfNeeded() {
     const status = cleanStatus(o).toLowerCase();
     const d = o.offer_data || {};
     const hasDoc = !!(o.signwell_document_id || d.signwellDocumentId || d.signwell?.document_id || d.signwell?.response?.id);
-    if (status.includes('buyer signed') || status.includes('signed') || status.includes('complete')) return 'signed';
+    if (status === 'draft - not sent') return 'generated';
+    if (status.includes('partial')) return 'signing';
+    if (['buyer signatures complete', 'signed', 'buyer signed', 'fully signed', 'completed', 'complete'].includes(status)) return 'signed';
     // A provider document id remains on an expired or declined request.  It
     // must not mask the terminal status as a merely generated packet; the
     // agent needs an intentional new draft before creating another request.
-    if (status.includes('delete') || status.includes('expired') || status.includes('declined')) return 'inactive';
+    if (status.includes('delete') || status.includes('expired') || status.includes('declined') || status.includes('cancel')) return 'inactive';
     if (status.includes('awaiting') || status.includes('sent') || status.includes('viewed') || status.includes('partial')) return 'signing';
-    // A SignWell document in Created is already a recipient-facing signing
-    // request. Treating it as merely generated hid real follow-up work until
-    // a later manual refresh changed the provider label.
-    if (status.includes('created') && hasDoc) return 'signing';
+    // Creating a provider record does not establish invitation delivery.
     if (status.includes('generated') || status.includes('created') || hasDoc) return 'generated';
     return 'draft';
   }
@@ -17711,6 +17745,7 @@ function routeAfterMagicLinkIfNeeded() {
     const b = bucketForOffer(o);
     const d = o.offer_data || {};
     const hasDoc = !!(o.signwell_document_id || d.signwellDocumentId || d.signwell?.document_id || d.signwell?.response?.id);
+    if (cleanStatus(o).toLowerCase() === 'draft - not sent') return 'Not sent yet';
     if (b === 'signed') return 'Buyer signed';
     if (b === 'signing') {
       const s = cleanStatus(o).toLowerCase();
@@ -17813,7 +17848,7 @@ function routeAfterMagicLinkIfNeeded() {
     const sub = subtitle(o) || [o.property_city || d.propCity, o.property_state || d.propState].filter(Boolean).join(', ');
     const role = o.role || d.userType || root.hofAuth?.role || 'agent';
     const hasDoc = !!(o.signwell_document_id || d.signwellDocumentId || d.signwell?.document_id || d.signwell?.response?.id);
-    const canRetrySigning = !hasDoc && ['generated', 'generation failed'].includes(String(o.status || '').toLowerCase());
+    const canRetrySigning = (!hasDoc || d._hof_signature_delivery?.version === 1) && ['generated', 'generation failed'].includes(String(o.status || '').toLowerCase());
     const isExpired = cleanStatus(o).toLowerCase().includes('expired');
     const needsBuyerReminder = hasDoc && bucketForOffer(o) === 'signing' && needsAttention(o);
     const tags = addendaTags(d).map(([t,c]) => `<span class="${c}">${esc(t)}</span>`).join('');
@@ -20897,18 +20932,61 @@ function routeAfterMagicLinkIfNeeded() {
     return payload.sources || [];
   }
 
+  // Form cards share one authenticated catalog read, not one request per
+  // card. Keep the short-lived cache in memory only; the server still checks
+  // the current source and permission before preparing or sending a form.
+  let approvedCatalogCache = null;
+  root.hofClearApprovedFormCatalog = () => { approvedCatalogCache = null; };
+  root.hofLoadApprovedFormCatalog = async function () {
+    const session = root.hofAuth?.session;
+    const token = session?.access_token;
+    const userId = session?.user?.id;
+    if (!token || !userId) {
+      root.hofClearApprovedFormCatalog();
+      return [];
+    }
+    let entry = approvedCatalogCache;
+    if (!entry || entry.token !== token || entry.userId !== userId ||
+        (!entry.pending && Date.now() >= entry.expiresAt)) {
+      entry = { token, userId, pending: true, expiresAt: 0 };
+      approvedCatalogCache = entry;
+      entry.result = (async () => {
+        try {
+          const response = await fetch('/api/admin-dashboard?scope=approved_brokerage_sources', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok || !Array.isArray(payload.sources)) {
+            throw new Error('We couldn’t load the available forms. Please try again.');
+          }
+          entry.expiresAt = Date.now() + 30000;
+          return payload.sources;
+        } catch (error) {
+          if (approvedCatalogCache === entry) approvedCatalogCache = null;
+          throw error;
+        } finally {
+          entry.pending = false;
+        }
+      })();
+    }
+    const sources = await entry.result;
+    if (approvedCatalogCache !== entry || root.hofAuth?.session?.access_token !== token ||
+        root.hofAuth?.session?.user?.id !== userId) {
+      throw new Error('Your sign-in changed. Please reopen the document.');
+    }
+    // A consumer may sort or annotate its results without changing another
+    // card's cached view of the library.
+    return sources.map(source => ({ ...source }));
+  };
+
   root.hofLoadApprovedBrokerageSource = async function (formCode) {
     const token = root.hofAuth?.session?.access_token;
     // The active approved-source catalog is platform-wide for signed-in
     // agents. A local brokerage object is needed for administration only;
     // requiring one here made valid shared-library forms look unavailable.
     if (!token || !formCode) return null;
-    const response = await fetch('/api/admin-dashboard?scope=approved_brokerage_sources', {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(payload.error || 'Could not check approved brokerage form sources.');
-    return (payload.sources || []).find(source => source.form_code === formCode) || null;
+    const sources = await root.hofLoadApprovedFormCatalog();
+    return sources.find(source => source.form_code === formCode) || null;
   };
 
   // Keep a background form-library failure actionable without exposing
@@ -21574,8 +21652,11 @@ function routeAfterMagicLinkIfNeeded() {
         const response = await fetch('/api/admin-dashboard', { method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${token()}`}, body:JSON.stringify({ action:'send_txr_agreement_for_signature', agreementId:agreement.id, clientEmails, confirmedRecipients }) });
         const result = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(result.error || 'Could not send the signature request.');
-        status.className = 'hof-iabs-status ready'; status.textContent = 'Signature request sent.';
-        await refresh();
+        status.className = 'hof-iabs-status ready'; status.textContent = result.message || 'Signature request sent.';
+        try { await refresh(); } catch (_) {
+          status.textContent += ' Your document list could not refresh. Check its status from your account.';
+          return;
+        }
         setTimeout(() => modal.remove(), 800);
       } catch (error) {
         status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not send the signature request.';
@@ -21723,12 +21804,13 @@ function routeAfterMagicLinkIfNeeded() {
           // rebuilding the interview, but never create a duplicate invitation
           // when a provider document already exists.
           const canRetryUnsent = agreement.status === 'failed' && !agreement.signwell_document_id;
-          const canSend = signingEnabled && signingFormCodes.has(agreement.form_code) && (agreement.status === 'draft' || canRetryUnsent);
+          const canRetrySaved = agreement.canRetrySavedRequest === true && ['draft', 'failed'].includes(agreement.status);
+          const canSend = signingEnabled && signingFormCodes.has(agreement.form_code) && ((!agreement.signwell_document_id && (agreement.status === 'draft' || canRetryUnsent)) || canRetrySaved);
           const names = (agreement.client_names || []).join(', ');
           const gate = !signingEnabled && (agreement.status === 'draft' || canRetryUnsent) ? '<small style="display:block;color:var(--gold-light)">Ready to review — signature sending will appear here when available.</small>' : '';
-          const canRefresh = agreement.status === 'sent' && agreement.signwell_document_id;
+          const canRefresh = agreement.status !== 'signed' && agreement.signwell_document_id;
           const canDownloadCompleted = agreement.status === 'signed' && agreement.signwell_document_id;
-          const sendLabel = canRetryUnsent ? 'Retry signature request' : 'Send for signature';
+          const sendLabel = canRetrySaved ? 'Retry saved request' : (canRetryUnsent ? 'Retry signature request' : 'Send for signature');
           return `<div style="display:flex;justify-content:space-between;align-items:center;gap:.75rem;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.12);padding:.7rem 0"><span><strong>${escape(agreement.form_code)}</strong><small style="display:block;color:var(--gray-light)">${escape(names)} · ${escape(agreement.status || 'draft')}</small>${gate}</span><span style="display:flex;gap:.4rem;flex-wrap:wrap"><button type="button" class="btn-secondary" data-preview="${escape(agreement.id)}">Preview</button>${canRefresh ? `<button type="button" class="btn-secondary" data-refresh-signing="${escape(agreement.id)}">Refresh status</button>` : ''}${canDownloadCompleted ? `<button type="button" class="btn-secondary" data-download-completed="${escape(agreement.id)}">Download completed PDF</button>` : ''}${canSend ? `<button type="button" class="btn-primary" data-send="${escape(agreement.id)}">${sendLabel}</button>` : ''}</span></div>`;
         }).join('');
         list.querySelectorAll('[data-preview]').forEach(button => button.addEventListener('click', () => {
@@ -21814,11 +21896,7 @@ function routeAfterMagicLinkIfNeeded() {
     });
     card.insertBefore(details, card.querySelector('.beta-checklist-actions'));
     try {
-      const token = root.hofAuth?.session?.access_token;
-      const response = await fetch('/api/admin-dashboard?scope=approved_brokerage_sources', { headers: { Authorization: `Bearer ${token}` } });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(payload.error || 'Could not load the shared source catalog.');
-      const sources = Array.isArray(payload.sources) ? payload.sources : [];
+      const sources = await root.hofLoadApprovedFormCatalog();
       const list = document.createElement('ul');
       list.style.cssText = 'margin:.7rem 0 0;padding-left:1.1rem;color:var(--gray-light);font-size:.82rem;line-height:1.55';
       const search = document.createElement('input');
@@ -22266,12 +22344,7 @@ function routeAfterMagicLinkIfNeeded() {
     '</div></details>'
   ).join('');
   async function approvedSources() {
-    const token = root.hofAuth?.session?.access_token;
-    if (!token) return [];
-    const response = await fetch('/api/admin-dashboard?scope=approved_brokerage_sources', {headers:{Authorization:'Bearer ' + token}});
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(payload.error || 'Could not load approved brokerage sources.');
-    return payload.sources || [];
+    return root.hofLoadApprovedFormCatalog();
   }
   async function loadListingWorkspaces() {
     const client = root.getSupabaseClient?.();
@@ -22393,7 +22466,7 @@ function routeAfterMagicLinkIfNeeded() {
     const modal = document.createElement('div');
     modal.className = 'hof-agreement-modal';
     modal.innerHTML = '<form class="hof-agreement-dialog"><h3>Send seller disclosure for signature</h3><p>Review the completed PDF first. Then enter one signing email for each person named in the disclosure.</p><div class="hof-agreement-grid">' + parties.map((party, index) => {
-      const initial = party.role === 'Seller' ? reviewEmails[party.index + 1] || '' : '';
+      const initial = draft.savedSigningRecipients?.[index]?.email || (party.role === 'Seller' ? reviewEmails[party.index + 1] || '' : '');
       return '<label>' + escape(party.role + ' — ' + party.name) + '<input type="email" required maxlength="320" autocomplete="email" data-seller-signing-email value="' + escape(initial) + '" placeholder="name@example.com"></label>';
     }).join('') + '</div><div class="hof-iabs-status" role="status"></div><div class="hof-agreement-footer"><button type="button" class="btn-secondary">Cancel</button><button type="submit" class="btn-primary">Send for signature</button></div></form>';
     document.body.appendChild(modal);
@@ -22411,8 +22484,8 @@ function routeAfterMagicLinkIfNeeded() {
         const response = await fetch('/api/admin-dashboard', {method:'POST', headers:{'Content-Type':'application/json', Authorization:'Bearer ' + token}, body:JSON.stringify({action:'send_seller_disclosure_for_signature', draftId:draft.id, signerEmails})});
         const result = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(result.error || 'Could not send the seller disclosure for signature.');
-        if (status) status.textContent = 'Sent for signature. HomeOfferFlow will update this disclosure when everyone has signed.';
-        root.logOfferEvent?.(null, 'seller_disclosure_signing_sent', 'sent', 'Seller disclosure sent for signature.', {signerCount: signerEmails.length});
+        if (status) status.textContent = result.message || 'Sent for signature. HomeOfferFlow will update this disclosure when everyone has signed.';
+        if (!result.recovered) root.logOfferEvent?.(null, 'seller_disclosure_signing_sent', 'sent', 'Seller disclosure sent for signature.', {signerCount: signerEmails.length});
         close(); await refreshDrafts();
       } catch (error) { message.textContent = error.message || 'Could not send the seller disclosure for signature.'; button.disabled = false; }
     });
@@ -22483,7 +22556,7 @@ function routeAfterMagicLinkIfNeeded() {
         const progress = d.sellerReviewProgress || {};
         const reviewStatus = sellerReviewStatus(d);
         const followUp = progress.requested && !d.seller_review_attested ? '<button type="button" class="btn-secondary hof-seller-followup" data-id="' + escape(d.id) + '">Follow up</button>' : '';
-        const sendForSignature = d.status === 'draft' && d.seller_review_attested ? '<button type="button" class="btn-primary hof-seller-send-signing" data-id="' + escape(d.id) + '">Send for signature</button>' : '';
+        const sendForSignature = d.status === 'draft' && d.seller_review_attested && (!d.signwell_document_id || d.canRetrySavedRequest === true) ? '<button type="button" class="btn-primary hof-seller-send-signing" data-id="' + escape(d.id) + '">' + (d.canRetrySavedRequest ? 'Retry saved request' : 'Send for signature') + '</button>' : '';
         const refreshSigning = d.signwell_document_id && d.status !== 'signed' ? '<button type="button" class="btn-secondary hof-seller-refresh-signing" data-id="' + escape(d.id) + '">Refresh signing status</button>' : '';
         const downloadSigned = d.signwell_document_id && d.status === 'signed' ? '<button type="button" class="btn-secondary hof-seller-download-signed" data-id="' + escape(d.id) + '">Download signed PDF</button>' : '';
         return '<li data-seller-draft-row data-search="' + escape([d.property_address, ...(d.seller_names || []), d.status, d.disclosure_source_revision, d.water_source_revision, reviewStatus].filter(Boolean).join(' ')) + '"><span><strong>' + escape(d.property_address) + '</strong><br><small>' + escape((d.seller_names || []).join(', ')) + ' · ' + escape(d.disclosure_source_revision || '') + (d.water_source_revision ? ' + TREC-61-0' : '') + ' · ' + escape(reviewStatus) + '</small></span><button type="button" class="btn-secondary hof-seller-load" data-id="' + escape(d.id) + '">Open</button>' + followUp + '<button type="button" class="btn-secondary hof-seller-preview" data-id="' + escape(d.id) + '">Preview PDF</button>' + refreshSigning + downloadSigned + sendForSignature + '</li>';
@@ -22997,13 +23070,13 @@ function routeAfterMagicLinkIfNeeded() {
   // authenticated data, and API responses are always fetched from the network.
   if ('serviceWorker' in navigator) {
     let hofPwaRefreshRequested = false;
+    const isHomeOfferFlowStandaloneApp = () => window.matchMedia?.('(display-mode: standalone)').matches === true
+      || window.navigator.standalone === true;
 
     function showHomeOfferFlowUpdate(registration) {
-      // The public shell is cached for offline use. A small, only-when-needed
-      // update choice keeps ordinary browser tabs from silently retaining old
-      // workflow wording after a release, while still leaving the person in
-      // control of when their page refreshes.
-      if (!registration?.waiting || document.getElementById('hofPwaUpdateCard')) return;
+      // Reserve the update choice for an installed app. A regular browser
+      // navigation already fetches the current page when online.
+      if (!isHomeOfferFlowStandaloneApp() || !registration?.waiting || document.getElementById('hofPwaUpdateCard')) return;
       const card = document.createElement('aside');
       card.id = 'hofPwaUpdateCard';
       card.className = 'hof-pwa-update-card';
@@ -23012,8 +23085,10 @@ function routeAfterMagicLinkIfNeeded() {
       document.body.appendChild(card);
       card.querySelector('#hofPwaUpdateLater')?.addEventListener('click', () => card.remove());
       card.querySelector('#hofPwaUpdateNow')?.addEventListener('click', () => {
+        const waiting = registration.waiting;
+        if (!waiting || hofPwaRefreshRequested) return;
         hofPwaRefreshRequested = true;
-        registration.waiting?.postMessage({ type: 'HOF_SKIP_WAITING' });
+        waiting.postMessage({ type: 'HOF_SKIP_WAITING' });
       });
     }
 
@@ -23036,7 +23111,9 @@ function routeAfterMagicLinkIfNeeded() {
         .catch(error => console.warn('HomeOfferFlow offline support was not registered:', error));
     });
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (hofPwaRefreshRequested) window.location.reload();
+      if (!hofPwaRefreshRequested) return;
+      hofPwaRefreshRequested = false;
+      window.location.reload();
     });
   }
 </script>

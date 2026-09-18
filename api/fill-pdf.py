@@ -1,10 +1,12 @@
-import json, os, base64, hashlib, hmac, httpx, re, time, urllib.parse
+import json, os, base64, hashlib, hmac, httpx, re, time, urllib.parse, uuid
 from datetime import datetime, timezone
 from io import BytesIO
 from http.server import BaseHTTPRequestHandler
 
 from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
+from lib import signwell_delivery
+from lib.offer_signwell_delivery import deliver_offer_document, offer_answers
 
 from lib.production_adapter import (
     UnsupportedOfferPathError,
@@ -1341,50 +1343,14 @@ def build_signwell_fields(offer, pdf_bytes):
 fill_and_merge = fill_and_merge_20_19
 build_signwell_fields = build_signwell_fields_20_19
 
-def post_signwell_document(payload):
-    signwell_debug("SIGNWELL DEBUG request summary:", {
-        "test_mode": payload.get("test_mode"),
-        "draft": payload.get("draft"),
-        "with_signature_page": payload.get("with_signature_page"),
-        "recipient_count": len(payload.get("recipients", [])),
-        "recipient_emails": [r.get("email") for r in payload.get("recipients", [])],
-        "file_count": len(payload.get("files", [])),
-        "field_outer_count": len(payload.get("fields", [])) if payload.get("fields") else 0,
-        "field_count_file_1": len(payload.get("fields", [[]])[0]) if payload.get("fields") else 0,
-    })
-
-    r = httpx.post(
-        "https://www.signwell.com/api/v1/documents",
-        headers={"X-Api-Key": SIGNWELL_API_KEY, "Content-Type": "application/json"},
-        json=payload,
-        timeout=45
-    )
-
-    signwell_debug("SIGNWELL RESPONSE:", {"status": r.status_code, "body": r.text})
-    if r.status_code not in [200, 201, 202]:
-        print("SignWell document request failed with status", r.status_code)
-
-    if r.status_code not in [200, 201, 202]:
-        return False, {"status_code": r.status_code, "error": r.text[:3000]}
-
-    try:
-        data = r.json()
-    except Exception:
-        data = {"raw": r.text[:3000]}
-
-    return True, data
 
 
-def create_signwell_signature_request(offer, pdf_bytes):
+def create_signwell_signature_request(offer, pdf_bytes, *, record=None, user_id=None):
     """
     SignWell request for HomeOfferFlow.
 
-    Debug/stabilization behavior:
-    - OFF unless SIGNWELL_ENABLED=true.
-    - Test mode defaults ON unless SIGNWELL_TEST_MODE=false.
-    - No generic SignWell signature page.
-    - Minimal Buyer 1 signature field only until SignWell accepts the payload.
-    - Logs SignWell request summary and full response body to Vercel logs.
+    Uses the reviewed packet map, concurrent invitations, and a saved offer
+    checkpoint. Delivery uncertainty preserves the same provider document.
     """
     signwell_debug("SIGNWELL DEBUG env:", {
         "enabled": SIGNWELL_ENABLED,
@@ -1486,18 +1452,18 @@ def create_signwell_signature_request(offer, pdf_bytes):
     paragraph4_forms = paragraph4_lease_kinds(offer)
     if paragraph4_forms and seller_lease_parties:
         signing_scope_message = (
-            "Please carefully review and sign in the order requested. This packet includes existing-property lease addenda "
-            "and a Seller's Temporary Residential Lease. Buyers sign first; Sellers sign the lease documents after Buyer signatures are complete.\n\n"
+            "Please carefully review and sign your assigned fields. This packet includes existing-property lease addenda "
+            "and a Seller's Temporary Residential Lease. All named signers receive invitations together and can sign independently.\n\n"
         )
     elif paragraph4_forms:
         signing_scope_message = (
-            "Please carefully review and sign in the order requested. This packet includes existing-property lease addenda. "
-            "Buyers sign first; Sellers sign those addenda after Buyer signatures are complete.\n\n"
+            "Please carefully review and sign your assigned fields. This packet includes existing-property lease addenda. "
+            "All named signers receive invitations together and can sign independently.\n\n"
         )
     else:
         signing_scope_message = (
-        "Please carefully review and sign in the order requested. This packet includes a Seller's Temporary Residential Lease: "
-        "the Buyer signs as Landlord first and the Seller signs as Tenant after Buyer signatures are complete.\n\n"
+        "Please carefully review and sign your assigned fields. This packet includes a Seller's Temporary Residential Lease: "
+        "the Buyer signs as Landlord and the Seller signs as Tenant. Both receive invitations together and can sign independently.\n\n"
         if seller_lease_parties else
         "Please carefully review and sign the buyer-side offer documents. "
         "Seller signatures, seller initials, counteroffers, amendments, and seller-side changes are handled separately by the seller or listing side.\n\n"
@@ -1544,9 +1510,9 @@ def create_signwell_signature_request(offer, pdf_bytes):
 
     payload = {
         "test_mode": SIGNWELL_TEST_MODE,
-        "draft": False,
+        "draft": True,
         "reminders": True,
-        "apply_signing_order": bool(seller_parties),
+        "apply_signing_order": False,
         "embedded_signing": False,
         "with_signature_page": False,
         "custom_requester_name": (
@@ -1581,40 +1547,29 @@ def create_signwell_signature_request(offer, pdf_bytes):
     }
 
     try:
-        ok, data = post_signwell_document(payload)
-        if ok:
-            return {
-                "enabled": True,
-                "ok": True,
-                "mode": (
-                    "bundle_v14_paragraph4_multisigner"
-                    if paragraph4_forms else
-                    "bundle_v13_seller_temporary_lease_multisigner"
-                    if seller_lease_parties else "bundle_v12_buyer_only_all_addenda"
-                ),
-                "test_mode": SIGNWELL_TEST_MODE,
-                "field_count": len(fields[0]) if fields else 0,
-                "document_id": data.get("id") or data.get("document_id"),
-                "response": data
-            }
-
+        delivered = deliver_offer_document(
+            record, payload, offer, user_id=user_id, supabase_url=SUPABASE_URL,
+            supabase_key=SUPABASE_SERVICE_ROLE_KEY, signwell_key=SIGNWELL_API_KEY,
+        )
+        data = delivered["document"]
         return {
-            "enabled": True,
-            "ok": False,
-            "mode": (
-                "bundle_v14_paragraph4_multisigner_failed"
-                if paragraph4_forms else
-                "bundle_v13_seller_temporary_lease_multisigner_failed"
-                if seller_lease_parties else "bundle_v12_buyer_only_all_addenda_failed"
-            ),
-            "test_mode": SIGNWELL_TEST_MODE,
-            "field_count": len(fields[0]) if fields else 0,
-            "signwell_error": data
+            "enabled": True, "ok": True,
+            "mode": ("bundle_v14_paragraph4_multisigner" if paragraph4_forms else
+                     "bundle_v13_seller_temporary_lease_multisigner" if seller_lease_parties
+                     else "bundle_v12_buyer_only_all_addenda"),
+            "test_mode": SIGNWELL_TEST_MODE, "field_count": len(fields[0]) if fields else 0,
+            "document_id": delivered["document_id"], "response": data,
+            "message": delivered["message"], "recovered": delivered["recovered"],
+            "delivery_state": delivered["state"],
         }
-
-    except Exception as e:
-        print("SIGNWELL EXCEPTION:", str(e))
-        return {"enabled": True, "ok": False, "mode": "exception", "error": str(e)}
+    except signwell_delivery.DeliveryPending as error:
+        return {"enabled": True, "ok": False, "deliveryUnconfirmed": True, "error": str(error)}
+    except (signwell_delivery.DeliveryUnsent, signwell_delivery.DeliveryMismatch) as error:
+        return {"enabled": True, "ok": False, "error": str(error)}
+    except Exception:
+        # A transport failure does not prove no invitation exists.
+        return {"enabled": True, "ok": False, "deliveryUnconfirmed": True,
+                "error": "Delivery could not be confirmed. Check the saved offer's signature status before retrying."}
 
 
 def money_number(v):
@@ -1637,14 +1592,15 @@ def extract_signwell_document_id(signwell_info):
     )
 
 
-def save_generated_offer_to_supabase(offer, customer_email="", signwell_info=None, subscription_user_id=None):
+def save_generated_offer_to_supabase(offer, customer_email="", signwell_info=None, subscription_user_id=None,
+                                    *, insert_id=None, expected_record=None):
     """
     Persist every paid/generated packet to hof_offers, including self-serve homebuyer checkouts.
 
     Agent/investor dashboard drafts may already be saved by the frontend. A verified subscribed
     generation updates that exact draft (or creates an owned record if the draft save failed), while
     checkout-generated homebuyer packets remain visible in Supabase/admin.
-    Supabase failures are logged but never block PDF delivery or SignWell sending.
+    Callers must confirm persistence before allowing SignWell sending.
     """
     if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
         print("SUPABASE SAVE SKIPPED: missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY")
@@ -1732,6 +1688,8 @@ def save_generated_offer_to_supabase(offer, customer_email="", signwell_info=Non
         payload = {k: v for k, v in payload.items() if v is not None}
         if trusted_user_id:
             payload["user_id"] = trusted_user_id
+        if insert_id:
+            payload["id"] = insert_id
 
         headers = {
             "apikey": SUPABASE_SERVICE_ROLE_KEY,
@@ -1740,16 +1698,20 @@ def save_generated_offer_to_supabase(offer, customer_email="", signwell_info=Non
             "Prefer": "return=representation",
         }
 
-        if trusted_user_id and existing_offer_id:
+        if trusted_user_id and existing_offer_id and not insert_id:
+            filters = {"id": f"eq.{existing_offer_id}", "user_id": f"eq.{trusted_user_id}"}
+            if expected_record is not None:
+                filters.update(signwell_document_id="is.null",
+                               status="eq." + str(expected_record["status"]),
+                               last_updated="eq." + str(expected_record["last_updated"]) if expected_record.get("last_updated") else "is.null")
             r = httpx.patch(
                 f"{SUPABASE_URL}/rest/v1/hof_offers",
-                params={"id": f"eq.{existing_offer_id}", "user_id": f"eq.{trusted_user_id}"},
+                params=filters,
                 headers=headers,
                 json=payload,
                 timeout=20,
             )
             print("SUPABASE hof_offers UPDATE STATUS:", r.status_code)
-            print("SUPABASE hof_offers UPDATE BODY:", r.text[:1000])
         else:
             r = httpx.post(
                 f"{SUPABASE_URL}/rest/v1/hof_offers",
@@ -1758,7 +1720,6 @@ def save_generated_offer_to_supabase(offer, customer_email="", signwell_info=Non
                 timeout=20,
             )
             print("SUPABASE hof_offers INSERT STATUS:", r.status_code)
-            print("SUPABASE hof_offers INSERT BODY:", r.text[:1000])
         if r.status_code not in [200, 201]:
             return None
         try:
@@ -1786,7 +1747,7 @@ def send_email(to_email, buyer_name, addr, pdf_bytes, signwell_info=None):
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
           <h2 style="color:#1a2f4a;">Your Offer is Ready, {buyer_name}!</h2>
           <p>Your filled TREC offer for <strong>{addr}</strong> is attached.</p>
-          {"<p><strong>Signature request:</strong> A SignWell signature request has also been sent to your email.</p>" if signwell_info and signwell_info.get("ok") else ""}
+          {"<p><strong>Signature request:</strong> Your SignWell signing invitation is available by email.</p>" if signwell_info and signwell_info.get("ok") and signwell_info.get("delivery_state", "sent") == "sent" else ""}
           <h3>Next Steps:</h3>
           <ol>
             <li>Review the attached PDF carefully</li>
@@ -1879,7 +1840,8 @@ def send_admin_order_email(offer, customer_email="", signwell_info=None):
     signwell_status = "Not enabled / not sent"
     signwell_doc_id = ""
     if signwell_info:
-        signwell_status = "Sent" if signwell_info.get("ok") else "Failed"
+        signwell_status = (signwell_info.get("delivery_state") or "Sent") if signwell_info.get("ok") else (
+            "Delivery unconfirmed" if signwell_info.get("deliveryUnconfirmed") else "Not sent")
         signwell_doc_id = (
             signwell_info.get("document_id")
             or signwell_info.get("response", {}).get("id", "")
@@ -2018,6 +1980,59 @@ Please comment or message me if you are available to help coordinate/show this p
         send_basic_email(buyer_email, "HomeOfferFlow Showing Request Received", customer_html)
 
 
+def prepare_offer_signing_record(offer, customer_email, *, user_id=None, checkout_session_id=None):
+    """Resolve a stable server-authorized row before any signature invitation."""
+    if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+        raise RuntimeError("Your offer could not be saved for signing. Please try again shortly.")
+    if user_id:
+        requested_id = str(offer.get("_hofOfferId") or "")
+        identity = requested_id or str(uuid.uuid5(uuid.NAMESPACE_URL,
+            "homeofferflow:owned:" + user_id + ":" + json.dumps(
+                {key: value for key, value in offer_answers(offer).items() if not key.startswith('_')},
+                sort_keys=True, separators=(',', ':'))))
+    else:
+        # Only the already-verified Stripe event may supply this namespace.
+        if not str(checkout_session_id or '').startswith('cs_'):
+            raise ValueError("The paid checkout could not be identified for signature delivery.")
+        identity = str(uuid.uuid5(uuid.NAMESPACE_URL, "homeofferflow:checkout:" + checkout_session_id))
+    identity = str(uuid.UUID(identity))
+    headers = {"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}"}
+    params = {"id": "eq." + identity, "user_id": "eq." + user_id if user_id else "is.null",
+              "select": "id,user_id,status,signwell_document_id,signwell_status,offer_data,last_updated", "limit": "1"}
+
+    def read():
+        response = httpx.get(f"{SUPABASE_URL}/rest/v1/hof_offers", params=params, headers=headers, timeout=20)
+        if response.status_code != 200:
+            raise RuntimeError("Your saved offer could not be loaded. Please try again shortly.")
+        rows = response.json()
+        return rows[0] if isinstance(rows, list) and rows else None
+
+    record = read()
+    offer["_hofOfferId"] = identity
+    if record and record.get("signwell_document_id"):
+        return record
+    if record and str(record.get("status") or '').lower() not in {'draft', 'generated', 'generation failed'}:
+        raise ValueError("This offer needs a signature status check before it can be sent again.")
+    # Guest checkout replay uses its existing saved answers; never overwrite
+    # a server-owned checkout record based on browser-supplied record IDs.
+    if not record or user_id:
+        saved_id = save_generated_offer_to_supabase(
+            offer, customer_email, subscription_user_id=user_id,
+            insert_id=None if record else identity, expected_record=record,
+        )
+        if not saved_id:
+            if record:
+                raise signwell_delivery.DeliveryPending("Your offer changed while it was being saved. Refresh its status before retrying.")
+            record = read()  # An insert conflict may be the same checkout replay.
+            if not record:
+                raise RuntimeError("Your offer could not be saved. No signature invitation was requested.")
+        else:
+            record = read()
+    if not record:
+        raise RuntimeError("Your saved offer could not be confirmed. No signature invitation was requested.")
+    return record
+
+
 def handle_checkout(event, subscription_user_id=None):
     session = event.get("data", {}).get("object", {})
 
@@ -2059,15 +2074,9 @@ def handle_checkout(event, subscription_user_id=None):
     validate_supported_offer(offer)
     pdf_bytes = fill_and_merge(offer)
 
-    signwell_info = create_signwell_signature_request(offer, pdf_bytes)
-
-    # Persist checkout-generated packets, including self-serve homebuyer orders, so Supabase/admin dashboards can see them.
-    save_generated_offer_to_supabase(
-        offer,
-        customer_email,
-        signwell_info,
-        subscription_user_id=subscription_user_id,
-    )
+    record = prepare_offer_signing_record(offer, customer_email, user_id=subscription_user_id,
+                                         checkout_session_id=session.get("id") if not subscription_user_id else None)
+    signwell_info = create_signwell_signature_request(offer, pdf_bytes, record=record, user_id=subscription_user_id)
 
     send_email(
         offer.get("buyerEmail") or customer_email,
@@ -2097,9 +2106,8 @@ def handle_checkout(event, subscription_user_id=None):
 def retry_unsent_offer_signature(offer_id, user_id):
     """Create a buyer-side SignWell request for an already generated owned offer.
 
-    This never regenerates checkout fulfillment, emails another packet, or
-    consumes another packet entitlement. It is limited to records that have no
-    provider document, so it cannot duplicate a live signature request.
+    This never repeats checkout fulfillment, emails another PDF, or consumes
+    another packet entitlement. Tracked requests reuse their existing document.
     """
     try:
         offer_uuid = str(__import__("uuid").UUID(str(offer_id or "")))
@@ -2110,42 +2118,28 @@ def retry_unsent_offer_signature(offer_id, user_id):
     headers = {"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}"}
     response = httpx.get(
         f"{SUPABASE_URL}/rest/v1/hof_offers",
-        params={"id": f"eq.{offer_uuid}", "user_id": f"eq.{user_id}", "select": "id,status,signwell_document_id,offer_data", "limit": "1"},
+        params={"id": f"eq.{offer_uuid}", "user_id": f"eq.{user_id}", "select": "id,user_id,status,signwell_document_id,offer_data,last_updated", "limit": "1"},
         headers=headers, timeout=20,
     )
     rows = response.json() if response.status_code == 200 else []
     if not rows:
         raise PermissionError("That offer is unavailable.")
     record = rows[0]
-    if record.get("signwell_document_id"):
+    journal = (record.get("offer_data") or {}).get(signwell_delivery.JOURNAL_KEY)
+    if record.get("signwell_document_id") and not isinstance(journal, dict):
         raise ValueError("This offer already has a signature request. Refresh its status instead.")
-    if str(record.get("status") or "").lower() not in {"generated", "generation failed"}:
+    if not record.get("signwell_document_id") and str(record.get("status") or "").lower() not in {"generated", "generation failed"}:
         raise ValueError("Only a generated offer without a signature request can be retried.")
     offer = dict(record.get("offer_data") or {})
     offer.pop("signwell", None)
     offer.pop("backend_saved", None)
     hydrate_paragraph4_sources(offer)
     validate_supported_offer(offer)
-    signing = create_signwell_signature_request(offer, fill_and_merge(offer))
-    if not signing.get("ok"):
-        # The offer remains retryable.  The client gets an explicit status and
-        # is never told that an invitation was sent.
-        return {"ok": False, "signwell": signing}
-    document_id = extract_signwell_document_id(signing)
-    if not document_id:
-        return {"ok": False, "signwell": signing}
-    offer["signwell"] = signing
-    now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-    patch = httpx.patch(
-        f"{SUPABASE_URL}/rest/v1/hof_offers",
-        params={"id": f"eq.{offer_uuid}", "user_id": f"eq.{user_id}"},
-        headers={**headers, "Content-Type": "application/json"},
-        json={"status": "Awaiting Signature", "signwell_document_id": document_id, "signwell_status": signing.get("status") or "sent", "offer_data": offer, "last_updated": now},
-        timeout=20,
-    )
-    if patch.status_code not in {200, 204}:
-        raise RuntimeError("The signature request was created but its offer status could not be saved.")
-    return {"ok": True, "signwell": signing, "documentId": document_id}
+    signing = create_signwell_signature_request(offer, fill_and_merge(offer), record=record, user_id=user_id)
+    return {"ok": bool(signing.get("ok")), "signwell": signing,
+            "documentId": extract_signwell_document_id(signing),
+            "message": signing.get("message"), "error": signing.get("error"),
+            "deliveryUnconfirmed": bool(signing.get("deliveryUnconfirmed"))}
 
 
 class handler(BaseHTTPRequestHandler):
@@ -2281,7 +2275,10 @@ class handler(BaseHTTPRequestHandler):
                     return
                 result = retry_unsent_offer_signature(payload.get("offerId"), user_id)
                 if not result.get("ok"):
-                    self._json(503, {"error": "Signature delivery is temporarily unavailable. Your offer is saved and no one was emailed."})
+                    self._json(409 if result.get("deliveryUnconfirmed") else 503, {
+                        "error": result.get("error") or "Delivery could not be confirmed. Check your offer's signature status.",
+                        "deliveryUnconfirmed": bool(result.get("deliveryUnconfirmed")),
+                    })
                     return
                 self._json(200, result)
                 return

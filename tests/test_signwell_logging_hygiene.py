@@ -21,8 +21,13 @@ class SignWellLoggingHygieneTests(unittest.TestCase):
     def test_failure_log_does_not_dump_signwell_response_body(self):
         for route in SIGNWELL_ROUTES:
             source = route.read_text(encoding="utf-8")
-            self.assertIn('print("SignWell document request failed with status", r.status_code)', source)
             self.assertNotIn('print("SIGNWELL RESPONSE STATUS:", r.status_code)', source)
+            self.assertNotIn('print("SIGNWELL RESPONSE BODY:', source)
+        # The production adapter no longer logs response bodies or requires
+        # the removed create-and-send helper's particular log statement.
+        adapter = (ROOT / 'lib/offer_signwell_delivery.py').read_text()
+        self.assertNotIn('print(', adapter)
+        self.assertNotIn('response.text', adapter)
 
 
 if __name__ == "__main__":

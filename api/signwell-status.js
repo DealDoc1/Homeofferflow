@@ -68,29 +68,22 @@ function parseJsonObject(value) {
 }
 
 function cleanStatusLabel(status) {
-  const raw = String(status || '').trim();
-  const compact = raw.toLowerCase().replace(/[_\s-]+/g, ' ');
-
-  if (!compact) return '';
-
-  if (compact.includes('buyer signatures complete')) return 'Buyer Signatures Complete';
-  if (compact.includes('awaiting')) return 'Awaiting Buyer Signature';
-  if (compact.includes('pending')) return 'Awaiting Buyer Signature';
-  if (compact.includes('buyer signature')) return 'Awaiting Buyer Signature';
-  if (compact.includes('viewed')) return 'Viewed';
-  if (compact.includes('in progress')) return 'Partially Signed';
-  if (compact.includes('partial')) return 'Partially Signed';
-  if (compact.includes('completed') || compact === 'complete' || compact.includes('signed')) {
-    return 'Buyer Signatures Complete';
-  }
-  if (compact.includes('declined')) return 'Declined';
-  if (compact.includes('expired')) return 'Expired';
-  if (compact.includes('sent')) return 'Awaiting Buyer Signature';
-  if (compact.includes('created') || compact.includes('generated') || compact.includes('draft')) {
-    return 'Awaiting Buyer Signature';
-  }
-
-  return raw;
+  const compact = String(status || '').trim().toLowerCase().replace(/[_\s-]+/g, ' ')
+    .replace(/^document /, '');
+  // Exact aliases only: "unsigned", "not sent" and unknown future values
+  // must never inherit a successful state from a substring match.
+  if (['buyer signatures complete', 'completed', 'complete'].includes(compact)) return 'Buyer Signatures Complete';
+  if (['sent', 'shared', 'awaiting buyer signature', 'awaiting signature', 'awaiting signatures'].includes(compact)) return 'Awaiting Buyer Signature';
+  if (compact === 'viewed') return 'Viewed';
+  // SignWell's document_signed event concerns one signer, not the packet.
+  if (['signed', 'pending', 'in progress', 'partial', 'partially signed'].includes(compact)) return 'Partially Signed';
+  if (compact === 'declined') return 'Declined';
+  if (compact === 'expired') return 'Expired';
+  if (['canceled', 'cancelled'].includes(compact)) return 'Cancelled';
+  if (compact === 'bounced') return 'Bounced';
+  if (compact === 'error') return 'Error';
+  if (['draft', 'created', 'generated', 'saved', 'draft not sent'].includes(compact)) return 'Draft - not sent';
+  return '';
 }
 
 function safeMainOfferStatus(signwellStatus) {
@@ -101,10 +94,10 @@ function safeMainOfferStatus(signwellStatus) {
   // Keep detailed signature status in signwell_status.
   // Keep status limited to safer existing workflow values.
   if (clean === 'Buyer Signatures Complete') return 'Signed';
-  if (clean === 'Partially Signed') return 'Generated';
-  if (clean === 'Awaiting Buyer Signature') return 'Generated';
-  if (clean === 'Viewed') return 'Generated';
-  if (clean === 'Declined') return 'Declined';
+  if (clean === 'Partially Signed') return 'Partially Signed';
+  if (clean === 'Awaiting Buyer Signature') return 'Sent for Signature';
+  if (clean === 'Viewed') return 'Buyer Viewed';
+  if (clean === 'Declined' || clean === 'Cancelled') return 'Rejected';
   if (clean === 'Expired') return 'Expired';
 
   return 'Generated';
@@ -150,15 +143,18 @@ function deriveStatus(document = {}) {
 
   if (docStatus) return docStatus;
 
+  // A present but unrecognized document state is not permission to infer
+  // completion from an incomplete recipient list or overwrite saved state.
+  if (document.status || document.document_status || document.state || document.data?.status || document.data?.document_status) {
+    throw new Error('The signing service returned an unrecognized status. Your saved status has not changed.');
+  }
+
   if (recipients.length) {
-    const signerRows = recipients.filter((r) => String(r.role || '').toLowerCase() !== 'cc');
-    const rows = signerRows.length ? signerRows : recipients;
-    const statuses = rows.map((r) => cleanStatusLabel(r.status)).filter(Boolean);
+    const rows = recipients.filter((r) => !['cc', 'copy', 'carbon copy'].includes(String(r.role || '').trim().toLowerCase()));
+    const statuses = rows.map((r) => cleanStatusLabel(r.status));
 
-    if (statuses.length && statuses.every((s) => s === 'Buyer Signatures Complete')) {
-      return 'Buyer Signatures Complete';
-    }
-
+    // Recipient progress is useful, but only a document-level completion
+    // confirms finalization and permits downloading the completed packet.
     if (statuses.some((s) => s === 'Buyer Signatures Complete' || s === 'Partially Signed')) {
       return 'Partially Signed';
     }
@@ -166,9 +162,12 @@ function deriveStatus(document = {}) {
     if (statuses.some((s) => s === 'Viewed')) {
       return 'Viewed';
     }
+    if (statuses.some((s) => s === 'Awaiting Buyer Signature')) {
+      return 'Awaiting Buyer Signature';
+    }
   }
 
-  return 'Awaiting Buyer Signature';
+  throw new Error('The signing service did not confirm the document status. Your saved status has not changed.');
 }
 
 async function getOfferForUser(offerId, user) {
@@ -181,7 +180,7 @@ async function getOfferForUser(offerId, user) {
   const filters = [
     `id=eq.${encodeURIComponent(offerId)}`,
     `user_id=eq.${encodeURIComponent(user.id)}`,
-    'select=id,user_id,signwell_document_id,offer_data'
+    'select=id,user_id,signwell_document_id,offer_data,status,last_updated'
   ];
 
   const rows = await supabaseRequest(`hof_offers?${filters.join('&')}`, {
@@ -203,7 +202,7 @@ async function getStandaloneAgreementForUser(agreementId, user) {
   // Standalone TXR packets are owned by the preparing agent. Preserve that
   // boundary for a manual provider refresh just as we do for offer packets.
   const rows = await supabaseRequest(
-    `hof_standalone_agreements?id=eq.${encodeURIComponent(agreementId)}&agent_user_id=eq.${encodeURIComponent(user.id)}&select=id,agent_user_id,signwell_document_id,agreement_data`,
+    `hof_standalone_agreements?id=eq.${encodeURIComponent(agreementId)}&agent_user_id=eq.${encodeURIComponent(user.id)}&select=id,agent_user_id,signwell_document_id,agreement_data,status,updated_at,signed_at`,
     { method: 'GET' }
   );
   const agreement = Array.isArray(rows) ? rows[0] : null;
@@ -217,7 +216,7 @@ async function getSellerDisclosureForUser(draftId, user) {
   // A seller disclosure remains private to the agent who prepared it. Keep
   // status refreshes and signed-PDF downloads scoped to that same owner.
   const rows = await supabaseRequest(
-    `hof_seller_disclosure_drafts?id=eq.${encodeURIComponent(draftId)}&agent_user_id=eq.${encodeURIComponent(user.id)}&select=id,agent_user_id,signwell_document_id,status,signwell_status,sent_at,signed_at`,
+    `hof_seller_disclosure_drafts?id=eq.${encodeURIComponent(draftId)}&agent_user_id=eq.${encodeURIComponent(user.id)}&select=id,agent_user_id,signwell_document_id,status,signwell_status,sent_at,signed_at,updated_at`,
     { method: 'GET' }
   );
   const draft = Array.isArray(rows) ? rows[0] : null;
@@ -265,7 +264,9 @@ async function updateOfferStatus(offer, status, documentId, document, user) {
   const offerData = parseJsonObject(offer.offer_data);
   const recipientStatuses = extractRecipientStatuses(document);
   const cleanSignwellStatus = cleanStatusLabel(status);
-  const mainStatus = safeMainOfferStatus(cleanSignwellStatus);
+  const providerMainStatus = safeMainOfferStatus(cleanSignwellStatus);
+  const mainStatus = ['Submitted', 'Accepted', 'Deleted'].includes(offer.status)
+    ? offer.status : providerMainStatus;
 
   const updatedOfferData = {
     ...offerData,
@@ -276,7 +277,7 @@ async function updateOfferStatus(offer, status, documentId, document, user) {
   };
 
   const updateRows = await supabaseRequest(
-    `hof_offers?id=eq.${encodeURIComponent(offer.id)}&user_id=eq.${encodeURIComponent(user.id)}&select=id,user_id,signwell_document_id,signwell_status,status,last_updated`,
+    `hof_offers?id=eq.${encodeURIComponent(offer.id)}&user_id=eq.${encodeURIComponent(user.id)}${offerRefreshGuard(offer, providerMainStatus)}&select=id,user_id,signwell_document_id,signwell_status,status,last_updated`,
     {
       method: 'PATCH',
       headers: { Prefer: 'return=representation' },
@@ -289,6 +290,7 @@ async function updateOfferStatus(offer, status, documentId, document, user) {
     }
   );
 
+  const updated = confirmSignatureRefresh(updateRows, offer);
   await supabaseRequest('hof_offer_events', {
     method: 'POST',
     headers: { Prefer: 'return=minimal' },
@@ -309,14 +311,45 @@ async function updateOfferStatus(offer, status, documentId, document, user) {
     })
   });
 
-  return Array.isArray(updateRows) ? updateRows[0] : updateRows;
+  return updated;
+}
+
+function offerRefreshGuard(offer, nextStatus) {
+  if (!offer.status) throw new Error('Your offer needs a fresh status check.');
+  if ((['Signed', 'Buyer Signed', 'Buyer Signatures Complete'].includes(offer.status) && nextStatus !== 'Signed') ||
+      (['Rejected', 'Expired'].includes(offer.status) && nextStatus !== offer.status)) {
+    throw new Error('This request needs a fresh status check. Your saved document has not changed.');
+  }
+  return '&status=eq.' + encodeURIComponent(offer.status) +
+    (offer.last_updated ? '&last_updated=eq.' + encodeURIComponent(offer.last_updated) : '&last_updated=is.null') +
+    (offer.signwell_document_id ? '&signwell_document_id=eq.' + encodeURIComponent(offer.signwell_document_id) : '&signwell_document_id=is.null');
 }
 
 function safeStandaloneStatus(signwellStatus) {
   const clean = cleanStatusLabel(signwellStatus);
+  if (clean === 'Draft - not sent') return 'draft';
   if (clean === 'Buyer Signatures Complete') return 'signed';
-  if (clean === 'Declined' || clean === 'Expired') return 'void';
+  if (clean === 'Declined' || clean === 'Expired' || clean === 'Cancelled') return 'void';
   return 'sent';
+}
+
+function signatureRefreshGuard(packet, nextStatus) {
+  if (!packet.updated_at || !packet.status || !packet.signwell_document_id ||
+      (['signed', 'void'].includes(packet.status) && packet.status !== nextStatus)) {
+    throw new Error('This request needs a fresh status check. Your saved document has not changed.');
+  }
+  return '&signwell_document_id=eq.' + encodeURIComponent(packet.signwell_document_id) +
+    '&updated_at=eq.' + encodeURIComponent(packet.updated_at) +
+    '&status=eq.' + encodeURIComponent(packet.status);
+}
+
+function confirmSignatureRefresh(rows, packet) {
+  if (!Array.isArray(rows) || rows.length !== 1 || rows[0].id !== packet.id) {
+    const error = new Error('This document changed while its status was being checked. Refresh again to see the latest status.');
+    error.statusCode = 409;
+    throw error;
+  }
+  return rows[0];
 }
 
 async function updateStandaloneAgreementStatus(agreement, status, documentId, document, user) {
@@ -336,10 +369,10 @@ async function updateStandaloneAgreementStatus(agreement, status, documentId, do
     agreement_data: updatedAgreementData,
     updated_at: now
   };
-  if (agreementStatus === 'signed') updatePayload.signed_at = now;
+  if (agreementStatus === 'signed' && !agreement.signed_at) updatePayload.signed_at = now;
 
   const updateRows = await supabaseRequest(
-    `hof_standalone_agreements?id=eq.${encodeURIComponent(agreement.id)}&agent_user_id=eq.${encodeURIComponent(user.id)}&select=id,agent_user_id,signwell_document_id,signwell_status,status,updated_at,signed_at`,
+    `hof_standalone_agreements?id=eq.${encodeURIComponent(agreement.id)}&agent_user_id=eq.${encodeURIComponent(user.id)}${signatureRefreshGuard(agreement, agreementStatus)}&select=id,agent_user_id,signwell_document_id,signwell_status,status,updated_at,signed_at`,
     {
       method: 'PATCH',
       headers: { Prefer: 'return=representation' },
@@ -347,6 +380,7 @@ async function updateStandaloneAgreementStatus(agreement, status, documentId, do
     }
   );
 
+  const updated = confirmSignatureRefresh(updateRows, agreement);
   await supabaseRequest('hof_offer_events', {
     method: 'POST',
     headers: { Prefer: 'return=minimal' },
@@ -361,13 +395,14 @@ async function updateStandaloneAgreementStatus(agreement, status, documentId, do
     })
   });
 
-  return Array.isArray(updateRows) ? updateRows[0] : updateRows;
+  return updated;
 }
 
 function safeSellerDisclosureStatus(signwellStatus) {
   const clean = cleanStatusLabel(signwellStatus);
+  if (clean === 'Draft - not sent') return 'draft';
   if (clean === 'Buyer Signatures Complete') return 'signed';
-  if (clean === 'Declined' || clean === 'Expired') return 'void';
+  if (clean === 'Declined' || clean === 'Expired' || clean === 'Cancelled') return 'void';
   return 'sent';
 }
 
@@ -380,10 +415,10 @@ async function updateSellerDisclosureStatus(draft, status, documentId, user) {
     status: draftStatus,
     updated_at: now
   };
-  if (draftStatus === 'signed') updatePayload.signed_at = now;
+  if (draftStatus === 'signed' && !draft.signed_at) updatePayload.signed_at = now;
 
   const updateRows = await supabaseRequest(
-    `hof_seller_disclosure_drafts?id=eq.${encodeURIComponent(draft.id)}&agent_user_id=eq.${encodeURIComponent(user.id)}&select=id,agent_user_id,signwell_document_id,status,signwell_status,sent_at,signed_at,updated_at`,
+    `hof_seller_disclosure_drafts?id=eq.${encodeURIComponent(draft.id)}&agent_user_id=eq.${encodeURIComponent(user.id)}${signatureRefreshGuard(draft, draftStatus)}&select=id,agent_user_id,signwell_document_id,status,signwell_status,sent_at,signed_at,updated_at`,
     {
       method: 'PATCH',
       headers: { Prefer: 'return=representation' },
@@ -391,7 +426,7 @@ async function updateSellerDisclosureStatus(draft, status, documentId, user) {
     }
   );
 
-  return Array.isArray(updateRows) ? updateRows[0] : updateRows;
+  return confirmSignatureRefresh(updateRows, draft);
 }
 
 module.exports = async (req, res) => {
@@ -472,7 +507,7 @@ module.exports = async (req, res) => {
     });
   } catch (err) {
     console.error('SignWell status refresh failed:', err);
-    return json(res, 400, {
+    return json(res, err?.statusCode === 409 ? 409 : 400, {
       error: err?.message || 'SignWell status refresh failed.'
     });
   }

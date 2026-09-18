@@ -12,6 +12,7 @@ from io import BytesIO
 from pathlib import Path
 
 from pypdf import PdfReader, PdfWriter
+from lib.pdf_source_audit import collect_source_hashes
 
 from lib.txr_1953 import build_signwell_fields_txr1953, render_txr_1953
 from lib.txr_1954 import build_signwell_fields_txr1954, render_txr_1954
@@ -405,7 +406,9 @@ def fill_and_merge_20_19(offer):
     validate_supported_offer(offer)
     docs = _uploaded_docs(offer)
     lease_docs = _paragraph4_documents(offer)
-    packet = verified.fill_and_merge(offer)
+    with collect_source_hashes() as source_hashes:
+        packet = verified.fill_and_merge(offer)
+    offer["_signing_source_hashes"] = source_hashes
     if not docs and not lease_docs:
         return packet
 

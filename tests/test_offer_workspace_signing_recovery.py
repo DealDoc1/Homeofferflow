@@ -52,22 +52,19 @@ process.stdout.write(JSON.stringify(results));
         self.assertNotIn("fetch('/api/", reminder)
         self.assertNotIn("mailto:", reminder)
 
-    def test_created_signwell_documents_are_immediately_treated_as_signing_work(self):
+    def test_created_provider_documents_do_not_prove_invitation_delivery(self):
         start = HTML.index("function bucketForOffer(o)")
         end = HTML.index("function signingLabel(o)", start)
         bucket = HTML[start:end]
-        self.assertIn("if (status.includes('created') && hasDoc) return 'signing';", bucket)
-        self.assertLess(
-            bucket.index("if (status.includes('created') && hasDoc) return 'signing';"),
-            bucket.index("if (status.includes('generated') || status.includes('created') || hasDoc) return 'generated';"),
-        )
+        self.assertNotIn("if (status.includes('created') && hasDoc) return 'signing';", bucket)
+        self.assertIn("if (status === 'draft - not sent') return 'generated';", bucket)
 
-    def test_pending_signwell_documents_are_treated_as_awaiting_signatures(self):
+    def test_pending_signwell_documents_are_treated_as_in_progress(self):
         status = HTML[HTML.index("function getOfferBestStatus"):HTML.index("function getOfferSigningBucket")]
-        self.assertIn("compact.includes('pending')", status)
-        self.assertIn("if (compact.includes('pending')) return 'Awaiting Buyer Signature';", HTML)
+        self.assertIn("if (compact === 'pending') return 'Partially Signed';", status)
+        self.assertIn("if (compact === 'pending') return 'Partially Signed';", HTML)
         api = (Path(__file__).resolve().parents[1] / "api" / "signwell-status.js").read_text(encoding="utf-8")
-        self.assertIn("if (compact.includes('pending')) return 'Awaiting Buyer Signature';", api)
+        self.assertIn("['signed', 'pending', 'in progress', 'partial', 'partially signed']", api)
 
     def test_automatic_signing_sync_includes_the_normalized_awaiting_buyer_status(self):
         start = HTML.index("root.hofRefreshOfferWorkspace = async function")
@@ -76,15 +73,14 @@ process.stdout.write(JSON.stringify(results));
         self.assertIn("'awaiting_buyer_signature'", refresh)
         self.assertIn("activeStatuses.has(status)", refresh)
 
-    def test_completed_provider_status_wins_over_a_stale_awaiting_alias(self):
+    def test_current_provider_status_wins_over_historical_response_aliases(self):
         start = HTML.index("function getOfferBestStatus(offer = {})")
         end = HTML.index("function getOfferSigningBucket", start)
         status = HTML[start:end]
         self.assertIn("const signwellStatuses = [", status)
         self.assertIn("const completedStatus = signwellStatuses.find", status)
-        self.assertIn("!normalized.includes('partial')", status)
-        self.assertIn("normalized.includes('complete')", status)
-        self.assertIn("const signwellStatus = completedStatus || signwellStatuses[0] || '';", status)
+        self.assertIn("['buyer signatures complete', 'completed', 'complete', 'fully signed', 'buyer signed'].includes(normalized)", status)
+        self.assertIn("const signwellStatus = offer.signwell_status || completedStatus || signwellStatuses[0] || '';", status)
         self.assertIn("const signwellStatus = getOfferBestStatus(offer);", HTML)
 
     def test_admin_dashboard_surfaces_only_an_aggregate_reminder_adoption_signal(self):

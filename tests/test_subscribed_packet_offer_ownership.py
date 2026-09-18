@@ -93,8 +93,9 @@ class SubscribedPacketOfferOwnershipTests(unittest.TestCase):
         render.assert_called_once()
         signwell.assert_called_once()
         email.assert_not_called()
-        self.assertEqual({"id": "eq.11111111-1111-1111-1111-111111111111", "user_id": "eq.user-456"}, patch.call_args.kwargs["params"])
-        self.assertEqual("Awaiting Signature", patch.call_args.kwargs["json"]["status"])
+        patch.assert_not_called()  # The coordinator now owns checkpoint/final writes.
+        self.assertEqual(signwell.call_args.kwargs['user_id'], 'user-456')
+        self.assertEqual(signwell.call_args.kwargs['record']['id'], '11111111-1111-1111-1111-111111111111')
 
 
 if __name__ == "__main__":
