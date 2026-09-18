@@ -23,6 +23,7 @@ function setup(data={},docs=[]){
 const payload='<img src=x onerror="alert(1)"> & "Client"';
 const escaped='&lt;img src=x onerror=&quot;alert(1)&quot;&gt; &amp; &quot;Client&quot;';
 const fields=['buyer1','buyer2','seller','buyerPhone','buyerEmail','buyerMailAddr','address','city','zip','county','lotNumber','blockNumber','subdivision','legalDescription','optionDays','financing','appraisalTerminateDays','nonRealtyDescription','disclosureDays','closingDate','titleCompany','agentName','agentBrokerage','brokerFeePercent'];
+fields.push('brokerDisclosure','specialProvisions','specialProvisionsText');
 for(const field of fields)test(`review displays ${field} as text`,()=>{
   const data={buyer1:'Buyer',address:'123 Main',financing:'conventional',appraisalAddendum:'additional',nonRealtyItems:'yes',sellerDisclosure:'notReceived',hasBuyerAgent:'yes',brokerFeeType:'percent',[field]:payload};
   const before=JSON.stringify(data),x=setup(data);x.buildReview();
@@ -206,4 +207,56 @@ test('blank non-realty consideration remains distinct from an explicit zero',()=
     assert.ok(x.nodes.reviewSummary.innerHTML.includes(expected+' · Refrigerator'));
     assert.equal(x.state.data.nonRealtyAmount,amount);
   }
+});
+test('review preserves complete contract disclosures and provisions without changing saved data',()=>{
+  const note='First item.\n'+payload+'\n'+'Keep every entered detail. '.repeat(40)+'FINAL ITEM';
+  const data={brokerDisclosure:note,specialProvisions:note};const before=JSON.stringify(data);
+  const x=setup(data);x.buildReview();const out=x.nodes.reviewSummary.innerHTML;
+  assert.match(out,/Additional contract information/);
+  for(const label of ['Broker or sales agent disclosure','Special provisions']){
+    assert.ok(out.includes(`<span class="rl">${label}</span><span class="rv">${x.escapeAttr(note)}</span>`));
+  }
+  assert.doesNotMatch(out,/<img|…/);
+  assert.equal(JSON.stringify(data),before);
+});
+test('blank contract information does not add empty sections or placeholders',()=>{
+  for(const value of ['',null,undefined,' \n ']){
+    const x=setup({brokerDisclosure:value,specialProvisions:value});x.buildReview();
+    assert.doesNotMatch(x.nodes.reviewSummary.innerHTML,/Additional contract information|Broker or sales agent disclosure|<span class="rl">Special provisions<\/span>/);
+  }
+});
+test('special-provisions alias precedence matches the PDF without exposing the unused value',()=>{
+  for(const primary of ['Primary instructions','',null,undefined,' \n ']){
+    const data={specialProvisions:primary,specialProvisionsText:'Legacy instructions'};
+    const x=setup(data);x.buildReview();const out=x.nodes.reviewSummary.innerHTML;
+    if(primary==='Primary instructions'){
+      assert.match(out,/Primary instructions/);assert.doesNotMatch(out,/Legacy instructions/);
+    }else if(primary===' \n '){
+      assert.doesNotMatch(out,/Legacy instructions|Additional contract information/);
+    }else{
+      assert.match(out,/Legacy instructions/);
+    }
+    assert.equal(data.specialProvisions,primary);
+  }
+});
+test('clearing contract information removes it from review without stale markup',()=>{
+  const data={brokerDisclosure:'OLD DISCLOSURE',specialProvisions:'OLD PROVISION'};
+  const x=setup(data);x.buildReview();assert.match(x.nodes.reviewSummary.innerHTML,/OLD DISCLOSURE/);
+  data.brokerDisclosure='';data.specialProvisions='';x.buildReview();
+  assert.doesNotMatch(x.nodes.reviewSummary.innerHTML,/OLD DISCLOSURE|OLD PROVISION|Additional contract information/);
+});
+test('contract information appears before the package list and does not invent an addendum',()=>{
+  const x=setup({brokerDisclosure:'Example disclosure'});x.buildReview();const out=x.nodes.reviewSummary.innerHTML;
+  assert.ok(out.indexOf('Additional contract information')>=0);
+  assert.ok(out.indexOf('Additional contract information')<out.indexOf('Your document package'));
+  assert.deepEqual(packageTags(x),['✓ TREC 1–4 Family Residential Contract']);
+});
+test('long review values retain line breaks and can wrap unbroken text on narrow screens',()=>{
+  const rule=(html.match(/\.review-long-text \.rv\s*\{([^}]+)\}/)?.[1]||'') +
+    (html.match(/\.review-row \.rv\s*\{([^}]+)\}/)?.[1]||'');
+  assert.match(rule,/white-space:\s*pre-wrap/);
+  assert.match(rule,/overflow-wrap:\s*anywhere/);
+  assert.match(rule,/min-width:\s*0/);
+  const value='X'.repeat(1000)+'\nFINAL';const x=setup({brokerDisclosure:value});x.buildReview();
+  assert.ok(x.nodes.reviewSummary.innerHTML.includes(value));
 });

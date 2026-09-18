@@ -10392,6 +10392,12 @@ function routeAfterMagicLinkIfNeeded() {
       buyerTemporaryLease: 'Buyer occupies temporarily before closing'
     }[s.possession] || '';
     const leasePrefix = sellerLease ? 'sellerTemporaryLease' : 'buyerTemporaryLease';
+    const specialProvisions = s.specialProvisions != null && s.specialProvisions !== ''
+      ? s.specialProvisions : s.specialProvisionsText;
+    const contractNoteRows = [
+      ['Broker or sales agent disclosure', s.brokerDisclosure],
+      ['Special provisions', specialProvisions]
+    ].filter(([, value]) => String(value ?? '').trim());
     const leaseRows = (sellerLease || buyerLease) ? [
       [sellerLease ? 'Lease termination date' : 'Lease start date', s[leasePrefix + (sellerLease ? 'TerminationDate' : 'StartDate')]],
       ['Daily rent', fmtM(s[leasePrefix + 'RentPerDay'])],
@@ -10456,6 +10462,10 @@ function routeAfterMagicLinkIfNeeded() {
         ${s.wantsConcessions === 'yes' ? `<div class="review-row"><span class="rl">Seller Concessions</span><span class="rv">${fmtM(s.concessionAmount)}</span></div>` : ''}
         ${s.homeWarranty === 'yes' ? `<div class="review-row"><span class="rl">Home Warranty Request</span><span class="rv">${fmtM(s.homeWarrantyAmount)}</span></div>` : ''}
       </div>
+
+      ${contractNoteRows.length ? `<div class="review-section"><div class="review-section-title">Additional contract information</div>
+        ${contractNoteRows.map(([label, value]) => `<div class="review-row review-long-text"><span class="rl">${label}</span><span class="rv">${text(value)}</span></div>`).join('')}
+      </div>` : ''}
 
       ${leaseRows.length ? `<div class="review-section"><div class="review-section-title">${sellerLease ? "Seller's" : "Buyer's"} temporary residential lease</div>
         ${leaseRows.map(([label, value]) => `<div class="review-row review-long-text"><span class="rl">${label}</span><span class="rv">${fmt(value)}</span></div>`).join('')}

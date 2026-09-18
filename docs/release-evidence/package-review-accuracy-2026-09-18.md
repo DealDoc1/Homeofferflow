@@ -65,3 +65,38 @@ through completed SignWell signing.
 
 Include this work in the next daily report as local implementation/test results,
 not deployed functionality or measured conversion/revenue improvement.
+
+## Saved contract-information review follow-up - September 18
+
+Saved offer data can retain brokerDisclosure and specialProvisions (or its
+legacy specialProvisionsText alias). Both subscribed generation and checkout
+spread that offer data into the outgoing request; the PDF renderer uses these
+values. The review screen did not display them, leaving entered contract text
+invisible before sending even though it could reach the generated PDF.
+
+The review now conditionally shows "Additional contract information" with
+"Broker or sales agent disclosure" and/or "Special provisions". It displays
+the full escaped text without shortening, uses existing multiline/wrapping
+styles, preserves the PDF's primary/legacy alias precedence, and adds no empty
+section or unrelated addendum tag. No new question or text-authoring field was
+introduced, and the review does not mutate the stored terms.
+
+Verification:
+
+- 55 actual-source JavaScript checks pass, including nine added cases for
+  all three source keys, complete text, literal markup, absent/blank values,
+  alias precedence, clearing old text, package-list ordering, existing wrap
+  rules, and unchanged source data.
+- Against the previous committed index.html, eight of those checks fail,
+  reproducing the missing information. Wrapping was already provided by the
+  shared review styles; no redundant CSS change was retained.
+- Full suite: 2,098 tests in 37.093 seconds, 2,096 passing and the same two
+  TXR-1507 approved-map reference failures. Final JavaScript checks were rerun
+  after removing redundant CSS and strengthening the section-order assertion.
+- Browser/responsive visual QA and live end-to-end behavior are unverified.
+  Unit/runtime checks alone are not a visual or deployed completion claim.
+
+Saved locally only. No production changes, emails, Git push, Vercel usage,
+source-PDF changes, or signature-map changes. The separate generated-PDF
+preservation is documented in contract-terms-continuation-2026-09-18.md;
+neither change resolves the outstanding completed-SignWell placement check.
