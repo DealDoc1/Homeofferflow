@@ -6,11 +6,12 @@ from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen.canvas import Canvas
 from lib.pdf_text import draw_text, text_width
 from lib.repair_continuation import render_text_continuation, continuation_field
+from lib.txr_source_imprint import remove_known_source_imprint
 
 
 PAGE_WIDTH = 612
 PAGE_HEIGHT = 792
-RENDER_REVISION = 'txr-1919-2026-09-18-source-blanks-v2'
+RENDER_REVISION = 'txr-1919-2026-09-18-neutral-source-v3'
 
 # (x, PDF baseline, available width), measured from the 11-07-2022 source.
 BLANKS = {
@@ -162,8 +163,10 @@ def render_txr_1919(source_pdf_bytes, data):
     pages, overflow = answer_layout(data)
     overlays = [PdfReader(BytesIO(_page_one(data, pages[1]))), PdfReader(BytesIO(_page_two(pages[2])))]
     writer = PdfWriter()
-    for index, page in enumerate(source.pages):
+    for page in source.pages:
         writer.add_page(page)
+    remove_known_source_imprint(writer, source_pdf_bytes, 'TXR-1919')
+    for index in range(len(source.pages)):
         writer.pages[index].merge_page(overlays[index].pages[0])
     continuation = _continuation(data, overflow)
     if continuation:

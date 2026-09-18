@@ -8,7 +8,7 @@ The original source file and copyright/form-identification text stay intact.
 import hashlib
 
 
-# Source PDF bytes remain private. Hashes identify the four reviewed originals;
+# Source PDF bytes remain private. Hashes identify the reviewed originals;
 # each page lists the two isolated TJ operations in its production imprint.
 SOURCE_IMPRINTS = {
     'TXR-1501': ('d723f46e9cead0b6bf5ff288687475660f4246a54ebb874524d6cce11579f5dd',
@@ -18,6 +18,14 @@ SOURCE_IMPRINTS = {
     'TXR-1507': ('ff3c3682f68036d502314ca6bb2230c28d8e0b1ca5a4a5d4816a66f9f415b46f',
                  ((71, 85), (99, 113))),
     'TXR-1508': ('b0c9a058a1333b4ee46f9fbaab2a54d306f8b087bca6d7c9b417ee95e52ede40',
+                 ((99, 113),)),
+    'TXR-1905': ('79f6b8e8b4faa8293abddf4e298f39dbaada703919812c01726c9721af5b0cf3',
+                 ((99, 113),)),
+    'TXR-1919': ('048dfe44ddd32b2106fbc07189f410ba554defb30ba6ab072ac420eddb10b27f',
+                 ((71, 85), (99, 113))),
+    'TXR-1953': ('00075ab42b6d7f234c5e70197f02fadb736b2ff3ee02a0dc1f5499535b045fc3',
+                 ((99, 113),)),
+    'TXR-1954': ('e96fe7d35245aee60920ba264ef870542199fa201e49382a6eac27718fabdc28',
                  ((99, 113),)),
 }
 IMPRINT_LINES = (

@@ -1,20 +1,22 @@
 """A precise source-imprint removal must not become a general text scrubber."""
 import copy
 import hashlib
+import importlib
 from io import BytesIO
 import unittest
 from unittest.mock import patch
 from pypdf import PdfReader, PdfWriter
 from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject, ArrayObject, TextStringObject, NumberObject
 from lib import txr_source_imprint as MODULE
+from tests.test_txr_signing_request_path import MODULE as ADMIN
 
 
-def fixture():
+def fixture(pages=2):
     writer = PdfWriter()
     content = (b'BT /F1 10 Tf 40 700 Td [(Legal terms and copyright; Sample Person)] TJ ET\n'
                b'BT 34 25 Td [(Sample Office)] TJ ET\nBT 34 17 Td [(Sample Person)] TJ ET\n'
                b'0 0 m 20 20 l S\n')
-    for _ in range(2):
+    for _ in range(pages):
         page = writer.add_blank_page(612, 792)
         page[NameObject('/Resources')] = DictionaryObject({NameObject('/Font'): DictionaryObject({
             NameObject('/F1'): DictionaryObject({NameObject('/Type'): NameObject('/Font'),
@@ -92,8 +94,41 @@ class SourceImprintTests(unittest.TestCase):
 
     def test_known_source_manifest_has_only_the_reviewed_form_pages(self):
         self.assertEqual({code: len(plan) for code, (_, plan) in MODULE.SOURCE_IMPRINTS.items()},
-                         {'TXR-1501': 6, 'TXR-1506': 6, 'TXR-1507': 2, 'TXR-1508': 1})
+                         {'TXR-1501': 6, 'TXR-1506': 6, 'TXR-1507': 2, 'TXR-1508': 1,
+                          'TXR-1905': 1, 'TXR-1919': 2, 'TXR-1953': 1, 'TXR-1954': 1})
         self.assertTrue(all(len(digest) == 64 for digest, _ in MODULE.SOURCE_IMPRINTS.values()))
+
+    def test_addenda_remove_only_source_text_before_overlay_and_continuations(self):
+        for number in (1905, 1919, 1953, 1954):
+            form = f'TXR-{number}'
+            module = importlib.import_module(f'lib.txr_{number}')
+            render = getattr(module, f'render_txr_{number}')
+            pages = 2 if number == 1919 else 1
+            raw, source, _, spec, lines = fixture(pages)
+            before = [p.get_contents().get_data() for p in source.pages]
+            spec[form] = spec.pop('TXR-TEST')
+            data = {'property_address': 'A' * 400, 'buyer_names': ['Sample Office'],
+                    'seller_names': ['Sample Person']}
+            with self.subTest(form=form), patch.object(MODULE, 'SOURCE_IMPRINTS', spec), \
+                 patch.object(MODULE, 'IMPRINT_LINES', lines):
+                result = PdfReader(BytesIO(render(raw, data)))
+                self.assertGreater(len(result.pages), pages)
+                for page in result.pages[:pages]:
+                    operations = page.get_contents().operations
+                    for operands, op in operations:
+                        if op == b'TJ':
+                            self.assertNotIn(operands[0], [['Sample Office'], ['Sample Person']])
+                    self.assertIn('Legal terms and copyright; Sample Person', page.extract_text())
+                result_text = '\n'.join(p.extract_text() for p in result.pages)
+                self.assertIn('Sample Office', result_text)
+                self.assertIn('Sample Person', result_text)
+                self.assertEqual([p.get_contents().get_data() for p in source.pages], before)
+                # Any byte change means unreviewed source: no inferred scrub.
+                untouched = PdfReader(BytesIO(render(raw + b'\nchanged', data)))
+                self.assertIn('Sample Office', untouched.pages[0].extract_text())
+                self.assertTrue(any(op == b'TJ' and args[0] == ['Sample Office']
+                                    for args, op in untouched.pages[0].get_contents().operations))
+                self.assertEqual(ADMIN.TXR_RENDER_REVISIONS[form], module.RENDER_REVISION)
 
 
 if __name__ == '__main__':

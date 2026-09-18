@@ -147,13 +147,13 @@ TXR_RENDER_REVISIONS = {
     "TXR-1506": "txr-1506-2026-09-18-answer-continuation-v2",
     "TXR-1507": "txr-1507-2026-09-18-continuation-pagination-v3",
     "TXR-1508": "txr-1508-2026-09-18-answer-continuation-v2",
-    "TXR-1905": "txr-1905-2026-09-18-source-blanks-v2",
+    "TXR-1905": "txr-1905-2026-09-18-neutral-source-v3",
     "TXR-1914": "txr-1914-2026-09-18-source-blanks-v2",
     "TXR-1917": "txr-1917-2026-09-18-source-blanks-v2",
-    "TXR-1919": "txr-1919-2026-09-18-source-blanks-v2",
+    "TXR-1919": "txr-1919-2026-09-18-neutral-source-v3",
     "TXR-1948": "txr-1948-2026-09-18-editable-fields-v1",
-    "TXR-1953": "txr-1953-2026-09-18-source-blanks-v3",
-    "TXR-1954": "txr-1954-2026-09-18-source-blanks-v3",
+    "TXR-1953": "txr-1953-2026-09-18-neutral-source-v4",
+    "TXR-1954": "txr-1954-2026-09-18-neutral-source-v4",
 }
 
 TXR_SIGNING_MAP_REVISIONS = {

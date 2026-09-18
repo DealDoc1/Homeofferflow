@@ -10,6 +10,14 @@ the pending batch are also absent from production, confirmed by catalog reads.
 These are verified release dependencies, not a new login or customer approval
 requirement. See [current release evidence](release-evidence/production-release-revalidation-2026-09-18.md).
 
+Generated mineral-reservation, loan-assumption, residential-lease and
+fixture-lease addenda now remove the original supplier's contact imprint from
+the four exact reviewed blank sources. All five affected pages pass strict
+before/after content and pixel checks, and were visually reviewed. Official
+form text and attribution, entered names, and signature positions remain
+unchanged. This is **locally tested, not deployed**; see
+[addendum source-imprint evidence](release-evidence/addenda-source-imprint-2026-09-18.md).
+
 TXR-1953 residential-lease and TXR-1954 fixture-lease answers now fit measured
 source blanks or continue in full on paginated, party-initialed attachments.
 All eight pages of four source-backed specimens were visually checked.

@@ -5,11 +5,12 @@ from io import BytesIO
 from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen.canvas import Canvas
 from lib.txr_addenda_layout import SourceAnswers, draw_entries
+from lib.txr_source_imprint import remove_known_source_imprint
 
 
 PAGE_WIDTH = 612
 PAGE_HEIGHT = 792
-RENDER_REVISION = "txr-1953-2026-09-18-source-blanks-v3"
+RENDER_REVISION = "txr-1953-2026-09-18-neutral-source-v4"
 
 
 def answer_layout(data):
@@ -62,6 +63,7 @@ def render_txr_1953(source_pdf_bytes, data):
     overlay = PdfReader(packet)
     writer = PdfWriter()
     writer.add_page(source.pages[0])
+    remove_known_source_imprint(writer, source_pdf_bytes, 'TXR-1953')
     writer.pages[0].merge_page(overlay.pages[0])
     continuation = answers.continuation()
     if continuation:
