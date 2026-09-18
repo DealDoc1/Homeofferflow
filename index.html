@@ -762,7 +762,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     .review-section-title { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gold); margin-bottom: 0.6rem; padding-bottom: 0.4rem; border-bottom: 1px solid rgba(200,151,63,0.12); }
     .review-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.87rem; padding: 0.2rem 0; gap: 1rem; }
     .review-row .rl { color: var(--gray); flex-shrink: 0; }
-    .review-row .rv { font-weight: 600; text-align: right; }
+    .review-row .rv { font-weight: 600; text-align: right; min-width: 0; overflow-wrap: anywhere; }
+    .review-row.review-long-text { flex-direction: column; gap: .25rem; align-items: stretch; }
+    .review-long-text .rv { text-align: left; white-space: pre-wrap; }
     .addendum-tag { display: inline-block; background: rgba(74,140,111,0.12); color: var(--sage-light); padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin: 0.1rem; }
     .addendum-tag.na { background: rgba(255,255,255,0.05); color: var(--gray); }
     .wizard-footer { display: flex; gap: 0.85rem; padding: 1.25rem 1.5rem; border-top: 1px solid rgba(255,255,255,0.07); position: sticky; bottom: 0; background: rgba(5,14,26,0.98); backdrop-filter: blur(8px); }
@@ -10104,7 +10106,7 @@ function routeAfterMagicLinkIfNeeded() {
         s.leadBuiltBefore1978 = getRadio('leadBuiltBefore1978') || s.leadBuiltBefore1978 || '';
         s.leadDisclosureStatus = getRadio('leadDisclosureStatus') || s.leadDisclosureStatus || '';
         s.asIs = getRadio('asIs') || '';
-        s.repairsText = getVal('repairsText');
+        s.repairsText = s.asIs === 'repairs' ? getVal('repairsText') : '';
       },
 
       'step7': () => {
@@ -10417,6 +10419,7 @@ function routeAfterMagicLinkIfNeeded() {
         ${s.leadBuiltBefore1978 === 'yes' || s.leadBuiltBefore1978 === 'unknown' ? `<div class="review-row"><span class="rl">Lead Disclosure Status</span><span class="rv">${s.leadDisclosureStatus === 'received' ? 'Buyer has received it' : (s.leadDisclosureStatus === 'request' ? 'Request from listing agent/seller' : 'Needs confirmation')}</span></div>` : ''}
         <div class="review-row"><span class="rl">Seller Disclosure</span><span class="rv">${text(s.sellerDisclosure === 'received' ? 'Received' : s.sellerDisclosure === 'notReceived' ? `Not received — ${s.disclosureDays || '—'} days` : s.sellerDisclosure === 'exempt' ? 'Seller exempt' : '—')}</span></div>
         <div class="review-row"><span class="rl">Property Condition</span><span class="rv">${s.asIs === 'yes' ? 'As Is' : s.asIs === 'repairs' ? 'As Is with repairs' : '—'}</span></div>
+        ${s.asIs === 'repairs' ? `<div class="review-row review-long-text"><span class="rl">Required repairs or treatments</span><span class="rv">${fmt(s.repairsText)}</span></div>` : ''}
       </div>
 
       <div class="review-section"><div class="review-section-title">Closing</div>

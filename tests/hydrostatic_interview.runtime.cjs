@@ -34,6 +34,14 @@ function setup(data = {}) {
 const valid = {hydrostaticTesting:'yes', hydrostaticRiskAllocation:'buyer_capped', hydrostaticBuyerLiabilityLimit:'2,500.00',
                buyer1:'Buyer One', buyerEmail:'buyer@example.test', seller1Name:'Seller One', seller1Email:'seller@example.test'};
 
+test('switching to As Is clears hidden repair text from collected packet data',()=>{
+  const {context:c,radio,el}=setup({asIs:'repairs',repairsText:'Old requirement'});
+  c.getCurrentSteps=()=>['step6'];el('repairsText').value='Old requirement';radio.asIs='yes';
+  c.collectData();assert.equal(c.state.data.asIs,'yes');assert.equal(c.state.data.repairsText,'');
+  assert.equal(el('repairsText').value,'Old requirement','Keep the editable answer in case the user switches back');
+  radio.asIs='repairs';c.collectData();assert.equal(c.state.data.repairsText,'Old requirement');
+});
+
 test('all inline application scripts remain syntactically valid', () => {
   for (const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
     if (/src=|application\/ld\+json/.test(match[1])) continue;

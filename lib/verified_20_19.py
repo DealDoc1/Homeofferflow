@@ -975,8 +975,12 @@ def fill_and_merge(offer):
         seller_disc = "exempt"
     else:
         seller_disc = "notReceived"
-    as_is       = str(s.get("asIs", "yes")).strip().lower()
-    if as_is in ["no", "repairs", "repair", "seller repairs", "sellerrepairs"] or str(s.get("repairsText") or "").strip():
+    as_is       = str(s.get("asIs", "")).strip().lower()
+    # An explicit As Is election takes priority over a hidden, stale repair
+    # answer. Text-only legacy drafts still retain their repair election.
+    if as_is in ["yes", "true", "1"]:
+        as_is = "yes"
+    elif as_is in ["no", "repairs", "repair", "seller repairs", "sellerrepairs"] or str(s.get("repairsText") or "").strip():
         as_is = "repairs"
     else:
         as_is = "yes"

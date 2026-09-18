@@ -60,3 +60,20 @@ test('blank placeholders, numeric formatting, and addendum markup remain intact'
   assert.ok(out.includes('Not entered</span>'));assert.ok(out.includes('$350,000'));
   assert.ok(out.includes('$0'));assert.ok(out.includes('class="addendum-tag ">✓ Third Party Financing Addendum'));
 });
+test('active repairs are shown in full, safely, without altering agreed text',()=>{
+  const repairs='Repair the window.\n'+payload+'\n'+'Keep every agreed detail. '.repeat(20);
+  const x=setup({asIs:'repairs',repairsText:repairs});x.buildReview();
+  assert.ok(x.nodes.reviewSummary.innerHTML.includes(x.escapeAttr(repairs)));
+  assert.ok(x.nodes.reviewSummary.innerHTML.includes('review-row review-long-text'));
+  assert.ok(!x.nodes.reviewSummary.innerHTML.includes('<img'));
+  assert.equal(x.state.data.repairsText,repairs);
+});
+test('inactive repair text is not presented as an agreed requirement',()=>{
+  const x=setup({asIs:'yes',repairsText:'Old repair answer'});x.buildReview();
+  assert.ok(!x.nodes.reviewSummary.innerHTML.includes('Old repair answer'));
+  assert.ok(!x.nodes.reviewSummary.innerHTML.includes('Required repairs or treatments'));
+});
+test('missing required repair text is visibly marked rather than hidden',()=>{
+  const x=setup({asIs:'repairs',repairsText:''});x.buildReview();
+  assert.match(x.nodes.reviewSummary.innerHTML,/Required repairs or treatments<\/span><span class="rv"><span[^>]*>Not entered/);
+});
