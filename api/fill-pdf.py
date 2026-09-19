@@ -26,6 +26,8 @@ from lib.production_adapter import (
     environmental_requested,
     assumption_execution_parties,
     assumption_requested,
+    seller_financing_execution_parties,
+    seller_financing_requested,
     seller_temporary_lease_execution_parties,
     validate_supported_offer,
 )
@@ -98,6 +100,8 @@ def hydrate_paragraph4_sources(offer):
         selected.append('TXR-1917')
     if assumption_requested(offer):
         selected.append('TXR-1919')
+    if seller_financing_requested(offer):
+        selected.append('TXR-1914')
     if not selected:
         return offer
     existing = offer.get("_paragraph4_source_pdf_bytes")
@@ -460,8 +464,8 @@ def verify_checkout_preflight_signature(body, sig_header, secret):
 
 def preflight_checkout_packet(offer):
     """Render and map in memory only: no usage reservation, record or delivery."""
-    if not isinstance(offer, dict) or not assumption_requested(offer):
-        raise UnsupportedOfferPathError(['loan-assumption purchase answers'])
+    if not isinstance(offer, dict) or not (assumption_requested(offer) or seller_financing_requested(offer)):
+        raise UnsupportedOfferPathError(['seller-financing or loan-assumption purchase answers'])
     working = {key: value for key, value in offer.items()
                if not key.startswith('_') and key != 'paragraph4SourceRevisions'}
     # Reject incomplete terms and signers before touching private storage.
@@ -1432,6 +1436,7 @@ def create_signwell_signature_request(offer, pdf_bytes, *, record=None, user_id=
     mineral_parties = mineral_execution_parties(offer)
     environmental_parties = environmental_execution_parties(offer)
     assumption_parties = assumption_execution_parties(offer)
+    seller_financing_parties = seller_financing_execution_parties(offer)
     if seller_lease_parties and paragraph4_parties:
         temporary_identity = [(party["name"].casefold(), party["email"].casefold()) for party in seller_lease_parties]
         paragraph4_identity = [(party["name"].casefold(), party["email"].casefold()) for party in paragraph4_parties]
@@ -1441,7 +1446,7 @@ def create_signwell_signature_request(offer, pdf_bytes, *, record=None, user_id=
                 "ok": False,
                 "error": "Use the same Seller names and emails for every Seller-signed lease in this packet.",
             }
-    seller_parties = paragraph4_parties or seller_lease_parties or hydrostatic_parties or mineral_parties or environmental_parties or assumption_parties
+    seller_parties = paragraph4_parties or seller_lease_parties or hydrostatic_parties or mineral_parties or environmental_parties or assumption_parties or seller_financing_parties
     if seller_parties:
         if any(not _is_valid_signwell_email(party["email"]) for party in seller_parties):
             return {"enabled": True, "ok": False, "error": "Invalid seller email for SignWell"}
@@ -1494,7 +1499,14 @@ def create_signwell_signature_request(offer, pdf_bytes, *, record=None, user_id=
         contact_sentence = f"Questions? Contact {agent_name}."
 
     paragraph4_forms = paragraph4_lease_kinds(offer)
-    if assumption_parties:
+    if seller_financing_parties:
+        signing_scope_message = (
+            "Please review and sign your assigned fields. This packet includes the Seller Financing Addendum "
+            "with the selected note, payment, insurance, and escrow terms. Buyers and Sellers sign that addendum; "
+            "other signatures follow the documents included in the packet. The addendum does not create the "
+            "promissory note or deed of trust. All named signers receive invitations together and can sign independently.\n\n"
+        )
+    elif assumption_parties:
         signing_scope_message = (
             "Please review and sign your assigned fields. This packet includes the Loan Assumption Addendum "
             "with the selected loan balances and agreed terms. Buyers and Sellers sign that addendum; "
@@ -1611,8 +1623,10 @@ def create_signwell_signature_request(offer, pdf_bytes, *, record=None, user_id=
             **({"mineral_reservation_form": "TXR-1905"} if mineral_parties else {}),
             **({"environmental_form": "TXR-1917"} if environmental_parties else {}),
             **({"assumption_form": "TXR-1919"} if assumption_parties else {}),
+            **({"seller_financing_form": "TXR-1914"} if seller_financing_parties else {}),
             "test_mode": str(SIGNWELL_TEST_MODE).lower(),
             "debug_payload": (
+                "bundle_v19_seller_financing_multisigner" if seller_financing_parties else
                 "bundle_v18_assumption_multisigner" if assumption_parties else
                 "bundle_v17_environmental_multisigner" if environmental_parties else
                 "bundle_v16_mineral_multisigner" if mineral_parties else
@@ -1634,7 +1648,8 @@ def create_signwell_signature_request(offer, pdf_bytes, *, record=None, user_id=
         data = delivered["document"]
         return {
             "enabled": True, "ok": True,
-            "mode": ("bundle_v18_assumption_multisigner" if assumption_parties else
+            "mode": ("bundle_v19_seller_financing_multisigner" if seller_financing_parties else
+                     "bundle_v18_assumption_multisigner" if assumption_parties else
                      "bundle_v17_environmental_multisigner" if environmental_parties else
                      "bundle_v16_mineral_multisigner" if mineral_parties else
                      "bundle_v15_hydrostatic_multisigner" if hydrostatic_parties else

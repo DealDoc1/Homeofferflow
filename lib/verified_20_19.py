@@ -272,6 +272,9 @@ def normalize_financing(v):
         "assumption": "assumption",
         "loan assumption": "assumption",
         "loan-assumption": "assumption",
+        "seller financing": "seller_financing",
+        "seller-financing": "seller_financing",
+        "seller_financing": "seller_financing",
     }
     return aliases.get(raw, raw)
 
@@ -697,8 +700,10 @@ def build_pages_data(
         s.get("leadDisclosureAttached"),
     ))
 
-    assumption = normalize_financing(s.get('financing')) == 'assumption'
-    financed = has_loan or assumption
+    normalized_financing = normalize_financing(s.get('financing'))
+    assumption = normalized_financing == 'assumption'
+    seller_financing = normalized_financing == 'seller_financing'
+    financed = has_loan or assumption or seller_financing
     price_formatter = fmt_money
     pages[0] = [
         (280, 690, s.get("seller", "")),
@@ -717,6 +722,7 @@ def build_pages_data(
 
         (315, 284, ck(has_loan), "check_small"),
         (76, 270, ck(assumption), "check_small"),
+        (255, 270, ck(seller_financing), "check_small"),
 
         # Paragraph 4. The production adapter appends the exact corresponding
         # lease addendum before a checked option can be sent for signature.
@@ -880,6 +886,7 @@ def build_pages_data(
         (62, 667, ck(has_loan), "check_small"),
         (62, 655, ck(has_sale), "check_small"),
         (62, 642, ck(has_appraisal), "check_small"),
+        (62, 629, ck(seller_financing), "check_small"),
         (62, 590, ck(assumption), "check_small"),
 
         # Leases. Buyer and seller temporary leases are distinct Paragraph 22 rows.
@@ -960,7 +967,7 @@ def fill_and_merge(offer):
     normalized_financing_main = normalize_financing(s.get("financing", ""))
     s["financing"] = normalized_financing_main
     price = currency_amount(s.get("price"))
-    loan = currency_amount(s.get("loanAmount")) if normalized_financing_main in ['conventional', 'fha', 'va', 'usda', 'assumption'] else currency_amount(0)
+    loan = currency_amount(s.get("loanAmount")) if normalized_financing_main in ['conventional', 'fha', 'va', 'usda', 'assumption', 'seller_financing'] else currency_amount(0)
     cash = price - loan
 
     has_loan = normalized_financing_main in ["conventional", "fha", "va", "usda"]
