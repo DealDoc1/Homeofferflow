@@ -540,15 +540,28 @@ def validate_supported_offer(offer):
     if _truthy(offer.get("sellerExecutionTestMode")):
         blocked.append("staging-only Seller Temporary Residential Lease test mode")
 
-    unsupported_flags = {
-        "leadBasedPaintAttached": "generated Lead-Based Paint Addendum",
-        "attachLeadBasedPaintAddendum": "generated Lead-Based Paint Addendum",
-        "sellerLeadDisclosureAttached": "generated Lead-Based Paint Addendum",
-        "leadDisclosureAttached": "generated Lead-Based Paint Addendum",
-    }
-    for key, label in unsupported_flags.items():
-        if _truthy(offer.get(key)):
-            blocked.append(label)
+    lead_answer = _normalized(
+        offer.get("leadBuiltBefore1978") or offer.get("leadBasedPaint") or offer.get("leadRequired")
+    )
+    lead_upload = _uploaded_lead_disclosure(offer)
+    legacy_generated_lead = any(_truthy(offer.get(key)) for key in (
+        "leadBasedPaintAttached", "attachLeadBasedPaintAddendum",
+        "sellerLeadDisclosureAttached", "leadDisclosureAttached",
+    ))
+    if lead_answer in {"unknown", "not sure", "unsure"}:
+        blocked.append("confirm whether the home was built before 1978")
+    if verified.lead_required_from_offer(offer):
+        if str(offer.get("leadDisclosureStatus") or "").strip().lower() != "received":
+            blocked.append("completed lead-based paint disclosure from the listing side")
+        if not lead_upload:
+            blocked.append("uploaded lead-based paint disclosure PDF")
+    if legacy_generated_lead and not lead_upload:
+        blocked.append("uploaded lead-based paint disclosure PDF instead of a generated blank form")
+    if lead_upload:
+        # The source contract's Paragraph 22 checkbox reflects the uploaded
+        # disclosure. verified_20_19 detects the upload and will not append a
+        # second generated blank form.
+        offer["leadBasedPaintAttached"] = "yes"
 
     if blocked:
         raise UnsupportedOfferPathError(blocked)
@@ -634,6 +647,13 @@ def _uploaded_docs(offer):
             raise ValueError(f"Uploaded PDF {name} could not be read.") from exc
 
     return decoded
+
+
+def _uploaded_lead_disclosure(offer):
+    return any(
+        str(doc.get("type") or "").strip().lower() == "lead_based_paint"
+        for doc in _uploaded_docs(offer)
+    )
 
 
 def fill_and_merge_20_19(offer):

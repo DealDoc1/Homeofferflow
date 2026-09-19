@@ -29,6 +29,20 @@ class UploadedDisclosureWorkflowTests(unittest.TestCase):
         self.assertIn("type: suggestedUploadedDisclosureType(file.name)", INDEX_HTML)
         self.assertIn("I reviewed the uploaded PDFs, labels, and packet order", INDEX_HTML)
 
+    def test_pre_1978_interview_requires_and_attaches_the_actual_disclosure(self):
+        required = (
+            'id="leadDisclosureUpload"',
+            "handleLeadDisclosureUpload(this.files)",
+            "function hasLeadDisclosureUpload()",
+            "function validateLeadDisclosurePacket(data = {})",
+            "Attach the completed lead-based paint disclosure PDF before sending this offer.",
+            "type = 'lead_based_paint'",
+        )
+        for copy in required:
+            with self.subTest(copy=copy):
+                self.assertIn(copy, INDEX_HTML)
+        self.assertGreaterEqual(INDEX_HTML.count("!validateLeadDisclosurePacket(state.data)"), 2)
+
     def test_uploads_suggest_a_label_from_a_common_filename_without_removing_agent_control(self):
         self.assertIn("function suggestedUploadedDisclosureType(filename)", INDEX_HTML)
         for label in ("seller_disclosure", "survey", "hoa_documents", "pid_mud_notice", "lead_based_paint"):

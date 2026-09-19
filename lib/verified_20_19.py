@@ -128,6 +128,16 @@ def lead_pdf_path():
     )
 
 
+def has_uploaded_lead_disclosure(s):
+    docs = (s or {}).get("uploadedDisclosureDocs") or (s or {}).get("uploadedDocs") or []
+    return isinstance(docs, list) and any(
+        isinstance(doc, dict)
+        and str(doc.get("type") or "").strip().lower() == "lead_based_paint"
+        and bool(doc.get("base64") or doc.get("file_base64") or doc.get("data"))
+        for doc in docs
+    )
+
+
 def buyer_temp_lease_pdf_path():
     return find_existing_pdf(
         "buyer_temporary_residential_lease_16-7.pdf",
@@ -691,9 +701,9 @@ def build_pages_data(
         ""
     )
     lead_required = lead_required_from_offer(s)
-    # Buyer-side offer packet: pre-1978/leadBasedPaint triggers a warning only.
-    # Do not auto-attach or check the seller's lead-based paint addendum unless the agent explicitly says that addendum is attached/uploaded.
-    lead_addendum_attached = truthy(first_present(
+    # Paragraph 22 must reflect the actual seller/listing-side disclosure that
+    # production validation requires for a pre-1978 offer packet.
+    lead_addendum_attached = has_uploaded_lead_disclosure(s) or truthy(first_present(
         s.get("leadBasedPaintAttached"),
         s.get("attachLeadBasedPaintAddendum"),
         s.get("sellerLeadDisclosureAttached"),
@@ -1081,15 +1091,16 @@ def fill_and_merge(offer):
         merger.append(PdfReader(BytesIO(stamp_pdf(non_realty_pdf_path, non_realty_pages))))
 
     lead_path = lead_pdf_path()
-    lead_addendum_attached = truthy(first_present(
+    lead_addendum_uploaded = has_uploaded_lead_disclosure(s)
+    lead_addendum_attached = lead_addendum_uploaded or truthy(first_present(
         s.get("leadBasedPaintAttached"),
         s.get("attachLeadBasedPaintAddendum"),
         s.get("sellerLeadDisclosureAttached"),
         s.get("leadDisclosureAttached"),
     ))
-    if lead_addendum_attached and lead_path and os.path.exists(lead_path):
-        # Buyer-side offer packet: attach only when the agent explicitly indicates the seller's
-        # lead-based paint disclosure/addendum has been obtained and should be included.
+    if lead_addendum_attached and not lead_addendum_uploaded and lead_path and os.path.exists(lead_path):
+        # Legacy generated-form support remains isolated from uploaded seller
+        # disclosures. Production validation rejects a generated blank form.
         lead_pages = {
             0: [
                 (205, 679, addr_full, 8),
@@ -1352,12 +1363,14 @@ def build_signwell_fields(offer, pdf_bytes):
     has_appraisal = appraisal_requested(offer)
     has_non_realty = str(offer.get("nonRealtyItems") or "no").strip().lower() in {"yes", "true", "1", "on"} and bool(str(get_non_realty_description(offer) or "").strip())
     lead_required = lead_required_from_offer(offer)
-    lead_addendum_attached = truthy(first_present(
+    lead_addendum_uploaded = has_uploaded_lead_disclosure(offer)
+    lead_addendum_attached = lead_addendum_uploaded or truthy(first_present(
         offer.get("leadBasedPaintAttached"),
         offer.get("attachLeadBasedPaintAddendum"),
         offer.get("sellerLeadDisclosureAttached"),
         offer.get("leadDisclosureAttached"),
     )) and bool(lead_pdf_path())
+    generated_lead_addendum = lead_addendum_attached and not lead_addendum_uploaded
     buyer_temp_lease_attached = buyer_temp_lease_requested(offer) and bool(buyer_temp_lease_pdf_path())
     seller_temp_lease_attached = seller_temp_lease_requested(offer) and bool(seller_temp_lease_pdf_path())
     if buyer_temp_lease_attached and seller_temp_lease_attached:
@@ -1396,7 +1409,7 @@ def build_signwell_fields(offer, pdf_bytes):
     if has_non_realty:
         non_realty_page = next_page
         next_page += 1
-    if lead_addendum_attached:
+    if generated_lead_addendum:
         lead_page = next_page
         next_page += 1
     if buyer_temp_lease_attached:
@@ -1642,7 +1655,7 @@ def build_signwell_fields(offer, pdf_bytes):
         "has_hoa": has_hoa,
         "has_appraisal": has_appraisal,
         "has_non_realty": has_non_realty,
-        "lead_required_warning_only": lead_required,
+        "lead_required": lead_required,
         "lead_addendum_attached": lead_addendum_attached,
         "buyer_temp_lease_attached": buyer_temp_lease_attached,
         "seller_temp_lease_attached": seller_temp_lease_attached,
@@ -1743,7 +1756,7 @@ def create_signwell_signature_request(offer, pdf_bytes):
     # Only add the buyer-agent/broker as a SignWell recipient when an explicitly attached
     # lead-based paint disclosure needs the broker acknowledgment signed. This preserves
     # the normal buyer-only offer workflow and avoids adding a third signer to ordinary packets.
-    lead_addendum_attached_for_agent = truthy(first_present(
+    lead_addendum_attached_for_agent = not has_uploaded_lead_disclosure(offer) and truthy(first_present(
         offer.get("leadBasedPaintAttached"),
         offer.get("attachLeadBasedPaintAddendum"),
         offer.get("sellerLeadDisclosureAttached"),

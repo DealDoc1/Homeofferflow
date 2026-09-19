@@ -3980,12 +3980,18 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         </div>
 
         <div id="leadDisclosureBox" style="display:none;">
-          <div class="notice warn" style="margin-bottom:0.75rem;"><strong>Lead-Based Paint Disclosure may be required.</strong><br/>For homes built before 1978, the seller/listing side typically provides the required disclosure, known records/reports, and EPA pamphlet. Do not submit or sign without confirming this has been handled.</div>
+          <div class="notice warn" style="margin-bottom:0.75rem;"><strong>The seller’s lead-based paint disclosure is required for this packet.</strong><br/>Get the completed disclosure and any available records from the seller or listing agent before sending the offer.</div>
           <div class="radio-group-label">Has the seller/listing agent provided the Lead-Based Paint Disclosure?</div>
           <div class="radio-cards" style="margin-bottom:0.75rem;">
-            <label class="radio-card" onclick="selectCard(this,'leadDisclosureStatus','received')"><input type="radio" name="leadDisclosureStatus" value="received"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — buyer has received it</strong></div></label>
+            <label class="radio-card" onclick="selectCard(this,'leadDisclosureStatus','received')"><input type="radio" name="leadDisclosureStatus" value="received"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — buyer has received it</strong><small>Attach it below so it is included with the offer</small></div></label>
             <label class="radio-card" onclick="selectCard(this,'leadDisclosureStatus','request')"><input type="radio" name="leadDisclosureStatus" value="request"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No — request it from listing agent/seller</strong></div></label>
             <label class="radio-card" onclick="selectCard(this,'leadDisclosureStatus','unknown')"><input type="radio" name="leadDisclosureStatus" value="unknown"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Not sure</strong></div></label>
+          </div>
+          <div id="leadDisclosureUploadPanel" class="field" style="margin-top:0.85rem;">
+            <label for="leadDisclosureUpload">Attach the completed lead-based paint disclosure</label>
+            <input type="file" id="leadDisclosureUpload" accept="application/pdf,.pdf" onchange="handleLeadDisclosureUpload(this.files)"/>
+            <small style="display:block; margin-top:0.35rem; color:var(--muted);">PDF only. The exact file you attach will be added to the offer packet.</small>
+            <div id="leadDisclosureUploadStatus" class="platform-status" role="status" aria-live="polite"></div>
           </div>
         </div>
       </div>
@@ -9435,6 +9441,13 @@ function routeAfterMagicLinkIfNeeded() {
       if (getRadio('asIs') === 'repairs') requireField('repairsText', 'specific repairs required', missing);
       if (getRadio('leadBuiltBefore1978') === 'yes') {
         requireRadioSelection('leadDisclosureStatus', 'lead-based paint disclosure status', missing);
+        if (getRadio('leadDisclosureStatus') && getRadio('leadDisclosureStatus') !== 'received') {
+          missing.push('completed lead-based paint disclosure from the seller or listing agent');
+        } else if (getRadio('leadDisclosureStatus') === 'received' && !hasLeadDisclosureUpload()) {
+          missing.push('lead-based paint disclosure PDF');
+        }
+      } else if (getRadio('leadBuiltBefore1978') === 'unknown') {
+        missing.push('confirmation of whether the home was built before 1978');
       }
     }
 
@@ -10569,8 +10582,8 @@ function routeAfterMagicLinkIfNeeded() {
         <div class="review-row"><span class="rl">Survey</span><span class="rv">${s.survey === 'sellerExisting' ? 'Seller provides existing' : s.survey === 'buyerNew' ? 'Buyer orders new' : s.survey === 'noSurvey' ? 'No survey' : '—'}</span></div>
         <div class="review-row"><span class="rl">Survey Rejection Paid By</span><span class="rv">${s.survey === 'sellerExisting' ? (s.surveyIfRejectedPaidBy === 'buyer' ? 'Buyer' : s.surveyIfRejectedPaidBy === 'seller' ? 'Seller' : '—') : '—'}</span></div>
         
-        <div class="review-row"><span class="rl">Lead-Based Paint</span><span class="rv">${s.leadBuiltBefore1978 === 'yes' ? 'Built before 1978 — disclosure should be confirmed' : (s.leadBuiltBefore1978 === 'unknown' ? 'Unknown year — verify before signing' : (s.leadBuiltBefore1978 === 'no' ? 'Built 1978 or later' : '—'))}</span></div>
-        ${s.leadBuiltBefore1978 === 'yes' || s.leadBuiltBefore1978 === 'unknown' ? `<div class="review-row"><span class="rl">Lead Disclosure Status</span><span class="rv">${s.leadDisclosureStatus === 'received' ? 'Buyer has received it' : (s.leadDisclosureStatus === 'request' ? 'Request from listing agent/seller' : 'Needs confirmation')}</span></div>` : ''}
+        <div class="review-row"><span class="rl">Lead-Based Paint</span><span class="rv">${s.leadBuiltBefore1978 === 'yes' ? 'Built before 1978' : (s.leadBuiltBefore1978 === 'unknown' ? 'Year not confirmed' : (s.leadBuiltBefore1978 === 'no' ? 'Built 1978 or later' : '—'))}</span></div>
+        ${s.leadBuiltBefore1978 === 'yes' || s.leadBuiltBefore1978 === 'unknown' ? `<div class="review-row"><span class="rl">Lead Disclosure</span><span class="rv">${hasLeadDisclosureUpload() ? `Included — ${text((window.hofUploadedDisclosureDocs || []).find(d => d.type === 'lead_based_paint')?.name || 'attached PDF')}` : (s.leadDisclosureStatus === 'request' ? 'Waiting for seller/listing side' : 'Required before sending')}</span></div>` : ''}
         ${s.mud === 'yes' || s.mud === 'unknown' ? `<div class="review-row"><span class="rl">MUD / PID notices</span><span class="rv">${s.mud === 'yes' ? 'Confirm the applicable district notices with the listing side.' : 'Confirm district status and any applicable notices with the listing side.'} Upload notices to include them in this package.</span></div>` : ''}
         <div class="review-row"><span class="rl">Seller Disclosure</span><span class="rv">${text(s.sellerDisclosure === 'received' ? 'Received' : s.sellerDisclosure === 'notReceived' ? `Not received — ${s.disclosureDays || '—'} days` : s.sellerDisclosure === 'exempt' ? 'Seller exempt' : '—')}</span></div>
         <div class="review-row"><span class="rl">Property Condition</span><span class="rv">${s.asIs === 'yes' ? 'As Is' : s.asIs === 'repairs' ? 'As Is with repairs' : '—'}</span></div>
@@ -11372,6 +11385,47 @@ function routeAfterMagicLinkIfNeeded() {
     if (ack) ack.checked = false;
   }
 
+  function hasLeadDisclosureUpload() {
+    return (window.hofUploadedDisclosureDocs || []).some(doc =>
+      doc && doc.type === 'lead_based_paint' && typeof doc.base64 === 'string' && !!doc.base64
+    );
+  }
+
+  function refreshLeadDisclosureUploadStatus() {
+    const status = document.getElementById('leadDisclosureUploadStatus');
+    if (!status) return;
+    const doc = (window.hofUploadedDisclosureDocs || []).find(item =>
+      item && item.type === 'lead_based_paint' && typeof item.base64 === 'string' && !!item.base64
+    );
+    if (doc) {
+      status.textContent = 'Included in this offer packet: ' + doc.name;
+      status.className = 'platform-status show ok';
+    } else if (getRadio('leadBuiltBefore1978') === 'yes') {
+      status.textContent = 'Attach the completed disclosure before sending this offer.';
+      status.className = 'platform-status show err';
+    } else {
+      status.textContent = '';
+      status.className = 'platform-status';
+    }
+  }
+
+  async function handleLeadDisclosureUpload(fileList) {
+    const files = Array.from(fileList || []);
+    if (!files.length) return;
+    const names = new Set(files.map(file => String(file.name || '').toLowerCase()));
+    const existingDocs = new Set(window.hofUploadedDisclosureDocs || []);
+    await handleUploadedDisclosureDocs(files);
+    (window.hofUploadedDisclosureDocs || []).forEach(doc => {
+      if (!existingDocs.has(doc) && names.has(String(doc?.name || '').toLowerCase())) doc.type = 'lead_based_paint';
+    });
+    const input = document.getElementById('leadDisclosureUpload');
+    if (input) input.value = '';
+    resetUploadedDisclosureAcknowledgement();
+    renderUploadedDocsList();
+    refreshLeadDisclosureUploadStatus();
+    try { renderReview(); } catch (_) {}
+  }
+
   function setUploadedDisclosureStatus(message, type = 'err') {
     const el = document.getElementById('uploadedDocsStatus');
     if (!el) return;
@@ -11471,7 +11525,8 @@ function routeAfterMagicLinkIfNeeded() {
     }
     if (!docs.length) return true;
     const ack = document.getElementById('uploadedDisclosureAck');
-    if (!ack?.checked) {
+    const requiresGeneralAcknowledgement = docs.some(doc => doc.type !== 'lead_based_paint');
+    if (requiresGeneralAcknowledgement && !ack?.checked) {
       setUploadedDisclosureStatus('Review the uploaded PDF labels and order, then confirm that you have authority to include them.');
       return false;
     }
@@ -11481,6 +11536,26 @@ function routeAfterMagicLinkIfNeeded() {
     }
     setUploadedDisclosureStatus('');
     return true;
+  }
+
+  function validateLeadDisclosurePacket(data = {}) {
+    const leadAnswer = String(data.leadBuiltBefore1978 || getRadio('leadBuiltBefore1978') || '').toLowerCase();
+    const disclosureStatus = String(data.leadDisclosureStatus || getRadio('leadDisclosureStatus') || '').toLowerCase();
+    let message = '';
+    if (leadAnswer === 'unknown') {
+      message = 'Confirm whether the home was built before 1978 before sending this offer.';
+    } else if (leadAnswer === 'yes' && disclosureStatus !== 'received') {
+      message = 'Get the completed lead-based paint disclosure from the seller or listing agent before sending this offer.';
+    } else if (leadAnswer === 'yes' && !hasLeadDisclosureUpload()) {
+      message = 'Attach the completed lead-based paint disclosure PDF before sending this offer.';
+    }
+    if (!message) return true;
+    setPaymentStatus(message);
+    const leadStep = getCurrentSteps().indexOf('step6');
+    if (leadStep >= 0) showStep(leadStep);
+    refreshLeadDisclosureUploadStatus();
+    document.getElementById('leadDisclosureBox')?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+    return false;
   }
 
   function renderUploadedDocsList() {
@@ -11493,10 +11568,11 @@ function routeAfterMagicLinkIfNeeded() {
       box.innerHTML = '';
       if (ackRow) ackRow.style.display = 'none';
       renderUploadedDisclosureResumeNotice();
+      refreshLeadDisclosureUploadStatus();
       return;
     }
     box.style.display = 'block';
-    if (ackRow) ackRow.style.display = 'flex';
+    if (ackRow) ackRow.style.display = docs.some(doc => doc.type !== 'lead_based_paint') ? 'flex' : 'none';
     box.innerHTML = '<strong>Packet order (first listed is appended first):</strong>' + docs.map((d, i) => `
       <div class="uploaded-doc-row" data-uploaded-index="${i}" style="display:flex;gap:.45rem;align-items:center;flex-wrap:wrap;margin-top:.55rem;">
         <span style="min-width:1.25rem;font-weight:800;">${i + 1}.</span>
@@ -11511,6 +11587,8 @@ function routeAfterMagicLinkIfNeeded() {
       row.querySelector('.uploaded-doc-type')?.addEventListener('change', event => {
         docs[index].type = event.target.value;
         resetUploadedDisclosureAcknowledgement();
+        if (ackRow) ackRow.style.display = docs.some(doc => doc.type !== 'lead_based_paint') ? 'flex' : 'none';
+        refreshLeadDisclosureUploadStatus();
         try { renderReview(); } catch (e) {}
       });
       row.querySelector('.uploaded-doc-up')?.addEventListener('click', () => moveUploadedDisclosure(index, -1));
@@ -11518,6 +11596,7 @@ function routeAfterMagicLinkIfNeeded() {
       row.querySelector('.uploaded-doc-remove')?.addEventListener('click', () => removeUploadedDisclosure(index));
     });
     renderUploadedDisclosureResumeNotice();
+    refreshLeadDisclosureUploadStatus();
   }
 
   function readFileAsBase64(file) {
@@ -12152,6 +12231,7 @@ function routeAfterMagicLinkIfNeeded() {
       if (!validateEnvironmentalInputs(state.data)) return;
       if (!validateAssumptionInputs(state.data)) return;
       if (!validateSellerTemporaryLeaseInputs(state.data)) return;
+      if (typeof validateLeadDisclosurePacket === 'function' && !validateLeadDisclosurePacket(state.data)) return;
       if (!validateUploadedDisclosureDocs()) return;
 
       const paymentEmailInput = document.getElementById('paymentEmail');
@@ -12278,6 +12358,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!validateEnvironmentalInputs(state.data)) return;
     if (!validateAssumptionInputs(state.data)) return;
     if (!validateSellerTemporaryLeaseInputs(state.data)) return;
+    if (typeof validateLeadDisclosurePacket === 'function' && !validateLeadDisclosurePacket(state.data)) return;
     if (!validateUploadedDisclosureDocs()) return;
 
     const email =
