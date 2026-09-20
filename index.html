@@ -3599,6 +3599,55 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <label class="radio-card" onclick="selectCard(this,'financing','usda')"><input type="radio" name="financing" value="usda"/><div class="radio-dot"></div><div class="radio-card-text"><strong>USDA Loan</strong><small>Rural/suburban eligible areas</small></div></label>
             <label class="radio-card" onclick="selectCard(this,'financing','cash')"><input type="radio" name="financing" value="cash"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Cash</strong><small>Strongest offer type</small></div></label>
             <label class="radio-card" onclick="selectCard(this,'financing','assumption')"><input type="radio" name="financing" value="assumption"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Loan assumption</strong><small>Assume an existing loan and pay the remaining price in cash</small></div></label>
+            <label class="radio-card" onclick="selectCard(this,'financing','seller_financing')"><input type="radio" name="financing" value="seller_financing"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Seller financing</strong><small>Seller finances all or part of the purchase price</small></div></label>
+          </div>
+        </div>
+
+        <div id="sellerFinancingDetails" style="display:none">
+          <h3>What seller-financing terms did the parties agree to?</h3>
+          <p>Answer the questions below to prepare the Seller Financing Addendum. The parties should have an attorney or financial professional review the note, deed of trust, and financing terms before signing.</p>
+          <h3>Buyer credit information</h3>
+          <div class="field"><label for="sellerFinancingCreditDays">Days after the effective date to deliver credit documents</label><input id="sellerFinancingCreditDays" inputmode="numeric" maxlength="3"/></div>
+          <fieldset id="sellerFinancingCreditDocuments" tabindex="-1" style="border:0;padding:0"><legend>Documents the buyer will deliver</legend>
+            <label><input type="checkbox" name="sellerFinancingCreditDocuments" value="credit_report" onchange="updateSellerFinancingVisibility()"/> Credit report</label>
+            <label><input type="checkbox" name="sellerFinancingCreditDocuments" value="employment" onchange="updateSellerFinancingVisibility()"/> Employment and salary verification</label>
+            <label><input type="checkbox" name="sellerFinancingCreditDocuments" value="funds" onchange="updateSellerFinancingVisibility()"/> Verification of funds on deposit</label>
+            <label><input type="checkbox" name="sellerFinancingCreditDocuments" value="financial_statement" onchange="updateSellerFinancingVisibility()"/> Financial statement</label>
+            <label><input type="checkbox" name="sellerFinancingCreditDocuments" value="other" onchange="updateSellerFinancingVisibility()"/> Other</label>
+          </fieldset>
+          <div class="field" id="sellerFinancingCreditOtherField" style="display:none"><label for="sellerFinancingCreditOther">Other credit document</label><input id="sellerFinancingCreditOther" maxlength="180"/></div>
+          <h3>Promissory note</h3>
+          <div class="field-row">
+            <div class="field"><label for="sellerFinancingNoteAmount">Amount financed by the seller ($)</label><input id="sellerFinancingNoteAmount" inputmode="decimal"/></div>
+            <div class="field"><label for="sellerFinancingInterestRate">Annual interest rate (%)</label><input id="sellerFinancingInterestRate" inputmode="decimal"/></div>
+          </div>
+          <div class="field"><label for="sellerFinancingPaymentPlan">How will the note be paid?</label><select id="sellerFinancingPaymentPlan" onchange="updateSellerFinancingVisibility()"><option value="">Choose one</option><option value="one_payment">One payment</option><option value="monthly_installments">Monthly installments</option><option value="interest_only_then_installments">Interest-only period, then monthly installments</option></select></div>
+          <div id="sellerFinancingOnePaymentFields" style="display:none">
+            <div class="field-row">
+              <div class="field"><label for="sellerFinancingOnePaymentDueAfterMonths">Payment due after the note (months)</label><input id="sellerFinancingOnePaymentDueAfterMonths" inputmode="numeric" maxlength="3"/></div>
+              <div class="field"><label for="sellerFinancingOnePaymentInterestTiming">When is interest paid?</label><select id="sellerFinancingOnePaymentInterestTiming"><option value="">Choose one</option><option value="maturity">At maturity</option><option value="monthly">Monthly</option><option value="quarterly">Quarterly</option></select></div>
+            </div>
+          </div>
+          <div id="sellerFinancingInstallmentFields" style="display:none">
+            <div class="field-row">
+              <div class="field"><label for="sellerFinancingInstallmentAmount">Installment amount ($)</label><input id="sellerFinancingInstallmentAmount" inputmode="decimal"/></div>
+              <div class="field"><label for="sellerFinancingInstallmentInterestStyle">Does that amount include interest?</label><select id="sellerFinancingInstallmentInterestStyle"><option value="">Choose one</option><option value="including_interest">Includes interest</option><option value="plus_interest">Plus interest</option></select></div>
+            </div>
+            <div class="field-row">
+              <div class="field"><label for="sellerFinancingInstallmentBeginsAfterMonths">Installments begin after the note (months)</label><input id="sellerFinancingInstallmentBeginsAfterMonths" inputmode="numeric" maxlength="3"/></div>
+              <div class="field"><label for="sellerFinancingPayoffAfterMonths">Remaining balance due after the note (months)</label><input id="sellerFinancingPayoffAfterMonths" inputmode="numeric" maxlength="3"/></div>
+            </div>
+            <div class="field" id="sellerFinancingInterestOnlyField" style="display:none"><label for="sellerFinancingInterestOnlyMonths">Interest-only period (months)</label><input id="sellerFinancingInterestOnlyMonths" inputmode="numeric" maxlength="3"/></div>
+          </div>
+          <h3>Protection and servicing</h3>
+          <div class="field-row">
+            <div class="field"><label for="sellerFinancingPropertyTransfer">May the buyer transfer the property without seller consent?</label><select id="sellerFinancingPropertyTransfer"><option value="">Choose one</option><option value="consent_not_required">Yes</option><option value="consent_required">No, seller consent is required</option></select></div>
+            <div class="field"><label for="sellerFinancingCasualtyInsurance">Must the buyer maintain casualty insurance?</label><select id="sellerFinancingCasualtyInsurance"><option value="">Choose one</option><option value="required">Yes</option><option value="not_required">No</option></select></div>
+          </div>
+          <div class="field"><label for="sellerFinancingEscrow">Will taxes and insurance be escrowed?</label><select id="sellerFinancingEscrow" onchange="updateSellerFinancingVisibility()"><option value="">Choose one</option><option value="required">Yes</option><option value="not_required">No</option></select></div>
+          <div id="sellerFinancingEscrowFields" style="display:none" class="field-row">
+            <div class="field"><label for="sellerFinancingThirdPartyServicer">Will a third-party servicer manage the escrow?</label><select id="sellerFinancingThirdPartyServicer"><option value="">Choose one</option><option value="will">Yes</option><option value="will_not">No</option></select></div>
+            <div class="field"><label for="sellerFinancingEscrowCostPaidBy">Who pays the escrow-service cost?</label><select id="sellerFinancingEscrowCostPaidBy"><option value="">Choose one</option><option value="buyer">Buyer</option><option value="seller">Seller</option></select></div>
           </div>
         </div>
 
@@ -8669,6 +8718,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       if (data[group]) setRadioValue(group, data[group]);
     });
     restoreAssumptionAnswers(data);
+    restoreSellerFinancingAnswers(data);
     const residentialLease = document.getElementById('leaseResidential');
     const fixtureLease = document.getElementById('leaseFixture');
     if (residentialLease) residentialLease.checked = data.leaseResidential === 'yes' || data.leaseResidential === true;
@@ -9371,6 +9421,7 @@ function routeAfterMagicLinkIfNeeded() {
       }
 
       markAssumptionInterviewIssues(missing, false);
+      markSellerFinancingInterviewIssues(missing, false);
       const appraisalBox = document.getElementById('appraisalAddendumBox');
       const appraisalDecisionRequired = !!(appraisalBox && appraisalBox.style.display !== 'none' && !getRadio('appraisalAddendum'));
       setAppraisalAddendumRequired(appraisalDecisionRequired);
@@ -9463,6 +9514,7 @@ function routeAfterMagicLinkIfNeeded() {
       markMineralInterviewIssues(missing, true);
       markEnvironmentalInterviewIssues(missing, true);
       markAssumptionInterviewIssues(missing, true);
+      markSellerFinancingInterviewIssues(missing, true);
       if (document.getElementById('possession')?.value === 'sellerTemporaryLease') {
         requireField('seller1Name', 'seller / tenant 1 full name', missing);
         requireValidEmail('seller1Email', 'valid seller / tenant 1 email', missing);
@@ -10108,16 +10160,22 @@ function routeAfterMagicLinkIfNeeded() {
 
       'step3': () => {
         const financing = getRadio('financing');
-        const price = financing === 'assumption' ? getVal('offerPrice').replace(/,/g, '') : moneyNumber(getVal('offerPrice'));
+        const price = ['assumption','seller_financing'].includes(financing) ? getVal('offerPrice').replace(/,/g, '') : moneyNumber(getVal('offerPrice'));
         let downPayment = moneyNumber(getVal('downPayment'));
         let loanAmount = moneyNumber(getVal('loanAmount'));
 
         const assumption = assumptionInterviewData();
         Object.assign(s, assumptionAnswers(assumption));
+        const sellerFinancing = sellerFinancingInterviewData();
+        Object.assign(s, sellerFinancingAnswers(sellerFinancing));
         if (financing === 'assumption') {
           const totals = assumptionTotals(assumption);
           loanAmount = totals ? (totals.loan / 100).toFixed(2) : '';
           downPayment = totals ? (totals.cash / 100).toFixed(2) : '';
+        } else if (financing === 'seller_financing') {
+          const priceCents = assumptionCents(price), noteCents = assumptionCents(sellerFinancing.sellerFinancingNoteAmount);
+          loanAmount = noteCents === null ? '' : (noteCents / 100).toFixed(2);
+          downPayment = priceCents === null || noteCents === null || noteCents > priceCents ? '' : ((priceCents - noteCents) / 100).toFixed(2);
         } else if (financing === 'cash') {
           loanAmount = 0;
           downPayment = price || 0;
@@ -10141,7 +10199,7 @@ function routeAfterMagicLinkIfNeeded() {
         s.interestFirstYears = getVal('interestFirstYears') || '';
         s.originationCap = getVal('originationCap') || '';
         s.buyerApprovalDays = getVal('buyerApprovalDays') || '';
-        if (financing === 'assumption') {
+        if (['assumption','seller_financing'].includes(financing)) {
           ['lender','loanYears','interestRateCap','interestFirstYears','originationCap','buyerApprovalDays'].forEach(key => { s[key] = ''; });
         }
         s.appraisalAddendum = ['conventional','usda'].includes(financing) ? (getRadio('appraisalAddendum') || s.appraisalAddendum || '') : 'none';
@@ -10569,9 +10627,10 @@ function routeAfterMagicLinkIfNeeded() {
         <div class="review-row"><span class="rl">Earnest Money</span><span class="rv">${fmt(fmtM(s.earnest))}</span></div>
         <div class="review-row"><span class="rl">Option Fee</span><span class="rv">${fmt(fmtM(s.optionFee))}</span></div>
         <div class="review-row"><span class="rl">Option Period</span><span class="rv">${text(s.optionDays ? s.optionDays + ' days' : '—')}</span></div>
-        <div class="review-row"><span class="rl">Financing</span><span class="rv">${text(s.financing === 'assumption' ? 'Loan assumption' : s.financing ? s.financing.charAt(0).toUpperCase() + s.financing.slice(1) : '—')}</span></div>
-        ${hasLoan || s.financing === 'assumption' ? `<div class="review-row"><span class="rl">Down Payment / Cash</span><span class="rv">${fmtM(s.downPayment)}</span></div>` : ''}
-        ${hasLoan || s.financing === 'assumption' ? `<div class="review-row"><span class="rl">${s.financing === 'assumption' ? 'Assumed balance' : 'Loan Amount'}</span><span class="rv">${fmtM(s.loanAmount)}</span></div>` : ''}
+        <div class="review-row"><span class="rl">Financing</span><span class="rv">${text(s.financing === 'assumption' ? 'Loan assumption' : s.financing === 'seller_financing' ? 'Seller financing' : s.financing ? s.financing.charAt(0).toUpperCase() + s.financing.slice(1) : '—')}</span></div>
+        ${hasLoan || ['assumption','seller_financing'].includes(s.financing) ? `<div class="review-row"><span class="rl">Down Payment / Cash</span><span class="rv">${fmtM(s.downPayment)}</span></div>` : ''}
+        ${hasLoan || ['assumption','seller_financing'].includes(s.financing) ? `<div class="review-row"><span class="rl">${s.financing === 'assumption' ? 'Assumed balance' : s.financing === 'seller_financing' ? 'Seller-financed note' : 'Loan Amount'}</span><span class="rv">${fmtM(s.loanAmount)}</span></div>` : ''}
+        ${s.financing === 'seller_financing' ? `<div class="review-row"><span class="rl">Seller-financing terms</span><span class="rv">${text((s.sellerFinancingInterestRate || '—') + '% · ' + ({one_payment:'One payment',monthly_installments:'Monthly installments',interest_only_then_installments:'Interest-only, then installments'}[s.sellerFinancingPaymentPlan] || 'Payment plan not entered'))}</span></div>` : ''}
         ${hasAppraisal ? `<div class="review-row"><span class="rl">Appraisal Addendum</span><span class="rv">${text(s.appraisalAddendum === 'waiver' ? 'Waiver' : s.appraisalAddendum === 'partial' ? 'Partial waiver at ' + fmtM(s.appraisalPartialValue) : 'Additional termination right: ' + (s.appraisalTerminateDays || '—') + ' days / below ' + fmtM(s.appraisalTerminateValue))}</span></div>` : ''}
         ${s.nonRealtyItems === 'yes' ? `<div class="review-row review-long-text"><span class="rl">Non-Realty Items</span><span class="rv">${fmtM(s.nonRealtyAmount) || 'No separate amount'} · ${fmt(s.nonRealtyDescription)}</span></div>` : ''}
         ${(window.hofUploadedDisclosureDocs || []).length ? `<div class="review-row"><span class="rl">Uploaded documents</span><span class="rv">${text((window.hofUploadedDisclosureDocs || []).map(d => d.name).join(', '))}</span></div>` : ''}
@@ -10622,6 +10681,7 @@ function routeAfterMagicLinkIfNeeded() {
           ${atag('Mineral Reservation Addendum', s.mineralReservation === 'yes')}
           ${atag('Environmental Assessment Addendum', s.environmentalAssessment === 'yes')}
           ${atag('Loan Assumption Addendum', s.financing === 'assumption')}
+          ${atag('Seller Financing Addendum', s.financing === 'seller_financing')}
           ${atag('Residential Lease Addendum', s.leaseResidential === 'yes')}
           ${atag('Fixture Lease Addendum', s.leaseFixture === 'yes')}
           ${atag("Seller's Temporary Residential Lease", sellerLease)}
@@ -10687,6 +10747,8 @@ function routeAfterMagicLinkIfNeeded() {
     if (signing) {
       signing.textContent = s.financing === 'assumption'
         ? 'Buyers and sellers receive invitations together for the Loan Assumption Addendum. Other signatures follow the included documents. Signing does not obtain lender consent or release the seller from loan liability.'
+        : s.financing === 'seller_financing'
+        ? 'Buyers and sellers receive signing invitations together for the purchase contract, Seller Financing Addendum, and other included documents. The parties should have the promissory note and deed of trust prepared and reviewed separately.'
         : s.environmentalAssessment === 'yes'
         ? environmentalSigningSummary(s)
         : s.mineralReservation === 'yes'
@@ -10769,6 +10831,7 @@ function routeAfterMagicLinkIfNeeded() {
       const box = document.getElementById('financingDetails');
       if (box) box.style.display = ['conventional','fha','va','usda'].includes(value) ? 'flex' : 'none';
       updateAssumptionVisibility();
+      updateSellerFinancingVisibility();
       updateAppraisalAddendumVisibility(value);
       // A person can choose a financing type and immediately press Continue.
       // Apply the editable interview starting points now, rather than allowing
@@ -11725,7 +11788,6 @@ function routeAfterMagicLinkIfNeeded() {
     const blocked = [];
     const leases = String(data.leases || '').toLowerCase();
     if (['naturalresource', 'natural_resource', 'natural resource', 'natural resource lease'].includes(leases) || data.leaseNaturalResource === 'yes') blocked.push('Natural Resource Lease terms');
-    if (data.sellerFinancing === 'yes') blocked.push('Seller Financing Addendum');
     if (data.loanAssumption === 'yes' && data.financing !== 'assumption') blocked.push('Choose loan assumption and enter its terms');
     return [...new Set(blocked)];
   }
@@ -11889,6 +11951,113 @@ function routeAfterMagicLinkIfNeeded() {
     assumptionAnswerKeys().forEach(key => { const el = document.getElementById(key); if (el) el.value = data[key] ?? ''; });
     ['First','Second'].forEach(key => { const el = document.getElementById('assumption' + key + 'Enabled'); if (el) el.checked = data['assumption' + key + 'Enabled'] === true || data['assumption' + key + 'Enabled'] === 'yes'; });
     document.querySelectorAll('input[name="assumptionCreditDocuments"]').forEach(el => { el.checked = Array.isArray(data.assumptionCreditDocuments) && data.assumptionCreditDocuments.includes(el.value); });
+  }
+
+  function sellerFinancingAnswerKeys() {
+    return ['sellerFinancingCreditDays','sellerFinancingCreditOther','sellerFinancingNoteAmount','sellerFinancingInterestRate',
+      'sellerFinancingPaymentPlan','sellerFinancingOnePaymentDueAfterMonths','sellerFinancingOnePaymentInterestTiming',
+      'sellerFinancingInstallmentAmount','sellerFinancingInstallmentInterestStyle','sellerFinancingInstallmentBeginsAfterMonths',
+      'sellerFinancingPayoffAfterMonths','sellerFinancingInterestOnlyMonths','sellerFinancingPropertyTransfer',
+      'sellerFinancingCasualtyInsurance','sellerFinancingEscrow','sellerFinancingThirdPartyServicer','sellerFinancingEscrowCostPaidBy'];
+  }
+
+  function sellerFinancingInterviewData() {
+    const data = {...hydrostaticInterviewData(), financing:getRadio('financing'), price:getVal('offerPrice')};
+    sellerFinancingAnswerKeys().forEach(key => { data[key] = getVal(key); });
+    data.sellerFinancingCreditDocuments = [...document.querySelectorAll('input[name="sellerFinancingCreditDocuments"]:checked')].map(input => input.value);
+    return data;
+  }
+
+  function sellerFinancingAnswers(data) {
+    const active = data.financing === 'seller_financing';
+    const result = {sellerFinancing:active ? 'yes' : 'no', sellerFinancingCreditDocuments:active ? data.sellerFinancingCreditDocuments : []};
+    sellerFinancingAnswerKeys().forEach(key => { result[key] = active ? data[key] : ''; });
+    if (!result.sellerFinancingCreditDocuments.includes('other')) result.sellerFinancingCreditOther = '';
+    if (result.sellerFinancingPaymentPlan !== 'one_payment') {
+      result.sellerFinancingOnePaymentDueAfterMonths = '';
+      result.sellerFinancingOnePaymentInterestTiming = '';
+    }
+    if (!['monthly_installments','interest_only_then_installments'].includes(result.sellerFinancingPaymentPlan)) {
+      ['sellerFinancingInstallmentAmount','sellerFinancingInstallmentInterestStyle','sellerFinancingInstallmentBeginsAfterMonths','sellerFinancingPayoffAfterMonths','sellerFinancingInterestOnlyMonths'].forEach(key => { result[key] = ''; });
+    }
+    if (result.sellerFinancingPaymentPlan !== 'interest_only_then_installments') result.sellerFinancingInterestOnlyMonths = '';
+    if (result.sellerFinancingEscrow !== 'required') {
+      result.sellerFinancingThirdPartyServicer = '';
+      result.sellerFinancingEscrowCostPaidBy = '';
+    }
+    return result;
+  }
+
+  function sellerFinancingInterviewIssues(data, includeSigners = true) {
+    if (data.financing !== 'seller_financing') return [];
+    const issues = [], add = (id,message) => issues.push({id,message});
+    const whole = (value, allowZero = false) => /^\d{1,3}$/.test(String(value ?? '').trim()) && Number(value) >= (allowZero ? 0 : 1);
+    const money = (value, positive = false) => { const cents = assumptionCents(value); return cents !== null && (!positive || cents > 0); };
+    const rate = String(data.sellerFinancingInterestRate ?? '').trim();
+    if (!whole(data.sellerFinancingCreditDays)) add('sellerFinancingCreditDays','enter a credit-document delivery period from 1 to 999 days');
+    const docs = data.sellerFinancingCreditDocuments;
+    if (!Array.isArray(docs) || !docs.length || docs.some(value => !['credit_report','employment','funds','financial_statement','other'].includes(value))) add('sellerFinancingCreditDocuments','choose at least one credit document the buyer will deliver');
+    if (Array.isArray(docs) && docs.includes('other') && (!String(data.sellerFinancingCreditOther || '').trim() || String(data.sellerFinancingCreditOther).trim().length > 180)) add('sellerFinancingCreditOther','describe the other credit document in 180 characters or fewer');
+    if (!money(data.sellerFinancingNoteAmount, true)) add('sellerFinancingNoteAmount','enter a valid seller-financed note amount');
+    const price = assumptionCents(data.price), note = assumptionCents(data.sellerFinancingNoteAmount);
+    if (price !== null && note !== null && note > price) add('sellerFinancingNoteAmount','enter a seller-financed amount that does not exceed the offer price');
+    if (!/^\d{1,3}(?:\.\d{1,4})?$/.test(rate) || Number(rate) > 100) add('sellerFinancingInterestRate','enter an annual interest rate from 0 to 100%');
+    const plan = data.sellerFinancingPaymentPlan;
+    if (!['one_payment','monthly_installments','interest_only_then_installments'].includes(plan)) add('sellerFinancingPaymentPlan','choose how the promissory note will be paid');
+    if (plan === 'one_payment') {
+      if (!whole(data.sellerFinancingOnePaymentDueAfterMonths, true)) add('sellerFinancingOnePaymentDueAfterMonths','enter the one-payment due time from 0 to 999 months');
+      if (!['maturity','monthly','quarterly'].includes(data.sellerFinancingOnePaymentInterestTiming)) add('sellerFinancingOnePaymentInterestTiming','choose when interest is payable');
+    }
+    if (['monthly_installments','interest_only_then_installments'].includes(plan)) {
+      if (!money(data.sellerFinancingInstallmentAmount, true)) add('sellerFinancingInstallmentAmount','enter a valid installment amount');
+      if (!['including_interest','plus_interest'].includes(data.sellerFinancingInstallmentInterestStyle)) add('sellerFinancingInstallmentInterestStyle','choose whether the installment includes or is plus interest');
+      if (!whole(data.sellerFinancingInstallmentBeginsAfterMonths, true)) add('sellerFinancingInstallmentBeginsAfterMonths','enter the installment start time from 0 to 999 months');
+      if (!whole(data.sellerFinancingPayoffAfterMonths)) add('sellerFinancingPayoffAfterMonths','enter the payoff time from 1 to 999 months');
+    }
+    if (plan === 'interest_only_then_installments' && !whole(data.sellerFinancingInterestOnlyMonths)) add('sellerFinancingInterestOnlyMonths','enter the interest-only period from 1 to 999 months');
+    if (!['consent_not_required','consent_required'].includes(data.sellerFinancingPropertyTransfer)) add('sellerFinancingPropertyTransfer','choose the property-transfer consent term');
+    if (!['required','not_required'].includes(data.sellerFinancingCasualtyInsurance)) add('sellerFinancingCasualtyInsurance','choose the casualty-insurance term');
+    if (!['required','not_required'].includes(data.sellerFinancingEscrow)) add('sellerFinancingEscrow','choose whether taxes and insurance will be escrowed');
+    if (data.sellerFinancingEscrow === 'required') {
+      if (!['will','will_not'].includes(data.sellerFinancingThirdPartyServicer)) add('sellerFinancingThirdPartyServicer','choose whether a third-party escrow servicer will be used');
+      if (!['buyer','seller'].includes(data.sellerFinancingEscrowCostPaidBy)) add('sellerFinancingEscrowCostPaidBy','choose who pays the escrow-service cost');
+    }
+    return includeSigners ? issues.concat(purchaseSellerSignerIssues(data)) : issues;
+  }
+
+  function markSellerFinancingInterviewIssues(missing, includeSigners) {
+    const data = sellerFinancingInterviewData();
+    const ids = [...sellerFinancingAnswerKeys(),'sellerFinancingCreditDocuments'];
+    ids.forEach(id => { const el = document.getElementById(id); if (el) { el.style.borderColor = ''; delete el.dataset.validationInvalid; el.removeAttribute('aria-invalid'); } });
+    sellerFinancingInterviewIssues(data, includeSigners).forEach(issue => {
+      if (!missing.includes(issue.message)) missing.push(issue.message);
+      const el = document.getElementById(issue.id); if (!el) return;
+      el.style.borderColor = 'var(--warn)'; el.dataset.validationInvalid = 'true'; el.setAttribute('aria-invalid','true');
+    });
+  }
+
+  function validateSellerFinancingInputs(data) {
+    const issue = sellerFinancingInterviewIssues(data)[0];
+    if (!issue) return true;
+    setPaymentStatus(issue.message.charAt(0).toUpperCase() + issue.message.slice(1) + '.');
+    return false;
+  }
+
+  function updateSellerFinancingVisibility() {
+    const active = getRadio('financing') === 'seller_financing';
+    const data = sellerFinancingInterviewData();
+    const details = document.getElementById('sellerFinancingDetails'); if (details) details.style.display = active ? 'block' : 'none';
+    const other = document.getElementById('sellerFinancingCreditOtherField'); if (other) other.style.display = active && data.sellerFinancingCreditDocuments.includes('other') ? 'block' : 'none';
+    const one = document.getElementById('sellerFinancingOnePaymentFields'); if (one) one.style.display = active && data.sellerFinancingPaymentPlan === 'one_payment' ? 'block' : 'none';
+    const installments = document.getElementById('sellerFinancingInstallmentFields'); if (installments) installments.style.display = active && ['monthly_installments','interest_only_then_installments'].includes(data.sellerFinancingPaymentPlan) ? 'block' : 'none';
+    const interestOnly = document.getElementById('sellerFinancingInterestOnlyField'); if (interestOnly) interestOnly.style.display = active && data.sellerFinancingPaymentPlan === 'interest_only_then_installments' ? 'block' : 'none';
+    const escrow = document.getElementById('sellerFinancingEscrowFields'); if (escrow) escrow.style.display = active && data.sellerFinancingEscrow === 'required' ? 'flex' : 'none';
+    const calculator = document.getElementById('paymentCalcCard'); if (calculator && active) calculator.style.display = 'none';
+  }
+
+  function restoreSellerFinancingAnswers(data) {
+    sellerFinancingAnswerKeys().forEach(key => { const el = document.getElementById(key); if (el) el.value = data[key] ?? ''; });
+    document.querySelectorAll('input[name="sellerFinancingCreditDocuments"]').forEach(el => { el.checked = Array.isArray(data.sellerFinancingCreditDocuments) && data.sellerFinancingCreditDocuments.includes(el.value); });
   }
 
   function environmentalInterviewData() {
@@ -12230,6 +12399,7 @@ function routeAfterMagicLinkIfNeeded() {
       if (!validateMineralInputs(state.data)) return;
       if (!validateEnvironmentalInputs(state.data)) return;
       if (!validateAssumptionInputs(state.data)) return;
+      if (!validateSellerFinancingInputs(state.data)) return;
       if (!validateSellerTemporaryLeaseInputs(state.data)) return;
       if (typeof validateLeadDisclosurePacket === 'function' && !validateLeadDisclosurePacket(state.data)) return;
       if (!validateUploadedDisclosureDocs()) return;
@@ -12357,6 +12527,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!validateMineralInputs(state.data)) return;
     if (!validateEnvironmentalInputs(state.data)) return;
     if (!validateAssumptionInputs(state.data)) return;
+    if (!validateSellerFinancingInputs(state.data)) return;
     if (!validateSellerTemporaryLeaseInputs(state.data)) return;
     if (typeof validateLeadDisclosurePacket === 'function' && !validateLeadDisclosurePacket(state.data)) return;
     if (!validateUploadedDisclosureDocs()) return;
@@ -12797,6 +12968,7 @@ function routeAfterMagicLinkIfNeeded() {
       radio._smartWired = true;
       radio.addEventListener('change', () => {
         updateAssumptionVisibility();
+        updateSellerFinancingVisibility();
         const details = document.getElementById('financingDetails');
         if (details) details.style.display = ['conventional','fha','va','usda'].includes(getSelectedFinancingType()) ? 'flex' : 'none';
         updateAppraisalAddendumVisibility();
@@ -12828,8 +13000,9 @@ function routeAfterMagicLinkIfNeeded() {
     const price = getCalcNumber('offerPrice');
     const financing = getSelectedFinancingType();
     const calculator = document.getElementById('paymentCalcCard');
-    if (calculator) calculator.style.display = financing === 'assumption' ? 'none' : '';
+    if (calculator) calculator.style.display = ['assumption','seller_financing'].includes(financing) ? 'none' : '';
     if (financing === 'assumption') { updateAssumptionTotals(); return; }
+    if (financing === 'seller_financing') return;
     let loan = getCalcNumber('loanAmount');
     const down = getCalcNumber('downPayment');
 
@@ -14103,6 +14276,7 @@ function routeAfterMagicLinkIfNeeded() {
     const financingDetails = document.getElementById('financingDetails');
     if (financingDetails) financingDetails.style.display = ['conventional','fha','va','usda'].includes(financing) ? 'flex' : 'none';
     updateAssumptionVisibility();
+    updateSellerFinancingVisibility();
 
     const hoa = document.querySelector('input[name="hoa"]:checked')?.value || '';
     const hoaDetails = document.getElementById('hoaDetails');
