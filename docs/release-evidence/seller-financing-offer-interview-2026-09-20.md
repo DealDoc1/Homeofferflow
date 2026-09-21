@@ -15,11 +15,16 @@ recipients.
   and browser-wrapper coverage: 22 tests passed.
 - Existing TXR-1914 packet generation and signer-recipient geometry remained
   green.
+- Desktop local-browser walkthrough passed on 2026-09-21: selecting seller
+  financing displayed only its guided questions; the monthly-installment and
+  required-escrow branches accepted valid answers; Continue advanced to the
+  addenda step; and the browser reported no console errors.
 
 ## Release status
 
 - Production deployment: not performed.
 - Production verification: not performed.
-- Remaining for release: local visual walkthrough at desktop and mobile widths,
-  then inclusion in the next intentional bundled production deployment after
-  current Vercel headroom is confirmed.
+- Remaining for release: mobile-width visual walkthrough, then inclusion in the
+  next intentional bundled production deployment after current Vercel headroom
+  is confirmed. The current in-app browser did not expose viewport emulation,
+  so no mobile-width visual result is claimed.
