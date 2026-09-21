@@ -11496,6 +11496,9 @@ function routeAfterMagicLinkIfNeeded() {
     if (err?.code === 'packet_generation_busy' || err?.code === 'packet_generation_unconfirmed') {
       return { category: 'pending', nextStep: 'Check My Offers before trying again. This packet may already be prepared.', action: 'offers' };
     }
+    if (err?.code === 'unsupported_offer_path' || err?.code === 'checkout_answers_invalid') {
+      return { category: 'validation', nextStep: 'Review the offer details, then continue when the answers are complete.', action: 'review' };
+    }
     const message = String(err?.message || err || '').toLowerCase();
     if (/unauthori[sz]ed|forbidden|access token|session/.test(message)) {
       return { category: 'session', nextStep: 'Reopen your account dashboard to refresh access, then try again.' };
@@ -11526,10 +11529,14 @@ function routeAfterMagicLinkIfNeeded() {
     const retry = document.getElementById('packetGenerationRetryButton');
     if (!notice || !message || !retry) return;
     message.textContent = String(failure?.nextStep || 'Check My Offers before trying again.');
-    retry.textContent = failure?.action === 'account' ? 'Open Account' : failure?.action === 'offers' ? 'View My Offers' : 'Try again';
+    retry.textContent = failure?.action === 'account' ? 'Open Account' : failure?.action === 'offers' ? 'View My Offers' : failure?.action === 'review' ? 'Review offer' : 'Try again';
     retry.onclick = async () => {
       if (failure?.action === 'account') return openAccountDashboard({ tab: 'dashboard' });
       if (failure?.action === 'offers') return openAccountDashboard({ tab: 'offers' });
+      if (failure?.action === 'review') {
+        clearPacketGenerationRecoveryNotice();
+        return prevStep();
+      }
       retry.disabled = true;
       try {
         await logOfferEvent(

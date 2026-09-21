@@ -62,13 +62,13 @@ verified = _load_verified_staging_module()
 
 
 class UnsupportedOfferPathError(ValueError):
-    """Raised when an offer requests a path that is not production-verified."""
+    """Raised when an offer needs another answer before a packet can be prepared."""
 
     def __init__(self, paths):
         self.paths = list(dict.fromkeys(paths))
         super().__init__(
-            "This offer uses options that are not yet available in the production "
-            "TREC 20-19 packet: " + ", ".join(self.paths)
+            "Please review these offer details before continuing: "
+            + ", ".join(self.paths)
         )
 
 
@@ -479,7 +479,7 @@ def validate_supported_offer(offer):
         offer.get("financing") or offer.get("financingType") or ""
     )
     if financing not in {"cash", "conventional", "fha", "va", "usda", "assumption", "seller_financing"}:
-        blocked.append("unsupported financing type")
+        blocked.append("choose a financing type")
     if _truthy(offer.get('loanAssumption')) and financing != 'assumption':
         blocked.append('choose loan-assumption financing and enter its terms')
     if _truthy(offer.get('sellerFinancing')) and financing != 'seller_financing':
@@ -556,7 +556,7 @@ def validate_supported_offer(offer):
     if seller_temp_flag != seller_temp_possession:
         blocked.append("Seller Temporary Residential Lease configuration")
     if _truthy(offer.get("sellerExecutionTestMode")):
-        blocked.append("staging-only Seller Temporary Residential Lease test mode")
+        blocked.append("review the Seller Temporary Residential Lease details")
 
     lead_answer = _normalized(
         offer.get("leadBuiltBefore1978") or offer.get("leadBasedPaint") or offer.get("leadRequired")
