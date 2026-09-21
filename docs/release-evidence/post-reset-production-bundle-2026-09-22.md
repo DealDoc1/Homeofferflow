@@ -4,7 +4,7 @@
 
 - Prior verified production revision: `133a32bff9a736544c8bf9c9d04cd549c11b8570`.
 - Exact application candidate revision: `c1678c818c98b61cc11253d7e2b387b85b921f68`. The release commit may be the later protected-main merge containing this evidence-only reconciliation; the production tree remains the attached manifest.
-- Candidate manifest: 142 deployable files / 21,237,737 bytes.
+- Candidate manifest: 142 deployable files / 21,238,081 bytes.
 - Canonical production origin: `https://www.homeofferflow.com`.
 - Deployment method: one intentional, prebuilt Vercel production deployment. Automatic Git deployments and routine previews remain disabled.
 - Customer scope: the accumulated HomeOfferFlow reliability, plain-language interview, agent activation, PWA return, signing recovery, purchase-packet, and Texas-form corrections merged since the prior production revision.
@@ -82,7 +82,7 @@ The release is corrective: where the completed provider PDF exposed a defect, th
 
 ## Regression evidence
 
-- Candidate regression: 2,376 repository tests passed locally on September 21, 2026.
+- Candidate regression: 2,377 repository tests passed locally on September 21, 2026.
 - Pull requests #1253 and #1254 passed protected checks. Protected-main runs `35667003856` and `35668079386` passed after merge; their intentional Vercel release jobs were skipped.
 - `bundled-packet-golden-baseline-2026-09-21.md` records the reviewed 20-page packet and regenerated privacy-safe golden manifest.
 - `compact-signwell-geometry-qa-2026-09-18.md` records the completed six-form provider packet and refreshed privacy-safe geometry baselines.
@@ -92,6 +92,7 @@ The release is corrective: where the completed provider PDF exposed a defect, th
 - `ondemand-enrollment-resilience-2026-09-21.md` records the nonblocking brokerage-configuration load and the unchanged server-side eligibility and checkout authority.
 - `form-library-session-recovery-2026-09-21.md` records one-time expired-session recovery and suppression of repeat rejected-token function calls.
 - `ondemand-install-handoff-2026-09-21.md` records the single post-checkout PWA install surface, privacy-safe accept/dismiss measurement, and unchanged vendor-cost boundary.
+- `ondemand-magic-link-resilience-2026-09-21.md` records recovery from a rejected passwordless-auth request so a prospective subscriber is never stranded on a disabled enrollment button.
 - `seller-financing-purchase-packet-2026-09-18.md`, `loan-assumption-packet-foundation-2026-09-18.md`, `environmental-purchase-packet-2026-09-18.md`, `mineral-purchase-packet-2026-09-18.md`, and `hydrostatic-purchase-packet-2026-09-15.md` cover the new packet paths.
 - The exact release commit must rerun the full suite, golden packet rendering, standalone geometry, Supabase branch preflight, release preflight, and whitespace check in GitHub Actions.
 

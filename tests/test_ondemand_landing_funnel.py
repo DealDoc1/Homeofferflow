@@ -122,6 +122,26 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
         self.assertIn("We couldn’t open secure checkout. Please try again.", ONDEMAND)
         self.assertNotIn('showStatus(error.message, "err")', ONDEMAND)
 
+    def test_magic_link_network_rejection_restores_the_enrollment_button(self):
+        start = ONDEMAND.index("async function sendMagicLink()")
+        end = ONDEMAND.index("async function startCheckout()", start)
+        request = ONDEMAND[start:end]
+        self.assertIn("try {", request)
+        self.assertIn("catch (requestError)", request)
+        self.assertIn("error = requestError;", request)
+        self.assertIn(
+            'setBusy(button, false, "Sending…", "Email my secure sign-in link");',
+            request,
+        )
+        self.assertLess(
+            request.index("catch (requestError)"),
+            request.index('setBusy(button, false, "Sending…", "Email my secure sign-in link");'),
+        )
+        self.assertLess(
+            request.index('setBusy(button, false, "Sending…", "Email my secure sign-in link");'),
+            request.index("if (error)"),
+        )
+
     def test_optional_brokerage_config_never_blocks_sign_in_or_measurement(self):
         init_start = ONDEMAND.index("async function init()")
         init_end = ONDEMAND.index('$("signInButton").addEventListener', init_start)
