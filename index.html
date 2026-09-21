@@ -22677,7 +22677,11 @@ function routeAfterMagicLinkIfNeeded() {
   // card. Keep the short-lived cache in memory only; the server still checks
   // the current source and permission before preparing or sending a form.
   let approvedCatalogCache = null;
-  root.hofClearApprovedFormCatalog = () => { approvedCatalogCache = null; };
+  let approvedCatalogRejectedToken = '';
+  root.hofClearApprovedFormCatalog = () => {
+    approvedCatalogCache = null;
+    approvedCatalogRejectedToken = '';
+  };
   root.hofLoadApprovedFormCatalog = async function () {
     const session = root.hofAuth?.session;
     const token = session?.access_token;
@@ -22686,6 +22690,9 @@ function routeAfterMagicLinkIfNeeded() {
       root.hofClearApprovedFormCatalog();
       return [];
     }
+    if (approvedCatalogRejectedToken === token) {
+      throw new Error('Your secure session ended. Sign in again to open the form library.');
+    }
     let entry = approvedCatalogCache;
     if (!entry || entry.token !== token || entry.userId !== userId ||
         (!entry.pending && Date.now() >= entry.expiresAt)) {
@@ -22693,11 +22700,38 @@ function routeAfterMagicLinkIfNeeded() {
       approvedCatalogCache = entry;
       entry.result = (async () => {
         try {
-          const response = await fetch('/api/admin-dashboard?scope=approved_brokerage_sources', {
-            headers: { Authorization: `Bearer ${token}` }
+          const requestCatalog = currentToken => fetch('/api/admin-dashboard?scope=approved_brokerage_sources', {
+            headers: { Authorization: `Bearer ${currentToken}` }
           });
+          let response = await requestCatalog(entry.token);
+          if (response.status === 401) {
+            const client = root.getSupabaseClient?.();
+            const current = root.hofAuth?.session;
+            if (!client?.auth?.refreshSession || current?.access_token !== entry.token || current?.user?.id !== entry.userId) {
+              approvedCatalogRejectedToken = entry.token;
+              throw new Error('Your secure session ended. Sign in again to open the form library.');
+            }
+            const { data, error } = await client.auth.refreshSession();
+            const refreshed = data?.session;
+            if (error || !refreshed?.access_token || refreshed.user?.id !== entry.userId || refreshed.access_token === entry.token) {
+              approvedCatalogRejectedToken = entry.token;
+              throw new Error('Your secure session ended. Sign in again to open the form library.');
+            }
+            root.hofAuth.session = refreshed;
+            entry.token = refreshed.access_token;
+            approvedCatalogRejectedToken = '';
+            // TOKEN_REFRESHED clears the old catalog. Reattach this single
+            // in-flight request so simultaneous form cards still share it.
+            if (!approvedCatalogCache) approvedCatalogCache = entry;
+            root.updateAuthUI?.();
+            response = await requestCatalog(entry.token);
+          }
           const payload = await response.json().catch(() => ({}));
           if (!response.ok || !Array.isArray(payload.sources)) {
+            if (response.status === 401) {
+              approvedCatalogRejectedToken = entry.token;
+              throw new Error('Your secure session ended. Sign in again to open the form library.');
+            }
             throw new Error('We couldn’t load the available forms. Please try again.');
           }
           entry.expiresAt = Date.now() + 30000;
@@ -22711,7 +22745,7 @@ function routeAfterMagicLinkIfNeeded() {
       })();
     }
     const sources = await entry.result;
-    if (approvedCatalogCache !== entry || root.hofAuth?.session?.access_token !== token ||
+    if (root.hofAuth?.session?.access_token !== entry.token ||
         root.hofAuth?.session?.user?.id !== userId) {
       throw new Error('Your sign-in changed. Please reopen the document.');
     }
@@ -22734,6 +22768,9 @@ function routeAfterMagicLinkIfNeeded() {
   // internal source-management terminology to an agent.
   root.hofApprovedSourceStatusCopy = function (error) {
     const message = String(error?.message || '').toLowerCase();
+    if (message.includes('secure session ended')) {
+      return 'Your secure session ended. Sign in again to open this document.';
+    }
     if (message.includes('brokerage membership is not active') || message.includes('active brokerage membership is required')) {
       return 'We couldn’t open that document right now. Try again shortly; your saved work is still here.';
     }
