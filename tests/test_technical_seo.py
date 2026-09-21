@@ -192,7 +192,7 @@ class TechnicalSeoTests(unittest.TestCase):
             '<div class="auth-modal" id="authModal" aria-hidden="true" data-nosnippet>',
             '<div class="account-modal" id="accountModal" aria-hidden="true" data-nosnippet>',
             '<div class="feedback-modal" id="feedbackModal" aria-hidden="true" data-nosnippet>',
-            '<div class="wizard-overlay" id="wizardOverlay" data-nosnippet>',
+            '<div class="wizard-overlay" id="wizardOverlay" role="dialog" aria-modal="true" aria-label="Guided offer interview" aria-hidden="true" tabindex="-1" data-nosnippet>',
             '<div class="modal-backdrop" id="fsboSellerModal" aria-hidden="true" data-nosnippet',
             '<div class="modal-backdrop" id="foundingPartnerModal" aria-hidden="true" data-nosnippet',
         ):
