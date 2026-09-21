@@ -3607,17 +3607,19 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <div class="radio-group-label" style="margin-top:0.75rem;">Are you aware of any leases on this property?</div>
         <div class="radio-cards">
           <label class="radio-card" onclick="selectCard(this,'leases','no')"><input type="radio" name="leases" value="no"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No — not aware of any leases</strong><small>Most common for standard resale homes</small></div></label>
-          <label class="radio-card" onclick="selectCard(this,'leases','yes')"><input type="radio" name="leases" value="yes"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — one or more leases</strong><small>HomeOfferFlow will include the right addendum</small></div></label>
+          <label class="radio-card" onclick="selectCard(this,'leases','yes')"><input type="radio" name="leases" value="yes"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — one or more leases</strong><small>We’ll ask only the lease questions the contract needs</small></div></label>
           <label class="radio-card" onclick="selectCard(this,'leases','unknown')"><input type="radio" name="leases" value="unknown"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Not sure — I'll ask the listing agent</strong><small>Leave blank for now</small></div></label>
         </div>
 
         <div id="paragraph4LeaseFields" style="display:none; margin-top:0.9rem; padding:1rem; border:1px solid rgba(227,186,86,0.45); border-radius:12px; background:rgba(227,186,86,0.08);">
-          <div class="notice sage">Answer these questions once. The completed lease addendum will be placed in this offer package automatically.</div>
+          <div class="notice sage">Answer these questions once. HomeOfferFlow will complete the lease terms in the contract and include any required lease addendum.</div>
           <div class="radio-group-label" style="margin-top:0.75rem;">Which leases apply? Select all that apply.</div>
           <div class="hof-agreement-services" style="margin-bottom:0.9rem;">
             <label><input id="leaseResidential" type="checkbox"> Residential lease — tenant occupies the property</label>
             <label><input id="leaseFixture" type="checkbox"> Fixture lease — solar panels or other leased equipment</label>
+            <label><input id="leaseNaturalResource" type="checkbox"> Natural resource lease — oil, gas, minerals, water, wind, geothermal, or similar rights</label>
           </div>
+          <div id="paragraph4SellerFields">
           <div class="field-row">
             <div class="field"><label>Seller 1 full name</label><input id="paragraph4Seller1Name" type="text" placeholder="Required for signature"></div>
             <div class="field"><label>Seller 1 email</label><input id="paragraph4Seller1Email" type="email" inputmode="email" autocomplete="email" placeholder="Required for signature"></div>
@@ -3625,6 +3627,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="field-row">
             <div class="field"><label>Seller 2 full name (optional)</label><input id="paragraph4Seller2Name" type="text" placeholder="If applicable"></div>
             <div class="field"><label>Seller 2 email (optional)</label><input id="paragraph4Seller2Email" type="email" inputmode="email" autocomplete="email" placeholder="If applicable"></div>
+          </div>
           </div>
 
           <div id="residentialLeaseInterview" style="display:none; margin-top:1rem; padding-top:0.9rem; border-top:1px solid rgba(255,255,255,0.1);">
@@ -3650,6 +3653,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             </div>
             <div class="field"><label>What fixture-lease information has Buyer received?</label><select id="fixtureLeaseDelivery"><option value="">Choose one…</option><option value="received">Buyer received copies of the leases</option><option value="not_received">Copies will be delivered after the effective date</option><option value="oral_notice">Buyer received oral notice of the lease terms</option></select></div>
             <div class="field" id="fixtureLeaseOralNoticeField" style="display:none;"><label>Describe the oral fixture-lease notice</label><textarea id="fixtureLeaseOralNotice" maxlength="500" rows="2"></textarea></div>
+          </div>
+
+          <div id="naturalResourceLeaseInterview" style="display:none; margin-top:1rem; padding-top:0.9rem; border-top:1px solid rgba(255,255,255,0.1);">
+            <div class="radio-group-label">Natural resource lease</div>
+            <div class="field"><label>Has Buyer received a copy of every natural resource lease?</label><select id="leaseNRDelivered"><option value="">Choose one…</option><option value="yes">Yes — Buyer has received every lease</option><option value="no">No — Seller will deliver the leases after the effective date</option></select></div>
+            <div class="field" id="naturalResourceTerminationDaysField" style="display:none;"><label>After Buyer receives all leases, how many days does Buyer have to terminate?</label><input id="naturalResourceTerminationDays" type="number" min="1" max="999" inputmode="numeric" placeholder="Enter agreed number of days"></div>
+            <div class="notice gold" style="margin-top:0.75rem;">The contract requires Seller to deliver all natural resource leases within 3 days after the effective date when they have not already been delivered.</div>
           </div>
         </div>
       </div>
@@ -8766,7 +8776,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const map = {
       buyer1: null, buyer2:'buyer2', seller:'seller1', buyer2Email:'buyer2Email', buyerMailAddr:'buyerMailAddr', buyerPhone:'buyerPhone', buyerEmail:'buyerEmail',
       address:'propAddress', city:'propCity', zip:'propZip', state:'propState', county:'propCounty', lotNumber:'lotNumber', blockNumber:'blockNumber', subdivision:'propSubdiv', legalDescription:'legalDescription', possession:'possession',
-      price:'offerPrice', downPayment:'downPayment', loanAmount:'loanAmount', lender:'lenderName', loanYears:'loanYears', interestRateCap:'interestRateCap', interestFirstYears:'interestFirstYears', originationCap:'originationCap', buyerApprovalDays:'buyerApprovalDays', earnest:'earnestMoney', optionFee:'optionFee', optionDays:'optionDays', escrowAgent:'escrowAgent', escrowAddress:'escrowAddress', paragraph4Seller1Name:'paragraph4Seller1Name', paragraph4Seller1Email:'paragraph4Seller1Email', paragraph4Seller2Name:'paragraph4Seller2Name', paragraph4Seller2Email:'paragraph4Seller2Email', residentialLeaseStatus:'residentialLeaseStatus', residentialLeaseDelivery:'residentialLeaseDelivery', residentialLeaseDeliveryDays:'residentialLeaseDeliveryDays', residentialLeaseOralNotice:'residentialLeaseOralNotice', residentialLeaseExplanation:'residentialLeaseExplanation', leasedFixturesOther:'leasedFixturesOther', assumedFixtureLeasesOther:'assumedFixtureLeasesOther', fixtureBuyerFirstCost:'fixtureBuyerFirstCost', fixtureRemovalChoice:'fixtureRemovalChoice', fixtureLeaseDelivery:'fixtureLeaseDelivery', fixtureLeaseOralNotice:'fixtureLeaseOralNotice',
+      price:'offerPrice', downPayment:'downPayment', loanAmount:'loanAmount', lender:'lenderName', loanYears:'loanYears', interestRateCap:'interestRateCap', interestFirstYears:'interestFirstYears', originationCap:'originationCap', buyerApprovalDays:'buyerApprovalDays', earnest:'earnestMoney', optionFee:'optionFee', optionDays:'optionDays', escrowAgent:'escrowAgent', escrowAddress:'escrowAddress', paragraph4Seller1Name:'paragraph4Seller1Name', paragraph4Seller1Email:'paragraph4Seller1Email', paragraph4Seller2Name:'paragraph4Seller2Name', paragraph4Seller2Email:'paragraph4Seller2Email', residentialLeaseStatus:'residentialLeaseStatus', residentialLeaseDelivery:'residentialLeaseDelivery', residentialLeaseDeliveryDays:'residentialLeaseDeliveryDays', residentialLeaseOralNotice:'residentialLeaseOralNotice', residentialLeaseExplanation:'residentialLeaseExplanation', leasedFixturesOther:'leasedFixturesOther', assumedFixtureLeasesOther:'assumedFixtureLeasesOther', fixtureBuyerFirstCost:'fixtureBuyerFirstCost', fixtureRemovalChoice:'fixtureRemovalChoice', fixtureLeaseDelivery:'fixtureLeaseDelivery', fixtureLeaseOralNotice:'fixtureLeaseOralNotice', leaseNRDelivered:'leaseNRDelivered', naturalResourceTerminationDays:'naturalResourceTerminationDays',
       hoaName:'hoaName', hoaDays:'hoaDays', hoaReserves:'hoaReserves', salePropertyAddr:'salePropertyAddr', saleContingencyDate:'saleContingencyDate', saleWaiverDays:'saleWaiverDays', saleAdditionalEarnest:'saleAdditionalEarnest', bkupFirstContractDate:'bkupFirstContractDate', bkupTerminateDate:'bkupTerminateDate', bkupAdditionalEarnest:'bkupAdditionalEarnest', bkupAdditionalOption:'bkupAdditionalOption', bkupAdditionalDays:'bkupAdditionalDays', nonRealtyAmount:'nonRealtyAmount', nonRealtyDescription:'nonRealtyDescription', surveyDays:'surveyDays', intendedUse:'intendedUse', disclosureDays:'disclosureDays', repairsText:'repairsText', closingDate:'closingDate', seller1Name:'seller1Name', seller1Email:'seller1Email', seller2Name:'seller2Name', seller2Email:'seller2Email', sellerMailAddr:'sellerMailAddr', sellerPhone:'sellerPhone', sellerTemporaryLeaseTerminationDate:'sellerTemporaryLeaseTerminationDate', sellerTemporaryLeaseRentPerDay:'sellerTemporaryLeaseRentPerDay', sellerTemporaryLeaseDeposit:'sellerTemporaryLeaseDeposit', sellerTemporaryLeaseUtilitiesPaidByBuyer:'sellerTemporaryLeaseUtilitiesPaidByBuyer', sellerTemporaryLeasePetsAllowed:'sellerTemporaryLeasePetsAllowed', sellerTemporaryLeaseSpecialProvisions:'sellerTemporaryLeaseSpecialProvisions', sellerTemporaryLeaseHoldoverPerDay:'sellerTemporaryLeaseHoldoverPerDay', buyerTemporaryLeaseStartDate:'buyerTemporaryLeaseStartDate', buyerTemporaryLeaseRentPerDay:'buyerTemporaryLeaseRentPerDay', buyerTemporaryLeaseTotalRent:'buyerTemporaryLeaseTotalRent', buyerTemporaryLeaseDeposit:'buyerTemporaryLeaseDeposit', buyerTemporaryLeaseUtilitiesPaidBySeller:'buyerTemporaryLeaseUtilitiesPaidBySeller', buyerTemporaryLeasePetsAllowed:'buyerTemporaryLeasePetsAllowed', buyerTemporaryLeaseSpecialProvisions:'buyerTemporaryLeaseSpecialProvisions', buyerTemporaryLeaseHoldoverPerDay:'buyerTemporaryLeaseHoldoverPerDay', titleCompany:'titleCompany', agentName:'agentName', agentLicense:'agentLicense', agentEmail:'agentEmail', agentPhone:'agentPhone', agentBrokerage:'agentBrokerage', agentBrokerLicense:'agentBrokerLicense', concessionAmount:'concessionAmount', homeWarrantyAmount:'homeWarrantyAmount'
     };
     Object.assign(map, {
@@ -8812,8 +8822,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     restoreSellerFinancingAnswers(data);
     const residentialLease = document.getElementById('leaseResidential');
     const fixtureLease = document.getElementById('leaseFixture');
+    const naturalResourceLease = document.getElementById('leaseNaturalResource');
     if (residentialLease) residentialLease.checked = data.leaseResidential === 'yes' || data.leaseResidential === true;
     if (fixtureLease) fixtureLease.checked = data.leaseFixture === 'yes' || data.leaseFixture === true;
+    if (naturalResourceLease) naturalResourceLease.checked = data.leaseNaturalResource === 'yes' || data.leaseNaturalResource === true;
     const leasedFixtureTypes = new Set(data.leasedFixtureTypes || []);
     const assumedFixtureLeases = new Set(data.assumedFixtureLeases || []);
     document.querySelectorAll('input[name="leasedFixtureTypes"]').forEach(input => { input.checked = leasedFixtureTypes.has(input.value); });
@@ -9463,13 +9475,16 @@ function routeAfterMagicLinkIfNeeded() {
       if (getRadio('leases') === 'yes') {
         const residential = !!document.getElementById('leaseResidential')?.checked;
         const fixture = !!document.getElementById('leaseFixture')?.checked;
-        if (!residential && !fixture) missing.push('the residential or fixture lease type');
-        requireField('paragraph4Seller1Name', 'Seller 1 full name', missing);
-        requireValidEmail('paragraph4Seller1Email', 'valid Seller 1 email', missing);
-        const seller2Name = getVal('paragraph4Seller2Name');
-        const seller2Email = getVal('paragraph4Seller2Email');
-        if (seller2Name) requireValidEmail('paragraph4Seller2Email', 'valid Seller 2 email', missing);
-        if (seller2Email) requireField('paragraph4Seller2Name', 'Seller 2 full name', missing);
+        const naturalResource = !!document.getElementById('leaseNaturalResource')?.checked;
+        if (!residential && !fixture && !naturalResource) missing.push('the lease type');
+        if (residential || fixture) {
+          requireField('paragraph4Seller1Name', 'Seller 1 full name', missing);
+          requireValidEmail('paragraph4Seller1Email', 'valid Seller 1 email', missing);
+          const seller2Name = getVal('paragraph4Seller2Name');
+          const seller2Email = getVal('paragraph4Seller2Email');
+          if (seller2Name) requireValidEmail('paragraph4Seller2Email', 'valid Seller 2 email', missing);
+          if (seller2Email) requireField('paragraph4Seller2Name', 'Seller 2 full name', missing);
+        }
         if (residential) {
           requireField('residentialLeaseStatus', 'what happens to the residential lease at closing', missing);
           if (getVal('residentialLeaseStatus') === 'assignment') {
@@ -9488,6 +9503,10 @@ function routeAfterMagicLinkIfNeeded() {
           requireField('fixtureRemovalChoice', 'fixture removal choice', missing);
           requireField('fixtureLeaseDelivery', 'fixture lease delivery choice', missing);
           if (getVal('fixtureLeaseDelivery') === 'oral_notice') requireField('fixtureLeaseOralNotice', 'oral fixture-lease notice', missing);
+        }
+        if (naturalResource) {
+          requireField('leaseNRDelivered', 'whether Buyer received every natural resource lease', missing);
+          if (getVal('leaseNRDelivered') === 'no') requireField('naturalResourceTerminationDays', 'natural resource lease termination days', missing);
         }
       }
     }
@@ -10239,6 +10258,7 @@ function routeAfterMagicLinkIfNeeded() {
         s.leases = getRadio('leases');
         s.leaseResidential = s.leases === 'yes' && !!document.getElementById('leaseResidential')?.checked ? 'yes' : 'no';
         s.leaseFixture = s.leases === 'yes' && !!document.getElementById('leaseFixture')?.checked ? 'yes' : 'no';
+        s.leaseNaturalResource = s.leases === 'yes' && !!document.getElementById('leaseNaturalResource')?.checked ? 'yes' : 'no';
         s.paragraph4Seller1Name = getVal('paragraph4Seller1Name');
         s.paragraph4Seller1Email = getVal('paragraph4Seller1Email');
         s.paragraph4Seller2Name = getVal('paragraph4Seller2Name');
@@ -10256,6 +10276,8 @@ function routeAfterMagicLinkIfNeeded() {
         s.fixtureRemovalChoice = getVal('fixtureRemovalChoice');
         s.fixtureLeaseDelivery = getVal('fixtureLeaseDelivery');
         s.fixtureLeaseOralNotice = getVal('fixtureLeaseOralNotice');
+        s.leaseNRDelivered = getVal('leaseNRDelivered');
+        s.naturalResourceTerminationDays = getVal('naturalResourceTerminationDays');
       },
 
       'step3': () => {
@@ -10784,6 +10806,7 @@ function routeAfterMagicLinkIfNeeded() {
           ${atag('Seller Financing Addendum', s.financing === 'seller_financing')}
           ${atag('Residential Lease Addendum', s.leaseResidential === 'yes')}
           ${atag('Fixture Lease Addendum', s.leaseFixture === 'yes')}
+          ${atag('Natural Resource Lease terms in the purchase contract', s.leaseNaturalResource === 'yes')}
           ${atag("Seller's Temporary Residential Lease", sellerLease)}
           ${atag("Buyer's Temporary Residential Lease", buyerLease)}
           ${atag('Uploaded documents', (window.hofUploadedDisclosureDocs || []).length > 0)}
@@ -10815,6 +10838,15 @@ function routeAfterMagicLinkIfNeeded() {
       rows += row('Loan-balance difference adjusts', s.assumptionVarianceAdjustment === 'cash' ? 'Cash payable at closing' : 'Sales price');
       rows += row('Termination threshold', fmtM(s.assumptionVarianceThreshold));
       document.getElementById('reviewSummary').insertAdjacentHTML('beforeend', `<div class="review-section"><div class="review-section-title">Loan assumption</div>${rows}</div>`);
+    }
+    if (s.leaseNaturalResource === 'yes') {
+      const naturalResourceDelivery = s.leaseNRDelivered === 'yes'
+        ? 'Buyer has received every lease'
+        : 'Seller will deliver every lease within 3 days after the effective date';
+      const terminationWindow = s.leaseNRDelivered === 'no'
+        ? `<div class="review-row"><span class="rl">Buyer termination window after receipt</span><span class="rv">${fmt(s.naturalResourceTerminationDays)} days</span></div>`
+        : '';
+      document.getElementById('reviewSummary').insertAdjacentHTML('beforeend', `<div class="review-section"><div class="review-section-title">Natural resource lease</div><div class="review-row"><span class="rl">Lease copies</span><span class="rv">${text(naturalResourceDelivery)}</span></div>${terminationWindow}</div>`);
     }
     if (s.environmentalAssessment === 'yes') {
       const names = {environmental:'Environmental assessment', species:'Threatened or endangered species', wetlands:'Wetlands'};
@@ -10891,10 +10923,17 @@ function routeAfterMagicLinkIfNeeded() {
 
     const residential = !!document.getElementById('leaseResidential')?.checked;
     const fixture = !!document.getElementById('leaseFixture')?.checked;
+    const naturalResource = !!document.getElementById('leaseNaturalResource')?.checked;
     const residentialWrap = document.getElementById('residentialLeaseInterview');
     const fixtureWrap = document.getElementById('fixtureLeaseInterview');
+    const naturalResourceWrap = document.getElementById('naturalResourceLeaseInterview');
+    const sellerFields = document.getElementById('paragraph4SellerFields');
     if (residentialWrap) residentialWrap.style.display = residential ? 'block' : 'none';
     if (fixtureWrap) fixtureWrap.style.display = fixture ? 'block' : 'none';
+    if (naturalResourceWrap) naturalResourceWrap.style.display = naturalResource ? 'block' : 'none';
+    if (sellerFields) sellerFields.style.display = residential || fixture ? 'block' : 'none';
+    const naturalResourceDays = document.getElementById('naturalResourceTerminationDaysField');
+    if (naturalResourceDays) naturalResourceDays.style.display = naturalResource && getVal('leaseNRDelivered') === 'no' ? 'block' : 'none';
 
     const residentialAssignment = getVal('residentialLeaseStatus') === 'assignment';
     const assignmentWrap = document.getElementById('residentialLeaseAssignmentFields');
@@ -11889,17 +11928,32 @@ function routeAfterMagicLinkIfNeeded() {
   function controlledLaunchUnsupportedPaths(offerData) {
     const data = offerData || {};
     const blocked = [];
-    const leases = String(data.leases || '').toLowerCase();
-    if (['naturalresource', 'natural_resource', 'natural resource', 'natural resource lease'].includes(leases) || data.leaseNaturalResource === 'yes') blocked.push('Natural Resource Lease terms');
     if (data.loanAssumption === 'yes' && data.financing !== 'assumption') blocked.push('Choose loan assumption and enter its terms');
     return [...new Set(blocked)];
   }
 
   function validateParagraph4LeaseInputs(data) {
     if (String((data || {}).leases || '') !== 'yes') return true;
-    if (data.leaseResidential !== 'yes' && data.leaseFixture !== 'yes') {
-      setPaymentStatus('Choose the residential lease, fixture lease, or both before generating the package.');
+    if (data.leaseResidential !== 'yes' && data.leaseFixture !== 'yes' && data.leaseNaturalResource !== 'yes') {
+      setPaymentStatus('Choose the lease type before generating the package.');
       return false;
+    }
+    if (data.leaseNaturalResource === 'yes') {
+      if (!['yes', 'no'].includes(String(data.leaseNRDelivered || ''))) {
+        setPaymentStatus('Choose whether Buyer has received every natural resource lease.');
+        return false;
+      }
+      if (data.leaseNRDelivered === 'no') {
+        const days = String(data.naturalResourceTerminationDays || '').trim();
+        if (!/^\d+$/.test(days) || Number(days) < 1 || Number(days) > 999) {
+          setPaymentStatus('Enter a natural resource lease termination period from 1 to 999 days.');
+          return false;
+        }
+      }
+    }
+    if (data.leaseResidential !== 'yes' && data.leaseFixture !== 'yes') {
+      setPaymentStatus('');
+      return true;
     }
     const sellerNames = [data.paragraph4Seller1Name, data.paragraph4Seller2Name].filter(Boolean);
     const sellerEmails = [data.paragraph4Seller1Email, data.paragraph4Seller2Email].filter(Boolean).map(value => String(value).trim().toLowerCase());

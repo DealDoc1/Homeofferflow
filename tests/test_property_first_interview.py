@@ -41,7 +41,7 @@ class PropertyFirstInterviewTests(unittest.TestCase):
         self.assertIn("Which leases apply? Select all that apply.", HTML)
         self.assertIn('id="residentialLeaseInterview"', HTML)
         self.assertIn('id="fixtureLeaseInterview"', HTML)
-        self.assertIn("The completed lease addendum will be placed in this offer package automatically.", HTML)
+        self.assertIn("HomeOfferFlow will complete the lease terms in the contract and include any required lease addendum.", HTML)
         self.assertNotIn("Temporarily unavailable while the required addendum is tested", HTML)
 
 

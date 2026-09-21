@@ -98,6 +98,15 @@ def paragraph4_lease_kinds(offer):
     return selected
 
 
+def natural_resource_lease_requested(offer):
+    """Return whether Paragraph 4C natural-resource lease terms are selected."""
+    offer = offer or {}
+    leases = _normalized(offer.get("leases"))
+    return _truthy(offer.get("leaseNaturalResource")) or _truthy(offer.get("naturalResourceLease")) or leases in {
+        "natural resource", "natural resource lease", "naturalresource", "naturalresourcelease"
+    }
+
+
 def paragraph4_execution_parties(offer):
     """Return Seller recipients shared by the released Paragraph 4 addenda."""
     if not paragraph4_lease_kinds(offer):
@@ -477,14 +486,23 @@ def validate_supported_offer(offer):
         blocked.append('choose seller financing and enter its terms')
 
     leases = _normalized(offer.get("leases"))
-    if leases in {"natural resource", "natural resource lease", "naturalresource", "naturalresourcelease"}:
-        blocked.append("natural-resource lease")
-    if _truthy(offer.get("leaseNaturalResource")) or _truthy(offer.get("naturalResourceLease")):
-        blocked.append("natural-resource lease")
-
     selected_leases = paragraph4_lease_kinds(offer)
-    if leases in {"yes", "existing", "existing leases"} and not selected_leases:
+    natural_resource_lease = natural_resource_lease_requested(offer)
+    if leases in {"yes", "existing", "existing leases"} and not selected_leases and not natural_resource_lease:
         blocked.append("Paragraph 4 lease type")
+
+    if natural_resource_lease:
+        delivered = _normalized(
+            verified.first_present(offer.get("leaseNRDelivered"), offer.get("naturalResourceLeaseDelivered"))
+        )
+        if delivered not in {"yes", "no"}:
+            blocked.append("natural-resource lease delivery choice")
+        if delivered == "no":
+            termination_days = str(verified.first_present(
+                offer.get("naturalResourceTerminationDays"), offer.get("leaseNRTerminationDays")
+            ) or "").strip()
+            if not termination_days.isdigit() or not 1 <= int(termination_days) <= 999:
+                blocked.append("natural-resource lease termination days")
 
     if "TXR-1953" in selected_leases:
         status = str(offer.get("residentialLeaseStatus") or "").strip()
