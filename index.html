@@ -8031,6 +8031,17 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         }
       });
     };
+    const setPackageHandoffStatus = (choice, state = 'opening') => {
+      const status = document.getElementById('agentWorkflowStartStatus');
+      if (!status) return;
+      status.setAttribute('role', 'status');
+      status.setAttribute('aria-live', 'polite');
+      status.textContent = state === 'opened'
+        ? `${choice.label} is open.`
+        : state === 'failed'
+          ? `We couldn’t open ${choice.label}. Use Try again below.`
+          : `Opening ${choice.label}…`;
+    };
     // A selection should always lead to a visible next step. If an account
     // panel or the offer interview fails to render, give the agent one clear
     // recovery action instead of leaving a silent, apparently broken click.
@@ -8047,6 +8058,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       document.body.appendChild(recovery);
       recovery.querySelector('button')?.addEventListener('click', () => {
         recovery.remove();
+        setPackageHandoffStatus(choice);
         choice.action();
         recordPackageWorkspaceStart(choice);
       });
@@ -8055,6 +8067,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       let attempts = 0;
       const recordWhenOpen = () => {
         if (choice.isWorkspaceOpen?.()) {
+          setPackageHandoffStatus(choice, 'opened');
           window.logOfferEvent?.(null, 'agent_form_package_started', 'started', 'Agent opened the selected guided package workspace.', { workflow: kind, package: choice.label });
           return;
         }
@@ -8066,6 +8079,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           window.setTimeout(recordWhenOpen, 100);
           return;
         }
+        setPackageHandoffStatus(choice, 'failed');
         window.logOfferEvent?.(null, 'agent_form_package_start_timeout', 'needs_attention', 'Agent selected a package but its workspace did not open in the expected window.', { workflow: kind, package: choice.label });
         showPackageHandoffRecovery(choice);
       };
@@ -8268,6 +8282,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       if (!choice) return;
       window.logOfferEvent?.(null, 'agent_form_package_selected', 'selected', 'Agent selected a guided form package after the transaction interview.', { workflow: kind, package: choice.label });
       modal.remove();
+      if (!choice.deferStartToNestedChoice && !choice.skipWorkspaceStart) setPackageHandoffStatus(choice);
       choice.action();
       // Selection and workspace start are deliberately separate signals. A
       // start is recorded only after its destination opens, so conversion

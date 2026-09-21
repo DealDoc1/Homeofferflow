@@ -34,6 +34,24 @@ class AgentPackageAbandonmentTelemetryTests(unittest.TestCase):
         self.assertIn('"agentFormPackageHandoffRecoveryCount": agent_form_package_handoff_recovery_count', ADMIN)
         self.assertIn("agentFormPackageHandoffRecoveryCount", INDEX)
 
+    def test_direct_package_handoff_gives_immediate_quiet_progress_feedback(self):
+        interview = INDEX[
+            INDEX.index("window.hofOpenAgentPackageInterview = function"):
+            INDEX.index("window.startAgentWorkflow = function")
+        ]
+        self.assertIn("const setPackageHandoffStatus = (choice, state = 'opening')", interview)
+        self.assertIn("`Opening ${choice.label}…`", interview)
+        self.assertIn("`${choice.label} is open.`", interview)
+        self.assertIn("setPackageHandoffStatus(choice, 'opened');", interview)
+        self.assertIn("setPackageHandoffStatus(choice, 'failed');", interview)
+        self.assertIn("if (!choice.deferStartToNestedChoice && !choice.skipWorkspaceStart) setPackageHandoffStatus(choice);", interview)
+        self.assertLess(
+            interview.index("if (!choice.deferStartToNestedChoice && !choice.skipWorkspaceStart) setPackageHandoffStatus(choice);"),
+            interview.index("choice.action();", interview.index("window.logOfferEvent?.(null, 'agent_form_package_selected'")),
+        )
+        self.assertIn("status.setAttribute('aria-live', 'polite');", interview)
+        self.assertNotIn("document.createElement('aside')", interview[interview.index("const setPackageHandoffStatus"):interview.index("const showPackageHandoffRecovery")])
+
 
 if __name__ == "__main__":
     unittest.main()
