@@ -5882,6 +5882,15 @@ class handler(BaseHTTPRequestHandler):
             agent_landing_cta_count = len([
                 item for item in events if item.get("event_type") == "agent_landing_cta_selected"
             ])
+            agent_landing_auth_open_count = len([
+                item for item in events if item.get("event_type") == "agent_landing_auth_opened"
+            ])
+            agent_landing_email_start_count = len([
+                item for item in events if item.get("event_type") == "agent_landing_email_started"
+            ])
+            agent_landing_magic_link_request_count = len([
+                item for item in events if item.get("event_type") == "agent_landing_magic_link_requested"
+            ])
             agent_resource_links_expanded_count = len([
                 item for item in events if item.get("event_type") == "agent_resource_links_expanded"
             ])
@@ -6824,6 +6833,15 @@ class handler(BaseHTTPRequestHandler):
                     (agent_landing_question_one_open_count / agent_landing_view_count) * 100, 1
                 ) if agent_landing_view_count else 0,
                 "agentLandingCtaCount": agent_landing_cta_count,
+                "agentLandingAuthOpenCount": agent_landing_auth_open_count,
+                "agentLandingEmailStartCount": agent_landing_email_start_count,
+                "agentLandingEmailStartRate": round(
+                    (agent_landing_email_start_count / agent_landing_auth_open_count) * 100, 1
+                ) if agent_landing_auth_open_count else 0,
+                "agentLandingMagicLinkRequestCount": agent_landing_magic_link_request_count,
+                "agentLandingMagicLinkRequestRate": round(
+                    (agent_landing_magic_link_request_count / agent_landing_email_start_count) * 100, 1
+                ) if agent_landing_email_start_count else 0,
                 "agentResourceLinksExpandedCount": agent_resource_links_expanded_count,
                 "agentLandingCtaRate": round((agent_landing_cta_count / agent_landing_view_count) * 100, 1)
                 if agent_landing_view_count else 0,

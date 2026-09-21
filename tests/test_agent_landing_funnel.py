@@ -488,6 +488,9 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn('"agent_landing_question_one_viewed": "question_one_viewed"', API)
         self.assertIn('"agent_landing_question_one_opened": "opened"', API)
         self.assertIn('"agent_landing_cta_selected": "selected"', API)
+        self.assertIn('"agent_landing_auth_opened": "auth_opened"', API)
+        self.assertIn('"agent_landing_email_started": "email_started"', API)
+        self.assertIn('"agent_landing_magic_link_requested": "magic_link_requested"', API)
         self.assertIn('"agent_workflow_guide_viewed": "viewed"', API)
         self.assertIn('"agent_workflow_guide_cta_selected": "selected"', API)
         self.assertIn('"agent_resource_links_expanded": "resource_expanded"', API)
@@ -614,6 +617,9 @@ class AgentLandingFunnelTests(unittest.TestCase):
             '"agentLandingCtaRatesByChannel"',
             '"agentResourceLinksExpandedCount"',
             '"agentLandingDraftHandoffUserCount"', '"agentLandingDraftHandoffRate"',
+            '"agentLandingAuthOpenCount"', '"agentLandingEmailStartCount"',
+            '"agentLandingEmailStartRate"', '"agentLandingMagicLinkRequestCount"',
+            '"agentLandingMagicLinkRequestRate"',
             '"agentLandingSellerWorkspaceHandoffUserCount"',
             '"agentLandingRelationshipWorkspaceHandoffUserCount"',
             'agent_landing_draft_handoff',
@@ -641,6 +647,10 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("agentLandingViewCountsByChannel?.referral", INDEX)
         self.assertIn("agentLandingDraftHandoffUserCount", INDEX)
         self.assertIn("agentLandingDraftHandoffRate", INDEX)
+        self.assertIn("Public-agent sign-in continuation:", INDEX)
+        self.assertIn("agentLandingAuthOpenCount", INDEX)
+        self.assertIn("agentLandingEmailStartRate", INDEX)
+        self.assertIn("agentLandingMagicLinkRequestRate", INDEX)
         self.assertIn("% of landing views", INDEX)
         self.assertIn("agentLandingSellerWorkspaceHandoffUserCount", INDEX)
         self.assertIn("agentLandingRelationshipWorkspaceHandoffUserCount", INDEX)
@@ -661,6 +671,22 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("agentFormPackageNestedChoiceCountsByWorkflow?.lease_representation", INDEX)
         self.assertIn("agentWorkflowGuideCtaPathCounts?.relationship_drafts", INDEX)
         self.assertIn("agentWorkflowGuideCtaRate", INDEX)
+
+    def test_agent_sign_in_handoff_is_reassuring_and_privacy_safe(self):
+        self.assertIn("No payment is required to start.", INDEX)
+        self.assertIn("function recordAgentLandingAuthStage(eventType)", INDEX)
+        self.assertIn("sessionStorage.setItem('hof_agent_landing_auth_funnel', '1')", INDEX)
+        self.assertIn("window.recordAgentLandingAuthStage?.('agent_landing_auth_opened')", INDEX)
+        self.assertIn("recordAgentLandingAuthStage('agent_landing_email_started')", INDEX)
+        self.assertIn("recordAgentLandingAuthStage('agent_landing_magic_link_requested')", INDEX)
+        self.assertIn("request_type: 'agent_landing_event'", INDEX)
+        helper = INDEX[
+            INDEX.index("function recordAgentLandingAuthStage(eventType)"):
+            INDEX.index("async function signOutAccount()")
+        ]
+        self.assertNotIn("email,", helper)
+        self.assertNotIn("property", helper.lower())
+        self.assertNotIn("offer", helper.lower())
 
     def test_question_two_conversion_excludes_pre_instrumentation_selections(self):
         self.assertIn("agent_form_package_interview_started_at", ADMIN)
