@@ -3,7 +3,7 @@
 ## Release boundary
 
 - Prior verified production revision: `133a32bff9a736544c8bf9c9d04cd549c11b8570`.
-- Exact candidate revision: `2c968143a3667260f1a85f3f3a672a51f8ad83bf` or a later documentation-only merge whose production tree is independently compared to this candidate.
+- Exact candidate revision: `5a9d4177527252507969ae61c1fbc9af4d70e1bf` or a later release-safety merge whose production tree is independently compared to this candidate.
 - Canonical production origin: `https://www.homeofferflow.com`.
 - Deployment method: one intentional, prebuilt Vercel production deployment. Automatic Git deployments and routine previews remain disabled.
 - Customer scope: the accumulated HomeOfferFlow reliability, plain-language interview, agent activation, PWA return, signing recovery, purchase-packet, and Texas-form corrections merged since the prior production revision.
@@ -12,15 +12,17 @@ This record authorizes one coordinated corrective release. It does not convert a
 
 ## Database-first release sequence
 
-The candidate code depends on five production migrations that were confirmed absent on September 21, 2026. Apply and verify them in this order immediately before the code deployment:
+The candidate code depends on six production capability migrations that were confirmed absent on September 21, 2026. A seventh migration installs the service-only readiness contract that verifies the complete set. Apply and verify them in this order immediately before the code deployment:
 
-1. `20260915185113_durable_checkout_email_delivery.sql`
-2. `20260915193756_server_owned_packet_usage.sql`
-3. `20260915203004_protect_offer_packet_autosave.sql`
-4. `20260915233303_private_buyer_checkout_payloads.sql`
-5. `20260915234223_expired_checkout_payload_cleanup.sql`
+1. `20260915103000_canonical_agent_profile_aliases.sql`
+2. `20260915185113_durable_checkout_email_delivery.sql`
+3. `20260915193756_server_owned_packet_usage.sql`
+4. `20260915203004_protect_offer_packet_autosave.sql`
+5. `20260915233303_private_buyer_checkout_payloads.sql`
+6. `20260915234223_expired_checkout_payload_cleanup.sql`
+7. `20260921203652_homeofferflow_release_schema_readiness.sql`
 
-The database and application changes are one release unit. Do not apply the behavior-changing migrations hours in advance, and do not deploy the candidate code while the required tables, functions, trigger, and `hof_usage_events.generation_key` column are absent. After applying the migrations, verify migration history and the named schema objects before starting the Vercel build.
+The database and application changes are one release unit. Do not apply the behavior-changing migrations hours in advance, and do not deploy the candidate code while the required tables, functions, trigger, and `hof_usage_events.generation_key` column are absent. The release workflow calls the service-only `hof_release_schema_readiness` contract after it pulls the production environment and before it spends Vercel build or deployment capacity; a missing capability, credential, or unreadable response stops the release. Also verify migration history and the named schema objects before starting the Vercel build.
 
 Rollback is application-first: move the production alias back to the prior Ready deployment if a material regression appears. Preserve the additive tables, immutable receipts, usage records, and customer data; do not drop them during routine rollback.
 
@@ -98,7 +100,7 @@ The release is ready to enter the production workflow only after all of these pr
 
 1. Vercel's new billing cycle is visible and retains at least the configured $3 infrastructure-credit reserve.
 2. The exact candidate is authored by `andrewchri@gmail.com` and protected-main CI is green.
-3. The five migrations are applied in order and their tables, functions, trigger, grants, RLS, and column are verified.
+3. The seven ordered migrations are applied; the six capability migrations and service-only readiness contract report every required table, function, trigger, RLS setting, and column ready.
 4. The release preflight passes against the prior production revision using this evidence file.
 
 After deployment:
