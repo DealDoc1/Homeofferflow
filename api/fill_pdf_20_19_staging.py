@@ -1,10 +1,35 @@
 import json, os, base64, hashlib, hmac, httpx, re
 from io import BytesIO
+from pathlib import Path
+from lib.txr_1948 import (
+    render_txr_1948, answer_layout as appraisal_answer_layout, BUYER_SIGNATURE_BOXES,
+)
+from lib import hoa_addendum_layout
+from lib import sale_contingency_layout
+from lib import backup_contract_layout
+from lib import financing_addendum_layout
+from lib.contract_money import currency_amount, format_currency
 from http.server import BaseHTTPRequestHandler
 
 from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
-from reportlab.pdfbase.pdfmetrics import stringWidth
+from lib.pdf_text import text_width as stringWidth, draw_text
+from lib.repair_continuation import (
+    repair_text_entries, render_repair_continuation,
+    continuation_page_count, continuation_field,
+)
+from lib.nonrealty_continuation import (
+    text_entries as nonrealty_text_entries, render_nonrealty_continuation,
+    continuation_page_count as nonrealty_continuation_page_count,
+)
+from lib.lease_terms_continuation import (
+    text_entries as lease_terms_entries, render_continuation as render_lease_terms_continuation,
+    page_count as lease_terms_page_count,
+)
+from lib.contract_terms_continuation import (
+    text_entries as contract_terms_entries, render_continuation as render_contract_terms_continuation,
+    page_count as contract_terms_page_count,
+)
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 STRIPE_WHSEC   = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
@@ -103,6 +128,16 @@ def lead_pdf_path():
     )
 
 
+def has_uploaded_lead_disclosure(s):
+    docs = (s or {}).get("uploadedDisclosureDocs") or (s or {}).get("uploadedDocs") or []
+    return isinstance(docs, list) and any(
+        isinstance(doc, dict)
+        and str(doc.get("type") or "").strip().lower() == "lead_based_paint"
+        and bool(doc.get("base64") or doc.get("file_base64") or doc.get("data"))
+        for doc in docs
+    )
+
+
 def buyer_temp_lease_pdf_path():
     return find_existing_pdf(
         "buyer_temporary_residential_lease_16-7.pdf",
@@ -141,12 +176,7 @@ def seller_temp_lease_pdf_path():
 
 
 def fmt_money(v):
-    if v in [None, ""]:
-        return ""
-    try:
-        return f"{int(float(str(v).replace(',', ''))):,}"
-    except Exception:
-        return str(v)
+    return format_currency(v)
 
 
 def has_positive_money(v):
@@ -249,6 +279,12 @@ def normalize_financing(v):
         "usda loan": "usda",
         "usda guaranteed": "usda",
         "usda": "usda",
+        "assumption": "assumption",
+        "loan assumption": "assumption",
+        "loan-assumption": "assumption",
+        "seller financing": "seller_financing",
+        "seller-financing": "seller_financing",
+        "seller_financing": "seller_financing",
     }
     return aliases.get(raw, raw)
 
@@ -271,6 +307,32 @@ def normalize_appraisal(v):
         "terminate": "additional",
     }
     return aliases.get(raw, raw)
+
+
+def appraisal_requested(offer):
+    return (normalize_financing(offer.get('financing')) in {'conventional', 'usda'}
+            and normalize_appraisal(offer.get('appraisalAddendum')) in {'waiver', 'partial', 'additional'})
+
+
+def appraisal_render_data(offer):
+    """Use the same bounded source layout in standalone and purchase packets.
+
+    This packet invites Buyers only for the appraisal addendum. Do not introduce
+    Seller invitations or stamp preview names into execution lines.
+    """
+    choice = normalize_appraisal(offer.get('appraisalAddendum'))
+    return {
+        'property_address': f"{offer.get('address','')}, {offer.get('city','')}, TX {offer.get('zip','')}".strip(', '),
+        'buyer_names': [offer.get('buyer1') or 'Buyer'] +
+            ([offer.get('buyer2') or 'Buyer 2'] if offer.get('buyer2Email') else []),
+        'seller_names': [], 'seller': offer.get('seller') or '', '_for_signing': True,
+        'appraisal_choice': {'partial': 'partial_waiver', 'additional': 'additional_right'}.get(choice, choice),
+        'partial_value': fmt_money(first_present(offer.get('appraisalPartialValue'), offer.get('appraisalMinimum'),
+            offer.get('appraisalMinValue'), offer.get('appraisalPartialMinimum'))),
+        'additional_days': str(first_present(offer.get('appraisalTerminateDays'), offer.get('appraisalDays'), '7')),
+        'additional_value': fmt_money(first_present(offer.get('appraisalTerminateValue'), offer.get('appraisalMinimum'),
+            offer.get('appraisalMinValue'), '')),
+    }
 
 
 
@@ -407,50 +469,6 @@ def debug_grid_entries(step=25):
     return entries
 
 
-def repair_text_entries(text):
-    """Fit Paragraph 7D(2) text onto its short first blank and full second blank."""
-    raw = " ".join(str(text or "").replace("\r", " ").replace("\n", " ").split())
-    if not raw:
-        return []
-
-    words = raw.split()
-    # The first printed blank begins after "repairs and treatments:"; the second
-    # blank spans the full text width. Reduce type only when both blanks need it.
-    for fs in [9.5, 9.25, 9.0, 8.75, 8.5, 8.25, 8.0, 7.75, 7.5, 7.25, 7.0, 6.75, 6.5, 6.25]:
-        first = []
-        while words:
-            trial = " ".join(first + [words[0]])
-            if stringWidth(trial, FONT, fs) <= 246:
-                first.append(words.pop(0))
-            else:
-                break
-
-        second = " ".join(words)
-        if stringWidth(second, FONT, fs) <= 463:
-            return [
-                (305, 699, " ".join(first), fs),
-                (89, 686, second, fs),
-            ]
-
-        # Retry from the full text at a smaller size.
-        words = raw.split()
-
-    # Extremely long instructions stay clipped to the two available blanks rather
-    # than spilling into the printed warning below.
-    first = []
-    while words:
-        trial = " ".join(first + [words[0]])
-        if stringWidth(trial, FONT, 6.25) <= 246:
-            first.append(words.pop(0))
-        else:
-            break
-    second = " ".join(words)
-    while second and stringWidth(second + "...", FONT, 6.25) > 463:
-        words.pop()
-        second = " ".join(words)
-    if second:
-        second += "..."
-    return [(305, 699, " ".join(first), 6.25), (89, 686, second, 6.25)]
 
 
 def add_debug_grid_to_pages(pages_dict):
@@ -485,16 +503,15 @@ def make_overlay(page_entries, page_width=612, page_height=792):
         if len(entry) > 4:
             style = entry[4]
 
-        if str(text) == CHECK:
-            c.setFont("Helvetica-Bold", 9.5)
+        if str(text) == CHECK and style != 'text':
+            c.setFont("Helvetica-Bold", 6 if style == 'check_cell' else 9.5)
 
-            if style == "check_small":
+            if style in ("check_small", "check_cell"):
                 c.drawString(x, y, str(text))
             else:
                 c.drawString(x + 1, y + 1, str(text))
         else:
-            c.setFont(FONT, fs)
-            c.drawString(x, y, str(text))
+            draw_text(c, text, x, y, fs, FONT)
 
     c.save()
     buf.seek(0)
@@ -684,15 +701,20 @@ def build_pages_data(
         ""
     )
     lead_required = lead_required_from_offer(s)
-    # Buyer-side offer packet: pre-1978/leadBasedPaint triggers a warning only.
-    # Do not auto-attach or check the seller's lead-based paint addendum unless the agent explicitly says that addendum is attached/uploaded.
-    lead_addendum_attached = truthy(first_present(
+    # Paragraph 22 must reflect the actual seller/listing-side disclosure that
+    # production validation requires for a pre-1978 offer packet.
+    lead_addendum_attached = has_uploaded_lead_disclosure(s) or truthy(first_present(
         s.get("leadBasedPaintAttached"),
         s.get("attachLeadBasedPaintAddendum"),
         s.get("sellerLeadDisclosureAttached"),
         s.get("leadDisclosureAttached"),
     ))
 
+    normalized_financing = normalize_financing(s.get('financing'))
+    assumption = normalized_financing == 'assumption'
+    seller_financing = normalized_financing == 'seller_financing'
+    financed = has_loan or assumption or seller_financing
+    price_formatter = fmt_money
     pages[0] = [
         (280, 690, s.get("seller", "")),
         (124, 679, buyer),
@@ -704,11 +726,13 @@ def build_pages_data(
         (387, 606, s.get("county", "")),
         (161, 595, addr_full),
 
-        (457, 318, fmt_money(cash) if has_loan else fmt_money(price)),
-        (457, 269, fmt_money(loan) if has_loan else ""),
-        (457, 257, fmt_money(price)),
+        (457, 318, price_formatter(cash) if financed else price_formatter(price)),
+        (457, 269, price_formatter(loan) if financed else ""),
+        (457, 257, price_formatter(price)),
 
         (315, 284, ck(has_loan), "check_small"),
+        (76, 270, ck(assumption), "check_small"),
+        (255, 270, ck(seller_financing), "check_small"),
 
         # Paragraph 4. The production adapter appends the exact corresponding
         # lease addendum before a checked option can be sent for signature.
@@ -810,7 +834,7 @@ def build_pages_data(
     pages[5] = [
         (129, 751, addr_full),
 
-        *wrapped_entries(95, 704, s.get("brokerDisclosure", ""), max_chars=105, line_gap=10, fs=7, max_lines=3),
+        *contract_terms_entries(s.get("brokerDisclosure", ""), "broker"),
 
         (295, 669, closing_md),
         (448, 669, closing_yy),
@@ -818,7 +842,7 @@ def build_pages_data(
         (356, 449, ck(possession == "funding"), "check_small"),
         (502, 449, ck(possession == "lease"), "check_small"),
 
-        *wrapped_entries(45, 226, first_present(s.get("specialProvisions"), s.get("specialProvisionsText")), max_chars=115, line_gap=10, fs=7, max_lines=3),
+        *contract_terms_entries(first_present(s.get("specialProvisions"), s.get("specialProvisionsText")), "special"),
 
         # 20-19 Paragraph 12A(1)(b): seller contribution to Buyer's Expenses, not brokerage compensation.
         (250, 143, fmt_money(concession_amount) if concession_amount else ""),
@@ -872,12 +896,18 @@ def build_pages_data(
         (62, 667, ck(has_loan), "check_small"),
         (62, 655, ck(has_sale), "check_small"),
         (62, 642, ck(has_appraisal), "check_small"),
+        (62, 629, ck(seller_financing), "check_small"),
+        (62, 590, ck(assumption), "check_small"),
 
         # Leases. Buyer and seller temporary leases are distinct Paragraph 22 rows.
         (62, 542, ck(lease_residential), "check_small"),
         (62, 529, ck(lease_fixture), "check_small"),
         (62, 516, ck(buyer_temp_lease_requested(s)), "check_small"),
         (62, 503, ck(seller_temp_lease_requested(s)), "check_small"),
+
+        # Additional tests and reports
+        (62, 470, ck(truthy(s.get("hydrostaticTesting")) or truthy(s.get("hydrostaticAddendum"))), "check_small"),
+        (62, 457, ck(truthy(s.get('environmentalAssessment')) or truthy(s.get('environmentalAddendum'))), 'check_small'),
 
         # Statutory disclosures and notices
         (62, 430, ck(lead_addendum_attached), "check_small"),
@@ -888,6 +918,7 @@ def build_pages_data(
         (62, 290, ck(has_hoa), "check_small"),
         (62, 278, ck(has_non_realty), "check_small"),
         (62, 269, ck(has_bkup), "check_small"),
+        (62, 252, ck(truthy(s.get('mineralReservation')) or truthy(s.get('mineralReservationAddendum'))), 'check_small'),
     ]
 
     # 20-19 Page 10: execution/signature page. Buyer signatures are SignWell only.
@@ -943,23 +974,18 @@ def fill_and_merge(offer):
     if s.get("buyer2"):
         buyer += f" and {s['buyer2']}"
 
-    try:
-        price = float(s.get("price", 0) or 0)
-        loan = float(s.get("loanAmount", 0) or 0)
-        cash = price - loan if loan else price
-    except Exception:
-        price = loan = cash = 0
-
     normalized_financing_main = normalize_financing(s.get("financing", ""))
     s["financing"] = normalized_financing_main
+    price = currency_amount(s.get("price"))
+    loan = currency_amount(s.get("loanAmount")) if normalized_financing_main in ['conventional', 'fha', 'va', 'usda', 'assumption', 'seller_financing'] else currency_amount(0)
+    cash = price - loan
 
     has_loan = normalized_financing_main in ["conventional", "fha", "va", "usda"]
     has_hoa  = s.get("hoa") in ["yes", "unknown"]
     has_sale = s.get("saleContingency") == "yes"
     has_bkup = s.get("backupOffer") == "yes"
     lead_required = lead_required_from_offer(s)
-    appraisal_choice_main = normalize_appraisal(s.get("appraisalAddendum"))
-    has_appraisal = has_loan and normalized_financing_main not in ["fha", "va"] and appraisal_choice_main in ["waiver", "partial", "additional"]
+    has_appraisal = appraisal_requested(s)
     has_non_realty = str(s.get("nonRealtyItems") or "no").strip().lower() in ["yes", "true", "1", "on"] and bool(str(get_non_realty_description(s) or "").strip())
 
     title_payer = s.get("titlePayer", "seller")
@@ -972,8 +998,12 @@ def fill_and_merge(offer):
         seller_disc = "exempt"
     else:
         seller_disc = "notReceived"
-    as_is       = str(s.get("asIs", "yes")).strip().lower()
-    if as_is in ["no", "repairs", "repair", "seller repairs", "sellerrepairs"] or str(s.get("repairsText") or "").strip():
+    as_is       = str(s.get("asIs", "")).strip().lower()
+    # An explicit As Is election takes priority over a hidden, stale repair
+    # answer. Text-only legacy drafts still retain their repair election.
+    if as_is in ["yes", "true", "1"]:
+        as_is = "yes"
+    elif as_is in ["no", "repairs", "repair", "seller repairs", "sellerrepairs"] or str(s.get("repairsText") or "").strip():
         as_is = "repairs"
     else:
         as_is = "yes"
@@ -1019,127 +1049,58 @@ def fill_and_merge(offer):
     merger = PdfWriter()
     merger.append(PdfReader(BytesIO(main_bytes)))
 
-    if has_loan and os.path.exists(FINANCING_PDF):
-        financing = normalize_financing(s.get("financing", ""))
-
-        loan_years = first_present(s.get("loanYears"), s.get("loanTermYears"), "30")
-        interest_cap = first_present(s.get("interestRateCap"), s.get("loanInterestCap"), "7")
-        interest_first_years = first_present(
-            s.get("interestFirstYears"),
-            s.get("loanYears"),
-            s.get("loanTermYears"),
-            "30"
-        )
-        origination_cap = first_present(s.get("originationCap"), s.get("loanOriginationCap"), "1")
-
-        buyer_approval_days = first_present(
-            s.get("buyerApprovalDays"),
-            s.get("financingApprovalDays"),
-            "21"
-        )
-
-        fha_va_value = fmt_money(first_present(s.get("appraisedValue"), s.get("price"))) if financing in ["fha", "va"] else ""
-
-        fin_pages = {
-            0: [
-                (205, 642, addr_full, 8),
-
-                # A. Conventional financing - confirmed good in tests.
-                (58,  558, ck(financing == "conventional"), "check_small"),
-                (87, 545, ck(financing == "conventional"), "check_small"),
-                (377, 544, fmt_money(s.get("loanAmount", "")) if financing == "conventional" else ""),
-                (305, 534, loan_years if financing == "conventional" else ""),
-                (525, 531, interest_cap if financing == "conventional" else ""),
-                (240, 522, interest_first_years if financing == "conventional" else ""),
-                (384, 511, origination_cap if financing == "conventional" else ""),
-
-                # C. FHA insured financing. Frozen after QA.
-                (58,  414, ck(financing == "fha"), "check_small"),
-                (282, 417, first_present(s.get("fhaSection"), s.get("fhaProgram"), "203(b)") if financing == "fha" else "", 8),
-                (101, 407, fmt_money(s.get("loanAmount", "")) if financing == "fha" else ""),
-                (142, 394, loan_years if financing == "fha" else ""),
-                (356, 394, interest_cap if financing == "fha" else ""),
-                (111, 381, interest_first_years if financing == "fha" else ""),
-                (229, 371, origination_cap if financing == "fha" else ""),
-
-                # D. VA guaranteed financing. Frozen after QA.
-                (58,  358, ck(financing == "va"), "check_small"),
-                (466, 363, fmt_money(s.get("loanAmount", "")) if financing == "va" else ""),
-                (490, 346, loan_years if financing == "va" else ""),
-                (240, 335, interest_cap if financing == "va" else ""),
-                (410, 335, interest_first_years if financing == "va" else ""),
-                (118, 315, origination_cap if financing == "va" else ""),
-
-                # E. USDA guaranteed financing. Release 18B screenshot-directed alignment fix.
-                (58,  303, ck(financing == "usda"), "check_small"),
-                (492, 303, fmt_money(s.get("loanAmount", "")) if financing == "usda" else ""),
-                (492, 290, loan_years if financing == "usda" else ""),
-                (230, 278, interest_cap if financing == "usda" else ""),
-                (395, 278, interest_first_years if financing == "usda" else ""),
-                (520, 268, origination_cap if financing == "usda" else ""),
-            ],
-            1: [
-                (205, 729, addr_full, 8),
-
-                # Page 13 §2A checkbox.
-                (83, 695, ck(s.get("buyerApproval", "yes") != "no"), "check_small"),
-
-                (382, 684, buyer_approval_days if s.get("buyerApproval", "yes") != "no" else ""),
-
-                (90, 584, ck(s.get("buyerApproval") == "no"), "check_small"),
-
-                (125, 410, fha_va_value),
-            ],
-        }
-
-        fin_pages = add_debug_grid_to_pages(fin_pages)
+    if has_loan:
+        if not os.path.exists(FINANCING_PDF):
+            raise ValueError("The financing addendum source is unavailable.")
+        financing_answers = financing_addendum_layout.answer_layout(s, normalize_financing(s.get("financing", "")))
+        fin_pages = add_debug_grid_to_pages(financing_addendum_layout.page_entries(financing_answers))
         merger.append(PdfReader(BytesIO(stamp_pdf(FINANCING_PDF, fin_pages))))
+        financing_continuation = financing_answers.continuation()
+        if financing_continuation:
+            merger.append(PdfReader(BytesIO(financing_continuation)))
 
     appraisal_pdf_path = APPRAISAL_PDF if os.path.exists(APPRAISAL_PDF) else APPRAISAL_PDF_ALT
-    if has_appraisal and os.path.exists(appraisal_pdf_path):
-        appraisal_choice = normalize_appraisal(s.get("appraisalAddendum"))
-        appraisal_pages = {
-            0: [
-                # TREC 49-1 appraisal addendum: tightened from live QA.
-                # Keep text slightly above the printed underline and centered in the blanks.
-                (238, 656, addr_full, 7),
-                (50, 548, ck(appraisal_choice == "waiver"), "check_small"),
-                (50, 465, ck(appraisal_choice == "partial"), "check_small"),
-                (250, 405, fmt_money(first_present(s.get("appraisalPartialValue"), s.get("appraisalMinimum"), s.get("appraisalMinValue"), s.get("appraisalPartialMinimum"))) if appraisal_choice == "partial" else "", 8),
-                (50, 346, ck(appraisal_choice == "additional"), "check_small"),
-                (82, 323, str(first_present(s.get("appraisalTerminateDays"), s.get("appraisalDays"), "7")) if appraisal_choice == "additional" else "", 8),
-                (151, 288, fmt_money(first_present(s.get("appraisalTerminateValue"), s.get("appraisalMinimum"), s.get("appraisalMinValue"), "")) if appraisal_choice == "additional" else "", 8),
-            ],
-        }
-        appraisal_pages = add_debug_grid_to_pages(appraisal_pages)
-        merger.append(PdfReader(BytesIO(stamp_pdf(appraisal_pdf_path, appraisal_pages))))
+    if has_appraisal:
+        if not os.path.exists(appraisal_pdf_path):
+            raise ValueError("The appraisal addendum source is unavailable.")
+        from lib.pdf_source_audit import audited_source_bytes
+        source = audited_source_bytes(appraisal_pdf_path)
+        if source is None:
+            source = Path(appraisal_pdf_path).read_bytes()
+        appraisal_reader = PdfReader(BytesIO(render_txr_1948(source, appraisal_render_data(s))))
+        # Keep canonical editable fields isolated from all other packet forms.
+        appraisal_reader.add_form_topname('hof_appraisal')
+        merger.append(appraisal_reader)
 
     non_realty_pdf_path = NON_REALTY_PDF if os.path.exists(NON_REALTY_PDF) else NON_REALTY_PDF_ALT
-    if has_non_realty and os.path.exists(non_realty_pdf_path):
+    if has_non_realty and not os.path.exists(non_realty_pdf_path):
+        raise ValueError("The non-realty items addendum source is unavailable.")
+    if has_non_realty:
         non_realty_description = get_non_realty_description(s)
         non_realty_pages = {
             0: [
                 (230, 652, addr_full, 8),
                 # 17S: amount belongs in Paragraph A money blank after "$", not in the item-description area.
-                (220, 614, fmt_money(first_present(s.get("nonRealtyAmount"), s.get("nonRealtyItemsAmount"), s.get("nonRealtyAdditionalSum"))) if first_present(s.get("nonRealtyAmount"), s.get("nonRealtyItemsAmount"), s.get("nonRealtyAdditionalSum")) else "", 8),
+                (220, 614, fmt_money(first_present(s.get("nonRealtyAmount"), s.get("nonRealtyItemsAmount"), s.get("nonRealtyAdditionalSum"))) if first_present(s.get("nonRealtyAmount"), s.get("nonRealtyItemsAmount"), s.get("nonRealtyAdditionalSum")) not in (None, "") else "", 8),
                 # 17S: item text starts on the first item-description line.
                 # 17T: description starts on the first item line and wraps in readable text.
-                *wrapped_entries(62, 546, non_realty_description, max_chars=72, line_gap=13, fs=9, max_lines=3),
+                *nonrealty_text_entries(non_realty_description),
             ],
         }
         non_realty_pages = add_debug_grid_to_pages(non_realty_pages)
         merger.append(PdfReader(BytesIO(stamp_pdf(non_realty_pdf_path, non_realty_pages))))
 
     lead_path = lead_pdf_path()
-    lead_addendum_attached = truthy(first_present(
+    lead_addendum_uploaded = has_uploaded_lead_disclosure(s)
+    lead_addendum_attached = lead_addendum_uploaded or truthy(first_present(
         s.get("leadBasedPaintAttached"),
         s.get("attachLeadBasedPaintAddendum"),
         s.get("sellerLeadDisclosureAttached"),
         s.get("leadDisclosureAttached"),
     ))
-    if lead_addendum_attached and lead_path and os.path.exists(lead_path):
-        # Buyer-side offer packet: attach only when the agent explicitly indicates the seller's
-        # lead-based paint disclosure/addendum has been obtained and should be included.
+    if lead_addendum_attached and not lead_addendum_uploaded and lead_path and os.path.exists(lead_path):
+        # Legacy generated-form support remains isolated from uploaded seller
+        # disclosures. Production validation rejects a generated blank form.
         lead_pages = {
             0: [
                 (205, 679, addr_full, 8),
@@ -1210,44 +1171,35 @@ def fill_and_merge(offer):
         temp_lease_pages = {
             0: [
                 # Page 1: every fillable agreement blank. Initials are SignWell fields.
-                (253, 683, temp_landlord, 8),
-                (128, 672, temp_tenant, 8),
-                (208, 644, addr_full, 8),
+                *lease_terms_entries(temp_landlord, "buyer", "landlord_name"),
+                *lease_terms_entries(temp_tenant, "buyer", "tenant_name"),
+                *lease_terms_entries(addr_full, "buyer", "property"),
                 (267, 617, temp_start_date, 8),
                 (183, 589, fmt_money(temp_rent_per_day), 8),
                 (282, 578, fmt_money(temp_total_rent), 8),
                 (259, 528, fmt_money(temp_deposit), 8),
-                *fitted_blank_entries(temp_utilities, [(462, 435, 105), (49, 424, 384)], fs=8),
-                *fitted_blank_entries(temp_pets, [(340, 380, 225)], fs=8),
-                *fitted_blank_entries(temp_special, [
-                    (182, 263, 384),
-                    (49, 252, 518),
-                    (49, 241, 518),
-                    (49, 230, 518),
-                    (49, 219, 518),
-                    (49, 208, 518),
-                    (49, 197, 518),
-                    (49, 186, 518),
-                ], fs=8),
+                *lease_terms_entries(temp_utilities, "buyer", "utilities"),
+                *lease_terms_entries(temp_pets, "buyer", "pets"),
+                *lease_terms_entries(temp_special, "buyer"),
             ],
             1: [
                 # Page 2: property, holdover, and both parties' notice information.
-                (189, 747, addr_full, 8),
+                *lease_terms_entries(addr_full, "buyer", "property_header"),
                 (344, 537, fmt_money(temp_holdover), 8),
 
-                *wrapped_entries(136, 328, first_present(s.get("sellerMailAddr"), s.get("landlordMailAddr")), max_chars=38, line_gap=20, fs=7.5, max_lines=3),
+                *lease_terms_entries(first_present(s.get("sellerMailAddr"), s.get("landlordMailAddr")), "buyer", "landlord_mail"),
                 (141, 268, landlord_phone_area, 7.5),
                 (190, 268, landlord_phone_number, 7.5),
                 (141, 247, landlord_fax_area, 7.5),
                 (190, 247, landlord_fax_number, 7.5),
-                (136, 228, first_present(s.get("sellerEmail"), s.get("landlordEmail")), 7.5),
+                *lease_terms_entries(first_present(s.get("sellerEmail"), s.get("landlordEmail")), "buyer", "landlord_email"),
 
-                *wrapped_entries(384, 328, first_present(s.get("buyerMailAddr"), s.get("tenantMailAddr")), max_chars=44, line_gap=20, fs=7.5, max_lines=3),
+                *lease_terms_entries(first_present(s.get("buyerMailAddr"), s.get("tenantMailAddr")), "buyer", "tenant_mail"),
                 (390, 268, tenant_phone_area, 7.5),
                 (438, 268, tenant_phone_number, 7.5),
                 (390, 247, tenant_fax_area, 7.5),
                 (438, 247, tenant_fax_number, 7.5),
-                (384, 228, first_present(s.get("buyerEmail"), s.get("tenantEmail")), 7.5),
+                *lease_terms_entries(first_present(s.get("buyerEmail"), s.get("tenantEmail")), "buyer", "tenant_email"),
             ],
         }
         temp_lease_pages = add_debug_grid_to_pages(temp_lease_pages)
@@ -1304,146 +1256,79 @@ def fill_and_merge(offer):
 
         seller_temp_lease_pages = {
             0: [
-                *fitted_blank_entries(seller_temp_landlord, [(262, 682, 307)], fs=8),
-                *fitted_blank_entries(seller_temp_tenant, [(130, 671, 394)], fs=8),
-                *fitted_blank_entries(addr_full, [(210, 641, 359), (52, 630, 466)], fs=8),
+                *lease_terms_entries(seller_temp_landlord, "seller", "landlord_name"),
+                *lease_terms_entries(seller_temp_tenant, "seller", "tenant_name"),
+                *lease_terms_entries(addr_full, "seller", "property"),
                 (170, 600, seller_temp_termination_date, 8),
                 (308, 581, fmt_money(seller_temp_rent_per_day), 8),
                 (433, 529, fmt_money(seller_temp_deposit), 8),
-                *fitted_blank_entries(seller_temp_utilities, [(331, 466, 238)], fs=8),
-                *fitted_blank_entries(seller_temp_pets, [(342, 406, 227)], fs=8),
-                *fitted_blank_entries(seller_temp_special, [
-                    (183, 305, 386), (51, 294, 518), (51, 283, 518),
-                    (51, 272, 518), (51, 261, 518), (51, 250, 518),
-                    (51, 239, 518), (51, 228, 518), (51, 217, 518),
-                    (51, 206, 518), (51, 195, 518), (51, 184, 518),
-                ], fs=8),
+                *lease_terms_entries(seller_temp_utilities, "seller", "utilities"),
+                *lease_terms_entries(seller_temp_pets, "seller", "pets"),
+                *lease_terms_entries(seller_temp_special, "seller"),
             ],
             1: [
-                *fitted_blank_entries(addr_full, [(190, 747, 286)], fs=8),
+                *lease_terms_entries(addr_full, "seller", "property_header"),
                 (239, 535, fmt_money(seller_temp_holdover), 8),
-                *fitted_blank_entries(first_present(s.get("buyerMailAddr"), s.get("landlordMailAddr")), [
-                    (125, 328, 179), (50, 309, 254), (50, 290, 254),
-                ], fs=7.5),
+                *lease_terms_entries(first_present(s.get("buyerMailAddr"), s.get("landlordMailAddr")), "seller", "landlord_mail"),
                 (134, 271, landlord_phone_area, 7.5),
                 (163, 271, landlord_phone_number, 7.5),
                 (134, 252, landlord_fax_area, 7.5),
                 (163, 252, landlord_fax_number, 7.5),
-                (97, 235, first_present(s.get("buyerEmail"), s.get("landlordEmail")), 7.5),
-                *fitted_blank_entries(first_present(s.get("sellerMailAddr"), s.get("tenantMailAddr")), [
-                    (392, 328, 183), (324, 309, 251), (324, 290, 251),
-                ], fs=7.5),
+                *lease_terms_entries(first_present(s.get("buyerEmail"), s.get("landlordEmail")), "seller", "landlord_email"),
+                *lease_terms_entries(first_present(s.get("sellerMailAddr"), s.get("tenantMailAddr")), "seller", "tenant_mail"),
                 (398, 271, tenant_phone_area, 7.5),
                 (430, 271, tenant_phone_number, 7.5),
                 (398, 252, tenant_fax_area, 7.5),
                 (431, 252, tenant_fax_number, 7.5),
-                (371, 235, first_present(s.get("sellerEmail"), s.get("seller1Email"), s.get("tenantEmail")), 7.5),
+                *lease_terms_entries(first_present(s.get("sellerEmail"), s.get("seller1Email"), s.get("tenantEmail")), "seller", "tenant_email"),
             ],
         }
         seller_temp_lease_pages = add_debug_grid_to_pages(seller_temp_lease_pages)
         merger.append(PdfReader(BytesIO(stamp_pdf(seller_temp_lease_path, seller_temp_lease_pages))))
 
-    if has_hoa and os.path.exists(HOA_PDF):
-        hoa_info = s.get("hoaSubdivisionInfo") or "seller"
-        hoa_title_cost = s.get("hoaTitleCost") or "seller"
-        hoa_days = first_present(s.get("hoaDays"), s.get("hoaDeliveryDays"), "7")
-        hoa_name_base = first_present(s.get("hoaName"), s.get("associationName"), s.get("poaName"))
-        hoa_phone = str(s.get("hoaPhone") or "").strip()
-        hoa_name = (hoa_name_base + ((", " + hoa_phone) if hoa_phone else "")) if hoa_name_base else hoa_phone
-
-        hoa_pages = {
-            0: [
-                (180, 662, addr_full, 8),
-                (180, 636, hoa_name, 8),
-
-                (47, 555, ck(hoa_info == "seller"), "check_small"),
-                (110, 555, str(hoa_days) if hoa_info == "seller" else ""),
-
-                (49, 499, ck(hoa_info == "buyer"), "check_small"),
-                (110, 499, str(hoa_days) if hoa_info == "buyer" else ""),
-
-                (49, 460, ck(hoa_info == "received"), "check_small"),
-                (49, 424, ck(hoa_info == "notRequired"), "check_small"),
-
-                (410, 310, fmt_money(first_present(s.get("hoaTransferFeeCap"), s.get("hoaReserves"), "0"))),
-
-                (238, 235, ck(hoa_title_cost == "buyer"), "check_small"),
-                (275, 235, ck(hoa_title_cost == "seller"), "check_small"),
-            ],
-        }
-
-        hoa_pages = add_debug_grid_to_pages(hoa_pages)
+    if has_hoa:
+        if not os.path.exists(HOA_PDF):
+            raise ValueError("The HOA addendum source is unavailable.")
+        hoa_answers = hoa_addendum_layout.answer_layout(s)
+        hoa_pages = add_debug_grid_to_pages({0: hoa_addendum_layout.page_entries(hoa_answers)})
         merger.append(PdfReader(BytesIO(stamp_pdf(HOA_PDF, hoa_pages))))
+        hoa_continuation = hoa_answers.continuation()
+        if hoa_continuation:
+            merger.append(PdfReader(BytesIO(hoa_continuation)))
 
-    if has_sale and os.path.exists(SALE_PDF):
-        sale_md, sale_yy = split_date(s.get("saleContingencyDate", ""))
-
-        sale_pages = {
-            0: [
-                (245, 626, addr_full, 8),
-
-                (83, 561, first_present(s.get("salePropertyAddr"), s.get("salePropertyAddress"), s.get("buyerSalePropertyAddress")), 8),
-
-                (225, 550, sale_md),
-
-                # Page 15 §A year: moved down and right.
-                (400, 547, sale_yy),
-
-                (204, 453, str(s.get("saleWaiverDays", "3"))),
-
-                (535, 418, fmt_money(s.get("saleAdditionalEarnest", "")) if s.get("saleAdditionalEarnest") else ""),
-            ],
-        }
-
-        sale_pages = add_debug_grid_to_pages(sale_pages)
+    if has_sale:
+        if not os.path.exists(SALE_PDF):
+            raise ValueError("The sale-of-other-property addendum source is unavailable.")
+        sale_answers = sale_contingency_layout.answer_layout(s)
+        sale_pages = add_debug_grid_to_pages({0: sale_contingency_layout.page_entries(sale_answers)})
         merger.append(PdfReader(BytesIO(stamp_pdf(SALE_PDF, sale_pages))))
+        sale_continuation = sale_answers.continuation()
+        if sale_continuation:
+            merger.append(PdfReader(BytesIO(sale_continuation)))
 
-    if has_bkup and os.path.exists(BACKUP_PDF):
-        # Support both old bkup* keys and more readable backup* keys from frontend variants.
-        bkup_first_date = first_present(
-            s.get("bkupFirstContractDate"),
-            s.get("backupFirstContractDate"),
-            s.get("firstContractDate"),
-            s.get("firstContractEffectiveDate"),
-            ""
-        )
-        bkup_term_date = first_present(
-            s.get("bkupTerminateDate"),
-            s.get("backupTerminateDate"),
-            s.get("backupTerminationDate"),
-            s.get("backupContractTerminationDate"),
-            ""
-        )
-        bkup_addl_earnest = first_present(s.get("bkupAdditionalEarnest"), s.get("backupAdditionalEarnest"), s.get("backupAddlEarnest"), "")
-        bkup_addl_option = first_present(s.get("bkupAdditionalOption"), s.get("backupAdditionalOption"), s.get("backupAdditionalOptionFee"), s.get("backupAddlOption"), s.get("backupAddlOptionFee"), "")
-        bkup_addl_days = first_present(s.get("bkupAdditionalDays"), s.get("backupAdditionalDays"), s.get("backupAddlDays"), "")
-
-        bkup_first_md, bkup_first_yy = split_date(bkup_first_date)
-        bkup_term_md,  bkup_term_yy  = split_date(bkup_term_date)
-
-        bkup_pages = {
-            0: [
-                (245, 660, addr_full, 8),
-
-                # 17Z: values are seated directly above the printed A(2) underscores.
-                (350, 522, fmt_money(bkup_addl_earnest) if bkup_addl_earnest else "", 8.5),
-                (90, 511, fmt_money(bkup_addl_option) if bkup_addl_option else "", 8.5),
-                (288, 511, str(bkup_addl_days) if bkup_addl_days else "", 8.5),
-
-                # 17Z: Paragraph G date belongs on the line after "Contract) dated".
-                (170, 221, bkup_first_md, 8.5),
-                (348, 221, bkup_first_yy, 8.5),
-
-                (386, 176, bkup_term_md),
-                (530, 176, bkup_term_yy),
-            ],
-            1: [
-                (181, 745, addr_full, 8),
-            ],
-        }
-
-        bkup_pages = add_debug_grid_to_pages(bkup_pages)
+    if has_bkup:
+        if not os.path.exists(BACKUP_PDF):
+            raise ValueError("The backup contract addendum source is unavailable.")
+        backup_answers = backup_contract_layout.answer_layout(s)
+        bkup_pages = add_debug_grid_to_pages(backup_contract_layout.page_entries(backup_answers))
         merger.append(PdfReader(BytesIO(stamp_pdf(BACKUP_PDF, bkup_pages))))
+        backup_continuation = backup_answers.continuation()
+        if backup_continuation:
+            merger.append(PdfReader(BytesIO(backup_continuation)))
+
+    repair_continuation = render_repair_continuation(s)
+    if repair_continuation:
+        merger.append(PdfReader(BytesIO(repair_continuation)))
+    nonrealty_continuation = render_nonrealty_continuation(s)
+    if nonrealty_continuation:
+        merger.append(PdfReader(BytesIO(nonrealty_continuation)))
+    lease_kind = "buyer" if buyer_temp_lease_attached else "seller" if seller_temp_lease_attached else ""
+    lease_continuation = render_lease_terms_continuation(s, lease_kind)
+    if lease_continuation:
+        merger.append(PdfReader(BytesIO(lease_continuation)))
+    contract_continuation = render_contract_terms_continuation(s)
+    if contract_continuation:
+        merger.append(PdfReader(BytesIO(contract_continuation)))
 
     out = BytesIO()
     merger.write(out)
@@ -1475,15 +1360,17 @@ def build_signwell_fields(offer, pdf_bytes):
     has_hoa = str(offer.get("hoa") or "").strip().lower() in {"yes", "unknown"}
     has_sale = str(offer.get("saleContingency") or "").strip().lower() == "yes"
     has_backup = str(offer.get("backupOffer") or "").strip().lower() == "yes"
-    has_appraisal = has_financing_addendum and financing not in {"fha", "va"} and normalize_appraisal(offer.get("appraisalAddendum")) in {"waiver", "partial", "additional"}
+    has_appraisal = appraisal_requested(offer)
     has_non_realty = str(offer.get("nonRealtyItems") or "no").strip().lower() in {"yes", "true", "1", "on"} and bool(str(get_non_realty_description(offer) or "").strip())
     lead_required = lead_required_from_offer(offer)
-    lead_addendum_attached = truthy(first_present(
+    lead_addendum_uploaded = has_uploaded_lead_disclosure(offer)
+    lead_addendum_attached = lead_addendum_uploaded or truthy(first_present(
         offer.get("leadBasedPaintAttached"),
         offer.get("attachLeadBasedPaintAddendum"),
         offer.get("sellerLeadDisclosureAttached"),
         offer.get("leadDisclosureAttached"),
     )) and bool(lead_pdf_path())
+    generated_lead_addendum = lead_addendum_attached and not lead_addendum_uploaded
     buyer_temp_lease_attached = buyer_temp_lease_requested(offer) and bool(buyer_temp_lease_pdf_path())
     seller_temp_lease_attached = seller_temp_lease_requested(offer) and bool(seller_temp_lease_pdf_path())
     if buyer_temp_lease_attached and seller_temp_lease_attached:
@@ -1508,13 +1395,21 @@ def build_signwell_fields(offer, pdf_bytes):
         financing_page_1 = next_page
         financing_signature_page = next_page + 1
         next_page += 2
+        financing_answers = financing_addendum_layout.answer_layout(offer, financing)
+        financing_continuation = financing_answers.continuation()
+        if financing_continuation:
+            next_page += len(PdfReader(BytesIO(financing_continuation)).pages)
     if has_appraisal:
         appraisal_page = next_page
         next_page += 1
+        appraisal_answers = appraisal_answer_layout(appraisal_render_data(offer))
+        appraisal_continuation = appraisal_answers.continuation()
+        if appraisal_continuation:
+            next_page += len(PdfReader(BytesIO(appraisal_continuation)).pages)
     if has_non_realty:
         non_realty_page = next_page
         next_page += 1
-    if lead_addendum_attached:
+    if generated_lead_addendum:
         lead_page = next_page
         next_page += 1
     if buyer_temp_lease_attached:
@@ -1528,13 +1423,25 @@ def build_signwell_fields(offer, pdf_bytes):
     if has_hoa:
         hoa_page = next_page
         next_page += 1
+        hoa_answers = hoa_addendum_layout.answer_layout(offer)
+        hoa_continuation = hoa_answers.continuation()
+        if hoa_continuation:
+            next_page += len(PdfReader(BytesIO(hoa_continuation)).pages)
     if has_sale:
         sale_page = next_page
         next_page += 1
+        sale_answers = sale_contingency_layout.answer_layout(offer)
+        sale_continuation = sale_answers.continuation()
+        if sale_continuation:
+            next_page += len(PdfReader(BytesIO(sale_continuation)).pages)
     if has_backup:
         backup_page_1 = next_page
         backup_signature_page = next_page + 1
         next_page += 2
+        backup_answers = backup_contract_layout.answer_layout(offer)
+        backup_continuation = backup_answers.continuation()
+        if backup_continuation:
+            next_page += len(PdfReader(BytesIO(backup_continuation)).pages)
 
     fields_for_file = []
 
@@ -1593,20 +1500,33 @@ def build_signwell_fields(offer, pdf_bytes):
 
     # Third Party Financing Addendum.
     if financing_page_1 and financing_signature_page:
-        add_field("buyer1_initials_financing_p1", "initials", financing_page_1, 280, 1004, recipient_id="1", width=24, height=10)
-        if has_buyer2:
-            add_field("buyer2_initials_financing_p1", "initials", financing_page_1, 314, 1014, recipient_id="2", width=24, height=10)
-        # User requested financing fields left/up vs prior bundle.
-        add_sig_date_pair("buyer1_financing_addendum", financing_signature_page, 112, 808, 266, 808, "1")
-        if has_buyer2:
-            add_sig_date_pair("buyer2_financing_addendum", financing_signature_page, 112, 884, 266, 884, "2")
+        if financing_signature_page > page_count:
+            raise ValueError("The financing addendum is missing from this packet.")
+        for index in range(2 if has_buyer2 else 1):
+            x, y, width, height = financing_addendum_layout.BUYER_INITIAL_BOXES[index]
+            add_field(f"buyer{index+1}_initials_financing_p1", "initials", financing_page_1,
+                      x, y, str(index+1), width=width, height=height)
+            x, y, width, height = financing_addendum_layout.BUYER_SIGNATURE_BOXES[index]
+            add_field(f"buyer{index+1}_financing_addendum_signature", "signature", financing_signature_page,
+                      x, y, str(index+1), width=width, height=height)
+        financing_fields = financing_answers.continuation_fields(financing_signature_page + 1, 'financing')
+        if any(field['page'] > page_count for field in financing_fields):
+            raise ValueError("The financing continuation is missing from this packet.")
+        fields_for_file.extend(financing_fields)
 
     # Appraisal Addendum - buyer signatures only. No seller fields.
-    # Live QA: signature blocks needed to sit higher on the buyer lines and include buyer dates.
+    # Source has Buyer signature rules, but no printed date blanks. Share the
+    # standalone source-calibrated boxes; never extend over the Buyer captions.
     if appraisal_page:
-        add_sig_date_pair("buyer1_appraisal_addendum", appraisal_page, 85, 780, 260, 780, "1")
-        if has_buyer2:
-            add_sig_date_pair("buyer2_appraisal_addendum", appraisal_page, 85, 868, 260, 868, "2")
+        if appraisal_page > page_count:
+            raise ValueError("The appraisal addendum is missing from this packet.")
+        for index, (x, y, width, height) in enumerate(BUYER_SIGNATURE_BOXES[:2 if has_buyer2 else 1], 1):
+            add_field(f"buyer{index}_appraisal_addendum_signature", "signature", appraisal_page,
+                      x, y, str(index), width=width, height=height)
+        appraisal_fields = appraisal_answers.continuation_fields(appraisal_page + 1, 'appraisal')
+        if any(field['page'] > page_count for field in appraisal_fields):
+            raise ValueError("The appraisal continuation is missing from this packet.")
+        fields_for_file.extend(appraisal_fields)
 
     # Non-Realty Items Addendum - buyer signatures only. No seller fields.
     if non_realty_page:
@@ -1649,30 +1569,81 @@ def build_signwell_fields(offer, pdf_bytes):
 
     # HOA/POA Addendum - buyer signatures only. No seller fields.
     if hoa_page:
-        # 17Q: HOA buyer signatures moved up onto the two Buyer lines.
-        add_sig_date_pair("buyer1_hoa_addendum", hoa_page, 112, 842, 286, 842, "1")
-        if has_buyer2:
-            # 17S: Buyer 2 HOA signature up 10 points.
-            add_sig_date_pair("buyer2_hoa_addendum", hoa_page, 112, 914, 286, 914, "2")
+        if hoa_page > page_count:
+            raise ValueError("The HOA addendum is missing from this packet.")
+        # TREC 36-11 has Buyer execution rules but no printed date blanks.
+        for index, (x, y, width, height) in enumerate(hoa_addendum_layout.BUYER_SIGNATURE_BOXES[:2 if has_buyer2 else 1], 1):
+            add_field(f"buyer{index}_hoa_addendum_signature", "signature", hoa_page,
+                      x, y, str(index), width=width, height=height)
+        hoa_fields = hoa_answers.continuation_fields(hoa_page + 1, 'hoa')
+        if any(field['page'] > page_count for field in hoa_fields):
+            raise ValueError("The HOA continuation is missing from this packet.")
+        fields_for_file.extend(hoa_fields)
 
     # Sale of Other Property Addendum - buyer signatures only. No seller fields.
     if sale_page:
-        # 17Q: Sale of Other Property signatures moved down from Paragraph E/body text to Buyer lines.
-        add_sig_date_pair("buyer1_sale_other_property_addendum", sale_page, 112, 705, 286, 705, "1")
-        if has_buyer2:
-            # 17S: Buyer 2 Sale of Other Property signature up 20 points.
-            add_sig_date_pair("buyer2_sale_other_property_addendum", sale_page, 112, 785, 286, 785, "2")
+        if sale_page > page_count:
+            raise ValueError("The sale-of-other-property addendum is missing from this packet.")
+        # The source has Buyer rules, not separate date blanks.
+        for index, (x, y, width, height) in enumerate(sale_contingency_layout.BUYER_SIGNATURE_BOXES[:2 if has_buyer2 else 1], 1):
+            add_field(f"buyer{index}_sale_other_property_addendum_signature", "signature", sale_page,
+                      x, y, str(index), width=width, height=height)
+        sale_fields = sale_answers.continuation_fields(sale_page + 1, 'sale')
+        if any(field['page'] > page_count for field in sale_fields):
+            raise ValueError("The sale contingency continuation is missing from this packet.")
+        fields_for_file.extend(sale_fields)
 
     # Backup Contract Addendum - page 1 initial line, page 2 buyer signatures only.
     if backup_page_1:
-        add_field("buyer1_initials_backup_p1", "initials", backup_page_1, 280, 1004, recipient_id="1", width=24, height=10)
+        if backup_signature_page > page_count:
+            raise ValueError("The backup contract addendum is missing from this packet.")
+        for index in range(2 if has_buyer2 else 1):
+            x, y, width, height = backup_contract_layout.BUYER_INITIAL_BOXES[index]
+            add_field(f"buyer{index+1}_initials_backup_p1", "initials", backup_page_1,
+                      x, y, str(index+1), width=width, height=height)
+            x, y, width, height = backup_contract_layout.BUYER_SIGNATURE_BOXES[index]
+            add_field(f"buyer{index+1}_backup_addendum_signature", "signature", backup_signature_page,
+                      x, y, str(index+1), width=width, height=height)
+        backup_fields = backup_answers.continuation_fields(backup_signature_page + 1, 'backup')
+        if any(field['page'] > page_count for field in backup_fields):
+            raise ValueError("The backup contract continuation is missing from this packet.")
+        fields_for_file.extend(backup_fields)
+
+    repair_page_count = continuation_page_count(offer)
+    for index in range(repair_page_count):
+        page = next_page + index
+        if page > page_count:
+            raise ValueError("The repair continuation is missing from this packet.")
+        fields_for_file.append(continuation_field("1", page, index + 1))
         if has_buyer2:
-            add_field("buyer2_initials_backup_p1", "initials", backup_page_1, 314, 1004, recipient_id="2", width=24, height=10)
-    if backup_signature_page:
-        # 17Q: Backup signatures moved onto Buyer lines; Buyer 2 was too low in 17P.
-        add_sig_date_pair("buyer1_backup_addendum", backup_signature_page, 122, 220, 286, 220, "1")
+            fields_for_file.append(continuation_field("2", page, index + 1))
+
+    nonrealty_page_count = nonrealty_continuation_page_count(offer)
+    for index in range(nonrealty_page_count):
+        page = next_page + repair_page_count + index
+        if page > page_count:
+            raise ValueError("The non-realty items continuation is missing from this packet.")
+        fields_for_file.append(continuation_field("1", page, index + 1, "nonrealty"))
         if has_buyer2:
-            add_sig_date_pair("buyer2_backup_addendum", backup_signature_page, 122, 318, 286, 318, "2")
+            fields_for_file.append(continuation_field("2", page, index + 1, "nonrealty"))
+
+    lease_kind = "buyer" if buyer_temp_lease_attached else "seller" if seller_temp_lease_attached else ""
+    lease_page_count = lease_terms_page_count(offer, lease_kind)
+    for index in range(lease_page_count):
+        page = next_page + repair_page_count + nonrealty_page_count + index
+        if page > page_count:
+            raise ValueError("The temporary lease continuation is missing from this packet.")
+        fields_for_file.append(continuation_field("1", page, index + 1, "lease"))
+        if has_buyer2:
+            fields_for_file.append(continuation_field("2", page, index + 1, "lease"))
+
+    for index in range(contract_terms_page_count(offer)):
+        page = next_page + repair_page_count + nonrealty_page_count + lease_page_count + index
+        if page > page_count:
+            raise ValueError("The purchase contract terms continuation is missing from this packet.")
+        fields_for_file.append(continuation_field("1", page, index + 1, "contract_terms"))
+        if has_buyer2:
+            fields_for_file.append(continuation_field("2", page, index + 1, "contract_terms"))
 
     fields = [fields_for_file]
 
@@ -1684,7 +1655,7 @@ def build_signwell_fields(offer, pdf_bytes):
         "has_hoa": has_hoa,
         "has_appraisal": has_appraisal,
         "has_non_realty": has_non_realty,
-        "lead_required_warning_only": lead_required,
+        "lead_required": lead_required,
         "lead_addendum_attached": lead_addendum_attached,
         "buyer_temp_lease_attached": buyer_temp_lease_attached,
         "seller_temp_lease_attached": seller_temp_lease_attached,
@@ -1785,7 +1756,7 @@ def create_signwell_signature_request(offer, pdf_bytes):
     # Only add the buyer-agent/broker as a SignWell recipient when an explicitly attached
     # lead-based paint disclosure needs the broker acknowledgment signed. This preserves
     # the normal buyer-only offer workflow and avoids adding a third signer to ordinary packets.
-    lead_addendum_attached_for_agent = truthy(first_present(
+    lead_addendum_attached_for_agent = not has_uploaded_lead_disclosure(offer) and truthy(first_present(
         offer.get("leadBasedPaintAttached"),
         offer.get("attachLeadBasedPaintAddendum"),
         offer.get("sellerLeadDisclosureAttached"),

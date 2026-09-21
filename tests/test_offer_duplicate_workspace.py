@@ -12,7 +12,7 @@ class OfferDuplicateWorkspaceTests(unittest.TestCase):
         end = HTML.index("\n  async function deleteOffer", start)
         body = HTML[start:end]
 
-        self.assertIn("const copyData = { ...(offer.offer_data || {}) };", body)
+        self.assertIn("const copyData = cleanOfferDraftData(offer.offer_data);", body)
         for key in (
             "'_hofOfferId'",
             "'signwell'",
@@ -51,7 +51,7 @@ class OfferDuplicateWorkspaceTests(unittest.TestCase):
         self.assertIn("return resumeOffer(id, true)", resume)
         self.assertIn("arguments[1] === true", duplicate)
         self.assertIn("duplicate_retry_clicked", duplicate)
-        self.assertIn("return duplicateOffer(id, true, openAfterDuplicate)", duplicate)
+        self.assertIn("return duplicateOffer(id, true, openAfterDuplicate, request)", duplicate)
         self.assertIn("openAfterDuplicate", duplicate)
         self.assertIn("return resumeOffer(insertResult.data.id)", duplicate)
 

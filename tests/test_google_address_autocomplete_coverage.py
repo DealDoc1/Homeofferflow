@@ -83,9 +83,9 @@ class GoogleAddressAutocompleteCoverageTests(unittest.TestCase):
         start = INDEX.index("function fillBrandOfficeAddressFields(components)")
         end = INDEX.index("function fillFsboAddressFields(components)", start)
         handler = INDEX[start:end]
-        self.assertIn("if (t.includes('postal_code')) zip = c.long_name;", handler)
+        self.assertIn("const { city, state, zip } = _googleAddressParts(components);", handler)
         self.assertIn("const zipEl = document.getElementById('brandOfficeZip');", handler)
-        self.assertIn("if (zipEl && zip) zipEl.value = zip;", handler)
+        self.assertIn("[zipEl, zip]", handler)
 
     def test_selection_telemetry_excludes_transaction_addresses(self):
         self.assertIn("trackEvent('Google Address Selected'", INDEX)

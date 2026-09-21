@@ -32,6 +32,7 @@ class IntakePathClarityAuditTests(unittest.TestCase):
         self.assertIn("prepare an appraisal document for review", HTML)
         self.assertIn("Answer the questions needed for this document.", HTML)
         self.assertIn("Choose the review rights requested.", HTML)
+        self.assertIn("HomeOfferFlow does not assess credit, advise on loan terms, or contact a lender.", HTML)
         self.assertIn("Review the completed document, then confirm recipients before sending it for signature.", HTML)
         self.assertIn("review the completed document", HTML)
         self.assertIn(".hof-agreement-dialog label", HTML)
@@ -44,6 +45,32 @@ class IntakePathClarityAuditTests(unittest.TestCase):
         self.assertIn("Your draft is ready", HTML)
         self.assertIn("Do not replace status.textContent when it contains the next-action", HTML)
         self.assertIn(".hof-agreement-dialog .hof-iabs-status", HTML)
+
+    def test_authenticated_activation_copy_uses_customer_actions(self):
+        removed_copy = (
+            "using the workflow with a client",
+            "PDF, SignWell, form, or workflow",
+            "workflow friction",
+            "keep your workflow moving",
+            "Resume the client workflow",
+            "without interrupting your workflow",
+            "same client workflow",
+            'aria-label="First offer workflow overview"',
+        )
+        for phrase in removed_copy:
+            with self.subTest(phrase=phrase):
+                self.assertNotIn(phrase, HTML)
+        for phrase in (
+            "Review your first packet before using it with a client.",
+            "help with a document, signing, form, or guided question",
+            "keep your work moving",
+            "Resume the client offer now",
+            "without interrupting client work",
+            "Resume the same client offer",
+            'aria-label="First offer overview"',
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, HTML)
 
     def test_saved_agent_preferences_use_plain_language(self):
         self.assertIn(

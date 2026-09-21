@@ -15,7 +15,7 @@ class BuyerCheckoutReturnConfirmationTests(unittest.TestCase):
     def test_return_screen_uses_confirmation_copy_and_keeps_the_draft(self):
         self.assertIn("We’re confirming your checkout", HTML)
         self.assertIn("We’ll email a receipt and your offer packet after payment is confirmed.", HTML)
-        self.assertIn("if (!checkoutConfirmationPending)", HTML)
+        self.assertIn("if (!checkoutConfirmationPending && options.documentEmail?.status === 'accepted')", HTML)
         self.assertIn("copied return URL must not erase a buyer's work", HTML)
         self.assertIn("Payment Checkout Returned", HTML)
 

@@ -10,6 +10,34 @@ SPEC.loader.exec_module(MODULE)
 
 
 class TxrSigningRequestPathTests(unittest.TestCase):
+    def test_long_form_initials_reach_provider_verification_for_each_signer_variant(self):
+        from copy import deepcopy
+        for role in ('broker','associate'):
+            for count in (1,2):
+                agreement={'form_code':'TXR-1501','client_names':['QA One','QA Two'][:count],
+                           'agreement_data':{'signer_plan':'clients_and_'+role}}
+                recipients=MODULE._txr_signwell_recipients(agreement,
+                    ['one@example.test','two@example.test'][:count],
+                    {'contact_email':'broker@example.test','name':'QA Brokerage'},
+                    {'email':'associate@example.test','name':'QA Associate'})
+                fields=MODULE._txr_signwell_fields('TXR-1501',agreement['agreement_data'],count)
+                document={'fields':deepcopy(fields),'recipients':deepcopy(recipients)}
+                with self.subTest(role=role,count=count):
+                    self.assertEqual(len(fields[0]),14 if count==1 else 21)
+                    self.assertTrue(MODULE._signwell_document_matches_signing_request(document,fields,recipients))
+                    for defect in ('missing','wrong_recipient','wrong_page'):
+                        bad=deepcopy(document)
+                        index=next(i for i,f in enumerate(bad['fields'][0]) if f['type']=='initials')
+                        if defect=='missing':bad['fields'][0].pop(index)
+                        elif defect=='wrong_recipient':bad['fields'][0][index]['recipient_id']='1'
+                        else:bad['fields'][0][index]['page']=6
+                        self.assertFalse(MODULE._signwell_document_matches_signing_request(bad,fields,recipients))
+
+    def test_long_form_preceding_map_is_not_reused_for_new_initials(self):
+        with self.assertRaisesRegex(ValueError,'prepared again'):
+            MODULE._current_txr_signing_map_revision('TXR-1501',
+                {'signing_map_revision':'txr-1501-2026-09-12-completed-packet-calibrated-v2'})
+
     def test_signing_is_opt_in_and_route_is_a_separate_action(self):
         source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         self.assertIn('TXR_SIGNING_ENABLED =', source)
@@ -280,19 +308,19 @@ class TxrSigningRequestPathTests(unittest.TestCase):
     def test_core_txr_signing_requests_carry_the_current_geometry_revision(self):
         self.assertEqual(
             MODULE.TXR_SIGNING_MAP_REVISIONS["TXR-1501"],
-            "txr-1501-2026-09-12-completed-packet-calibrated-v2",
+            "txr-1501-2026-09-18-continuation-candidate-v4",
         )
         self.assertEqual(
             MODULE.TXR_SIGNING_MAP_REVISIONS["TXR-1506"],
-            "txr-1506-2026-09-09-final-page-calibrated-v1",
+            "txr-1506-2026-09-18-answer-continuation-candidate-v2",
         )
         self.assertEqual(
             MODULE.TXR_SIGNING_MAP_REVISIONS["TXR-1507"],
-            "txr-1507-2026-09-12-completed-packet-calibrated-v2",
+            "txr-1507-2026-09-18-answer-continuation-candidate-v3",
         )
         self.assertEqual(
             MODULE.TXR_SIGNING_MAP_REVISIONS["TXR-1508"],
-            "txr-1508-2026-09-09-acknowledgement-calibrated-v1",
+            "txr-1508-2026-09-18-answer-continuation-candidate-v2",
         )
         source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         self.assertIn('"signing_map_revision": current_map_revision', source)
@@ -319,10 +347,11 @@ class TxrSigningRequestPathTests(unittest.TestCase):
             )
             with self.assertRaisesRegex(ValueError, "signature fields appear in the right places"):
                 MODULE._current_txr_signing_map_revision(form_code, {})
-        self.assertEqual(
-            MODULE._current_txr_signing_map_revision("TXR-1905", {}),
-            "source-specific-v1",
-        )
+        for code in ('TXR-1905', 'TXR-1914', 'TXR-1917', 'TXR-1919'):
+            # These addenda regenerate from saved answers. Bind the current
+            # map in delivery metadata without adding a reapproval step.
+            self.assertEqual(MODULE._current_txr_signing_map_revision(code, {}),
+                             MODULE.TXR_SIGNING_MAP_REVISIONS[code])
 
     def test_stale_core_txr_draft_offers_a_direct_current_copy_path(self):
         html = (ROOT / "index.html").read_text(encoding="utf-8")

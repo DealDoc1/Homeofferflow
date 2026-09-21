@@ -3,27 +3,114 @@
 from io import BytesIO
 
 from pypdf import PdfReader, PdfWriter
+from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject, RectangleObject, create_string_object
 from reportlab.pdfgen.canvas import Canvas
+from lib.pdf_text import draw_text, text_width
+from lib.txr_addenda_layout import SourceAnswers, draw_entries, mark_cell
 
 
 PAGE_WIDTH = 612
 PAGE_HEIGHT = 792
+RENDER_REVISION = 'txr-1948-2026-09-18-answer-continuation-v2'
+BUYER_SIGNATURE_BOXES = ((58, 764, 336, 26), (58, 852, 336, 26))
+ADDRESS_FIELD = 'Street Address and City'
+CHOICE_FIELDS = {
+    'waiver': '1 WAIVER Buyer w aives Buyers right to terminate the contract under Paragraph 2B of the',
+    'partial_waiver': '2 PARTIAL WAIVER Buyer w aives Buyers right to terminate the contract under Paragraph 2B',
+    'additional_right': '3 ADDITIONAL',
+}
+TERM_FIELDS = {'partial_value': 'ii the opinion of value is',
+               'additional_days': 'days after the Effective Date if',
+               'additional_value': 'than'}
+TEXT_BLANKS = {
+    ADDRESS_FIELD: (226.7, 654, 347),
+    TERM_FIELDS['partial_value']: (232.3, 401.5, 97.6),
+    TERM_FIELDS['additional_days']: (67.4, 321.8, 40.5),
+    TERM_FIELDS['additional_value']: (126.7, 289.2, 91),
+}
 
 
-def _clean(value):
-    return " ".join(str(value or "").strip().split())
+def answer_layout(data):
+    """One lossless layout for editable appearances, flat sources and maps."""
+    answers = SourceAnswers(data, 'TXR-1948 - Appraisal Addendum Continuation', 1)
+    answers.field_entries = {}
+    choice = data.get('appraisal_choice')
+    values = {ADDRESS_FIELD: (data.get('property_address'), 'Property address')}
+    for key, label in [('partial_value', 'Partial-waiver appraisal value'),
+                       ('additional_days', 'Additional termination period (days)'),
+                       ('additional_value', 'Additional-right appraisal value')]:
+        active = (key == 'partial_value' and choice == 'partial_waiver'
+                  or key in ('additional_days', 'additional_value') and choice == 'additional_right')
+        values[TERM_FIELDS[key]] = (data.get(key) if active else '', label)
+    for field, (value, label) in values.items():
+        start = len(answers.pages[1])
+        answers.put(value, [TEXT_BLANKS[field]], label, size=9)
+        answers.field_entries[field] = answers.pages[1][start:]
+    start = len(answers.pages[1])
+    answers.names(1, (193, 127), [('Buyer', 45, 248), ('Seller', 320, 234)])
+    answers.preview_entries = answers.pages[1][start:]
+    return answers
 
 
-def _draw(canvas, value, x, y, size=8):
-    value = _clean(value)
-    if value:
-        canvas.setFont("Helvetica", size)
-        canvas.drawString(x, y, value)
+def _editable_values(source, data, answers=None):
+    """Use canonical form values for the supplied interactive TREC 49-1 source."""
+    fields = source.get_fields() or {}
+    widgets = [ref for page in source.pages for ref in page.get('/Annots', [])
+               if ref.get_object().get('/Subtype') == '/Widget']
+    if not fields and not widgets:
+        return None  # Legacy non-interactive library source.
+    expected = {ADDRESS_FIELD, *CHOICE_FIELDS.values(), *TERM_FIELDS.values(),
+                'Signature1', 'Signature2', 'Signature3', 'Signature4'}
+    canonical = source.trailer['/Root'].get('/AcroForm', {}).get('/Fields', [])
+    if set(fields) != expected or {ref.idnum for ref in canonical} != {ref.idnum for ref in widgets}:
+        raise ValueError('TXR-1948 editable source fields do not match the supported form.')
+    if any(fields[name].get('/V') for name in expected if name.startswith('Signature')):
+        raise ValueError('Use an unsigned TXR-1948 source, not an executed agreement.')
+    choice = data.get('appraisal_choice')
+    answers = answers or answer_layout(data)
+    values = {name: ' '.join(entry[2] for entry in entries)
+              for name, entries in answers.field_entries.items()}
+    values.update({name: '/On' if key == choice else '/Off' for key, name in CHOICE_FIELDS.items()})
+    return values
 
 
-def _mark(canvas, x, y):
-    canvas.setFont("Helvetica-Bold", 10)
-    canvas.drawString(x, y, "X")
+def _text_appearances(writer, answers):
+    """Embed the same Unicode-aware text used for flat-source overlays.
+
+    The ordinary field updater resets text and sets button states. Supply
+    canonical text and matching appearances here so a standard-font encoding
+    cannot turn a Unicode address into missing glyphs. Widgets stay editable.
+    """
+    for ref in writer.pages[0].get('/Annots', []):
+        widget = ref.get_object()
+        name = widget.get('/T')
+        if name not in answers.field_entries:
+            continue
+        value = ' '.join(entry[2] for entry in answers.field_entries[name])
+        # pypdf 4.3.1 can serialize a newly created Unicode TextStringObject
+        # without its UTF-16 marker. Re-reading must recover text, not bytes.
+        widget[NameObject('/V')] = create_string_object(b'\xfe\xff' + value.encode('utf-16-be'))
+        left, bottom, right, top = map(float, widget['/Rect'])
+        width, height = right - left, top - bottom
+        packet = BytesIO()
+        canvas = Canvas(packet, pagesize=(width, height))
+        for x, y, value, size in answers.field_entries[name]:
+            if not (left <= x and x + text_width(value, 'Helvetica', size) <= right
+                    and bottom <= y < top):
+                raise ValueError('TXR-1948 editable source text bounds do not match the supported form.')
+            draw_text(canvas, value, x - left, y - bottom, size)
+        canvas.showPage()
+        canvas.save()
+        page = PdfReader(BytesIO(packet.getvalue())).pages[0]
+        appearance = DecodedStreamObject()
+        appearance.set_data(page.get_contents().get_data())
+        appearance.update({NameObject('/Type'): NameObject('/XObject'),
+                           NameObject('/Subtype'): NameObject('/Form'),
+                           NameObject('/BBox'): RectangleObject((0, 0, width, height)),
+                           NameObject('/Resources'): page['/Resources'].clone(writer)})
+        # PDF streams must be indirect objects. An inline stream may remain
+        # extractable by pypdf while a real viewer silently displays it blank.
+        widget[NameObject('/AP')] = DictionaryObject({NameObject('/N'): writer._add_object(appearance)})
 
 
 def render_txr_1948(source_pdf_bytes, data):
@@ -31,33 +118,34 @@ def render_txr_1948(source_pdf_bytes, data):
     source = PdfReader(BytesIO(source_pdf_bytes))
     if len(source.pages) != 1:
         raise ValueError("TXR-1948 source must contain exactly one page.")
+    answers = answer_layout(data)
+    editable_values = _editable_values(source, data, answers)
     packet = BytesIO()
     canvas = Canvas(packet, pagesize=(PAGE_WIDTH, PAGE_HEIGHT))
-    _draw(canvas, data.get("property_address"), 228, 653, 9)
     choice = data.get("appraisal_choice")
-    if choice == "waiver":
-        _mark(canvas, 49, 546)
-    elif choice == "partial_waiver":
-        _mark(canvas, 49, 466)
-        _draw(canvas, data.get("partial_value"), 234, 402, 9)
-    elif choice == "additional_right":
-        _mark(canvas, 49, 344)
-        _draw(canvas, data.get("additional_days"), 68, 322, 9)
-        _draw(canvas, data.get("additional_value"), 128, 289, 9)
-    buyers = data.get("buyer_names") or []
-    sellers = data.get("seller_names") or []
-    _draw(canvas, buyers[0] if buyers else "", 48, 207, 9)
-    _draw(canvas, sellers[0] if sellers else "", 322, 207, 9)
-    if len(buyers) > 1:
-        _draw(canvas, buyers[1], 48, 141, 9)
-    if len(sellers) > 1:
-        _draw(canvas, sellers[1], 322, 141, 9)
+    if editable_values is None:
+        draw_entries(canvas, answers.pages[1])
+        centers = {'waiver': (52.04, 548.42), 'partial_waiver': (51.4, 468.14),
+                   'additional_right': (51.56, 346.22)}
+        if choice in centers:
+            mark_cell(canvas, *centers[choice])
+    else:
+        draw_entries(canvas, answers.preview_entries)
+    canvas.showPage()
     canvas.save()
     packet.seek(0)
     overlay = PdfReader(packet)
     writer = PdfWriter()
-    writer.add_page(source.pages[0])
+    writer.clone_document_from_reader(source)
     writer.pages[0].merge_page(overlay.pages[0])
+    if editable_values is not None:
+        writer.update_page_form_field_values(None,
+            {name: '' if name in TEXT_BLANKS else value for name, value in editable_values.items()},
+            auto_regenerate=False)
+        _text_appearances(writer, answers)
+    continuation = answers.continuation()
+    if continuation:
+        writer.append(PdfReader(BytesIO(continuation)))
     output = BytesIO()
     writer.write(output)
     return output.getvalue()
@@ -82,12 +170,12 @@ def build_signwell_fields_txr1948(data, *, client_count=None):
             "api_id": "txr1948_buyer1_signature_p1",
             "type": "signature",
             "page": 1,
-            "x": 58,
-            "y": 764,
+            "x": BUYER_SIGNATURE_BOXES[0][0],
+            "y": BUYER_SIGNATURE_BOXES[0][1],
             "recipient_id": "1",
             "required": True,
-            "width": 336,
-            "height": 26,
+            "width": BUYER_SIGNATURE_BOXES[0][2],
+            "height": BUYER_SIGNATURE_BOXES[0][3],
         },
         {
             "api_id": "txr1948_seller1_signature_p1",
@@ -107,12 +195,12 @@ def build_signwell_fields_txr1948(data, *, client_count=None):
                 "api_id": "txr1948_buyer2_signature_p1",
                 "type": "signature",
                 "page": 1,
-                "x": 58,
-                "y": 852,
+                "x": BUYER_SIGNATURE_BOXES[1][0],
+                "y": BUYER_SIGNATURE_BOXES[1][1],
                 "recipient_id": "2",
                 "required": True,
-                "width": 336,
-                "height": 26,
+                "width": BUYER_SIGNATURE_BOXES[1][2],
+                "height": BUYER_SIGNATURE_BOXES[1][3],
             }
         )
     if len(sellers) == 2:
@@ -129,4 +217,5 @@ def build_signwell_fields_txr1948(data, *, client_count=None):
                 "height": 26,
             }
         )
+    fields.extend(answer_layout(data).continuation_fields(2, 'txr1948'))
     return [fields]

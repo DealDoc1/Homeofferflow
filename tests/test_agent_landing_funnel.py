@@ -186,10 +186,10 @@ class AgentLandingFunnelTests(unittest.TestCase):
         start = INDEX.index("if (params().get('agent') === '1')")
         end = INDEX.index("// Investor acquisition", start)
         entry = INDEX[start:end]
-        self.assertIn("window.setAudience?.('agent');", entry)
+        self.assertIn("window.setAudience?.('agent', { presentationOnly: true });", entry)
         self.assertIn("const initialAgentLandingWorkflow", entry)
         self.assertLess(entry.index("const initialAgentLandingWorkflow"), entry.index("setTimeout(() => continueAfterAuthResolution"))
-        self.assertLess(entry.index("window.setAudience?.('agent');"), entry.index("setTimeout(() => continueAfterAuthResolution"))
+        self.assertLess(entry.index("window.setAudience?.('agent', { presentationOnly: true });"), entry.index("setTimeout(() => continueAfterAuthResolution"))
 
     def test_package_start_telemetry_waits_for_the_destination_workspace(self):
         start = INDEX.index("window.hofOpenAgentPackageInterview = function")

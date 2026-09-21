@@ -122,6 +122,26 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('How does HomeOfferFlow help Texas FSBO sellers?', INDEX)
         self.assertIn('Can Texas agents use HomeOfferFlow for different transaction types?', INDEX)
 
+    def test_homepage_and_partner_search_copy_uses_customer_actions(self):
+        for phrase in (
+            "guided Texas buyer-offer workflow",
+            "HomeOfferFlow Texas workflow paths",
+            "after the guided workflow is ready",
+            "signing workflow for your review",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertNotIn(phrase, INDEX)
+        for phrase in (
+            "guided Texas buyer-offer interview",
+            "HomeOfferFlow Texas real estate paths",
+            "after the guided questions are complete",
+            "secure signature request for your review",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, INDEX)
+        self.assertNotIn("workflow moments", PARTNERS)
+        self.assertIn("customer decision points", PARTNERS)
+
     def test_crawlers_can_discover_the_public_marketing_routes(self):
         self.assertIn('Sitemap: https://www.homeofferflow.com/sitemap.xml', ROBOTS)
         self.assertIn('https://www.homeofferflow.com/', SITEMAP)

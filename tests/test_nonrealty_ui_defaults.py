@@ -19,7 +19,9 @@ class NonRealtyUiDefaultsTests(unittest.TestCase):
         self.assertNotIn("getVal('nonRealtyAmount') || '10'", self.source)
 
     def test_nonrealty_review_explicitly_shows_blank_amount(self):
-        self.assertIn("s.nonRealtyAmount ? fmtM(s.nonRealtyAmount) : 'No separate amount'", self.source)
+        line = next(line for line in self.source.splitlines()
+                    if 'Non-Realty Items</span>' in line)
+        self.assertIn("fmtM(s.nonRealtyAmount) || 'No separate amount'", line)
 
     def test_selecting_nonrealty_does_not_insert_an_amount(self):
         self.assertIn("if (value === 'yes') setDefaultValue('nonRealtyAmount', '');", self.source)

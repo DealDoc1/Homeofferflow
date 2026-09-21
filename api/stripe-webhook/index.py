@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler
 
 import httpx
+from lib.checkout_payload import cleanup_expired_checkout_payload
 
 
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
@@ -195,6 +196,12 @@ class handler(BaseHTTPRequestHandler):
 
             if event_type == "checkout.session.completed":
                 self._handle_checkout_completed(data_object)
+
+            elif event_type == "checkout.session.expired":
+                cleaned = cleanup_expired_checkout_payload(
+                    event, supabase_url=SUPABASE_URL, service_key=SUPABASE_SERVICE_ROLE_KEY)
+                if not cleaned:
+                    processing_state = "ignored"
 
             elif event_type in (
                 "customer.subscription.created",
@@ -534,7 +541,8 @@ class handler(BaseHTTPRequestHandler):
     @staticmethod
     def _is_packet_fulfillment_checkout(metadata):
         plan = str(metadata.get("plan") or "").strip().lower()
-        has_offer = bool(metadata.get("offer_data") or metadata.get("offer_parts"))
+        has_offer = bool(metadata.get("offer_data") or metadata.get("offer_parts")
+                         or metadata.get("offer_payload_id"))
         return plan in {"self", "showing-booking"} and has_offer
 
     @staticmethod

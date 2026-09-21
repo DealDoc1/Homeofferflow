@@ -57,8 +57,11 @@ class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
         self.assertIn("hof_resend_webhook_events?select=event_type,delivery_status,processing_state,tags,received_at", source)
         self.assertIn('"resendDeliverySuccessRate"', source)
         self.assertIn('"resendDeliveryFamilyCounts"', source)
+        self.assertIn('"resendSuppressionEventCounts"', source)
         self.assertNotIn('"resendDeliveryEvents": resend_delivery_events', source)
         self.assertIn("Email Delivery Health", INDEX)
+        self.assertIn("Suppression list changes:", INDEX)
+        self.assertIn("New additions are flagged for review without exposing the email address.", INDEX)
         self.assertIn("Aggregate provider data only", INDEX)
 
     async def test_missing_bearer_token_is_rejected_without_network_call(self):

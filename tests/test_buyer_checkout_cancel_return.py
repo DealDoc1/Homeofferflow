@@ -13,7 +13,7 @@ class BuyerCheckoutCancelReturnTests(unittest.TestCase):
         self.assertIn("if (state.selectedPlan && state.selectedPrice) selectPlan", HTML)
         self.assertIn("hofOfferData", HTML)
         self.assertIn("let restoredLocalDraft = false;", HTML)
-        self.assertIn("restoredLocalDraft = !!restoreDraft?.();", HTML)
+        self.assertIn("restoredLocalDraft = !!restoreDraft?.({ expectedRole: 'homebuyer' });", HTML)
         self.assertIn("openWizard(true, restoredLocalDraft);", HTML)
 
     def test_cancelled_buyer_checkout_is_clear_and_does_not_auto_charge(self):

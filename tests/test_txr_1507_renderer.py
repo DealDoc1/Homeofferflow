@@ -39,6 +39,35 @@ def sample_data():
 
 
 class Txr1507RendererTests(unittest.TestCase):
+    def test_second_page_identifies_all_clients_and_the_brokerage(self):
+        for names in (["Example Buyer"], ["Example Buyer One", "Example Buyer Two"]):
+            with self.subTest(names=names):
+                rendered = render_txr_1507(blank_two_page_pdf(),
+                    {**sample_data(), "client_names": names},
+                    {"legal_name": "Example Brokerage"}, {})
+                spans = []
+                PdfReader(io.BytesIO(rendered)).pages[1].extract_text(
+                    visitor_text=lambda text, cm, tm, font, size: spans.append((text, tm, size)))
+                header = [(text, tm, size) for text, tm, size in spans if tm[5] == 752 and text.strip()]
+                self.assertEqual(len(header), 1)
+                self.assertEqual(header[0][0].strip(), ", ".join(names) + " and Example Brokerage")
+                self.assertGreaterEqual(header[0][1][4], 244.13)
+                self.assertLessEqual(header[0][1][4] + txr_1507.stringWidth(
+                    header[0][0].strip(), txr_1507.FONT, header[0][2]), 576.10)
+
+    def test_party_header_uses_existing_brokerage_name_fallbacks(self):
+        for key in ("legal_name", "name", "dba_name"):
+            with self.subTest(key=key), patch.object(txr_1507, "_draw_party_header") as draw:
+                txr_1507._overlay(sample_data(), {key: "Example Brokerage"}, {})
+                self.assertEqual(draw.call_args.args[1:], (sample_data()["client_names"], "Example Brokerage"))
+
+    def test_long_party_header_references_defined_parties_instead_of_clipping_names(self):
+        with patch.object(txr_1507, "_draw") as draw:
+            txr_1507._draw_party_header(None, ["Long Legal Name " * 12] * 2, "Example Brokerage")
+        self.assertEqual(draw.call_args.args[1], "Client(s) and Broker identified in Paragraph 1")
+        self.assertEqual(draw.call_args.args[2:], (246, 752))
+        self.assertEqual(draw.call_args.kwargs["size"], 8)
+
     def test_checkbox_mark_stays_within_the_small_source_cell(self):
         class RecordingCanvas:
             def __init__(self):
@@ -72,18 +101,18 @@ class Txr1507RendererTests(unittest.TestCase):
                 {"legal_name": "OnDemand Realty", "license_number": "9010832"},
                 {"name": "Andrew Christian", "license_number": "0738821"},
             )
-        self.assertIn((56, 461), [call.args[1:] for call in draw_check.call_args_list])
+        self.assertIn((55, 459), [call.args[1:] for call in draw_check.call_args_list])
 
     def test_intermediary_mark_uses_the_matching_printed_checkbox(self):
         brokerage = {"legal_name": "OnDemand Realty", "license_number": "9010832"}
         associate = {"name": "Andrew Christian", "license_number": "0738821"}
         with patch.object(txr_1507, "_draw_check") as draw_check:
             txr_1507._overlay(sample_data(), brokerage, associate)
-        self.assertIn((177, 640), [call.args[1:] for call in draw_check.call_args_list])
+        self.assertIn((178, 637), [call.args[1:] for call in draw_check.call_args_list])
 
         with patch.object(txr_1507, "_draw_check") as draw_check:
             txr_1507._overlay({**sample_data(), "intermediary": "not_authorized"}, brokerage, associate)
-        self.assertIn((233, 640), [call.args[1:] for call in draw_check.call_args_list])
+        self.assertIn((234, 637), [call.args[1:] for call in draw_check.call_args_list])
 
     def test_selected_signing_role_is_marked_in_the_source_checkbox(self):
         with patch.object(txr_1507, "_draw_signing_role_check") as draw_check:
@@ -92,7 +121,7 @@ class Txr1507RendererTests(unittest.TestCase):
                 {"legal_name": "OnDemand Realty", "license_number": "9010832"},
                 {"name": "Andrew Christian", "license_number": "0738821"},
             )
-        self.assertIn((37, 242), [call.args[1:] for call in draw_check.call_args_list])
+        self.assertIn((37, 240), [call.args[1:] for call in draw_check.call_args_list])
 
         with patch.object(txr_1507, "_draw_signing_role_check") as draw_check:
             txr_1507._overlay(
@@ -100,7 +129,7 @@ class Txr1507RendererTests(unittest.TestCase):
                 {"legal_name": "OnDemand Realty", "license_number": "9010832"},
                 {"name": "Andrew Christian", "license_number": "0738821"},
             )
-        self.assertIn((37, 255), [call.args[1:] for call in draw_check.call_args_list])
+        self.assertIn((37, 251), [call.args[1:] for call in draw_check.call_args_list])
 
     def test_signing_role_mark_stays_inside_the_source_checkbox(self):
         class RecordingCanvas:
@@ -140,8 +169,8 @@ class Txr1507RendererTests(unittest.TestCase):
             {"name": "Andrew Christian", "license_number": "0738821"},
         )
         content = PdfReader(io.BytesIO(rendered)).pages[1].get_contents().get_data().decode("latin1")
-        self.assertIn("38 240 m\n44 246 l", content)
-        self.assertIn("38 246 m\n44 240 l", content)
+        self.assertIn("38 238 m\n43 243 l", content)
+        self.assertIn("38 243 m\n43 238 l", content)
 
     def test_renderer_preserves_two_pages_and_overlays_only_supplied_values(self):
         rendered = render_txr_1507(
@@ -165,7 +194,7 @@ class Txr1507RendererTests(unittest.TestCase):
         text = "\n".join(page.extract_text() or "" for page in PdfReader(io.BytesIO(rendered)).pages)
         self.assertIn("Andrew Christian", text)
 
-    def test_renderer_covers_showing_services_and_lease_compensation_path(self):
+    def test_showing_services_does_not_print_stale_full_service_compensation(self):
         data = sample_data()
         data.update({
             "service_level": "showing_services",
@@ -186,8 +215,10 @@ class Txr1507RendererTests(unittest.TestCase):
             {"name": "Andrew Christian", "license_number": "0738821"},
         )
         text = "\n".join(page.extract_text() or "" for page in PdfReader(io.BytesIO(rendered)).pages)
-        for expected in ("150", "50", "10", "250"):
-            self.assertIn(expected, text)
+        lines = text.splitlines()
+        self.assertIn("150", lines)
+        for irrelevant in ("50", "10", "250"):
+            self.assertNotIn(irrelevant, lines)
 
     def test_signer_map_is_separate_for_one_and_two_clients(self):
         one = build_signwell_fields_txr1507(sample_data(), client_count=1)[0]
@@ -196,38 +227,38 @@ class Txr1507RendererTests(unittest.TestCase):
         self.assertEqual(len(two), 9)
         self.assertTrue(all(field["page"] in {1, 2} for field in two))
         self.assertTrue(all(field["recipient_id"] in {"1", "2", "associate"} for field in two))
-        self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1507_associate_signature_p2"), 714)
-        self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1507_client2_signature_p2"), 824)
+        self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1507_associate_signature_p2"), 684)
+        self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1507_client2_signature_p2"), 794)
         self.assertEqual(next(field["x"] for field in two if field["api_id"] == "txr1507_client1_signature_p2"), 432)
         initials = {field["api_id"]: field for field in two}
         # The exact source-rule measurements keep SignWell fields on the
         # page-two Client execution line and clear of the printed captions.
         self.assertEqual(
             (initials["txr1507_client1_signature_p2"]["x"], initials["txr1507_client1_signature_p2"]["y"], initials["txr1507_client1_date_p2"]["x"], initials["txr1507_client1_date_p2"]["y"]),
-            (432, 714, 720, 720),
+            (432, 684, 696, 692),
         )
         self.assertEqual(
             (initials["txr1507_client2_signature_p2"]["x"], initials["txr1507_client2_signature_p2"]["y"], initials["txr1507_client2_date_p2"]["x"], initials["txr1507_client2_date_p2"]["y"]),
-            (432, 824, 720, 830),
+            (432, 794, 696, 802),
         )
         self.assertEqual(
             (initials["txr1507_associate_signature_p2"]["x"], initials["txr1507_associate_signature_p2"]["y"], initials["txr1507_associate_date_p2"]["x"], initials["txr1507_associate_date_p2"]["y"]),
-            (48, 714, 336, 720),
+            (48, 684, 312, 692),
         )
         # TXR-1507's footer has a separate Broker/Associate initial blank
         # before the two Client blanks. Every party named in that footer must
         # receive its own correctly aligned required field.
         self.assertEqual(
             (initials["txr1507_associate_initials_p1"]["x"], initials["txr1507_associate_initials_p1"]["y"], initials["txr1507_associate_initials_p1"]["width"]),
-            (435, 984, 47),
+            (435, 976, 46),
         )
         self.assertEqual(
             (initials["txr1507_client1_initials_p1"]["x"], initials["txr1507_client1_initials_p1"]["y"], initials["txr1507_client1_initials_p1"]["width"]),
-            (542, 984, 47),
+            (543, 976, 46),
         )
         self.assertEqual(
             (initials["txr1507_client2_initials_p1"]["x"], initials["txr1507_client2_initials_p1"]["y"], initials["txr1507_client2_initials_p1"]["width"]),
-            (596, 984, 47),
+            (596, 976, 46),
         )
         self.assertEqual({field["api_id"] for field in one}, {
             "txr1507_associate_initials_p1",

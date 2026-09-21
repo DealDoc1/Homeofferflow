@@ -29,7 +29,7 @@ class LandingPathContextTests(unittest.TestCase):
         # The base audience switcher runs before the later landing enhancer.
         # Keep both layers aligned so an agent never receives buyer-only copy
         # during initialization or after future script refactors.
-        base_start = HTML.index("function setAudience(type) {")
+        base_start = HTML.index("function setAudience(type, { presentationOnly = false } = {}) {")
         base_end = HTML.index("document.getElementById('termsModal')", base_start)
         base = HTML[base_start:base_end]
         agent = base[base.index("agent: {"):base.index("investor: {")]
@@ -44,6 +44,13 @@ class LandingPathContextTests(unittest.TestCase):
         self.assertIn("'Free to start'", HTML)
         self.assertIn("Ready to start your free seller plan?", HTML)
         self.assertIn("Start with your address and email. It takes under a minute", HTML)
+
+    def test_buyer_faq_uses_customer_actions_after_dynamic_path_switches(self):
+        self.assertIn("answer the guided buyer-offer questions without payment", HTML)
+        self.assertIn("secure signature request for your review and next steps", HTML)
+        self.assertIn("Each has its own scope and payment terms", HTML)
+        self.assertNotIn("guided buyer-offer workflow without payment", HTML)
+        self.assertNotIn("Each has its own workflow, scope, and payment terms", HTML)
 
 
 if __name__ == "__main__":

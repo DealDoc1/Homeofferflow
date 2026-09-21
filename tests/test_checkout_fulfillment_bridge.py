@@ -90,6 +90,14 @@ class CheckoutFulfillmentBridgeTests(unittest.TestCase):
             )
         )
 
+    def test_reference_only_checkout_is_forwarded_for_packet_fulfillment(self):
+        request = webhook.handler.__new__(webhook.handler)
+        forwarded = []
+        request._forward_checkout_fulfillment = forwarded.append
+        session = {'id': 'cs_reference', 'metadata': {'plan': 'self', 'offer_payload_id': 'private-id'}}
+        request._handle_checkout_completed(session)
+        self.assertEqual(forwarded, [session])
+
     def test_partner_and_seller_checkouts_never_enter_buyer_packet_fulfillment(self):
         request = webhook.handler.__new__(webhook.handler)
         forwarded = []

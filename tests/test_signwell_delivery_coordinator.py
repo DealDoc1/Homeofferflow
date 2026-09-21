@@ -13,6 +13,7 @@ class Store:
         self.record = {'document_id': '', 'journal': None, 'version': 0, 'status': 'draft'}
         self.documents = {}
         self.calls = []
+        self.sent_payloads = []
         self.now = 1000
         self.inspect_error = None
         self.send_error = None
@@ -63,6 +64,7 @@ class Store:
             assert self.record['document_id'] == doc_id
             assert self.record['journal']['phase'] == 'sending'
             self.calls.append('send:' + doc_id)
+            self.sent_payloads.append(copy.deepcopy(payload))
             self.documents[doc_id]['status'] = self.after_send
             if self.send_error:
                 raise self.send_error
@@ -169,6 +171,36 @@ class SignwellDeliveryCoordinatorTests(unittest.IsolatedAsyncioTestCase):
         self.store.after_send = 'sent'
         await self.store.operation()
         self.assertEqual(self.store.calls.count('create'), 1)
+
+    async def test_multisigner_retry_preserves_concurrent_invitations_and_recipient_identity(self):
+        self.store.payload['recipients'].append(
+            {'id': '2', 'name': 'QA co-buyer', 'email': 'cobuyer@example.test'})
+        recipients = copy.deepcopy(self.store.payload['recipients'])
+        self.store.send_error = SendRejected(402)
+        self.store.after_send = 'draft'
+        with self.assertRaises(DeliveryUnsent):
+            await self.store.operation()
+        self.store.send_error = None
+        self.store.after_send = 'sent'
+        await self.store.operation()
+        # Refresh/replay after a confirmed send reconciles, not sends again.
+        await self.store.operation()
+        self.assertEqual(self.store.calls.count('create'), 1)
+        self.assertEqual(len(self.store.sent_payloads), 2)
+        for payload in [self.store.documents['doc-1'], *self.store.sent_payloads]:
+            self.assertIs(payload['apply_signing_order'], False)
+            self.assertEqual(payload['recipients'], recipients)
+
+    async def test_changed_signing_order_cannot_silently_change_a_saved_request(self):
+        self.store.inspect_error = TimeoutError()
+        with self.assertRaises(DeliveryPending):
+            await self.store.operation()
+        self.store.inspect_error = None
+        self.store.payload['apply_signing_order'] = True
+        with self.assertRaises(DeliveryMismatch):
+            await self.store.operation()
+        self.assertEqual(self.store.calls.count('create'), 1)
+        self.assertEqual(self.store.sent_payloads, [])
 
     async def test_unknown_state_after_send_never_claims_sent_or_unsent(self):
         self.store.send_error = SendRejected(500)

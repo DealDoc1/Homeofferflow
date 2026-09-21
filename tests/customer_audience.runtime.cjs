@@ -41,6 +41,7 @@ function setup(audience, accountRole = 'agent') {
     nowIso:()=> '2026-09-10T00:00:00Z',
     setInputIfEmpty:(...args)=>writes.push(args),
     setRadioValue:(...args)=>writes.push(args),
+    getRadio:()=>'',
     syncAgentQuickFields:()=>writes.push(['syncAgent']),
   });
   vm.runInContext(roleHelpers + updateAuthUI + defaults + authoritativeProfile, context);
@@ -116,12 +117,12 @@ test('investor defaults are applied only to an investor interview', () => {
 
 for (const role of ['agent', 'broker', 'investor']) {
   const expectedAudience = role === 'investor' ? 'investor' : 'agent';
-  test(`explicitly choosing the ${role} account path still selects its interview`, () => {
+  test(`choosing the ${role} sign-in context preserves the current offer`, () => {
     const {root, context} = setup('homebuyer');
     vm.runInContext(explicitRole, context);
     root.setAuthRole(role);
     assert.equal(root.hofAuth.role, role);
-    assert.equal(root.state.data.userType, expectedAudience);
+    assert.equal(root.state.data.userType, 'homebuyer');
   });
 
   test(`starting a new offer from the ${role} account opens the intended interview`, () => {

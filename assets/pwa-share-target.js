@@ -4,6 +4,17 @@
   const title = String(params.get('title') || '').trim().slice(0, 180);
   const text = String(params.get('text') || '').trim().slice(0, 500);
   const sharedUrl = String(params.get('url') || '').trim().slice(0, 1000);
+  // Read once, then remove share contents from the visible/history URL before
+  // rendering or later analytics. Keep the review text in this page only; do
+  // not persist it to storage, prefill an offer, or navigate to the shared URL.
+  // This cannot erase the initial GET request or any upstream request logs.
+  try {
+    const cleanUrl = new URL(window.location.href);
+    ['pwa_share', 'title', 'text', 'url'].forEach(key => cleanUrl.searchParams.delete(key));
+    window.history.replaceState(window.history.state, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+  } catch (_) {
+    // Restricted history access must not stop the review or its next steps.
+  }
   if (!title && !text && !sharedUrl) return;
 
   const render = () => {
@@ -37,7 +48,8 @@
       // the context above, then chooses what to enter in the guided workflow.
       window.trackEvent?.('PWA Shared Context CTA Selected', { surface: 'pwa_share_target' });
       window.logOfferEvent?.(null, 'pwa_shared_context_buyer_offer_opened', 'opened', 'Installed-app shared context opened the buyer offer handoff.', { surface: 'pwa_share_target' });
-      window.setAudience?.('homebuyer');
+      window.__hofLandingAudienceUserSelected = true;
+      window.setAudience?.('homebuyer', { presentationOnly: true });
       if (typeof window.beginOfferFrom === 'function') window.beginOfferFrom('pwa_share_target');
       else window.location.assign('/?buyer=1&utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=shared_context');
     });
@@ -52,7 +64,7 @@
       window.trackEvent?.('PWA Shared Context Agent CTA Selected', { surface: 'pwa_share_target' });
       window.logOfferEvent?.(null, 'pwa_shared_context_agent_chooser_opened', 'opened', 'Installed-app shared context opened the agent transaction chooser.', { surface: 'pwa_share_target' });
       try { sessionStorage.setItem('hof_pwa_shared_context_agent_pending', '1'); } catch (_) {}
-      window.setAudience?.('agent');
+      window.setAudience?.('agent', { presentationOnly: true });
       // The chooser lives inside the private account workspace. Opening the
       // workspace first prevents this shortcut from focusing a hidden card
       // when it is used from a fresh installed-app launch.

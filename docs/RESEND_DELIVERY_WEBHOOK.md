@@ -12,6 +12,9 @@ After the release containing the endpoint and its Supabase migration is live:
 1. In Resend, create a webhook for `https://www.homeofferflow.com/api/resend-webhook`.
 2. Select `email.sent`, `email.delivered`, `email.bounced`,
    `email.complained`, `email.suppressed`, `email.opened`, and `email.clicked`.
+   Also select `suppression.added` and `suppression.removed` so the admin
+   dashboard can flag new team-wide suppression-list entries and show when an
+   entry is removed.
 3. Set the generated signing secret as the encrypted Vercel production
    environment variable `RESEND_WEBHOOK_SECRET`.
 4. Send a controlled test email and use Resend's replay control if needed.
@@ -22,3 +25,8 @@ The handler verifies the raw request body using Resend's Svix headers, rejects
 stale or invalid signatures, and makes duplicate webhook deliveries harmless.
 Resend manages its own suppression behavior; this ledger gives HomeOfferFlow
 the delivery evidence needed for operational follow-up and aggregate reporting.
+Suppression lifecycle events are stored only as aggregate event types. Their
+email addresses, origin details, and provider payloads are not persisted or
+returned to the browser. A suppression-list addition is counted as an
+operational attention item, but not as an attempted email and therefore does
+not distort the confirmed-delivery percentage.

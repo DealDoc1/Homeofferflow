@@ -128,7 +128,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         script = HTML[script_start:script_end]
 
         self.assertIn("confidence: true", script)
-        self.assertIn("First offer workflow overview", script)
+        self.assertIn("First offer overview", script)
         self.assertIn("Choose the transaction first.", script)
         self.assertIn("Saving your work does not send a packet or request a signature.", script)
 
@@ -453,7 +453,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertNotIn("Next build will separate", HTML)
         self.assertIn("review workflow readiness", HTML)
         self.assertIn("into the workspace", HTML)
-        self.assertIn("Use the guided agent workflow plus tools to invite your team", HTML)
+        self.assertIn("Use the guided agent tools to invite your team", HTML)
 
     def test_canceled_accounts_use_reactivation_attribution(self):
         script_start = HTML.index('id="hof-agent-activation-v16-js"')
@@ -486,7 +486,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         subscription_end = HTML.index("async function openBillingPortal", subscription_start)
         subscription = HTML[subscription_start:subscription_end]
 
-        self.assertIn("const remaining = Math.max(0, limit - used);", subscription)
+        self.assertIn("const remaining = Math.max(0, limit - used - reserved);", subscription)
         self.assertIn('Choose Transaction', subscription)
         self.assertIn("remaining + ' packet'", subscription)
         self.assertIn("startAccountTransaction()", subscription)

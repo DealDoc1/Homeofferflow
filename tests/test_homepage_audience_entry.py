@@ -13,7 +13,7 @@ class HomepageAudienceEntryTests(unittest.TestCase):
             "new Set(['homebuyer', 'agent', 'investor', 'fsbo'])",
             INDEX,
         )
-        self.assertIn("root.setAudience(landingAudience)", INDEX)
+        self.assertIn("root.setAudience(landingAudience, { presentationOnly: true })", INDEX)
         self.assertIn("const utmAudience = campaignParams.get('utm_content')", INDEX)
         self.assertIn("const audienceParameter = requestedAudience === explicitAudience ? 'audience' : (requestedAudience ? 'utm_content' : '')", INDEX)
         self.assertIn("[explicitAudience, utmAudience].find(value => allowedAudiences.has(value))", INDEX)

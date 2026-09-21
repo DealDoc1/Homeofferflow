@@ -6,6 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace
 import unittest
 from unittest.mock import AsyncMock, patch
+from tests.test_txr_1507_renderer import blank_two_page_pdf
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,7 +41,7 @@ class SignwellSendContractTests(unittest.TestCase):
                 # Explicit contract validation: the original implementation
                 # violated this allowlist by forwarding with_signature_page.
                 self.assertFalse(set(json) & {'with_signature_page', 'draft', 'fields', 'files', 'recipients'})
-                self.assertFalse(json['apply_signing_order'])
+                self.assertIs(json['apply_signing_order'], False)
                 self.assertFalse(json['embedded_signing'])
                 self.assertEqual(json['metadata'], created['metadata'])
                 if retry and calls.count('send') == 1:
@@ -50,6 +51,7 @@ class SignwellSendContractTests(unittest.TestCase):
             created.update(copy.deepcopy(json))
             self.assertTrue(json['draft'])
             self.assertFalse(json['with_signature_page'])
+            self.assertIs(json['apply_signing_order'], False)
             return SimpleNamespace(status_code=201, json=lambda: {'id': 'provider-id'})
 
         async def get(url, **kwargs):
@@ -94,7 +96,7 @@ class SignwellSendContractTests(unittest.TestCase):
              patch.object(MODULE, '_get', AsyncMock(side_effect=lookup)), \
              patch.object(MODULE, '_patch', AsyncMock()) as persist, \
              patch.object(MODULE, '_standalone_signing_recipients', AsyncMock(return_value=recipients)), \
-             patch.object(MODULE, '_render_representation_draft_preview', AsyncMock(return_value=b'%PDF-rendered')), \
+             patch.object(MODULE, '_render_owned_representation_agreement', AsyncMock(return_value=blank_two_page_pdf())), \
              patch.object(MODULE, '_render_seller_disclosure_draft_preview', AsyncMock(return_value=b'%PDF-rendered')), \
              patch.object(MODULE.httpx, 'AsyncClient') as factory:
             factory.return_value.__aenter__.return_value = client

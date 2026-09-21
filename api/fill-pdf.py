@@ -6,7 +6,12 @@ from http.server import BaseHTTPRequestHandler
 from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
 from lib import signwell_delivery
-from lib.offer_signwell_delivery import deliver_offer_document, offer_answers
+from lib.offer_signwell_delivery import deliver_offer_document, stable_delivery_answers
+from lib.email_delivery import deliver_email_once, delivery_key, payload_fingerprint, EmailDeliveryPending, EmailDeliveryNeedsReview
+from lib.email_delivery_store import EmailDeliveryStore
+from lib.checkout_payload import load_checkout_payload
+from lib.packet_generation import (PacketGenerationStore, PacketGenerationPending,
+    PacketAllowanceUnavailable, PacketGenerationBusy, packet_answers_hash, render_packet_with_usage)
 
 from lib.production_adapter import (
     UnsupportedOfferPathError,
@@ -14,9 +19,19 @@ from lib.production_adapter import (
     fill_and_merge_20_19,
     paragraph4_execution_parties,
     paragraph4_lease_kinds,
+    hydrostatic_execution_parties,
+    mineral_execution_parties,
+    mineral_requested,
+    environmental_execution_parties,
+    environmental_requested,
+    assumption_execution_parties,
+    assumption_requested,
+    seller_financing_execution_parties,
+    seller_financing_requested,
     seller_temporary_lease_execution_parties,
     validate_supported_offer,
 )
+from lib.contract_money import CurrencyInputError
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 STRIPE_WHSEC   = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
@@ -72,20 +87,28 @@ DEBUG_GRID = False
 
 
 def hydrate_paragraph4_sources(offer):
-    """Load released Paragraph 4 sources privately for this server request.
+    """Load selected private purchase-addendum sources for this server request.
 
     Storage locators and PDF bytes never enter checkout metadata or browser
     responses. The selected public form revision is recorded for the offer's
     audit trail, while only the server-side working copy receives source bytes.
     """
     selected = paragraph4_lease_kinds(offer)
+    if mineral_requested(offer):
+        selected.append('TXR-1905')
+    if environmental_requested(offer):
+        selected.append('TXR-1917')
+    if assumption_requested(offer):
+        selected.append('TXR-1919')
+    if seller_financing_requested(offer):
+        selected.append('TXR-1914')
     if not selected:
         return offer
     existing = offer.get("_paragraph4_source_pdf_bytes")
     if isinstance(existing, dict) and all(existing.get(code) for code in selected):
         return offer
     if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
-        raise UnsupportedOfferPathError(["released Paragraph 4 form source"])
+        raise UnsupportedOfferPathError(["available purchase-addendum form source"])
 
     headers = {
         "apikey": SUPABASE_SERVICE_ROLE_KEY,
@@ -431,6 +454,27 @@ def verify_internal_checkout_forward_signature(body, sig_header, secret):
         return any(hmac.compare_digest(expected, value) for value in signatures)
     except Exception:
         return False
+
+
+def verify_checkout_preflight_signature(body, sig_header, secret):
+    # Prefixing the signed body separates a non-delivering preflight from
+    # the paid event handoff even though both use the existing server secret.
+    return verify_internal_checkout_forward_signature(b'checkout-preflight.' + body, sig_header, secret)
+
+
+def preflight_checkout_packet(offer):
+    """Render and map in memory only: no usage reservation, record or delivery."""
+    if not isinstance(offer, dict) or not (assumption_requested(offer) or seller_financing_requested(offer)):
+        raise UnsupportedOfferPathError(['seller-financing or loan-assumption purchase answers'])
+    working = {key: value for key, value in offer.items()
+               if not key.startswith('_') and key != 'paragraph4SourceRevisions'}
+    # Reject incomplete terms and signers before touching private storage.
+    validate_supported_offer(working)
+    hydrate_paragraph4_sources(working)
+    pdf_bytes = fill_and_merge(working)
+    build_signwell_fields(working, pdf_bytes)
+    return {'ok': True, 'pages': len(PdfReader(BytesIO(pdf_bytes)).pages),
+            'totals': {key: working[key] for key in ('price', 'loanAmount', 'downPayment')}}
 
 
 def build_pages_data(
@@ -1388,6 +1432,11 @@ def create_signwell_signature_request(offer, pdf_bytes, *, record=None, user_id=
     # production path was enabled.
     seller_lease_parties = seller_temporary_lease_execution_parties(offer)
     paragraph4_parties = paragraph4_execution_parties(offer)
+    hydrostatic_parties = hydrostatic_execution_parties(offer)
+    mineral_parties = mineral_execution_parties(offer)
+    environmental_parties = environmental_execution_parties(offer)
+    assumption_parties = assumption_execution_parties(offer)
+    seller_financing_parties = seller_financing_execution_parties(offer)
     if seller_lease_parties and paragraph4_parties:
         temporary_identity = [(party["name"].casefold(), party["email"].casefold()) for party in seller_lease_parties]
         paragraph4_identity = [(party["name"].casefold(), party["email"].casefold()) for party in paragraph4_parties]
@@ -1397,7 +1446,7 @@ def create_signwell_signature_request(offer, pdf_bytes, *, record=None, user_id=
                 "ok": False,
                 "error": "Use the same Seller names and emails for every Seller-signed lease in this packet.",
             }
-    seller_parties = paragraph4_parties or seller_lease_parties
+    seller_parties = paragraph4_parties or seller_lease_parties or hydrostatic_parties or mineral_parties or environmental_parties or assumption_parties or seller_financing_parties
     if seller_parties:
         if any(not _is_valid_signwell_email(party["email"]) for party in seller_parties):
             return {"enabled": True, "ok": False, "error": "Invalid seller email for SignWell"}
@@ -1450,7 +1499,41 @@ def create_signwell_signature_request(offer, pdf_bytes, *, record=None, user_id=
         contact_sentence = f"Questions? Contact {agent_name}."
 
     paragraph4_forms = paragraph4_lease_kinds(offer)
-    if paragraph4_forms and seller_lease_parties:
+    if seller_financing_parties:
+        signing_scope_message = (
+            "Please review and sign your assigned fields. This packet includes the Seller Financing Addendum "
+            "with the selected note, payment, insurance, and escrow terms. Buyers and Sellers sign that addendum; "
+            "other signatures follow the documents included in the packet. The addendum does not create the "
+            "promissory note or deed of trust. All named signers receive invitations together and can sign independently.\n\n"
+        )
+    elif assumption_parties:
+        signing_scope_message = (
+            "Please review and sign your assigned fields. This packet includes the Loan Assumption Addendum "
+            "with the selected loan balances and agreed terms. Buyers and Sellers sign that addendum; "
+            "other signatures follow the documents included in the packet. "
+            "This request does not obtain lender consent or release the Seller from loan liability. "
+            "All named signers receive invitations together and can sign independently.\n\n"
+        )
+    elif environmental_parties:
+        signing_scope_message = (
+            "Please review and sign your assigned fields. This packet includes the environmental-assessment addendum "
+            "with the selected review rights. The Buyer and Seller sign that addendum; "
+            "other signatures follow the documents included in the packet. "
+            "All named signers receive invitations together and can sign independently.\n\n"
+        )
+    elif mineral_parties:
+        signing_scope_message = (
+            "Please review and sign your assigned fields. This packet includes a mineral-reservation addendum. "
+            "The Buyer and Seller sign that addendum; other signatures follow the documents included in the packet. "
+            "All named signers receive invitations together and can sign independently.\n\n"
+        )
+    elif hydrostatic_parties:
+        signing_scope_message = (
+            "Please review and sign your assigned fields. This packet includes hydrostatic-testing authorization. "
+            "The Buyer and Seller sign that addendum; other signatures follow the documents included in the packet. "
+            "All named signers receive invitations together and can sign independently.\n\n"
+        )
+    elif paragraph4_forms and seller_lease_parties:
         signing_scope_message = (
             "Please carefully review and sign your assigned fields. This packet includes existing-property lease addenda "
             "and a Seller's Temporary Residential Lease. All named signers receive invitations together and can sign independently.\n\n"
@@ -1536,8 +1619,19 @@ def create_signwell_signature_request(offer, pdf_bytes, *, record=None, user_id=
             "seller_temporary_lease_tenant_count": str(len(seller_lease_parties)),
             "paragraph4_seller_count": str(len(paragraph4_parties)),
             "paragraph4_forms": ",".join(paragraph4_forms),
+            **({"hydrostatic_form": "TREC-48-1"} if hydrostatic_parties else {}),
+            **({"mineral_reservation_form": "TXR-1905"} if mineral_parties else {}),
+            **({"environmental_form": "TXR-1917"} if environmental_parties else {}),
+            **({"assumption_form": "TXR-1919"} if assumption_parties else {}),
+            **({"seller_financing_form": "TXR-1914"} if seller_financing_parties else {}),
             "test_mode": str(SIGNWELL_TEST_MODE).lower(),
             "debug_payload": (
+                "bundle_v19_seller_financing_multisigner" if seller_financing_parties else
+                "bundle_v18_assumption_multisigner" if assumption_parties else
+                "bundle_v17_environmental_multisigner" if environmental_parties else
+                "bundle_v16_mineral_multisigner" if mineral_parties else
+                "bundle_v15_hydrostatic_multisigner"
+                if hydrostatic_parties else
                 "bundle_v14_paragraph4_multisigner"
                 if paragraph4_forms else
                 "bundle_v13_seller_temporary_lease_multisigner"
@@ -1554,7 +1648,12 @@ def create_signwell_signature_request(offer, pdf_bytes, *, record=None, user_id=
         data = delivered["document"]
         return {
             "enabled": True, "ok": True,
-            "mode": ("bundle_v14_paragraph4_multisigner" if paragraph4_forms else
+            "mode": ("bundle_v19_seller_financing_multisigner" if seller_financing_parties else
+                     "bundle_v18_assumption_multisigner" if assumption_parties else
+                     "bundle_v17_environmental_multisigner" if environmental_parties else
+                     "bundle_v16_mineral_multisigner" if mineral_parties else
+                     "bundle_v15_hydrostatic_multisigner" if hydrostatic_parties else
+                     "bundle_v14_paragraph4_multisigner" if paragraph4_forms else
                      "bundle_v13_seller_temporary_lease_multisigner" if seller_lease_parties
                      else "bundle_v12_buyer_only_all_addenda"),
             "test_mode": SIGNWELL_TEST_MODE, "field_count": len(fields[0]) if fields else 0,
@@ -1593,7 +1692,7 @@ def extract_signwell_document_id(signwell_info):
 
 
 def save_generated_offer_to_supabase(offer, customer_email="", signwell_info=None, subscription_user_id=None,
-                                    *, insert_id=None, expected_record=None):
+                                    *, insert_id=None, expected_record=None, packet_ready=True):
     """
     Persist every paid/generated packet to hof_offers, including self-serve homebuyer checkouts.
 
@@ -1640,7 +1739,7 @@ def save_generated_offer_to_supabase(offer, customer_email="", signwell_info=Non
                 "sent" if signwell_info.get("ok") else "failed" if signwell_info.get("enabled") else ""
             )
 
-        status = "Awaiting Signature" if signwell_info and signwell_info.get("ok") else "Generated"
+        status = ("Awaiting Signature" if signwell_info and signwell_info.get("ok") else "Generated") if packet_ready else "Draft"
 
         payload = {
             "role": role,
@@ -1684,6 +1783,8 @@ def save_generated_offer_to_supabase(offer, customer_email="", signwell_info=Non
             "last_updated": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat().replace("+00:00", "Z"),
         }
 
+        if not packet_ready:
+            payload.pop("generated_at", None)
         # Remove None values only for columns that are optional; keep important status/role fields.
         payload = {k: v for k, v in payload.items() if v is not None}
         if trusted_user_id:
@@ -1735,7 +1836,29 @@ def save_generated_offer_to_supabase(offer, customer_email="", signwell_info=Non
         print("SUPABASE SAVE EXCEPTION:", str(e))
         return None
 
-def send_email(to_email, buyer_name, addr, pdf_bytes, signwell_info=None):
+def send_resend_payload(payload, *, delivery_identity=None, purpose=None):
+    def send(body, key=None):
+        headers = {"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"}
+        if key:
+            headers["Idempotency-Key"] = key
+        response = httpx.post("https://api.resend.com/emails", headers=headers, json=body, timeout=30)
+        if response.status_code not in {200, 201, 202}:
+            # Do not expose recipient data or provider response bodies.
+            raise EmailDeliveryPending(f"Email service did not confirm acceptance ({response.status_code}).")
+        return response.json() if key else None
+
+    if delivery_identity is None:
+        # Existing non-checkout showing notifications remain a separate flow.
+        return send(payload)
+    store = EmailDeliveryStore(supabase_url=SUPABASE_URL, service_key=SUPABASE_SERVICE_ROLE_KEY)
+    return deliver_email_once(key=delivery_key(purpose, delivery_identity), payload=payload,
+                              reserve=store.reserve, begin_attempt=store.begin_attempt,
+                              accept=store.accept, send=send)
+
+
+def send_email(to_email, buyer_name, addr, pdf_bytes, signwell_info=None, *, delivery_identity):
+    if not delivery_identity:
+        raise EmailDeliveryPending("A verified email delivery identity is required.")
     filename = f"HomeOfferFlow_Offer_{addr.replace(' ','_').replace(',','')}.pdf"
 
     payload = {
@@ -1767,20 +1890,9 @@ def send_email(to_email, buyer_name, addr, pdf_bytes, signwell_info=None):
         }]
     }
 
-    r = httpx.post(
-        "https://api.resend.com/emails",
-        headers={
-            "Authorization": f"Bearer {RESEND_API_KEY}",
-            "Content-Type": "application/json"
-        },
-        json=payload,
-        timeout=30
-    )
+    return send_resend_payload(payload, delivery_identity=delivery_identity, purpose="buyer-packet")
 
-    if r.status_code not in [200, 201, 202]:
-        raise Exception(f"Resend error {r.status_code}: {r.text[:200]}")
-
-def send_basic_email(to_email, subject, html_body):
+def send_basic_email(to_email, subject, html_body, *, delivery_identity=None, purpose=None):
     if not to_email:
         raise Exception("Missing recipient email")
 
@@ -1799,25 +1911,16 @@ def send_basic_email(to_email, subject, html_body):
         "html": html_body
     }
 
-    r = httpx.post(
-        "https://api.resend.com/emails",
-        headers={
-            "Authorization": f"Bearer {RESEND_API_KEY}",
-            "Content-Type": "application/json"
-        },
-        json=payload,
-        timeout=30
-    )
-
-    if r.status_code not in [200, 201, 202]:
-        raise Exception(f"Resend error {r.status_code}: {r.text[:200]}")
+    return send_resend_payload(payload, delivery_identity=delivery_identity, purpose=purpose)
 
 
-def send_admin_order_email(offer, customer_email="", signwell_info=None):
+def send_admin_order_email(offer, customer_email="", signwell_info=None, *, delivery_identity):
     """
     Sends an internal admin alert after a paid offer packet is generated.
     This is separate from the buyer PDF email.
     """
+    if not delivery_identity:
+        raise EmailDeliveryPending("A verified email delivery identity is required.")
     if not ADMIN_ORDER_EMAIL:
         print("ADMIN ORDER EMAIL SKIPPED: ADMIN_ORDER_EMAIL is blank")
         return
@@ -1884,7 +1987,8 @@ def send_admin_order_email(offer, customer_email="", signwell_info=None):
       </div>
     """
 
-    send_basic_email(ADMIN_ORDER_EMAIL, f"New HomeOfferFlow Order — {addr}", html)
+    return send_basic_email(ADMIN_ORDER_EMAIL, f"New HomeOfferFlow Order — {addr}", html,
+                            delivery_identity=delivery_identity, purpose="order-admin")
 
 
 def send_showing_request_emails(showing, customer_email):
@@ -1980,16 +2084,14 @@ Please comment or message me if you are available to help coordinate/show this p
         send_basic_email(buyer_email, "HomeOfferFlow Showing Request Received", customer_html)
 
 
-def prepare_offer_signing_record(offer, customer_email, *, user_id=None, checkout_session_id=None):
+def prepare_offer_signing_record(offer, customer_email, *, user_id=None, checkout_session_id=None, packet_ready=True):
     """Resolve a stable server-authorized row before any signature invitation."""
     if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
         raise RuntimeError("Your offer could not be saved for signing. Please try again shortly.")
     if user_id:
         requested_id = str(offer.get("_hofOfferId") or "")
         identity = requested_id or str(uuid.uuid5(uuid.NAMESPACE_URL,
-            "homeofferflow:owned:" + user_id + ":" + json.dumps(
-                {key: value for key, value in offer_answers(offer).items() if not key.startswith('_')},
-                sort_keys=True, separators=(',', ':'))))
+            "homeofferflow:owned:" + user_id + ":" + packet_answers_hash(offer)))
     else:
         # Only the already-verified Stripe event may supply this namespace.
         if not str(checkout_session_id or '').startswith('cs_'):
@@ -2011,14 +2113,17 @@ def prepare_offer_signing_record(offer, customer_email, *, user_id=None, checkou
     offer["_hofOfferId"] = identity
     if record and record.get("signwell_document_id"):
         return record
-    if record and str(record.get("status") or '').lower() not in {'draft', 'generated', 'generation failed'}:
+    if record and str(record.get("status") or '').lower() not in {'draft', 'generating', 'generated', 'generation failed'}:
         raise ValueError("This offer needs a signature status check before it can be sent again.")
+    if record and not packet_ready:
+        return record  # Reserving a retry must never downgrade saved status.
     # Guest checkout replay uses its existing saved answers; never overwrite
     # a server-owned checkout record based on browser-supplied record IDs.
     if not record or user_id:
         saved_id = save_generated_offer_to_supabase(
             offer, customer_email, subscription_user_id=user_id,
             insert_id=None if record else identity, expected_record=record,
+            packet_ready=packet_ready,
         )
         if not saved_id:
             if record:
@@ -2033,6 +2138,41 @@ def prepare_offer_signing_record(offer, customer_email, *, user_id=None, checkou
     return record
 
 
+def render_subscribed_packet(offer, user_id, customer_email=""):
+    """Use the same server-owned allowance for browser generation and downloads."""
+    record = prepare_offer_signing_record(offer, customer_email, user_id=user_id, packet_ready=False)
+    if not record.get('id') or record.get('user_id') != user_id:
+        raise PacketGenerationPending('Your saved offer could not be verified for this account.')
+    if record.get('signwell_document_id') and packet_answers_hash(record.get('offer_data') or {}) != packet_answers_hash(offer):
+        raise PacketGenerationPending('This packet is already prepared for signing. Open My Offers to check it before making a revised packet.')
+    result = render_packet_with_usage(
+        user_id=user_id, offer_id=record['id'], answers_hash=packet_answers_hash(offer),
+        render=lambda: fill_and_merge(offer),
+        store=PacketGenerationStore(supabase_url=SUPABASE_URL, service_key=SUPABASE_SERVICE_ROLE_KEY),
+    )
+    # Only the completed reservation may mark a draft as generated. A failed
+    # status save leaves its usage receipt intact for a no-charge retry.
+    try:
+        record = prepare_offer_signing_record(offer, customer_email, user_id=user_id)
+    except Exception as error:
+        raise PacketGenerationPending('Your packet was prepared, but its saved status needs a check. Open My Offers before trying again.') from error
+    return result['pdf_bytes'], record, result['usage']
+
+
+class PacketEmailPending(EmailDeliveryPending):
+    """The packet/signing step finished, but document email is not confirmed."""
+
+    def __init__(self, *, record, signwell, needs_review=False, usage=None):
+        super().__init__('Your packet is ready, but email delivery is not confirmed.')
+        self.result = {
+            'status': 'delivery_pending', 'code': 'document_email_unconfirmed',
+            'packetGenerated': True, 'offerId': record.get('id'),
+            'message': str(self), 'signwell': signwell,
+            'documentEmail': {'status': 'unconfirmed', 'needsReview': needs_review},
+            'usage': usage,
+        }
+
+
 def handle_checkout(event, subscription_user_id=None):
     session = event.get("data", {}).get("object", {})
 
@@ -2044,7 +2184,11 @@ def handle_checkout(event, subscription_user_id=None):
     metadata = session.get("metadata", {}) or {}
     plan = metadata.get("plan", "")
 
-    if "offer_data" in metadata:
+    if "offer_payload_id" in metadata or "offer_payload_sha256" in metadata:
+        if subscription_user_id:
+            raise ValueError('Saved checkout packets require a verified payment event.')
+        offer = load_checkout_payload(session, supabase_url=SUPABASE_URL, service_key=SUPABASE_SERVICE_ROLE_KEY)
+    elif "offer_data" in metadata:
         offer = json.loads(metadata["offer_data"])
     else:
         parts = int(metadata.get("offer_parts", 0) or 0)
@@ -2057,6 +2201,8 @@ def handle_checkout(event, subscription_user_id=None):
 
     # Showing booking checkout: send notifications only, do not generate a TREC PDF.
     if plan == "showing-booking" or offer.get("type") == "showing_booking":
+        if subscription_user_id:
+            raise ValueError('Showing requests require a verified showing checkout.')
         if not offer.get("buyerEmail") and customer_email:
             offer["buyerEmail"] = customer_email
 
@@ -2072,33 +2218,60 @@ def handle_checkout(event, subscription_user_id=None):
 
     hydrate_paragraph4_sources(offer)
     validate_supported_offer(offer)
-    pdf_bytes = fill_and_merge(offer)
-
-    record = prepare_offer_signing_record(offer, customer_email, user_id=subscription_user_id,
-                                         checkout_session_id=session.get("id") if not subscription_user_id else None)
+    usage = None
+    if subscription_user_id:
+        pdf_bytes, record, usage = render_subscribed_packet(offer, subscription_user_id, customer_email)
+    else:
+        pdf_bytes = fill_and_merge(offer)
+        record = prepare_offer_signing_record(offer, customer_email, checkout_session_id=session.get("id"))
+    if subscription_user_id:
+        if not record.get("id") or record.get("user_id") != subscription_user_id:
+            raise EmailDeliveryPending("Your saved offer could not be verified for email delivery.")
+        # Intentional revisions to an owned offer may receive a new document
+        # email, but replaying the same reviewed answers must not send again.
+        reviewed_answers = {key: value for key, value in stable_delivery_answers(offer, record).items()
+                            if not key.startswith('_') or key in {'_signing_source_hashes', '_signing_render_revisions'}}
+        email_identity = "owned:" + subscription_user_id + ":" + str(record["id"]) + ":" + payload_fingerprint(reviewed_answers)
+    else:
+        checkout_id = str(session.get("id") or "")
+        if not checkout_id.startswith("cs_") or len(checkout_id) <= 3:
+            raise EmailDeliveryPending("The paid checkout could not be identified for email delivery.")
+        email_identity = "checkout:" + checkout_id
     signwell_info = create_signwell_signature_request(offer, pdf_bytes, record=record, user_id=subscription_user_id)
 
-    send_email(
-        offer.get("buyerEmail") or customer_email,
-        offer.get("buyer1", "Buyer"),
-        offer.get("address", "Property"),
-        pdf_bytes,
-        signwell_info if signwell_info.get("enabled") else None
-    )
+    try:
+        document_email = send_email(
+            offer.get("buyerEmail") or customer_email,
+            offer.get("buyer1", "Buyer"),
+            offer.get("address", "Property"),
+            pdf_bytes,
+            signwell_info if signwell_info.get("enabled") else None,
+            delivery_identity=email_identity,
+        )
+    except EmailDeliveryPending as error:
+        raise PacketEmailPending(record=record, signwell=signwell_info,
+                                 needs_review=isinstance(error, EmailDeliveryNeedsReview), usage=usage) from error
 
     # Internal admin alert. Do not let admin-email failure block buyer delivery.
     try:
-        send_admin_order_email(
+        admin_email = send_admin_order_email(
             offer,
             customer_email,
-            signwell_info if signwell_info.get("enabled") else None
+            signwell_info if signwell_info.get("enabled") else None,
+            delivery_identity=email_identity,
         )
     except Exception as admin_email_error:
+        admin_email = {"status": "unconfirmed"}
         print("ADMIN ORDER EMAIL FAILED:", str(admin_email_error))
 
     return {
         "status": "ok",
-        "message": "PDF created and emailed",
+        "packetGenerated": True,
+        "offerId": record.get('id'),
+        "usage": usage,
+        "message": "PDF created. Document email accepted for delivery.",
+        "documentEmail": document_email,
+        "adminEmail": admin_email,
         "signwell": signwell_info
     }
 
@@ -2161,50 +2334,6 @@ class handler(BaseHTTPRequestHandler):
         user = response.json()
         return str(user.get("id") or "") or None
 
-    def _has_generation_entitlement(self, user_id):
-        response = httpx.get(
-            f"{SUPABASE_URL}/rest/v1/hof_subscriptions",
-            params={
-                "user_id": f"eq.{user_id}",
-                "status": "in.(beta,active,trialing,free_admin)",
-                "select": "packet_limit",
-                "limit": "1",
-            },
-            headers={
-                "apikey": SUPABASE_SERVICE_ROLE_KEY,
-                "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
-            },
-            timeout=12,
-        )
-        if response.status_code != 200:
-            return False
-        subscriptions = response.json()
-        if not subscriptions:
-            return False
-        try:
-            packet_limit = max(0, min(int(subscriptions[0].get("packet_limit") or 10), 10000))
-        except (TypeError, ValueError):
-            packet_limit = 10
-        billing_month = datetime.now(timezone.utc).strftime("%Y-%m")
-        usage_response = httpx.get(
-            f"{SUPABASE_URL}/rest/v1/hof_usage_events",
-            params={
-                "user_id": f"eq.{user_id}",
-                "billing_month": f"eq.{billing_month}",
-                "event_type": "eq.signed_packet",
-                "select": "quantity",
-            },
-            headers={
-                "apikey": SUPABASE_SERVICE_ROLE_KEY,
-                "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
-            },
-            timeout=12,
-        )
-        if usage_response.status_code != 200:
-            return False
-        used = sum(max(0, int(item.get("quantity") or 0)) for item in usage_response.json())
-        return used < packet_limit
-
     def do_GET(self):
         # This unauthenticated endpoint is a deployment health check, not an
         # operations inventory. Keep its response limited to aggregate release
@@ -2235,6 +2364,27 @@ class handler(BaseHTTPRequestHandler):
 
             payload = json.loads(body.decode("utf-8") or "{}")
 
+            if isinstance(payload, dict) and payload.get('action') == 'checkout_packet_preflight':
+                if not verify_checkout_preflight_signature(body,
+                        self.headers.get('x-homeofferflow-preflight-signature', ''),
+                        INTERNAL_CHECKOUT_FORWARD_SECRET):
+                    self._json(401, {'error': 'Invalid packet verification signature'})
+                    return
+                if len(body) > 4 * 1024 * 1024:
+                    self._json(413, {'error': 'Packet is too large'})
+                    return
+                try:
+                    result = preflight_checkout_packet(payload.get('offerData'))
+                except (UnsupportedOfferPathError, CurrencyInputError) as error:
+                    self._json(422, {'error': str(error), 'code': 'checkout_answers_invalid'})
+                    return
+                except Exception:
+                    # Never expose provider errors, storage paths or answers.
+                    self._json(503, {'error': 'Document verification is temporarily unavailable'})
+                    return
+                self._json(200, result)
+                return
+
             # Stripe webhook path: paid checkout sends a checkout.session.completed event.
             if isinstance(payload, dict) and payload.get("type") == "checkout.session.completed":
                 stripe_sig = self.headers.get("stripe-signature", "")
@@ -2257,14 +2407,20 @@ class handler(BaseHTTPRequestHandler):
                     if not user_id:
                         self._json(401, {"error": "Sign in again before generating a packet."})
                         return
-                    if not self._has_generation_entitlement(user_id):
-                        self._json(403, {"error": "Your HomeOfferFlow access is not active or this month's packet limit has been reached."})
-                        return
+                    # The packet-specific database reservation is authoritative.
+                    # An aggregate precheck would wrongly reject a free retry
+                    # of an already completed packet at the monthly limit.
                     subscription_user_id = user_id
                 else:
                     self._json(401, {"error": "A verified Stripe webhook or active subscription is required."})
                     return
-                result = handle_checkout(payload, subscription_user_id=subscription_user_id)
+                try:
+                    result = handle_checkout(payload, subscription_user_id=subscription_user_id)
+                except PacketEmailPending as pending:
+                    # Keep provider callbacks retryable, while an authenticated
+                    # subscriber sees the saved packet and actual signing state.
+                    self._json(202 if subscription_user_id else 503, pending.result)
+                    return
                 self._json(200, result)
                 return
 
@@ -2296,12 +2452,9 @@ class handler(BaseHTTPRequestHandler):
                 if not user_id:
                     self._json(401, {"error": "Sign in again before generating a packet."})
                     return
-                if not self._has_generation_entitlement(user_id):
-                    self._json(403, {"error": "Your HomeOfferFlow access is not active or this month's packet limit has been reached."})
-                    return
                 hydrate_paragraph4_sources(offer)
                 validate_supported_offer(offer)
-                pdf_bytes = fill_and_merge(offer)
+                pdf_bytes, record, usage = render_subscribed_packet(offer, user_id)
                 filename_addr = re.sub(r"[^A-Za-z0-9]+", "_", str(offer.get("address", "offer")).strip()).strip("_") or "offer"
                 filename = f"HomeOfferFlow_Offer_{filename_addr}.pdf"
 
@@ -2315,6 +2468,14 @@ class handler(BaseHTTPRequestHandler):
 
             self._json(400, {"error": "No offer data provided"})
 
+        except PacketAllowanceUnavailable as error:
+            self._json(403, {'error': str(error), 'code': 'packet_allowance_unavailable'})
+        except PacketGenerationBusy as error:
+            self._json(409, {'error': str(error), 'code': 'packet_generation_busy'})
+        except PacketGenerationPending as error:
+            self._json(503, {'error': str(error), 'code': 'packet_generation_unconfirmed'})
+        except CurrencyInputError as e:
+            self._json(400, {'error': str(e), 'code': 'invalid_monetary_amount'})
         except UnsupportedOfferPathError as e:
             print("UNSUPPORTED OFFER PATH:", str(e))
             self._json(422, {

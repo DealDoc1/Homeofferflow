@@ -29,7 +29,7 @@ class AccountSignOutPrivacyTests(unittest.TestCase):
         self.assertIn("const HOF_STORAGE_OWNER_KEY = 'hof_offer_draft_owner';", HTML)
         self.assertIn("localStorage.setItem(HOF_STORAGE_OWNER_KEY, ownerUserId);", saver)
 
-        start = HTML.index("function restoreDraft()")
+        start = HTML.index("function restoreDraft(")
         end = HTML.index("function refreshSelectedRadioCards()", start)
         restore = HTML[start:end]
         self.assertIn("ownerUserId && ownerUserId !== currentUserId", restore)

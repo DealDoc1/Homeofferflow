@@ -29,6 +29,20 @@ class UploadedDisclosureWorkflowTests(unittest.TestCase):
         self.assertIn("type: suggestedUploadedDisclosureType(file.name)", INDEX_HTML)
         self.assertIn("I reviewed the uploaded PDFs, labels, and packet order", INDEX_HTML)
 
+    def test_pre_1978_interview_requires_and_attaches_the_actual_disclosure(self):
+        required = (
+            'id="leadDisclosureUpload"',
+            "handleLeadDisclosureUpload(this.files)",
+            "function hasLeadDisclosureUpload()",
+            "function validateLeadDisclosurePacket(data = {})",
+            "Attach the completed lead-based paint disclosure PDF before sending this offer.",
+            "type = 'lead_based_paint'",
+        )
+        for copy in required:
+            with self.subTest(copy=copy):
+                self.assertIn(copy, INDEX_HTML)
+        self.assertGreaterEqual(INDEX_HTML.count("!validateLeadDisclosurePacket(state.data)"), 2)
+
     def test_uploads_suggest_a_label_from_a_common_filename_without_removing_agent_control(self):
         self.assertIn("function suggestedUploadedDisclosureType(filename)", INDEX_HTML)
         for label in ("seller_disclosure", "survey", "hoa_documents", "pid_mud_notice", "lead_based_paint"):
@@ -75,7 +89,7 @@ class UploadedDisclosureWorkflowTests(unittest.TestCase):
         self.assertIn("existingDocs.length + files.length > maxFiles", handler)
         self.assertIn("existingBytes + selectedBytes > maxTotalBytes", handler)
         self.assertIn("duplicateName", handler)
-        self.assertIn("window.hofUploadedDisclosureDocs = docs;", handler)
+        self.assertIn("window.hofUploadedDisclosureDocs = combined;", handler)
         self.assertIn("if (input) input.value = '';", handler)
         self.assertIn("Add up to 5 files, 2MB each and 2.5MB combined.", INDEX_HTML)
 
@@ -83,7 +97,7 @@ class UploadedDisclosureWorkflowTests(unittest.TestCase):
         self.assertIn("function removeUploadedDisclosure(index)", INDEX_HTML)
         self.assertIn("docs.splice(index, 1)", INDEX_HTML)
         self.assertIn("uploaded-doc-remove", INDEX_HTML)
-        self.assertIn("Remove ${escapeHtml(d.name)}", INDEX_HTML)
+        self.assertIn("Remove ${escapeAttr(d.name)}", INDEX_HTML)
 
     def test_attachment_acknowledgement_is_invalidated_after_packet_changes(self):
         self.assertIn("function resetUploadedDisclosureAcknowledgement()", INDEX_HTML)
@@ -96,7 +110,7 @@ class UploadedDisclosureWorkflowTests(unittest.TestCase):
         self.assertIn("window.hofUploadedDisclosureDocs = [];", INDEX_HTML)
         self.assertIn("resetUploadedDisclosureDraftForOffer(offer.offer_data || {});", INDEX_HTML)
         self.assertIn("resetUploadedDisclosureDraftForOffer({});", INDEX_HTML)
-        self.assertIn("Re-upload required before sending:", INDEX_HTML)
+        self.assertIn("Files needed:", INDEX_HTML)
 
     def test_duplicate_offer_drops_transaction_sensitive_attachments(self):
         self.assertIn("delete copyData.uploadedDisclosureDocs;", INDEX_HTML)

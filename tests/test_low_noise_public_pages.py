@@ -1,4 +1,5 @@
 import unittest
+from html.parser import HTMLParser
 from pathlib import Path
 
 
@@ -6,6 +7,35 @@ ROOT = Path(__file__).resolve().parents[1]
 AGENTS = (ROOT / "agents.html").read_text(encoding="utf-8")
 SELLERS = (ROOT / "sellers.html").read_text(encoding="utf-8")
 INVESTORS = (ROOT / "investors.html").read_text(encoding="utf-8")
+BUYERS = (ROOT / "buyers.html").read_text(encoding="utf-8")
+PARTNERS = (ROOT / "partners.html").read_text(encoding="utf-8")
+DIRECTORY = (ROOT / "directory.html").read_text(encoding="utf-8")
+INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
+
+
+class _VisibleText(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.hidden_depth = 0
+        self.text = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag in {"script", "style"}:
+            self.hidden_depth += 1
+
+    def handle_endtag(self, tag):
+        if tag in {"script", "style"} and self.hidden_depth:
+            self.hidden_depth -= 1
+
+    def handle_data(self, data):
+        if not self.hidden_depth and data.strip():
+            self.text.append(data.strip())
+
+
+def visible_text(html):
+    parser = _VisibleText()
+    parser.feed(html)
+    return " ".join(parser.text)
 
 
 class LowNoisePublicPageTests(unittest.TestCase):
@@ -46,6 +76,51 @@ class LowNoisePublicPageTests(unittest.TestCase):
         self.assertIn('saved-work recovery', INVESTORS)
         self.assertNotIn('Resume a draft or duplicate prior offer terms', INVESTORS)
         self.assertNotIn('draft recovery', INVESTORS)
+
+    def test_public_landing_copy_uses_customer_actions_not_internal_workflow_language(self):
+        pages = {
+            "buyers": BUYERS,
+            "sellers": SELLERS,
+            "agents": AGENTS,
+            "investors": INVESTORS,
+            "partners": PARTNERS,
+            "directory": DIRECTORY,
+        }
+        for page, html in pages.items():
+            with self.subTest(page=page):
+                self.assertNotIn("workflow", visible_text(html).lower())
+
+    def test_homepage_acquisition_copy_uses_the_same_plain_language_standard(self):
+        start = INDEX.index("<nav")
+        end = INDEX.index("</footer>", start) + len("</footer>")
+        homepage = visible_text(INDEX[start:end]).lower()
+        self.assertNotIn("workflow", homepage)
+        self.assertIn("guided texas paths", homepage)
+        self.assertIn("secure signature request", homepage)
+
+    def test_authenticated_customer_copy_avoids_internal_product_language(self):
+        removed_copy = (
+            "Repeat deal workflow",
+            "Which form or workflow do you need?",
+            "Right workflow",
+            "Guided buyer-offer workflow",
+            "continue the workflow",
+            "Workflow Type",
+            "guided agent workflow",
+            "repeatable team workflow",
+            "PDF, form, SignWell, or workflow support.",
+        )
+        for phrase in removed_copy:
+            with self.subTest(phrase=phrase):
+                self.assertNotIn(phrase, INDEX)
+        for phrase in (
+            "Repeat-offer workspace",
+            "Which form or document do you need?",
+            "Guided buyer-offer questions",
+            "Seller lead type",
+            "Document, signing, or account support.",
+        ):
+            self.assertIn(phrase, INDEX)
 
 
 if __name__ == "__main__":

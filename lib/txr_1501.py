@@ -8,10 +8,12 @@ document.
 """
 
 from io import BytesIO
-from textwrap import wrap
 
 from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen.canvas import Canvas
+from lib.pdf_text import draw_text, text_width as stringWidth
+from lib.txr1501_answers import answer_layout, render_continuation, continuation_fields
+from lib.txr_source_imprint import remove_known_source_imprint
 
 
 PAGE_WIDTH = 612
@@ -28,16 +30,7 @@ def _draw(canvas, value, x, y, *, size=FONT_SIZE):
     value = _clean(value)
     if not value:
         return
-    canvas.setFont(FONT, size)
-    canvas.drawString(x, y, value)
-
-
-def _draw_wrapped(canvas, value, x, y, width_chars=84, line_height=10, size=FONT_SIZE):
-    value = _clean(value)
-    if not value:
-        return
-    for index, line in enumerate(wrap(value, width_chars)):
-        _draw(canvas, line, x, y - index * line_height, size=size)
+    draw_text(canvas, value, x, y, size, FONT)
 
 
 def _check(canvas, x, y):
@@ -59,6 +52,20 @@ def _check_signing_role(canvas, x, y):
     canvas.line(x + 1, y + 7, x + 7, y + 1)
 
 
+def _draw_party_header(canvas, clients, broker_name):
+    """Repeat party identification within the source blank on pages 2-6."""
+    parties = " and ".join(filter(None, (
+        ", ".join(filter(None, (_clean(name) for name in clients))), _clean(broker_name),
+    )))
+    # All five source headers share x=244.13..576.10, rule top y=42.48.
+    # Keep complete names readable; refer to the full party block if too long.
+    for size in (8, 7.5, 7):
+        if stringWidth(parties, FONT, size) <= 328:
+            _draw(canvas, parties, 246, 752, size=size)
+            return
+    _draw(canvas, "Client(s) and Broker identified in Paragraph 1", 246, 752, size=8)
+
+
 def _overlay(data, brokerage, associate):
     clients = data.get("client_names") or []
     packet = BytesIO()
@@ -66,43 +73,26 @@ def _overlay(data, brokerage, associate):
     canvas.setFillColorRGB(0, 0, 0)
 
     broker_name = brokerage.get("legal_name") or brokerage.get("name") or brokerage.get("dba_name") or ""
-    broker_license = brokerage.get("license_number") or ""
     # The authenticated profile stores its display name as ``agent_name``;
     # accept the normalized renderer shape as well.  Without this fallback a
     # real agent can be the SignWell recipient while their printed name is
     # blank on the completed agreement.
-    associate_name = associate.get("name") or associate.get("agent_name") or ""
-    associate_license = associate.get("license_number") or ""
+    pages, overflow = answer_layout(data, brokerage, associate)
+    def draw_page(number):
+        for x, y, value, size in pages[number]:
+            _draw(canvas, value, x, y, size=size)
 
     # Page 1: party/contact block, market area, and term. These coordinates are
     # deliberately isolated from purchase-packet and TXR-1507 coordinates.
     # Anchor each value at the beginning of the printed rule.  The previous
     # positions were measured from the label, leaving completed values visibly
     # adrift in the middle of the rule on the released TXR-1501 source.
-    _draw(canvas, ", ".join(clients), 108, 612)
-    _draw(canvas, data.get("client_address"), 128, 594)
-    _draw(canvas, data.get("client_city_state_zip"), 158, 578)
-    _draw(canvas, data.get("client_phone"), 117, 562)
-    _draw(canvas, data.get("client_email"), 115, 546)
-    _draw(canvas, broker_name, 108, 531)
-    _draw(canvas, brokerage.get("address"), 125, 510)
-    _draw(canvas, brokerage.get("city_state_zip"), 156, 494)
-    _draw(canvas, brokerage.get("phone"), 117, 478)
-    _draw(canvas, brokerage.get("email"), 112, 462)
-    _draw_wrapped(canvas, data.get("market_area"), 145, 302, width_chars=86)
-    _draw(canvas, data.get("term_start"), 224, 176)
-    _draw(canvas, data.get("term_end"), 430, 176)
+    draw_page(1)
     canvas.showPage()
 
     # Page 2: broker/client agreement title and compensation terms.
-    _draw(canvas, ", ".join(clients), 300, 744, size=7)
-    compensation = data.get("compensation") or {}
-    _draw(canvas, compensation.get("purchase_percentage"), 210, 480)
-    _draw(canvas, compensation.get("purchase_flat_fee"), 475, 480)
-    _draw(canvas, compensation.get("lease_one_month_percentage"), 225, 460)
-    _draw(canvas, compensation.get("lease_total_rents_percentage"), 385, 460)
-    _draw(canvas, compensation.get("lease_flat_fee"), 470, 442)
-    _draw(canvas, data.get("retainer_amount"), 220, 418)
+    _draw_party_header(canvas, clients, broker_name)
+    draw_page(2)
     if data.get("retainer_treatment") == "apply":
         # The page-two “will” selection square starts at x=262/y=414.
         # The older x=284/y=398 map marked the surrounding sentence below
@@ -115,30 +105,30 @@ def _overlay(data, brokerage, associate):
     canvas.showPage()
 
     # Page 3: service-provider compensation, protection period, and county.
-    _draw(canvas, data.get("protection_days"), 240, 470)
-    _draw(canvas, data.get("payment_county"), 470, 312)
+    _draw_party_header(canvas, clients, broker_name)
+    draw_page(3)
     canvas.showPage()
 
     # Page 4: intermediary choice. A and B checkboxes are visibly distinct.
+    _draw_party_header(canvas, clients, broker_name)
     if data.get("intermediary") == "authorized":
-        _check(canvas, 48, 712)
+        _check(canvas, 45, 707)
     else:
-        _check(canvas, 48, 480)
+        _check(canvas, 45, 455)
     canvas.showPage()
 
     # Page 5: Special Provisions is intentionally blank unless a future,
     # separately approved field is added; do not write into boilerplate.
+    _draw_party_header(canvas, clients, broker_name)
+    draw_page(5)
+    if overflow:
+        _check(canvas, 64, 276)
     canvas.showPage()
 
     # Page 6: printed names only. Signature/date widgets are supplied to
-    # SignWell after a source-owner signer plan is deliberately selected.
-    _draw(canvas, broker_name, 36, 400, size=7)
-    _draw(canvas, broker_license, 240, 400, size=7)
-    _draw(canvas, clients[0] if clients else "", 324, 400, size=7)
-    _draw(canvas, associate_name, 36, 309, size=7)
-    _draw(canvas, associate_license, 240, 309, size=7)
-    if len(clients) > 1:
-        _draw(canvas, clients[1], 324, 309, size=7)
+    # SignWell after the broker or associate signer plan is selected.
+    _draw_party_header(canvas, clients, broker_name)
+    draw_page(6)
     # The chosen signer must also be visible on the source's broker versus
     # broker-associate checkbox pair.  A signature alone on the shared rule
     # leaves the completed agreement ambiguous.
@@ -162,18 +152,23 @@ def render_txr_1501(source_pdf_bytes, data, brokerage, associate):
         raise ValueError("TXR-1501 source must contain exactly six pages.")
     overlay = PdfReader(BytesIO(_overlay(data, brokerage, associate)))
     writer = PdfWriter()
-    for index, page in enumerate(source.pages):
+    for page in source.pages:
         # Attach the source page before merging.  Newer pypdf versions no
         # longer guarantee reliable content replacement on detached pages.
         writer.add_page(page)
+    remove_known_source_imprint(writer, source_pdf_bytes, 'TXR-1501')
+    for index in range(len(source.pages)):
         writer.pages[index].merge_page(overlay.pages[index])
+    continuation = render_continuation(data, answer_layout(data, brokerage, associate)[1])
+    if continuation:
+        writer.append(PdfReader(BytesIO(continuation)))
     output = BytesIO()
     writer.write(output)
     return output.getvalue()
 
 
-def build_signwell_fields_txr1501(data, *, client_count=1):
-    """Return explicit page-6 signer fields for a deliberate signer plan."""
+def build_signwell_fields_txr1501(data, *, client_count=1, page_count=6):
+    """Return footer initials and final signatures for the selected parties."""
     signer_plan = data.get("signer_plan")
     if signer_plan not in {"clients_and_associate", "clients_and_broker"}:
         raise ValueError("Choose whether the broker or associate will sign the TXR-1501 agreement.")
@@ -182,31 +177,43 @@ def build_signwell_fields_txr1501(data, *, client_count=1):
         # map used the name-line y-coordinate, which made completed fields
         # cover the printed names rather than the signature rule.
         # The Client execution rule begins at source x=324, not beside the
-        # broker column.  SignWell uses 4/3 source coordinates, so the
-        # signature and date rectangles begin at 432 and 720 respectively.
-        # The date starts just above its printed caption rather than replacing
-        # the "Client's Signature" label.
-        {"api_id": "txr1501_client1_signature_p6", "type": "signature", "page": 6, "x": 432, "y": 566, "recipient_id": "1", "required": True, "width": 272, "height": 24},
-        {"api_id": "txr1501_client1_date_p6", "type": "date", "page": 6, "x": 720, "y": 572, "recipient_id": "1", "required": True, "width": 48, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        # broker column. Leave a separate 54-point date area: provider-rendered
+        # MM/DD/YYYY text measured 49.21 points in the short-form QA specimen,
+        # wider than the old 36-point date widget. Keep both inside the rule.
+        {"api_id": "txr1501_client1_signature_p6", "type": "signature", "page": 6, "x": 432, "y": 566, "recipient_id": "1", "required": True, "width": 240, "height": 24},
+        {"api_id": "txr1501_client1_date_p6", "type": "date", "page": 6, "x": 696, "y": 572, "recipient_id": "1", "required": True, "width": 72, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
     ]
     if client_count == 2:
         fields.extend([
-            {"api_id": "txr1501_client2_signature_p6", "type": "signature", "page": 6, "x": 432, "y": 677, "recipient_id": "2", "required": True, "width": 272, "height": 24},
-            {"api_id": "txr1501_client2_date_p6", "type": "date", "page": 6, "x": 720, "y": 683, "recipient_id": "2", "required": True, "width": 48, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            {"api_id": "txr1501_client2_signature_p6", "type": "signature", "page": 6, "x": 432, "y": 677, "recipient_id": "2", "required": True, "width": 240, "height": 24},
+            {"api_id": "txr1501_client2_date_p6", "type": "date", "page": 6, "x": 696, "y": 683, "recipient_id": "2", "required": True, "width": 72, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     if signer_plan == "clients_and_associate":
         fields.extend([
-            # TXR-1501 has separate broker and broker-associate execution
-            # rows.  Completed-packet review showed an associate recipient
-            # being placed on the broker row; use the lower associate row,
-            # which shares its horizontal rule with a second client when one
-            # is present.
-            {"api_id": "txr1501_associate_signature_p6", "type": "signature", "page": 6, "x": 48, "y": 677, "recipient_id": "associate", "required": True, "width": 240, "height": 24},
-            {"api_id": "txr1501_associate_date_p6", "type": "date", "page": 6, "x": 336, "y": 683, "recipient_id": "associate", "required": True, "width": 48, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            # The 06-15-26 source has ONE left execution rule, above two role
+            # checkboxes. The lower left rule is for the associate's PRINTED
+            # name, not a second signature. Both selected roles sign here.
+            {"api_id": "txr1501_associate_signature_p6", "type": "signature", "page": 6, "x": 48, "y": 566, "recipient_id": "associate", "required": True, "width": 240, "height": 24},
+            {"api_id": "txr1501_associate_date_p6", "type": "date", "page": 6, "x": 312, "y": 572, "recipient_id": "associate", "required": True, "width": 72, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     if signer_plan == "clients_and_broker":
         fields.extend([
             {"api_id": "txr1501_broker_signature_p6", "type": "signature", "page": 6, "x": 48, "y": 566, "recipient_id": "broker", "required": True, "width": 240, "height": 24},
-            {"api_id": "txr1501_broker_date_p6", "type": "date", "page": 6, "x": 336, "y": 572, "recipient_id": "broker", "required": True, "width": 48, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            {"api_id": "txr1501_broker_date_p6", "type": "date", "page": 6, "x": 312, "y": 572, "recipient_id": "broker", "required": True, "width": 72, "height": 18, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
+    role = 'associate' if signer_plan == 'clients_and_associate' else 'broker'
+    # Pages 1-5 identify the document with initials from each signing party.
+    # Source underscore blanks are 325.982..361.064, 406.523..444.026 and
+    # 446.555..481.529 on page 1; later client blanks move <0.35pt right.
+    # These rectangles fit the common intersection on every page.
+    initial_signers = [(role, role, 435), ('client1', '1', 543)]
+    if client_count == 2:
+        initial_signers.append(('client2', '2', 596))
+    for page in range(1, 6):
+        for label, recipient, x in initial_signers:
+            fields.append({'api_id': f'txr1501_{label}_initials_p{page}',
+                           'type': 'initials', 'page': page, 'x': x, 'y': 976,
+                           'recipient_id': recipient, 'required': True,
+                           'width': 45 if recipient == '1' else 46, 'height': 14})
+    fields.extend(continuation_fields(data, client_count, page_count))
     return [fields]

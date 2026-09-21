@@ -21,6 +21,7 @@ from lib import partner_marketplace_agreement
 from lib import seller_disclosure_draft
 from lib import seller_review_access
 from lib import seller_checkout
+from lib import seller_financing
 from lib import signwell_delivery
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
@@ -142,14 +143,35 @@ TXR_SIGNING_FORM_CODES = {
 # a completed PDF traceable to the exact reviewed signer geometry when a
 # source form needs a placement correction.  Older provider documents simply
 # have no map revision and are therefore never mistaken for current-map QA.
+TXR_RENDER_REVISIONS = {
+    "TXR-1501": "txr-1501-2026-09-18-continuation-pagination-v2",
+    "TXR-1506": "txr-1506-2026-09-18-answer-continuation-v2",
+    "TXR-1507": "txr-1507-2026-09-18-continuation-pagination-v3",
+    "TXR-1508": "txr-1508-2026-09-18-answer-continuation-v2",
+    "TXR-1905": "txr-1905-2026-09-18-neutral-source-v3",
+    "TXR-1914": "txr-1914-2026-09-18-source-blanks-v2",
+    "TXR-1917": "txr-1917-2026-09-18-source-blanks-v2",
+    "TXR-1919": "txr-1919-2026-09-18-neutral-source-v3",
+    "TXR-1948": "txr-1948-2026-09-18-answer-continuation-v2",
+    "TXR-1953": "txr-1953-2026-09-18-neutral-source-v4",
+    "TXR-1954": "txr-1954-2026-09-18-neutral-source-v4",
+}
+
 TXR_SIGNING_MAP_REVISIONS = {
-    TXR_1501_FORM_CODE: "txr-1501-2026-09-12-completed-packet-calibrated-v2",
-    TXR_1506_FORM_CODE: "txr-1506-2026-09-09-final-page-calibrated-v1",
+    TXR_1948_FORM_CODE: "txr-1948-2026-09-18-continuation-candidate-v2",
+    TXR_1917_FORM_CODE: "txr-1917-2026-09-18-execution-candidate-v2",
+    TXR_1905_FORM_CODE: "txr-1905-2026-09-18-execution-candidate-v2",
+    TXR_1914_FORM_CODE: "txr-1914-2026-09-18-execution-candidate-v2",
+    TXR_1919_FORM_CODE: "txr-1919-2026-09-18-initials-candidate-v2",
+    TXR_1501_FORM_CODE: "txr-1501-2026-09-18-continuation-candidate-v4",
+    TXR_1506_FORM_CODE: "txr-1506-2026-09-18-answer-continuation-candidate-v2",
     # Completed-packet review moved every execution widget above the printed
     # signature/date captions.  Drafts prepared with v1 must be rebuilt so a
     # sender cannot inadvertently reuse the older field geometry.
-    TXR_1507_FORM_CODE: "txr-1507-2026-09-12-completed-packet-calibrated-v2",
-    TXR_1508_FORM_CODE: "txr-1508-2026-09-09-acknowledgement-calibrated-v1",
+    TXR_1507_FORM_CODE: "txr-1507-2026-09-18-answer-continuation-candidate-v3",
+    TXR_1508_FORM_CODE: "txr-1508-2026-09-18-answer-continuation-candidate-v2",
+    TXR_1953_FORM_CODE: "txr-1953-2026-09-18-continuation-candidate-v3",
+    TXR_1954_FORM_CODE: "txr-1954-2026-09-18-continuation-candidate-v3",
 }
 # Each core TXR workflow was source-calibrated after prior packets exposed
 # placement risk. Require a newly prepared copy until saved drafts created
@@ -2220,11 +2242,12 @@ def _parse_txr_1507_draft(data):
     service_level = str(data.get("serviceLevel") or "").strip()
     if service_level not in {"full_services", "showing_services"}:
         raise ValueError("Choose Full Services or Showing Services.")
-    showing_fee = _agreement_money(data.get("showingFee"), "Showing Services execution fee")
+    showing_fee = (_agreement_money(data.get("showingFee"), "Showing Services execution fee")
+                   if service_level == "showing_services" else "")
     if service_level == "showing_services" and not showing_fee:
         raise ValueError("Showing Services requires the execution fee.")
-    intermediary = str(data.get("intermediary") or "").strip()
-    if intermediary not in {"authorized", "not_authorized"}:
+    intermediary = str(data.get("intermediary") or "").strip() if service_level == "full_services" else ""
+    if service_level == "full_services" and intermediary not in {"authorized", "not_authorized"}:
         raise ValueError("Choose whether intermediary is authorized.")
     signer_plan = str(data.get("signerPlan") or "").strip()
     if signer_plan not in {"clients_and_associate", "clients_and_broker"}:
@@ -2234,7 +2257,10 @@ def _parse_txr_1507_draft(data):
         form_source_id = str(uuid.UUID(form_source_id))
     except (TypeError, ValueError, AttributeError):
         raise ValueError("Choose an available TXR-1507 source from the HomeOfferFlow library.")
-    compensation = _agreement_compensation(data.get("compensation") or {})
+    # The source's Showing Services choice expressly excludes paragraphs 6-8.
+    # Ignore stale hidden terms rather than requiring or carrying them forward.
+    compensation = (_agreement_compensation(data.get("compensation") or {})
+                    if service_level == "full_services" else {})
     return {
         "form_source_id": form_source_id,
         "client_names": client_names,
@@ -2651,74 +2677,42 @@ def _parse_txr_1914_draft(data):
             raise ValueError(f"Add one or two {label} names.")
         return [_agreement_text(value, f"Each {label} name", 180) for value in values]
 
-    def months(value, label, *, allow_zero=False):
-        value = str(value or "").strip()
-        if not re.fullmatch(r"\d{1,3}", value):
-            raise ValueError(f"{label} must be a whole number of months.")
-        if not allow_zero and int(value) < 1:
-            raise ValueError(f"{label} must be at least one month.")
-        return value
-
     property_address = _agreement_text(data.get("propertyAddress"), "Property address", 400)
     buyer_names = names("buyerNames", "buyer")
     seller_names = names("sellerNames", "seller")
     all_names = buyer_names + seller_names
     if len({name.casefold() for name in all_names}) != len(all_names):
         raise ValueError("List each buyer or seller only once.")
-    credit_days = months(data.get("creditDays"), "Credit-documentation delivery time")
-    credit_documents = data.get("creditDocuments")
-    allowed_documents = {"credit_report", "employment", "funds", "financial_statement", "other"}
-    if not isinstance(credit_documents, list) or not credit_documents or not set(credit_documents).issubset(allowed_documents):
-        raise ValueError("Choose at least one credit-documentation item.")
-    credit_documents = list(dict.fromkeys(credit_documents))
-    credit_other = " ".join(str(data.get("creditOther") or "").strip().split())
-    if "other" in credit_documents and not credit_other:
-        raise ValueError("Describe the additional credit-documentation item.")
-    if len(credit_other) > 180:
-        raise ValueError("Additional credit documentation is too long.")
-    note_amount = _agreement_money(data.get("noteAmount"), "Promissory-note amount")
-    if not note_amount:
-        raise ValueError("Promissory-note amount is required.")
-    interest_rate = _agreement_percentage(data.get("interestRate"), "Interest rate")
-    if not interest_rate:
-        raise ValueError("Interest rate is required.")
     payment_plan = str(data.get("paymentPlan") or "").strip()
-    if payment_plan not in {"one_payment", "monthly_installments", "interest_only_then_installments"}:
-        raise ValueError("Choose the promissory-note payment plan printed on the addendum.")
     payment = {"plan": payment_plan}
     if payment_plan == "one_payment":
-        payment["due_after_months"] = months(data.get("onePaymentDueAfterMonths"), "One-payment due time", allow_zero=True)
-        payment["interest_timing"] = str(data.get("onePaymentInterestTiming") or "").strip()
-        if payment["interest_timing"] not in {"maturity", "monthly", "quarterly"}:
-            raise ValueError("Choose when interest is payable for the one-payment plan.")
+        payment.update(
+            due_after_months=data.get("onePaymentDueAfterMonths"),
+            interest_timing=data.get("onePaymentInterestTiming"),
+        )
     else:
-        payment["installment_amount"] = _agreement_money(data.get("installmentAmount"), "Installment amount")
-        if not payment["installment_amount"]:
-            raise ValueError("Installment amount is required.")
-        payment["interest_style"] = str(data.get("installmentInterestStyle") or "").strip()
-        if payment["interest_style"] not in {"including_interest", "plus_interest"}:
-            raise ValueError("Choose whether the installment includes or is plus interest.")
-        payment["begins_after_months"] = months(data.get("installmentBeginsAfterMonths"), "Installment start time", allow_zero=True)
-        payment["payoff_after_months"] = months(data.get("payoffAfterMonths"), "Payoff time")
-        if payment_plan == "interest_only_then_installments":
-            payment["interest_only_months"] = months(data.get("interestOnlyMonths"), "Interest-only period")
-    property_transfer = str(data.get("propertyTransfer") or "").strip()
-    if property_transfer not in {"consent_not_required", "consent_required"}:
-        raise ValueError("Choose the property-transfer consent term.")
-    casualty_insurance = str(data.get("casualtyInsurance") or "").strip()
-    if casualty_insurance not in {"required", "not_required"}:
-        raise ValueError("Choose the casualty-insurance term.")
-    escrow = str(data.get("escrow") or "").strip()
-    if escrow not in {"not_required", "required"}:
-        raise ValueError("Choose the tax-and-insurance escrow term.")
-    escrow_data = {"choice": escrow}
-    if escrow == "required":
-        escrow_data["third_party_servicer"] = str(data.get("thirdPartyServicer") or "").strip()
-        escrow_data["cost_paid_by"] = str(data.get("escrowCostPaidBy") or "").strip()
-        if escrow_data["third_party_servicer"] not in {"will", "will_not"}:
-            raise ValueError("Choose whether a third-party escrow servicer will be used.")
-        if escrow_data["cost_paid_by"] not in {"buyer", "seller"}:
-            raise ValueError("Choose who pays the escrow-service cost.")
+        payment.update(
+            installment_amount=data.get("installmentAmount"),
+            interest_style=data.get("installmentInterestStyle"),
+            begins_after_months=data.get("installmentBeginsAfterMonths"),
+            payoff_after_months=data.get("payoffAfterMonths"),
+            interest_only_months=data.get("interestOnlyMonths"),
+        )
+    terms = seller_financing.validate_terms({
+        "credit_days": data.get("creditDays"),
+        "credit_documents": data.get("creditDocuments"),
+        "credit_other": data.get("creditOther"),
+        "note_amount": data.get("noteAmount"),
+        "interest_rate": data.get("interestRate"),
+        "payment": payment,
+        "property_transfer": data.get("propertyTransfer"),
+        "casualty_insurance": data.get("casualtyInsurance"),
+        "escrow": {
+            "choice": data.get("escrow"),
+            "third_party_servicer": data.get("thirdPartyServicer"),
+            "cost_paid_by": data.get("escrowCostPaidBy"),
+        },
+    })
     if data.get("sellerFinancingReviewAcknowledgment") is not True:
         raise ValueError("Confirm that the parties will review seller-financing terms with appropriate professionals before signing.")
     return {
@@ -2728,15 +2722,7 @@ def _parse_txr_1914_draft(data):
             "property_address": property_address,
             "buyer_names": buyer_names,
             "seller_names": seller_names,
-            "credit_days": credit_days,
-            "credit_documents": credit_documents,
-            "credit_other": credit_other,
-            "note_amount": note_amount,
-            "interest_rate": interest_rate,
-            "payment": payment,
-            "property_transfer": property_transfer,
-            "casualty_insurance": casualty_insurance,
-            "escrow": escrow_data,
+            **terms,
             "seller_financing_review_acknowledgment": True,
         },
     }
@@ -3136,8 +3122,8 @@ async def _create_representation_draft(user, data, form_code, parser):
     )
     record = {
         # The existing non-null column retains the library source's host
-        # organization for audit and rendering; it is not an agent-access
-        # requirement.
+        # organization for source audit only, not the agent's brokerage
+        # identity or an agent-access requirement.
         "brokerage_id": source["brokerage_id"],
         "agent_user_id": user["id"],
         "form_source_id": source["id"],
@@ -3774,6 +3760,58 @@ async def _render_representation_draft_preview(user, agreement_id, *, for_signin
     if not agreements:
         raise PermissionError("That private agreement draft is unavailable.")
     agreement = agreements[0]
+    return await _render_owned_representation_agreement(
+        user, agreement, for_signing=for_signing, fingerprint_context=fingerprint_context,
+    )
+
+
+async def _representation_professional_context(user):
+    """Resolve the agent's own identity, never the shared PDF source's host.
+
+    A brokerage seat is optional. Without an active linked organization, use
+    the agent's saved brokerage name/license, but never infer a broker contact
+    from the agent's email or from a form-source record.
+    """
+    # Library-source drafts are intentionally available to every signed-in
+    # agent; an optional organization only supplies that agent's own details.
+    user_id = urllib.parse.quote(str(user["id"]), safe="")
+    profiles = await _get(
+        f"hof_agent_profiles?user_id=eq.{user_id}"
+        "&select=agent_name,license_number,agent_email,brokerage_name,brokerage_license&limit=1"
+    )
+    profile = profiles[0] if profiles else {}
+    brokerage = {
+        "name": profile.get("brokerage_name") or "",
+        "license_number": profile.get("brokerage_license") or "",
+    }
+    accounts = await _get(
+        f"hof_profiles?id=eq.{user_id}&select=brokerage_id&limit=1"
+    )
+    brokerage_id = accounts[0].get("brokerage_id") if accounts else None
+    if brokerage_id:
+        quoted_id = urllib.parse.quote(str(brokerage_id), safe="")
+        memberships = await _get(
+            f"hof_brokerage_members?user_id=eq.{user_id}&brokerage_id=eq.{quoted_id}"
+            "&status=eq.active&select=id&limit=1"
+        )
+        if memberships:
+            organizations = await _get(
+                f"hof_brokerages?id=eq.{quoted_id}&is_active=eq.true"
+                "&select=id,name,dba_name,license_number,contact_name,contact_email&limit=1"
+            )
+            if organizations:
+                brokerage = organizations[0]
+    return {"brokerage": brokerage, "profile": profile}
+
+
+async def _render_owned_representation_agreement(user, agreement, *, for_signing=False, fingerprint_context=None, professional_context=None):
+    """Render one server-loaded, owner-scoped draft snapshot.
+
+    Only the preview and send handlers call this helper, after their ownership
+    query. Never pass browser-supplied agreement data here. Source approval and
+    revision are checked here once for both paths. The send adapter's existing
+    updated_at checkpoint still rejects a draft edited during preparation.
+    """
     if agreement.get("signwell_document_id") and not _tracked_signature_journal(agreement):
         raise PermissionError("This signature request already has a provider record. Refresh its status before sending again.")
     sources = await _get(
@@ -3798,23 +3836,14 @@ async def _render_representation_draft_preview(user, agreement_id, *, for_signin
         raise RuntimeError(
             f"The approved {agreement.get('form_code') or 'TXR'} source could not be loaded."
         )
-    brokerage_rows = await _get(
-        "hof_brokerages?"
-        f"id=eq.{urllib.parse.quote(str(agreement['brokerage_id']))}"
-        "&select=id,name,dba_name,license_number&limit=1"
-    )
-    profile_rows = await _get_optional(
-        "hof_agent_profiles?"
-        f"user_id=eq.{urllib.parse.quote(user['id'])}"
-        "&select=agent_name,license_number&limit=1"
-    )
-    # Library-source drafts are intentionally available to every signed-in
-    # agent.  A source can be hosted by the platform library rather than the
-    # agent's own brokerage, so a missing host-brokerage row must not prevent
-    # that agent from rendering or sending the released draft they own. A
-    # broker signer is still only added when the agent explicitly selected
-    # that signer plan and the source host supplies a valid contact email.
-    brokerage = brokerage_rows[0] if brokerage_rows else {}
+    if professional_context is None:
+        professional_context = (
+            {"brokerage": {}, "profile": {}}
+            if agreement.get("form_code") in TXR_BUYER_SELLER_SIGNING_FORM_CODES
+            else await _representation_professional_context(user)
+        )
+    brokerage = professional_context["brokerage"]
+    profile = professional_context["profile"]
     agreement_data = agreement.get("agreement_data") or {}
     compensation_keys = (
         "purchase_percentage", "purchase_flat_fee", "lease_one_month_percentage",
@@ -3827,22 +3856,30 @@ async def _render_representation_draft_preview(user, agreement_id, *, for_signin
         "compensation": {key: agreement_data.get(key, "") for key in compensation_keys},
     }
     if fingerprint_context is not None:
+        # Broker contact is already bound through the resolved brokerage and
+        # recipients. Exclude its persisted duplicate from overlay answers so
+        # first send and saved-request retry have the same render fingerprint.
         fingerprint_context.update(
             source_sha256=hashlib.sha256(response.content).hexdigest(),
-            brokerage=brokerage, profile=profile_rows[0] if profile_rows else {},
+            brokerage=brokerage, profile=profile,
             render_data={key: value for key, value in render_data.items()
-                         if key not in {signwell_delivery.JOURNAL_KEY, "client_emails",
+                         if key not in {signwell_delivery.JOURNAL_KEY, "client_emails", "broker_signer",
                                         "signwellStatus", "signwellDocumentId", "signwellLastStatusRefresh"}},
         )
+        # Bind overlay changes as well as signer geometry. Existing tracked
+        # documents must never be mistaken for a newly corrected signing copy.
+        render_revision = TXR_RENDER_REVISIONS.get(agreement.get("form_code"))
+        if render_revision:
+            fingerprint_context["render_revision"] = render_revision
     if agreement.get("form_code") == TXR_1507_FORM_CODE:
         from lib.txr_1507 import render_txr_1507
-        return render_txr_1507(response.content, render_data, brokerage, profile_rows[0] if profile_rows else {})
+        return render_txr_1507(response.content, render_data, brokerage, profile)
     if agreement.get("form_code") == TXR_1501_FORM_CODE:
         from lib.txr_1501 import render_txr_1501
-        return render_txr_1501(response.content, render_data, brokerage, profile_rows[0] if profile_rows else {})
+        return render_txr_1501(response.content, render_data, brokerage, profile)
     if agreement.get("form_code") == TXR_1508_FORM_CODE:
         from lib.txr_1508 import render_txr_1508
-        return render_txr_1508(response.content, render_data, brokerage, profile_rows[0] if profile_rows else {})
+        return render_txr_1508(response.content, render_data, brokerage, profile)
     if agreement.get("form_code") == TXR_1506_FORM_CODE:
         from lib.txr_1506 import render_txr_1506
         return render_txr_1506(response.content, render_data, brokerage)
@@ -3879,7 +3916,7 @@ def _valid_email(value):
     return bool(re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", str(value or "").strip()))
 
 
-def _txr_signwell_fields(form_code, agreement_data, client_count):
+def _txr_signwell_fields(form_code, agreement_data, client_count, *, rendered_pdf=None):
     """Dispatch to the source-specific SignWell field map.
 
     Keeping this dispatch in the authenticated server route prevents a browser
@@ -3887,16 +3924,28 @@ def _txr_signwell_fields(form_code, agreement_data, client_count):
     """
     if form_code == TXR_1501_FORM_CODE:
         from lib.txr_1501 import build_signwell_fields_txr1501
-        return build_signwell_fields_txr1501(agreement_data, client_count=client_count)
+        from io import BytesIO
+        from pypdf import PdfReader
+        page_count = len(PdfReader(BytesIO(rendered_pdf)).pages) if rendered_pdf is not None else 6
+        return build_signwell_fields_txr1501(agreement_data, client_count=client_count, page_count=page_count)
     if form_code == TXR_1506_FORM_CODE:
         from lib.txr_1506 import build_signwell_fields_txr1506
-        return build_signwell_fields_txr1506(agreement_data, client_count=client_count)
+        from io import BytesIO
+        from pypdf import PdfReader
+        page_count = len(PdfReader(BytesIO(rendered_pdf)).pages) if rendered_pdf is not None else 6
+        return build_signwell_fields_txr1506(agreement_data, client_count=client_count, page_count=page_count)
     if form_code == TXR_1507_FORM_CODE:
         from lib.txr_1507 import build_signwell_fields_txr1507
-        return build_signwell_fields_txr1507(agreement_data, client_count=client_count)
+        from io import BytesIO
+        from pypdf import PdfReader
+        page_count = len(PdfReader(BytesIO(rendered_pdf)).pages) if rendered_pdf is not None else 2
+        return build_signwell_fields_txr1507(agreement_data, client_count=client_count, page_count=page_count)
     if form_code == TXR_1508_FORM_CODE:
         from lib.txr_1508 import build_signwell_fields_txr1508
-        return build_signwell_fields_txr1508(agreement_data, client_count=client_count)
+        from io import BytesIO
+        from pypdf import PdfReader
+        page_count = len(PdfReader(BytesIO(rendered_pdf)).pages) if rendered_pdf is not None else 1
+        return build_signwell_fields_txr1508(agreement_data, client_count=client_count, page_count=page_count)
     if form_code == TXR_1905_FORM_CODE:
         from lib.txr_1905 import build_signwell_fields_txr1905
         return build_signwell_fields_txr1905(agreement_data, client_count=client_count)
@@ -3940,23 +3989,41 @@ def _standalone_signer_labels(agreement):
     return labels if len(labels) == len(names) else [f"Signer {index}" for index in range(1, len(names) + 1)]
 
 
-def _txr_signwell_recipients(agreement, client_emails, brokerage, agent_user):
-    client_names = agreement.get("client_names") or []
+def _standalone_professional_role(agreement):
     agreement_data = agreement.get("agreement_data") or {}
     form_code = str(agreement.get("form_code") or "")
     signer_plan = str(agreement_data.get("signer_plan") or "")
+    if form_code in TXR_BUYER_SELLER_SIGNING_FORM_CODES:
+        return None
+    if form_code == TXR_1508_FORM_CODE:
+        return "associate" if signer_plan == "associate_and_clients" else "broker"
+    if form_code == TXR_1506_FORM_CODE:
+        return "associate" if signer_plan == "consumers_and_associate" else "broker"
+    return "associate" if signer_plan == "clients_and_associate" else "broker"
+
+
+def _parse_broker_signer(value):
+    if not isinstance(value, dict):
+        raise ValueError("Enter your broker's name and email address.")
+    name = value.get("name")
+    email = value.get("email")
+    if (not isinstance(name, str) or not name.strip() or len(name.strip()) > 120
+            or any(ord(char) < 32 for char in name)):
+        raise ValueError("Enter your broker's name (up to 120 characters).")
+    if not isinstance(email, str) or len(email.strip()) > 254 or not _valid_email(email):
+        raise ValueError("Enter a valid broker contact email address.")
+    return {"name": name.strip(), "email": email.strip()}
+
+
+def _txr_signwell_recipients(agreement, client_emails, brokerage, agent_user, *, allow_incomplete_broker=False):
+    client_names = agreement.get("client_names") or []
+    role = _standalone_professional_role(agreement)
     recipients = [
         {"id": str(index), "name": client_names[index - 1], "email": client_emails[index - 1]}
         for index in range(1, len(client_names) + 1)
     ]
-    if form_code in TXR_BUYER_SELLER_SIGNING_FORM_CODES:
+    if role is None:
         return recipients
-    if form_code == TXR_1508_FORM_CODE:
-        role = "associate" if signer_plan == "associate_and_clients" else "broker"
-    elif form_code == TXR_1506_FORM_CODE:
-        role = "associate" if signer_plan == "consumers_and_associate" else "broker"
-    else:
-        role = "associate" if signer_plan == "clients_and_associate" else "broker"
     if role == "associate":
         associate_email = str(agent_user.get("email") or "").strip()
         associate_name = str(agent_user.get("name") or "Broker associate").strip()
@@ -3967,30 +4034,46 @@ def _txr_signwell_recipients(agreement, client_emails, brokerage, agent_user):
         broker_email = str(brokerage.get("contact_email") or "").strip()
         broker_name = str(brokerage.get("contact_name") or brokerage.get("name") or "Broker").strip()
         if not _valid_email(broker_email):
-            raise ValueError("The brokerage needs a valid broker contact email before broker signing can be sent.")
+            if not allow_incomplete_broker:
+                raise ValueError("Enter your broker's name and a valid broker contact email before sending.")
+            broker_name, broker_email = "", ""
         recipients.append({"id": role, "name": broker_name, "email": broker_email})
     return recipients
 
 
-async def _standalone_signing_recipients(user, agreement, client_emails):
+async def _standalone_signing_recipients(user, agreement, client_emails, *, professional_context=None, broker_signer=None, allow_incomplete_broker=False):
     """Resolve the same account-linked signers for preview and delivery."""
-    if str(agreement.get("form_code") or "") in TXR_BUYER_SELLER_SIGNING_FORM_CODES:
+    role = _standalone_professional_role(agreement)
+    if broker_signer is not None and role != "broker":
+        raise ValueError("This document does not request a separate broker signer.")
+    if role is None:
         return _txr_signwell_recipients(agreement, client_emails, {}, {})
-    brokerage_rows = await _get(
-        "hof_brokerages?"
-        f"id=eq.{urllib.parse.quote(str(agreement.get('brokerage_id') or ''))}"
-        "&select=id,name,contact_name,contact_email&limit=1"
-    )
-    profile_rows = await _get_optional(
-        "hof_agent_profiles?"
-        f"user_id=eq.{urllib.parse.quote(user['id'])}"
-        "&select=user_id,agent_name,agent_email&limit=1"
-    )
-    profile = profile_rows[0] if profile_rows else {}
+    context = await _representation_professional_context(user)
+    saved_broker = (agreement.get("agreement_data") or {}).get("broker_signer")
+    if role == "broker":
+        selected = _parse_broker_signer(saved_broker) if saved_broker is not None else None
+        if broker_signer is not None:
+            entered = _parse_broker_signer(broker_signer)
+            if selected is not None:
+                if (entered["name"] != selected["name"]
+                        or entered["email"].casefold() != selected["email"].casefold()):
+                    raise ValueError("The broker contact is already saved. Reopen Send for signature to review it.")
+            elif _valid_email(context["brokerage"].get("contact_email")):
+                raise ValueError("The broker contact is already saved. Reopen Send for signature to review it.")
+            else:
+                selected = entered
+        if selected:
+            context["brokerage"] = {**context["brokerage"],
+                                    "contact_name": selected["name"], "contact_email": selected["email"]}
+            context["broker_signer"] = selected
+    if professional_context is not None:
+        professional_context.update(context)
+    profile = context["profile"]
     return _txr_signwell_recipients(
-        agreement, client_emails, brokerage_rows[0] if brokerage_rows else {},
+        agreement, client_emails, context["brokerage"],
         {"email": user.get("email") or profile.get("agent_email"),
          "name": profile.get("agent_name") or user.get("email")},
+        allow_incomplete_broker=allow_incomplete_broker,
     )
 
 
@@ -4020,7 +4103,7 @@ async def _standalone_signing_recipient_preview(user, agreement_id):
     saved_emails = (agreement.get("agreement_data") or {}).get("client_emails")
     emails = saved_emails if (_tracked_signature_journal(agreement) and isinstance(saved_emails, list)
                              and len(saved_emails) == len(names)) else [""] * len(names)
-    recipients = await _standalone_signing_recipients(user, agreement, emails)
+    recipients = await _standalone_signing_recipients(user, agreement, emails, allow_incomplete_broker=True)
     labels = _standalone_signer_labels(agreement)
     for index, recipient in enumerate(recipients):
         editable = index < len(names)
@@ -4028,6 +4111,9 @@ async def _standalone_signing_recipient_preview(user, agreement_id):
         recipient["label"] = labels[index] if editable else (
             "Associate signer (your account)" if recipient["id"] == "associate" else "Broker signer"
         )
+        if recipient["id"] == "broker" and not recipient["email"]:
+            recipient["emailEditable"] = True
+            recipient["nameEditable"] = True
     return {"agreementId": agreement_uuid, "recipients": recipients}
 
 
@@ -4223,34 +4309,23 @@ async def _send_txr_agreement_for_signature(user, data):
         raise ValueError("Provide one valid signing email for each signer.")
     if len({email.casefold() for email in client_emails}) != len(client_emails):
         raise ValueError("Each signer must use a different signing email.")
-    recipients = await _standalone_signing_recipients(user, agreement, client_emails)
+    professional_context = {}
+    recipients = await _standalone_signing_recipients(
+        user, agreement, client_emails, professional_context=professional_context,
+        broker_signer=data.get("brokerSigner"))
     _validate_confirmed_signing_recipients(recipients, data.get("confirmedRecipients"))
-    sources = await _get(
-        "hof_brokerage_form_sources?"
-        f"id=eq.{urllib.parse.quote(str(agreement['form_source_id']))}"
-        f"&form_code=eq.{urllib.parse.quote(form_code)}"
-        "&status=eq.approved&authorization_attested=is.true"
-        "&select=id,source_revision,storage_bucket,storage_path&limit=1"
-    )
-    if not sources or sources[0].get("source_revision") != agreement.get("source_revision"):
-        raise ValueError("The approved source revision for this draft is no longer available.")
-    source = sources[0]
-    async with httpx.AsyncClient(timeout=20) as client:
-        source_response = await client.get(
-            f"{SUPABASE_URL}/storage/v1/object/"
-            f"{urllib.parse.quote(str(source['storage_bucket']), safe='')}/"
-            f"{urllib.parse.quote(str(source['storage_path']), safe='/')}",
-            headers=_headers(),
-        )
-    if source_response.status_code != 200 or not source_response.content.startswith(b"%PDF"):
-        raise RuntimeError("The approved standalone source could not be loaded.")
     agreement_data = dict(agreement.get("agreement_data") or {})
+    if professional_context.get("broker_signer"):
+        agreement_data["broker_signer"] = professional_context["broker_signer"]
     current_map_revision = _current_txr_signing_map_revision(form_code, agreement_data)
     agreement_data["client_emails"] = client_emails
     client_count = len(client_names)
-    fields = _txr_signwell_fields(form_code, {"client_names": client_names, **agreement_data}, client_count)
     render_context = {}
-    rendered = await _render_representation_draft_preview(user, agreement_uuid, for_signing=True, fingerprint_context=render_context)
+    rendered = await _render_owned_representation_agreement(
+        user, agreement, for_signing=True, fingerprint_context=render_context,
+        professional_context=professional_context or None)
+    fields = _txr_signwell_fields(form_code, {"client_names": client_names, **agreement_data}, client_count,
+                                 rendered_pdf=rendered)
     address_label = form_code.replace("-", " ")
     payload = {
         "test_mode": SIGNWELL_TEST_MODE,
@@ -4278,6 +4353,8 @@ async def _send_txr_agreement_for_signature(user, data):
             "form_code": form_code,
             "source_revision": str(agreement.get("source_revision") or "")[:80],
             "signing_map_revision": current_map_revision,
+            **({"render_revision": render_context["render_revision"]}
+               if render_context.get("render_revision") else {}),
             "test_mode": str(SIGNWELL_TEST_MODE).lower(),
         },
     }
@@ -4637,11 +4714,21 @@ class handler(BaseHTTPRequestHandler):
             brokerage_delivery_email_types = {"brokerage_invite"}
             resend_delivery_attention_count = 0
             resend_delivery_retryable_count = 0
+            resend_suppression_event_counts = {"added": 0, "removed": 0}
             for item in resend_delivery_events:
                 status = str(item.get("delivery_status") or "other").strip().lower()
                 if status not in resend_delivery_status_counts:
                     status = "other"
                 resend_delivery_status_counts[status] += 1
+                event_type = str(item.get("event_type") or "").strip().lower()
+                if event_type == "suppression.added":
+                    resend_suppression_event_counts["added"] += 1
+                    # A new team-wide suppression needs operational review,
+                    # but it is not an attempted email and must not distort
+                    # the terminal-email delivery-rate denominator below.
+                    resend_delivery_attention_count += 1
+                elif event_type == "suppression.removed":
+                    resend_suppression_event_counts["removed"] += 1
                 processing_state = str(item.get("processing_state") or "").strip().lower()
                 if status in {"bounced", "complained", "suppressed"} or processing_state == "failed":
                     resend_delivery_attention_count += 1
@@ -5281,7 +5368,7 @@ class handler(BaseHTTPRequestHandler):
             # telemetry from malformed future metadata. This remains aggregate
             # only: error text is never returned to the dashboard.
             packet_generation_failure_categories = {
-                "session", "network", "timeout", "signature_provider", "validation", "service"
+                "session", "network", "timeout", "signature_provider", "validation", "service", "allowance", "pending"
             }
             packet_generation_failure_counts = {key: 0 for key in sorted(packet_generation_failure_categories)}
             packet_generation_failure_counts["legacy"] = 0
@@ -6601,6 +6688,7 @@ class handler(BaseHTTPRequestHandler):
                 "resendDeliveryEventCount": len(resend_delivery_events),
                 "resendDeliveryStatusCounts": resend_delivery_status_counts,
                 "resendDeliveryFamilyCounts": resend_delivery_family_counts,
+                "resendSuppressionEventCounts": resend_suppression_event_counts,
                 "resendDeliveryAttentionCount": resend_delivery_attention_count,
                 "resendDeliveryRetryableCount": resend_delivery_retryable_count,
                 "resendDeliveryProcessedCount": len([

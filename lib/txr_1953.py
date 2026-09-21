@@ -3,69 +3,37 @@
 from io import BytesIO
 
 from pypdf import PdfReader, PdfWriter
-from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfgen.canvas import Canvas
+from lib.txr_addenda_layout import SourceAnswers, draw_entries
+from lib.txr_source_imprint import remove_known_source_imprint
 
 
 PAGE_WIDTH = 612
 PAGE_HEIGHT = 792
+RENDER_REVISION = "txr-1953-2026-09-18-neutral-source-v4"
 
 
-def _clean(value):
-    return " ".join(str(value or "").strip().split())
-
-
-def _draw(canvas, value, x, y, size=7):
-    value = _clean(value)
-    if value:
-        canvas.setFont("Helvetica", size)
-        canvas.drawString(x, y, value)
-
-
-def _wrapped_lines(value, max_width, size):
-    words = _clean(value).split()
-    lines = []
-    current = ""
-    for word in words:
-        candidate = f"{current} {word}".strip()
-        if not current or pdfmetrics.stringWidth(candidate, "Helvetica", size) <= max_width:
-            current = candidate
-            continue
-        lines.append(current)
-        current = word
-    if current:
-        lines.append(current)
-    return lines
-
-
-def _continuation_pdf(property_address, entries):
-    packet = BytesIO()
-    canvas = Canvas(packet, pagesize=(PAGE_WIDTH, PAGE_HEIGHT))
-    canvas.setFont("Helvetica-Bold", 13)
-    canvas.drawString(48, 744, "TXR-1953 CONTINUATION EXHIBIT")
-    canvas.setFont("Helvetica", 9)
-    canvas.drawString(48, 724, f"Property: {_clean(property_address)}")
-    y = 692
-    for label, value in entries:
-        canvas.setFont("Helvetica-Bold", 9)
-        canvas.drawString(48, y, label)
-        y -= 15
-        canvas.setFont("Helvetica", 8)
-        for line in _wrapped_lines(value, 516, 8):
-            canvas.drawString(48, y, line)
-            y -= 12
-        y -= 12
-    canvas.setFont("Helvetica-Oblique", 7)
-    canvas.drawString(48, 36, "This exhibit is part of the attached TXR-1953 addendum.")
-    canvas.showPage()
-    canvas.save()
-    packet.seek(0)
-    return packet.getvalue()
+def answer_layout(data):
+    # Text stays above measured rules in the supplied 11-07-2022 edition.
+    answers = SourceAnswers(data, "TXR-1953 CONTINUATION EXHIBIT", 1)
+    answers.put(data.get("property_address"), [(243, 687, 313)], "Property address")
+    if data.get("lease_status") == "assignment":
+        if data.get("delivery_choice") == "not_received":
+            answers.put(data.get("delivery_days"), [(103, 489.5, 22)], "Termination period after receipt (days)")
+        elif data.get("delivery_choice") == "oral_notice":
+            answers.put(data.get("oral_lease_notice"), [(103, 458, 475)], "Oral Residential Lease Notice")
+        answers.put(data.get("explanation"),
+                    [(480, 318, 88), (85, 308, 483), (85, 298, 483), (85, 288, 483)],
+                    "Residential Lease Explanation")
+    answers.names(1, (174, 119), [("Buyer", 54, 226), ("Seller", 332, 222)])
+    return answers
 
 
 def _mark(canvas, x, y):
-    canvas.setFont("Helvetica-Bold", 9)
-    canvas.drawString(x, y, "X")
+    # Coordinates are the printed checkbox centers, not text baselines.
+    # A compact X stays inside the source box after SignWell completion.
+    canvas.setFont("Helvetica-Bold", 6)
+    canvas.drawCentredString(x, y - 2.15, "X")
 
 
 def render_txr_1953(source_pdf_bytes, data):
@@ -75,56 +43,31 @@ def render_txr_1953(source_pdf_bytes, data):
         raise ValueError("TXR-1953 source must contain exactly one page.")
     packet = BytesIO()
     canvas = Canvas(packet, pagesize=(PAGE_WIDTH, PAGE_HEIGHT))
-    continuation_entries = []
-    _draw(canvas, data.get("property_address"), 246, 686, 8)
+    answers = answer_layout(data)
+    draw_entries(canvas, answers.pages[1])
     status = data.get("lease_status")
     if status == "termination":
-        _mark(canvas, 33, 613)
+        _mark(canvas, 34.77, 612.24)
     elif status == "assignment":
-        _mark(canvas, 33, 558)
+        _mark(canvas, 34.77, 557.70)
         delivery = data.get("delivery_choice")
         if delivery == "received":
-            _mark(canvas, 75, 520)
+            _mark(canvas, 75.27, 523.80)
         elif delivery == "not_received":
-            _mark(canvas, 75, 509)
-            _draw(canvas, data.get("delivery_days"), 169, 491, 8)
+            _mark(canvas, 75.27, 512.16)
         elif delivery == "oral_notice":
-            _mark(canvas, 75, 470)
-            oral_notice = _clean(data.get("oral_lease_notice"))
-            if pdfmetrics.stringWidth(oral_notice, "Helvetica", 7) <= 468:
-                _draw(canvas, oral_notice, 103, 447, 7)
-            elif oral_notice:
-                _draw(canvas, "See attached continuation exhibit.", 103, 447, 7)
-                continuation_entries.append(("Oral Residential Lease Notice", oral_notice))
-    explanation = data.get("explanation")
-    if explanation:
-        explanation_lines = _wrapped_lines(explanation, 480, 6)
-        if len(explanation_lines) <= 3:
-            for index, line in enumerate(explanation_lines):
-                _draw(canvas, line, 84, 279 - (index * 11), 6)
-        else:
-            _draw(canvas, "See attached continuation exhibit.", 84, 279, 6)
-            continuation_entries.append(("Residential Lease Explanation", explanation))
-    if not data.get("_for_signing"):
-        buyers = data.get("buyer_names") or []
-        sellers = data.get("seller_names") or []
-        _draw(canvas, buyers[0] if buyers else "", 55, 178, 8)
-        _draw(canvas, sellers[0] if sellers else "", 329, 178, 8)
-        if len(buyers) > 1:
-            _draw(canvas, buyers[1], 55, 122, 8)
-        if len(sellers) > 1:
-            _draw(canvas, sellers[1], 329, 122, 8)
+            _mark(canvas, 75.27, 474.06)
     canvas.showPage()
     canvas.save()
     packet.seek(0)
     overlay = PdfReader(packet)
     writer = PdfWriter()
     writer.add_page(source.pages[0])
+    remove_known_source_imprint(writer, source_pdf_bytes, 'TXR-1953')
     writer.pages[0].merge_page(overlay.pages[0])
-    if continuation_entries:
-        exhibit = PdfReader(BytesIO(_continuation_pdf(data.get("property_address"), continuation_entries)))
-        for page in exhibit.pages:
-            writer.add_page(page)
+    continuation = answers.continuation()
+    if continuation:
+        writer.append(PdfReader(BytesIO(continuation)))
     output = BytesIO()
     writer.write(output)
     return output.getvalue()
@@ -154,4 +97,5 @@ def build_signwell_fields_txr1953(data, *, client_count=None):
         fields.append(
             {"api_id": "txr1953_seller2_signature_p1", "type": "signature", "page": 1, "x": 440, "y": 875, "recipient_id": str(len(buyers) + 2), "required": True, "width": 302, "height": 26}
         )
+    fields.extend(answer_layout(data).continuation_fields(2, "txr1953"))
     return [fields]

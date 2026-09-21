@@ -1,139 +1,154 @@
-"""Private-source renderer for TXR-1914 seller-financing review drafts."""
-
+"""Private-source renderer for the TXR-1914 seller-financing addendum."""
 from io import BytesIO
-
 from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen.canvas import Canvas
+from lib.txr_addenda_layout import SourceAnswers, clean, draw_entries, mark_cell
+from lib.seller_financing import SOURCE_SHA256
+
+PAGE_WIDTH, PAGE_HEIGHT = 612, 792
+RENDER_REVISION = 'txr-1914-2026-09-18-source-blanks-v2'
+# Source 11-07-2022; PDF points, bottom-origin baselines and cell centers.
+BLANKS = {
+    'address1': [(38, 654, 534)], 'address2': [(40, 731, 526)],
+    'credit_days': [(130, 523, 42)],
+    'credit_other': [(398, 500, 155), (68, 489, 481)],
+    'note_amount': [(387, 351, 71)], 'interest_rate': [(81, 330, 23)],
+    'one_due': [(205, 245, 214)],
+    'monthly_amount': [(248, 215, 78)], 'monthly_begins': [(226, 204, 115)],
+    'monthly_payoff': [(211, 193, 69)],
+    'interest_only_months': [(350, 163, 65)],
+    'later_amount': [(184, 152, 96)], 'later_begins': [(182, 141, 111)],
+    'later_payoff': [(167, 130, 65)],
+}
+CELLS = {
+    1: {'credit_report': (407.59, 524.58), 'employment': (489.79, 524.58),
+        'funds': (250.75, 513.54), 'financial_statement': (71.23, 502.56),
+        'other': (361.69, 502.56), 'one_payment': (71.23, 247.56),
+        'maturity': (211.39, 236.58), 'monthly': (286.21, 236.58),
+        'quarterly': (345.67, 236.58), 'monthly_installments': (71.23, 217.56),
+        'monthly_including_interest': (341.89, 217.56), 'monthly_plus_interest': (450.79, 217.56),
+        'interest_only_then_installments': (71.23, 165.54),
+        'later_including_interest': (291.25, 154.56), 'later_plus_interest': (399.85, 154.56),
+        'consent_not_required': (84.73, 75.54)},
+    2: {'consent_required': (74.29, 691.74),
+        'insurance_required': (414.61, 565.74), 'insurance_not_required': (465.61, 565.74),
+        'escrow_not_required': (78.79, 516.72), 'escrow_required': (78.79, 475.74),
+        'will': (110.29, 376.74), 'will_not': (155.83, 376.74),
+        'buyer': (411.79, 376.74), 'seller': (463.45, 376.74)},
+}
 
 
-PAGE_WIDTH = 612
-PAGE_HEIGHT = 792
+def _months(value):
+    value = clean(value)
+    return value + (' month' if value == '1' else ' months') if value else ''
 
 
-def _clean(value):
-    return " ".join(str(value or "").strip().split())
+def answer_layout(data):
+    answers = SourceAnswers(data, 'TXR-1914 - Seller Financing Continuation', 2)
+    def put(key, value, label, page=1, size=8):
+        answers.put(value, BLANKS[key], label, page=page, size=size)
+    put('address1', data.get('property_address'), 'Property address', size=9)
+    put('address2', data.get('property_address'), 'Property address', page=2, size=9)
+    put('credit_days', data.get('credit_days'), 'Paragraph A - delivery days')
+    if 'other' in (data.get('credit_documents') or []):
+        put('credit_other', data.get('credit_other'), 'Paragraph A - other credit documentation')
+    put('note_amount', data.get('note_amount'), 'Paragraph C - note amount')
+    put('interest_rate', data.get('interest_rate'), 'Paragraph C - annual interest percentage')
+    payment = data.get('payment') or {}
+    plan = payment.get('plan')
+    if plan == 'one_payment':
+        put('one_due', _months(payment.get('due_after_months')), 'Paragraph C(1) - due after date of note')
+    elif plan in ('monthly_installments', 'interest_only_then_installments'):
+        prefix = 'monthly' if plan == 'monthly_installments' else 'later'
+        paragraph = 'C(2)' if prefix == 'monthly' else 'C(3)'
+        put(prefix + '_amount', payment.get('installment_amount'), f'Paragraph {paragraph} - installment amount')
+        put(prefix + '_begins', _months(payment.get('begins_after_months')),
+            f'Paragraph {paragraph} - installments begin after date of note')
+        put(prefix + '_payoff', payment.get('payoff_after_months'), f'Paragraph {paragraph} - payoff months')
+        if prefix == 'later':
+            put('interest_only_months', payment.get('interest_only_months'), 'Paragraph C(3) - interest-only months')
+    answers.names(2, (239, 162), [('Buyer', 58, 238), ('Seller', 315, 242)])
+    return answers
 
 
-def _draw(canvas, value, x, y, *, size=8):
-    value = _clean(value)
-    if value:
-        canvas.setFont("Helvetica", size)
-        canvas.drawString(x, y, value)
+def selected_cells(data):
+    selected = {1: set(data.get('credit_documents') or []) &
+                {'credit_report', 'employment', 'funds', 'financial_statement', 'other'}, 2: set()}
+    payment = data.get('payment') or {}
+    plan = payment.get('plan')
+    if plan == 'one_payment':
+        selected[1].add(plan)
+        if payment.get('interest_timing') in ('maturity', 'monthly', 'quarterly'):
+            selected[1].add(payment['interest_timing'])
+    elif plan in ('monthly_installments', 'interest_only_then_installments'):
+        selected[1].add(plan)
+        if payment.get('interest_style') in ('including_interest', 'plus_interest'):
+            prefix = 'monthly' if plan == 'monthly_installments' else 'later'
+            selected[1].add(prefix + '_' + payment['interest_style'])
+    transfer = data.get('property_transfer')
+    if transfer in ('consent_required', 'consent_not_required'):
+        selected[2 if transfer == 'consent_required' else 1].add(transfer)
+    if data.get('casualty_insurance') in ('required', 'not_required'):
+        selected[2].add('insurance_' + data['casualty_insurance'])
+    escrow = data.get('escrow') or {}
+    if escrow.get('choice') in ('required', 'not_required'):
+        selected[2].add('escrow_' + escrow['choice'])
+    if escrow.get('choice') == 'required':
+        if escrow.get('third_party_servicer') in ('will', 'will_not'):
+            selected[2].add(escrow['third_party_servicer'])
+        if escrow.get('cost_paid_by') in ('buyer', 'seller'):
+            selected[2].add(escrow['cost_paid_by'])
+    return selected
 
 
-def _mark(canvas, x, y):
-    canvas.setFont("Helvetica-Bold", 9)
-    canvas.drawString(x, y, "X")
-
-
-def _page_one(data):
-    packet = BytesIO()
-    canvas = Canvas(packet, pagesize=(PAGE_WIDTH, PAGE_HEIGHT))
-    _draw(canvas, data.get("property_address"), 240, 651, size=9)
-    _draw(canvas, data.get("credit_days"), 132, 525)
-    docs = set(data.get("credit_documents") or [])
-    for key, x, y in (
-        ("credit_report", 407, 526), ("employment", 488, 526),
-        ("funds", 189, 503), ("financial_statement", 69, 503), ("other", 362, 503),
-    ):
-        if key in docs:
-            _mark(canvas, x, y)
-    if "other" in docs:
-        _draw(canvas, data.get("credit_other"), 438, 497)
-    _draw(canvas, data.get("note_amount"), 399, 350)
-    _draw(canvas, data.get("interest_rate"), 230, 333)
-    payment = data.get("payment") or {}
-    if payment.get("plan") == "one_payment":
-        _mark(canvas, 70, 249)
-        _draw(canvas, payment.get("due_after_months"), 204, 243)
-        timing = payment.get("interest_timing")
-        for value, x in (("maturity", 211), ("monthly", 284), ("quarterly", 347)):
-            if timing == value:
-                _mark(canvas, x, 231)
-    elif payment.get("plan") == "monthly_installments":
-        _mark(canvas, 70, 219)
-        _draw(canvas, payment.get("installment_amount"), 260, 219)
-        _mark(canvas, 338 if payment.get("interest_style") == "including_interest" else 450, 219)
-        _draw(canvas, payment.get("begins_after_months"), 290, 203)
-        _draw(canvas, payment.get("payoff_after_months"), 227, 188)
-    else:
-        _mark(canvas, 70, 164)
-        _draw(canvas, payment.get("interest_only_months"), 424, 164)
-        _draw(canvas, payment.get("installment_amount"), 249, 148)
-        _mark(canvas, 290 if payment.get("interest_style") == "including_interest" else 403, 148)
-        _draw(canvas, payment.get("begins_after_months"), 244, 132)
-        _draw(canvas, payment.get("payoff_after_months"), 228, 117)
-    if data.get("property_transfer") == "consent_not_required":
-        _mark(canvas, 84, 58)
+def _page(data, answers, number):
+    output = BytesIO()
+    canvas = Canvas(output, pagesize=(PAGE_WIDTH, PAGE_HEIGHT))
+    draw_entries(canvas, answers.pages[number])
+    for key in sorted(selected_cells(data)[number]):
+        mark_cell(canvas, *CELLS[number][key])
+    canvas.showPage()
     canvas.save()
-    packet.seek(0)
-    return packet.read()
-
-
-def _page_two(data):
-    packet = BytesIO()
-    canvas = Canvas(packet, pagesize=(PAGE_WIDTH, PAGE_HEIGHT))
-    _draw(canvas, data.get("property_address"), 238, 745, size=9)
-    if data.get("property_transfer") == "consent_required":
-        _mark(canvas, 72, 693)
-    if data.get("casualty_insurance") == "required":
-        _mark(canvas, 414, 568)
-    else:
-        _mark(canvas, 465, 568)
-    escrow = data.get("escrow") or {}
-    if escrow.get("choice") == "not_required":
-        _mark(canvas, 78, 517)
-    else:
-        _mark(canvas, 77, 477)
-        _mark(canvas, 105 if escrow.get("third_party_servicer") == "will" else 167, 374)
-        _mark(canvas, 411 if escrow.get("cost_paid_by") == "buyer" else 465, 374)
-    buyers = data.get("buyer_names") or []
-    sellers = data.get("seller_names") or []
-    _draw(canvas, buyers[0] if buyers else "", 58, 258, size=9)
-    _draw(canvas, sellers[0] if sellers else "", 332, 258, size=9)
-    if len(buyers) > 1:
-        _draw(canvas, buyers[1], 58, 162, size=9)
-    if len(sellers) > 1:
-        _draw(canvas, sellers[1], 332, 162, size=9)
-    canvas.save()
-    packet.seek(0)
-    return packet.read()
+    return output.getvalue()
 
 
 def render_txr_1914(source_pdf_bytes, data):
-    """Overlay review values without creating any signature fields or send path."""
+    """Copy entered terms into their source blanks without sending a document."""
     source = PdfReader(BytesIO(source_pdf_bytes))
     if len(source.pages) != 2:
-        raise ValueError("TXR-1914 source must contain exactly two pages.")
-    overlays = [PdfReader(BytesIO(_page_one(data))), PdfReader(BytesIO(_page_two(data)))]
+        raise ValueError('TXR-1914 source must contain exactly two pages.')
+    answers = answer_layout(data)
     writer = PdfWriter()
     for index, page in enumerate(source.pages):
         writer.add_page(page)
-        writer.pages[index].merge_page(overlays[index].pages[0])
+        writer.pages[index].merge_page(PdfReader(BytesIO(_page(data, answers, index + 1))).pages[0])
+    continuation = answers.continuation()
+    if continuation:
+        writer.append(PdfReader(BytesIO(continuation)))
     output = BytesIO()
     writer.write(output)
     return output.getvalue()
 
 
 def build_signwell_fields_txr1914(data, *, client_count=None):
-    """Return the TXR-1914 Buyer and Seller signature fields.
-
-    The Seller Financing Addendum has two execution rows on its second page:
-    Buyer on the left and Seller on the right. SignWell coordinates use the
-    HomeOfferFlow 96-DPI, top-origin letter-page space. This map remains
-    isolated until a completed provider PDF confirms live widget rendering.
-    """
-    buyers = data.get("buyer_names") or []
-    sellers = data.get("seller_names") or []
+    """Local source-aligned candidate; completed provider rendering still needed."""
+    buyers, sellers = data.get('buyer_names') or [], data.get('seller_names') or []
     if not (1 <= len(buyers) <= 2 and 1 <= len(sellers) <= 2):
-        raise ValueError("TXR-1914 requires one or two Buyers and one or two Sellers.")
-
-    fields = [
-        {"api_id": "txr1914_buyer1_signature_p2", "type": "signature", "page": 2, "x": 55, "y": 718, "recipient_id": "1", "required": True, "width": 340, "height": 24},
-        {"api_id": "txr1914_seller1_signature_p2", "type": "signature", "page": 2, "x": 415, "y": 718, "recipient_id": str(len(buyers) + 1), "required": True, "width": 340, "height": 24},
-    ]
-    if len(buyers) == 2:
-        fields.append({"api_id": "txr1914_buyer2_signature_p2", "type": "signature", "page": 2, "x": 55, "y": 820, "recipient_id": "2", "required": True, "width": 340, "height": 24})
-    if len(sellers) == 2:
-        fields.append({"api_id": "txr1914_seller2_signature_p2", "type": "signature", "page": 2, "x": 415, "y": 820, "recipient_id": str(len(buyers) + 2), "required": True, "width": 340, "height": 24})
+        raise ValueError('TXR-1914 requires one or two Buyers and one or two Sellers.')
+    fields = []
+    for role, parties in [('buyer', buyers), ('seller', sellers)]:
+        for index in range(len(parties)):
+            recipient = str(index + 1 + (len(buyers) if role == 'seller' else 0))
+            x, width = (56, 240) if role == 'buyer' else (313, 244)
+            fields.append({'api_id': f'txr1914_{role}{index + 1}_signature_p2',
+                           'type': 'signature', 'page': 2, 'x': x * 4 / 3,
+                           'y': 715 if index == 0 else 818, 'recipient_id': recipient,
+                           'required': True, 'width': width * 4 / 3, 'height': 24})
+            x = (196 + index * 42) if role == 'buyer' else (345 + index * 32)
+            fields.append({'api_id': f'txr1914_{role}{index + 1}_initials_p1',
+                           'type': 'initials', 'page': 1, 'x': x * 4 / 3,
+                           'y': 1015, 'recipient_id': recipient, 'required': True,
+                           'width': (38 if role == 'buyer' else 29) * 4 / 3, 'height': 10})
+    fields.sort(key=lambda field: (field['page'], field['y'], field['x']))
+    fields.extend(answer_layout(data).continuation_fields(3, 'txr1914'))
     return [fields]

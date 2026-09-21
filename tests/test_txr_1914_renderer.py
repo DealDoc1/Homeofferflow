@@ -52,10 +52,10 @@ class Txr1914RendererTests(unittest.TestCase):
         })[0]
         self.assertEqual(
             [(field["api_id"], field["page"], field["x"], field["y"], field["recipient_id"])
-             for field in one_each],
+             for field in one_each if field['type'] == 'signature'],
             [
-                ("txr1914_buyer1_signature_p2", 2, 55, 718, "1"),
-                ("txr1914_seller1_signature_p2", 2, 415, 718, "2"),
+                ("txr1914_buyer1_signature_p2", 2, 56 * 4 / 3, 715, "1"),
+                ("txr1914_seller1_signature_p2", 2, 313 * 4 / 3, 715, "2"),
             ],
         )
 
@@ -65,12 +65,12 @@ class Txr1914RendererTests(unittest.TestCase):
         })[0]
         self.assertEqual(
             [(field["api_id"], field["y"], field["recipient_id"])
-             for field in two_each],
+             for field in two_each if field['type'] == 'signature'],
             [
-                ("txr1914_buyer1_signature_p2", 718, "1"),
-                ("txr1914_seller1_signature_p2", 718, "3"),
-                ("txr1914_buyer2_signature_p2", 820, "2"),
-                ("txr1914_seller2_signature_p2", 820, "4"),
+                ("txr1914_buyer1_signature_p2", 715, "1"),
+                ("txr1914_seller1_signature_p2", 715, "3"),
+                ("txr1914_buyer2_signature_p2", 818, "2"),
+                ("txr1914_seller2_signature_p2", 818, "4"),
             ],
         )
 

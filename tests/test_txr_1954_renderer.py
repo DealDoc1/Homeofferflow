@@ -29,7 +29,7 @@ class Txr1954RendererTests(unittest.TestCase):
             "oral_fixture_lease_notice": "Solar lease with monthly payment and remaining term.",
         })
         reader = PdfReader(io.BytesIO(rendered))
-        self.assertEqual(len(reader.pages), 2)
+        self.assertEqual(len(reader.pages), 1)
         text = "\n".join(page.extract_text() or "" for page in reader.pages)
         for expected in ("1438 Whitaker", "Buyer One", "Buyer Two", "Seller One", "Seller Two", "2500", "Pool equipment", "Solar lease"):
             self.assertIn(expected, text)
@@ -59,7 +59,7 @@ class Txr1954RendererTests(unittest.TestCase):
         self.assertNotIn("Seller One", extracted)
 
     def test_long_fixture_notice_is_preserved_on_a_continuation_exhibit(self):
-        notice = "Generator lease with monthly payment and eighteen months remaining."
+        notice = "Generator lease with monthly payment and eighteen months remaining. " * 7
         rendered = render_txr_1954(blank_one_page_pdf(), {
             "property_address": "1 Main Street, Sherman, TX 75090",
             "delivery_choice": "oral_notice",
@@ -69,7 +69,7 @@ class Txr1954RendererTests(unittest.TestCase):
         self.assertEqual(len(reader.pages), 2)
         text = "\n".join(page.extract_text() or "" for page in reader.pages)
         self.assertIn("TXR-1954 CONTINUATION EXHIBIT", text)
-        self.assertIn(notice, text)
+        self.assertIn(notice.strip(), " ".join(text.split()))
 
 
 if __name__ == "__main__":

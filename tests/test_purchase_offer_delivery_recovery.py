@@ -2,10 +2,13 @@
 import copy
 import importlib.util
 import json
+import io
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
+from tests.test_packet_generation import MemoryPacketStore
+from lib.packet_generation import PacketGenerationPending
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location('purchase_recovery', ROOT / 'api/fill-pdf.py')
@@ -18,8 +21,11 @@ OFFER_ID = '22222222-2222-4222-8222-222222222222'
 class PurchaseDeliveryRecoveryTests(unittest.TestCase):
     def setUp(self):
         self.rows, self.documents = {}, {}
+        self.email_rows, self.email_receipts = {}, {}
         self.sends, self.creates, self.emails = 0, 0, 0
         self.failure = None
+        self.usage = MemoryPacketStore()
+        self.usage_calls = []
         self.offer = {'_hofOfferId': OFFER_ID, 'userType': 'agent', 'address': 'QA property',
                       'buyer1': 'QA Buyer', 'buyerEmail': 'buyer@example.com'}
         for name, value in (('SUPABASE_URL', 'https://database.example'), ('SUPABASE_SERVICE_ROLE_KEY', 'test'),
@@ -47,6 +53,9 @@ class PurchaseDeliveryRecoveryTests(unittest.TestCase):
         return row
 
     def get(self, url, *, params=None, **kwargs):
+        if '/rest/v1/hof_email_deliveries' in url:
+            row = self.email_rows.get(params['delivery_key'][3:])
+            return self.response([row] if row else [])
         if '/rest/v1/hof_offers' in url:
             row = self.matching(params)
             return self.response([row] if row else [])
@@ -57,6 +66,31 @@ class PurchaseDeliveryRecoveryTests(unittest.TestCase):
         raise AssertionError('Unexpected read: ' + url)
 
     def post(self, url, *, json, **kwargs):
+        if '/rest/v1/rpc/' in url:
+            name = url.rsplit('/', 1)[-1]
+            self.usage_calls.append(name)
+            self.assertEqual(kwargs['headers']['Authorization'], 'Bearer test')
+            if name == 'hof_claim_packet_generation':
+                if self.failure in {'limit_reached', 'inactive', 'busy', 'no_subscription'}:
+                    return self.response({'outcome': self.failure})
+                self.assertEqual(set(json), {'p_user', 'p_offer', 'p_answers_hash', 'p_attempt'})
+                return self.response(self.usage.claim(json['p_user'], json['p_offer'], json['p_answers_hash'], json['p_attempt']))
+            row = self.usage.rows[json['p_key']]
+            if name == 'hof_complete_packet_generation':
+                result = self.usage.complete(row)
+                if self.failure == 'usage_ack_lost':
+                    raise TimeoutError('Database completed; response lost')
+                return self.response(result)
+            if name == 'hof_release_unrendered_packet':
+                return self.response(self.usage.release(row))
+            raise AssertionError('Unexpected packet RPC')
+        if '/rest/v1/hof_email_deliveries' in url:
+            key = json['delivery_key']
+            self.assertIn('resolution=ignore-duplicates', kwargs['headers']['Prefer'])
+            if key in self.email_rows:
+                return self.response([], 201)
+            self.email_rows[key] = {**copy.deepcopy(json), 'first_attempt_at': None, 'provider_id': None}
+            return self.response([self.email_rows[key]], 201)
         if '/rest/v1/hof_offers' in url:
             if self.failure == 'save_failure': return self.response([], 503)
             if json['id'] in self.rows: return self.response([], 409)
@@ -64,7 +98,14 @@ class PurchaseDeliveryRecoveryTests(unittest.TestCase):
             return self.response([self.rows[json['id']]], 201)
         if url.startswith('https://api.resend.com/'):
             self.emails += 1
-            return self.response({'id': 'email'}, 201)
+            key = kwargs['headers']['Idempotency-Key']
+            self.assertIsNotNone(self.email_rows[key]['first_attempt_at'])
+            if key in self.email_receipts:
+                self.assertEqual(self.email_receipts[key]['body'], json)
+            else:
+                self.email_receipts[key] = {'id': 'email-' + str(len(self.email_receipts) + 1),
+                                            'body': copy.deepcopy(json)}
+            return self.response({'id': self.email_receipts[key]['id']}, 201)
         if url.endswith('/send'):
             self.sends += 1
             document = self.documents[url.split('/')[-2]]
@@ -78,6 +119,8 @@ class PurchaseDeliveryRecoveryTests(unittest.TestCase):
             if self.failure == 'timeout_sent': raise TimeoutError('Lost accepted response')
             return self.response(document, 201)
         if url == 'https://www.signwell.com/api/v1/documents':
+            if next(iter(self.rows.values())).get('user_id'):
+                self.assertGreater(self.usage.completions, 0, 'Usage must be recorded before signing')
             self.creates += 1
             self.assertTrue(json['draft'])
             doc_id = 'document-' + str(self.creates)
@@ -86,6 +129,20 @@ class PurchaseDeliveryRecoveryTests(unittest.TestCase):
         raise AssertionError('Unexpected write: ' + url)
 
     def update(self, url, *, params, json, **kwargs):
+        if '/rest/v1/hof_email_deliveries' in url:
+            row = self.email_rows.get(params['delivery_key'][3:])
+            if not row:
+                return self.response([])
+            for key in ('status', 'first_attempt_at', 'payload_fingerprint'):
+                if key not in params:
+                    continue
+                condition = params[key]
+                if condition == 'is.null' and row.get(key) is not None:
+                    return self.response([])
+                if condition.startswith('eq.') and str(row.get(key)) != condition[3:]:
+                    return self.response([])
+            row.update(copy.deepcopy(json))
+            return self.response([row])
         self.assertIn('/rest/v1/hof_offers', url)
         self.assertIn('user_id', params)
         self.assertIn('signwell_document_id', params)
@@ -145,6 +202,7 @@ class PurchaseDeliveryRecoveryTests(unittest.TestCase):
         self.assertNotIn(OFFER_ID, self.rows)
         self.assertIsNone(next(iter(self.rows.values()))['user_id'])
         self.assertEqual((self.creates, self.sends), (1, 1))
+        self.assertEqual(self.emails, 2)  # buyer and admin once each, not per callback
 
     def test_failed_record_save_cannot_create_or_send_provider_document(self):
         self.failure = 'save_failure'
@@ -178,6 +236,112 @@ class PurchaseDeliveryRecoveryTests(unittest.TestCase):
         result = self.checkout()
         self.assertTrue(result['signwell']['recovered'])
         self.assertEqual(self.rows[OFFER_ID]['offer_data'], first_data)
+        self.assertEqual((self.creates, self.sends), (1, 1))
+        self.assertEqual(self.emails, 2)
+        self.assertEqual(self.usage.completions, 1)
+
+    def test_browser_timestamp_refresh_reuses_signing_and_document_email(self):
+        self.checkout()
+        first_data = copy.deepcopy(self.rows[OFFER_ID]['offer_data'])
+        self.offer.update(generatedAt='2026-09-15T20:00:00Z', packetGeneratedAt='2026-09-15T20:00:00Z')
+        result = self.checkout()
+        self.assertTrue(result['signwell']['ok'])
+        self.assertTrue(result['signwell']['recovered'])
+        self.assertEqual(self.rows[OFFER_ID]['offer_data'], first_data)
+        self.assertEqual((self.creates, self.sends, self.emails, self.usage.completions), (1, 1, 2, 1))
+
+    def test_original_timestamp_fingerprint_and_email_key_remain_compatible(self):
+        self.offer['generatedAt'] = 'original-time'
+        self.checkout()
+        self.offer['generatedAt'] = 'refreshed-time'
+        self.offer['_savedFromDashboard'] = True
+        result = self.checkout()
+        self.assertTrue(result['signwell']['ok'])
+        self.assertEqual(self.rows[OFFER_ID]['offer_data']['generatedAt'], 'original-time')
+        self.assertEqual((self.creates, self.sends, self.emails, self.usage.completions), (1, 1, 2, 1))
+
+    def test_rejected_retry_keeps_original_fingerprint_inputs_for_next_attempt(self):
+        self.offer['generatedAt'] = 'original-time'
+        self.failure = 'rejected'
+        self.checkout()
+        self.offer['generatedAt'] = 'refreshed-time'
+        self.assertFalse(self.checkout()['signwell']['ok'])
+        self.assertEqual(self.rows[OFFER_ID]['offer_data']['generatedAt'], 'original-time')
+        self.failure = None
+        self.assertTrue(API.retry_unsent_offer_signature(OFFER_ID, OWNER)['ok'])
+        self.assertEqual((self.creates, self.sends, self.emails, self.usage.completions), (1, 3, 2, 1))
+
+    def invoke(self, *, download=False, authenticated=True):
+        payload = {'offerData': self.offer} if download else {'type': 'checkout.session.completed', 'data': {'object': {
+            'customer_email': 'buyer@example.com', 'metadata': {'subscription_generation': 'true',
+                'offer_data': json.dumps(self.offer)}}}}
+        body = json.dumps(payload).encode()
+        handler = object.__new__(API.handler)
+        handler.headers = {'Content-Length': str(len(body))}
+        handler.rfile = io.BytesIO(body)
+        handler.wfile = io.BytesIO()
+        handler._json = Mock()
+        handler.send_response = Mock()
+        handler.send_header = Mock()
+        handler.end_headers = Mock()
+        handler._verified_user = Mock(return_value=OWNER if authenticated else None)
+        handler.do_POST()
+        return handler
+
+    def test_quota_rejection_and_busy_request_never_render_or_send(self):
+        for download in (False, True):
+            for outcome, status in [('limit_reached', 403), ('inactive', 403), ('no_subscription', 403), ('busy', 409)]:
+                with self.subTest(download=download, outcome=outcome):
+                    self.failure = outcome
+                    with patch.object(API, 'fill_and_merge') as render:
+                        handler = self.invoke(download=download)
+                    self.assertEqual(handler._json.call_args.args[0], status)
+                    render.assert_not_called()
+                    self.assertEqual(self.rows[OFFER_ID]['status'], 'Draft')
+        self.assertEqual((self.creates, self.sends, self.emails), (0, 0, 0))
+
+    def test_uncertain_usage_completion_retains_one_charge_and_sends_nothing_until_recovery(self):
+        self.failure = 'usage_ack_lost'
+        handler = self.invoke()
+        self.assertEqual(handler._json.call_args.args[0], 503)
+        self.assertEqual(handler._json.call_args.args[1]['code'], 'packet_generation_unconfirmed')
+        self.assertEqual(self.usage.completions, 1)
+        self.assertEqual((self.creates, self.sends, self.emails), (0, 0, 0))
+        self.assertNotIn('hof_release_unrendered_packet', self.usage_calls)
+        self.failure = None
+        result = self.invoke()._json.call_args.args[1]
+        self.assertTrue(result['usage']['recovered'])
+        self.assertEqual(self.usage.completions, 1)
+        self.assertEqual((self.creates, self.sends), (1, 1))
+
+    def test_direct_download_uses_same_allowance_and_never_sends(self):
+        for _ in range(2):
+            handler = self.invoke(download=True)
+            handler.send_response.assert_called_once_with(200)
+            self.assertEqual(handler.wfile.getvalue(), b'%PDF-rendered')
+        self.assertEqual(self.usage.completions, 1)
+        self.assertEqual((self.creates, self.sends, self.emails), (0, 0, 0))
+
+    def test_all_generation_paths_require_authentication_before_ledger_access(self):
+        for download in (False, True):
+            handler = self.invoke(download=download, authenticated=False)
+            self.assertEqual(handler._json.call_args.args[0], 401)
+        self.assertEqual(self.usage_calls, [])
+        self.assertEqual(self.rows, {})
+
+    def test_render_failure_releases_reservation_without_claiming_generated_status(self):
+        with patch.object(API, 'fill_and_merge', side_effect=ValueError('Invalid fixture PDF')):
+            self.assertEqual(self.invoke()._json.call_args.args[0], 500)
+        self.assertIn('hof_release_unrendered_packet', self.usage_calls)
+        self.assertEqual(self.usage.completions, 0)
+        self.assertEqual(self.rows[OFFER_ID]['status'], 'Draft')
+        self.assertEqual((self.creates, self.sends, self.emails), (0, 0, 0))
+
+    def test_revision_to_already_tracked_packet_cannot_consume_another_unit(self):
+        self.checkout()
+        self.offer['price'] = '250000'
+        with self.assertRaises(PacketGenerationPending): self.checkout()
+        self.assertEqual(self.usage.completions, 1)
         self.assertEqual((self.creates, self.sends), (1, 1))
 
     def test_zero_row_claim_cannot_send_the_private_draft(self):

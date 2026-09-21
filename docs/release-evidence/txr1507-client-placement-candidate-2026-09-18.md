@@ -1,0 +1,194 @@
+# TXR-1507 client-reported placement correction candidate
+
+## Status
+
+**LOCAL CANDIDATE — not deployed. One-client/associate completed-provider
+placement verified September 18; other signer variants remain unverified.**
+Do not mark this map production-ready based on unit tests or synthetic previews.
+The earlier completed-signature correction was insufficient. The two committed
+geometry baselines remain unchanged until provider-completed evidence covers
+the full changed map; the two drift checks therefore report a mismatch. See
+the completed-test update below for the narrower scenario now verified.
+
+## Confirmed finding
+
+The owner supplied a real completed TXR-1507 on September 18. All three pages
+were rendered and inspected, including its audit report. The original file
+was read only; it was not modified, re-signed, canceled, replaced, or resent.
+No client data, signatures, completed PDF, or source PDF is included here.
+
+On the two-page 06-15-26 source, the shared first execution rule is at PDF
+top-origin y=533.95, and the second client rule is at y=616.78. The preceding
+map's first signature rectangle ended at (714+24)*0.75 = 553.5, below the first
+rule. Completed date text measured about 49.21 PDF points wide, versus a field
+width of only 36 points; the visible dates extended outside the execution area.
+The completed document also showed high service/intermediary X marks and low
+footer initials. GitHub main was read directly and contained the same candidate's
+preceding 714/720-coordinate map; no claim is made about a live deployment SHA.
+
+## Local changes
+
+- First client and selected broker/associate signatures: y=684, height=24.
+- First-row dates: y=692, height=18, width=72; shifted left to x=696 for clients
+  and x=312 for the selected broker/associate.
+- Second-client signature/date: y=794/802, same respective heights/widths.
+- Client signature width reduced to 240 to keep separation from its date.
+- Footer initials: y=976 and width=46, within each measured underscore blank.
+- Service, intermediary, and selected role X strokes fit inside their source
+  glyph cells, including stroke width.
+- During showing-service preview review, the fee value was found on the prior
+  sentence. It now uses its actual amount blank at PDF x=325, y=414.
+- Form terms, recipient identities/roles, required-field flags, date format,
+  source edition, and simultaneous-invitation behavior are unchanged.
+
+## Verification and limits
+
+- Four new independent source-bound tests cover one/two clients, broker and
+  associate roles, full rectangles, readable date width, separation, initials,
+  complete stroked X bounds, and showing-fee placement.
+- 24 focused renderer/geometry tests pass after the correction.
+- Full discovery ran **2,040 tests**: **2,038 pass; 2 geometry-baseline drift
+  checks fail** because the reference maps have not been reapproved. This is
+  not an all-green regression result. The other tests did not fail.
+- The old map fails the independent execution bounds: its first field bottom
+  is below the measured line and its date box is narrower than completed text.
+- Generated local fake-name previews for both signer roles and both service/
+  intermediary options using `scripts/qa/txr1507_execution_preview.py`.
+- Visually inspected all four preview pages; rerendered and reinspected the
+  showing-services page after correcting its fee blank. Rectangles and synthetic
+  marks are legible and clear of captions. The PDF skill required this visual
+  check in addition to geometry assertions.
+- These are clearly labeled synthetic previews, not actual SignWell artwork.
+  Fresh completed-provider QA remains required for signatures, dates, initials,
+  and X marks before the map can be called verified.
+
+## Next action and safety
+
+Use a fresh controlled SignWell test packet, not the real client agreement,
+then inspect its completed PDF against the measured bounds. Keep customer
+replacement/re-signing separate; do not move signatures on the executed file.
+Record the remaining provider check in the morning report. No publishing,
+deployment, customer email, API send, or new paid resource occurred in this
+correction pass. Existing publication/cost restrictions remain unchanged.
+
+## Page-two identification follow-up - September 18
+
+The real completed example also exposed an empty page-two party-identification
+blank. The overlay had no draw operation for it. The local renderer now writes
+the supplied client name(s) and brokerage name into the measured source blank
+(x=244.13..576.10, top-origin rule y=42.48). Text starts at x=246, PDF y=752,
+using eight points, reduced only to seven where necessary. If the complete
+names still cannot fit, the header reads "Client(s) and Broker identified in
+Paragraph 1" instead of clipping a name or obscuring the printed heading.
+Paragraph 1 remains the authoritative party-identification section.
+
+Three new tests verify one/two clients in the generated PDF header, the existing
+brokerage-name fallback fields, and the long-name reference behavior. All 27
+focused renderer/bounds/signer-map tests pass. Two regenerated synthetic
+unsigned specimens (broker and associate) were rendered and all four pages
+visually inspected under the PDF skill workflow. Header text clears the
+printed label and rule. No signature coordinate or reference-map change was
+made in this follow-up, and no client document was edited.
+
+Full discovery: 2,063 tests in 20.377 seconds; 2,061 pass and the same two
+approved-map reference checks fail. This is still not a release-ready claim.
+
+The existing SignWell QA browser tab was rechecked: Google displays
+"Complete sign-in using your passkey" and "Verify it's you". The tab is retained
+for the owner to complete authentication. No new packet was sent, and no
+customer agreement was canceled, replaced, or resent. This authentication
+check is separate from completed-provider placement verification.
+
+## Controlled provider test sent - September 18, 15:40 UTC
+
+The existing SignWell session is now authenticated; the passkey obstacle above
+is resolved. Created exactly one separate nonbinding test-mode document using
+the local candidate renderer and its exact field map:
+
+- Document ID: `0093c1e0-8491-4a14-b659-dda35a8fbed4`.
+- Name: `QA ONLY - TXR1507 placement correction - 2026-09-18`.
+- One synthetic client and one synthetic associate, using only the owner's
+  two approved QA email addresses. No client recipient or transaction reused.
+- `test_mode: true`, `draft: false`, `apply_signing_order: false`; reminders off.
+- Rendered and visually reviewed both unsigned pages before sending.
+- API returned 201 and confirmed test mode. The authenticated Documents UI
+  subsequently showed **Sent**, distinct from the real completed client packet.
+- SignWell documents test mode as nonbinding and not counted toward API billing:
+  https://developers.signwell.com/reference/createdocument
+
+The two test invitations still need completion before inspecting the resulting
+provider-signed PDF. Invitation submission is not inbox-delivery proof or final
+signature-placement verification. The real client agreement remains untouched.
+No deployment occurred; approved geometry baselines remain unchanged.
+
+The helper `scripts/qa/send_txr1507_placement_test.py` defaults to unsigned-only
+generation, requires an explicit send flag, reads the existing API key without
+echo, and never persists credentials. A saved receipt prevents accidental
+duplicate sends. It does not retry ambiguous network failures automatically.
+
+## Provider test partially signed - September 18
+
+The same exact QA document now shows **In Progress** in the authenticated
+SignWell Documents list. Its builder states that it is being completed and
+can no longer be changed. A read-only visual check of page two shows the
+synthetic client's signature and 09/18/2026 date above their intended rules,
+clear of the Client's Signature and Date labels. The associate's signature
+and date still show unsigned field placeholders. No signature was applied by
+the agent during this check, and no reminder or additional packet was sent.
+
+This is partial provider-rendered evidence only: the completed downloadable
+PDF and audit trail are not yet available for the final visual check. The
+approved-map baselines remain unchanged. The real customer agreement remains
+untouched, and no deployment or public push occurred.
+
+## Completed provider test verified - September 18
+
+Rechecked the same existing test document, not a new request. The authenticated
+SignWell builder now explicitly states **completed** and that the document can
+no longer be changed. Downloaded its PDF using the existing document's PDF
+Download action. No reminders, additional invitations, signatures, or customer
+record changes were performed by the agent.
+
+- Document: `0093c1e0-8491-4a14-b659-dda35a8fbed4`, the nonbinding test above.
+- Download SHA-256:
+  `640741b6486bb45d5e6a238fd8bc0c9bfa87f7d970f679720f41757199ca5c75`.
+- Two US Letter pages, provider-produced PDF; no editable canonical fields or
+  widgets. Each page explicitly identifies TEST MODE / NOT LEGALLY VALID. No
+  separate audit page was included in this download. Do not claim an audit
+  certificate or legally binding execution was verified.
+- Rendered and visually inspected both completed pages plus a magnified footer
+  view. The full-services and intermediary-authorized X marks occupy the chosen
+  source cells. The associate role is checked. The restored page-two header
+  identifies the supplied parties without covering its printed label.
+- Both signatures end at PDF top-origin y=532.24, above the source rule at
+  533.95. The associate signature is x=36.89..127.23 and the client signature
+  x=325.97..416.31. Neither covers the role/date labels below the line.
+- Both complete dates are readable, y=523.54..532.82. The associate date spans
+  x=236.34..285.55, and the client date x=525.42..574.63, inside their source
+  execution columns. This directly checks the earlier date overflow defect.
+- Provider initials occupy x=328.23..342.72 and x=409.53..424.02, with vertical
+  image bounds y=733.99..744.53. Magnified review confirms they sit on their
+  own footer blanks without covering surrounding words. Actual provider image
+  height differs slightly from the requested widget height; this is why empty
+  rectangle checks alone were not sufficient. Source underscore glyph extent
+  ends at y=745.266; no generic allowance for other forms was introduced.
+- Added a read-only private-PDF measurement helper and regression tests. The
+  helper refuses a non-QA specimen, verifies all six observed regions, and
+  explicitly limits its result to this exact one-client/associate scenario.
+  Twenty focused tests passed, including deliberately low signatures, overwide
+  dates, and missing/extra verification regions.
+
+Scope still unverified: a second client, broker instead of associate, and
+alternative service/intermediary selections in a completed provider PDF. The
+shared source geometry has local tests for those paths, but this one completed
+packet does not prove them. Baselines were not refreshed to erase that gap.
+
+The owner's real customer agreement remains untouched. No release, deployment,
+or customer resend occurred. The completed QA PDF and images stay private and
+untracked under `tmp/pdfs/txr1507-provider-20260918/`.
+
+Final full discovery: 2,131 tests in 36.612 seconds, 2,129 passed and the two
+approved-map baseline comparisons still failed. Those comparisons include the
+remaining TXR-1507 map coverage and the newer TXR-1905, TXR-1914, and TXR-1919
+candidates; no full-suite or full-map approval is claimed. Log:
+`/private/tmp/hof-txr1507-completed-suite.log`.

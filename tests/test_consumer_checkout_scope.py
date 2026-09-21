@@ -41,7 +41,7 @@ class ConsumerCheckoutScopeTests(unittest.TestCase):
     def test_receipt_email_is_validated_and_focused_before_checkout(self):
         self.assertIn('id="paymentEmail" name="paymentEmail" inputmode="email" autocomplete="email"', INDEX)
         start = INDEX.index("async function handlePayment()")
-        end = INDEX.index("sessionStorage.setItem('hofOfferData'", start)
+        end = INDEX.index("if (!cacheBuyerCheckoutSnapshot(offerData))", start)
         checkout = INDEX[start:end]
         self.assertIn("paymentEmailInput?.checkValidity()", checkout)
         self.assertIn("paymentEmailInput.focus();", checkout)

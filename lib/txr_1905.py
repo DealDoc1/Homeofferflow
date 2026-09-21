@@ -4,52 +4,39 @@ from io import BytesIO
 
 from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen.canvas import Canvas
+from lib.txr_addenda_layout import SourceAnswers, clean, draw_entries, mark_cell
+from lib.txr_source_imprint import remove_known_source_imprint
 
 
 PAGE_WIDTH = 612
 PAGE_HEIGHT = 792
+RENDER_REVISION = 'txr-1905-2026-09-18-neutral-source-v3'
 
 
-def _clean(value):
-    return " ".join(str(value or "").strip().split())
+def answer_layout(data):
+    answers = SourceAnswers(data, 'TXR-1905 - Mineral Reservation Continuation', 1)
+    answers.put(data.get('property_address'), [(40, 687, 534)], 'Property address', size=9)
+    if data.get('reservation_choice') == 'undivided_interest':
+        value = clean(data.get('undivided_interest'))
+        answers.put(value + '%' if value else '', [(243, 493, 44)],
+                    'Paragraph B(2) - undivided mineral-interest percentage', size=9)
+    answers.names(1, (171, 115), [('Buyer', 58, 252), ('Seller', 332, 227)])
+    return answers
 
 
-def _draw(canvas, value, x, y, *, size=8):
-    value = _clean(value)
-    if not value:
-        return
-    canvas.setFont("Helvetica", size)
-    canvas.drawString(x, y, value)
-
-
-def _mark(canvas, x, y):
-    canvas.setFont("Helvetica-Bold", 10)
-    canvas.drawString(x, y, "X")
-
-
-def _overlay(data):
+def _overlay(data, answers):
     packet = BytesIO()
     canvas = Canvas(packet, pagesize=(PAGE_WIDTH, PAGE_HEIGHT))
-    _draw(canvas, data.get("property_address"), 235, 688, size=9)
+    draw_entries(canvas, answers.pages[1])
     if data.get("reservation_choice") == "all":
-        _mark(canvas, 80, 518)
-    else:
-        _mark(canvas, 80, 497)
-        _draw(canvas, data.get("undivided_interest"), 239, 497, size=9)
+        mark_cell(canvas, 79.67, 517.11)
+    elif data.get('reservation_choice') == 'undivided_interest':
+        mark_cell(canvas, 79.67, 495.57)
     if data.get("surface_rights") == "waived":
-        _mark(canvas, 109, 454)
-    else:
-        _mark(canvas, 149, 454)
-    buyers = data.get("buyer_names") or []
-    sellers = data.get("seller_names") or []
-    # Write each party name immediately above its signature rule; the printed
-    # Buyer/Seller captions sit below those rules on the source.
-    _draw(canvas, buyers[0] if buyers else "", 58, 176, size=9)
-    _draw(canvas, sellers[0] if sellers else "", 333, 176, size=9)
-    if len(buyers) > 1:
-        _draw(canvas, buyers[1], 58, 118, size=9)
-    if len(sellers) > 1:
-        _draw(canvas, sellers[1], 333, 118, size=9)
+        mark_cell(canvas, 110.09, 454.77)
+    elif data.get('surface_rights') == 'not_waived':
+        mark_cell(canvas, 153.23, 454.77)
+    canvas.showPage()
     canvas.save()
     packet.seek(0)
     return packet.read()
@@ -60,10 +47,15 @@ def render_txr_1905(source_pdf_bytes, data):
     source = PdfReader(BytesIO(source_pdf_bytes))
     if len(source.pages) != 1:
         raise ValueError("TXR-1905 source must contain exactly one page.")
-    overlay = PdfReader(BytesIO(_overlay(data)))
+    answers = answer_layout(data)
+    overlay = PdfReader(BytesIO(_overlay(data, answers)))
     writer = PdfWriter()
     writer.add_page(source.pages[0])
+    remove_known_source_imprint(writer, source_pdf_bytes, 'TXR-1905')
     writer.pages[0].merge_page(overlay.pages[0])
+    continuation = answers.continuation()
+    if continuation:
+        writer.append(PdfReader(BytesIO(continuation)))
     output = BytesIO()
     writer.write(output)
     return output.getvalue()
@@ -84,10 +76,11 @@ def build_signwell_fields_txr1905(data, *, client_count=None):
 
     fields = [
         {"api_id": "txr1905_buyer1_signature_p1", "type": "signature", "page": 1, "x": 75, "y": 807, "recipient_id": "1", "required": True, "width": 340, "height": 24},
-        {"api_id": "txr1905_seller1_signature_p1", "type": "signature", "page": 1, "x": 440, "y": 807, "recipient_id": str(len(buyers) + 1), "required": True, "width": 310, "height": 24},
+        {"api_id": "txr1905_seller1_signature_p1", "type": "signature", "page": 1, "x": 440, "y": 807, "recipient_id": str(len(buyers) + 1), "required": True, "width": 306, "height": 24},
     ]
     if len(buyers) == 2:
-        fields.append({"api_id": "txr1905_buyer2_signature_p1", "type": "signature", "page": 1, "x": 75, "y": 883, "recipient_id": "2", "required": True, "width": 340, "height": 24})
+        fields.append({"api_id": "txr1905_buyer2_signature_p1", "type": "signature", "page": 1, "x": 75, "y": 881, "recipient_id": "2", "required": True, "width": 340, "height": 24})
     if len(sellers) == 2:
-        fields.append({"api_id": "txr1905_seller2_signature_p1", "type": "signature", "page": 1, "x": 440, "y": 883, "recipient_id": str(len(buyers) + 2), "required": True, "width": 310, "height": 24})
+        fields.append({"api_id": "txr1905_seller2_signature_p1", "type": "signature", "page": 1, "x": 440, "y": 881, "recipient_id": str(len(buyers) + 2), "required": True, "width": 306, "height": 24})
+    fields.extend(answer_layout(data).continuation_fields(2, 'txr1905'))
     return [fields]

@@ -1,6 +1,7 @@
 import json
 import os
 import re
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler
 
 import httpx
@@ -214,62 +215,33 @@ def _parse_usage_event(payload):
 
 
 def _save_usage_event(user, event):
-    if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
-        raise RuntimeError("Usage storage is not configured.")
-    preflight = _usage_preflight(user, event["billing_month"], event["quantity"])
-    if not preflight["allowed"]:
-        raise UsageLimitError(preflight)
-    if event["offer_id"]:
-        response = httpx.get(
-            f"{SUPABASE_URL}/rest/v1/hof_offers"
-            f"?id=eq.{event['offer_id']}&user_id=eq.{user['id']}&select=id&limit=1",
-            headers={"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}"},
-            timeout=12,
-        )
-        if response.status_code >= 300 or not response.json():
-            raise ValueError("Usage offer ID does not belong to this account.")
-    response = httpx.post(
-        f"{SUPABASE_URL}/rest/v1/hof_usage_events",
-        headers={
-            "apikey": SUPABASE_SERVICE_ROLE_KEY,
-            "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
-            "Content-Type": "application/json",
-            "Prefer": "return=representation",
-        },
-        json={
-            "user_id": user["id"],
-            "offer_id": event["offer_id"],
-            "event_type": event["event_type"],
-            "quantity": event["quantity"],
-            "billing_month": event["billing_month"],
-            "metadata": event["metadata"],
-        },
-        timeout=12,
-    )
-    if response.status_code >= 300:
-        raise RuntimeError("Usage event could not be saved.")
-    return {"ok": True}
+    # Old tabs may still call this action after an update. Never accept their
+    # quantity/month/offer as evidence that a packet was actually generated.
+    raise ValueError("Packet usage is recorded automatically during generation.")
 
 
 def _usage_summary(user, billing_month):
     billing_month = _clean(billing_month, 7)
     if not USAGE_BILLING_MONTH_RE.fullmatch(billing_month):
         raise ValueError("Usage billing month must use YYYY-MM format.")
-    response = httpx.get(
-        f"{SUPABASE_URL}/rest/v1/hof_usage_events"
-        f"?user_id=eq.{user['id']}&billing_month=eq.{billing_month}"
-        "&event_type=eq.signed_packet&select=quantity",
+    response = httpx.post(
+        f"{SUPABASE_URL}/rest/v1/rpc/hof_packet_usage_summary",
         headers={"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}"},
+        json={'p_user': user['id']},
         timeout=12,
     )
     if response.status_code >= 300:
         raise RuntimeError("Usage could not be loaded.")
-    rows = response.json() if response.text else []
-    return {"billingMonth": billing_month, "used": sum(int(row.get("quantity") or 0) for row in rows)}
+    result = response.json()
+    if not isinstance(result, dict) or not USAGE_BILLING_MONTH_RE.fullmatch(str(result.get('billingMonth') or '')):
+        raise RuntimeError("Usage could not be confirmed.")
+    if any(type(result.get(key)) is not int or result[key] < 0 for key in ('used','reserved','limit')):
+        raise RuntimeError("Usage totals could not be confirmed.")
+    return {key: result[key] for key in ('billingMonth','used','reserved','limit')}
 
 
 def _usage_preflight(user, billing_month, quantity=1):
-    """Return an authoritative allowance before a packet is generated."""
+    """Legacy advisory display only; generation uses an atomic reservation."""
     try:
         quantity = int(quantity)
     except (TypeError, ValueError):
@@ -279,6 +251,7 @@ def _usage_preflight(user, billing_month, quantity=1):
     billing_month = _clean(billing_month, 7)
     if not USAGE_BILLING_MONTH_RE.fullmatch(billing_month):
         raise ValueError("Usage billing month must use YYYY-MM format.")
+    billing_month = datetime.now(timezone.utc).strftime('%Y-%m')
     if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
         raise RuntimeError("Usage storage is not configured.")
 
@@ -293,24 +266,26 @@ def _usage_preflight(user, billing_month, quantity=1):
         raise RuntimeError("Subscription could not be loaded.")
     rows = response.json() if response.text else []
     subscription = rows[0] if isinstance(rows, list) and rows else {}
-    status = str(subscription.get("status") or "beta").lower()
+    status = str(subscription.get("status") or "inactive").lower()
     default_limit = 15 if role == "investor" else 10
     try:
-        limit = int(subscription.get("packet_limit") or default_limit)
+        limit = int(subscription.get("packet_limit") if subscription.get("packet_limit") is not None else default_limit)
     except (TypeError, ValueError):
         limit = default_limit
     limit = max(0, min(limit, 10000))
     summary = _usage_summary(user, billing_month)
     used = int(summary.get("used") or 0)
+    reserved = int(summary.get("reserved") or 0)
     allowed_status = status in {"beta", "trialing", "active", "free_admin"}
-    allowed = allowed_status and used + quantity <= limit
+    allowed = allowed_status and used + reserved + quantity <= limit
     return {
         "allowed": allowed,
         "status": status,
         "billingMonth": billing_month,
         "used": used,
+        "reserved": reserved,
         "limit": limit,
-        "remaining": max(0, limit - used),
+        "remaining": max(0, limit - used - reserved),
     }
 
 
@@ -388,9 +363,7 @@ class handler(BaseHTTPRequestHandler):
                 _json(self, 200, summary)
                 return
             if action == "usage_event":
-                event = _parse_usage_event(request)
-                saved = _save_usage_event(user, event)
-                _json(self, 201, saved)
+                _json(self, 410, {"error": "Packet usage is recorded automatically during generation.", "code": "server_owned_packet_usage"})
                 return
             feedback = _parse_payload(payload)
             authoritative_role = _authoritative_role(user)

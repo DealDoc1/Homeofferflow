@@ -25,7 +25,7 @@ class SubscriptionPacketGenerationSecurityTests(unittest.TestCase):
         generation_start = HTML.index("async function generateSubscribedPacket()")
         generation_end = HTML.index("function pad2", generation_start)
         generation = HTML[generation_start:generation_end]
-        self.assertIn("packetGenerationFailureCategory: failure.category", generation)
+        self.assertNotIn("await forceOfferGenerationFailedStatus", generation)
         self.assertIn("errorCategory: failure.category", generation)
         self.assertIn("showPacketGenerationRecoveryNotice(failure)", generation)
         self.assertNotIn("No packet credit was used. Please try again. Error:", generation)
@@ -33,7 +33,8 @@ class SubscriptionPacketGenerationSecurityTests(unittest.TestCase):
         self.assertIn('id="packetGenerationRecoveryNotice"', HTML)
         self.assertIn('id="packetGenerationRetryButton"', HTML)
         self.assertIn("'subscription_packet_generation_retry_clicked'", recovery)
-        self.assertIn("No packet credit was used. ", recovery)
+        self.assertNotIn("No packet credit was used. ", recovery)
+        self.assertIn("packet_generation_unconfirmed", recovery)
         self.assertIn("await generateSubscribedPacket();", recovery)
 
         for expected in (
@@ -70,11 +71,11 @@ class SubscriptionPacketGenerationSecurityTests(unittest.TestCase):
         self.assertIn("A verified Stripe webhook or active subscription is required.", post)
         self.assertIn("is_subscription_generation", post)
         self.assertIn("self._verified_user()", post)
-        self.assertIn("self._has_generation_entitlement(user_id)", post)
+        self.assertIn("render_subscribed_packet(offer, user_id)", post)
+        self.assertNotIn("self._has_generation_entitlement", post)
         self.assertGreaterEqual(post.count("Sign in again before generating a packet."), 2)
-        self.assertIn("status\": \"in.(beta,active,trialing,free_admin)\"", API)
-        self.assertIn("billing_month", API)
-        self.assertIn("event_type\": \"eq.signed_packet\"", API)
+        self.assertIn("PacketAllowanceUnavailable", post)
+        self.assertIn("render_packet_with_usage(", API)
 
 
 if __name__ == "__main__":

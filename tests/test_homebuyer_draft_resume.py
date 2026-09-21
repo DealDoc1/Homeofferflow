@@ -33,7 +33,7 @@ class HomebuyerDraftResumeTests(unittest.TestCase):
         return_start = HTML.index("function returnHomeFromWizard()")
         return_end = HTML.index("function startNewOffer()", return_start)
         self.assertIn("setTimeout(refreshResumeOfferCtas, 300);", HTML[return_start:return_end])
-        self.assertIn("restoreDraft();\n        refreshResumeOfferCtas();", HTML)
+        self.assertIn("restoreDraft({ automatic: true });\n        refreshResumeOfferCtas();", HTML)
 
     def test_temporary_lease_terms_restore_with_the_saved_offer(self):
         start = HTML.index("function applyOfferDataToFields(data = {})")

@@ -542,9 +542,12 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         preview_start = backend.index("async def _render_representation_draft_preview")
         preview_end = backend.index("async def _render_txr_1507_draft_preview", preview_start)
         preview = backend[preview_start:preview_end]
-        self.assertIn('"hof_agent_profiles?"', preview)
+        self.assertIn('hof_agent_profiles?user_id=eq.', preview)
         self.assertIn("user_id=eq.", preview)
-        self.assertNotIn('"hof_profiles?"', preview)
+        # Optional own-account organization lookup is not a seat requirement.
+        # Runtime tests cover independent agents and rejected foreign hosts.
+        self.assertIn('await _representation_professional_context(user)', preview)
+        self.assertNotIn("str(agreement['brokerage_id'])", preview)
         self.assertIn('standalone-agreement-private-draft-preview.pdf', backend)
         self.assertNotIn('TXR-1507-private-draft-preview.pdf', backend)
         self.assertIn("Cache-Control", backend)

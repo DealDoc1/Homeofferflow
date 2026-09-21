@@ -20,17 +20,16 @@ class OfferTermsReuseTests(unittest.TestCase):
         for reusable_key in (
             "'financing'",
             "'loanYears'",
-            "'appraisalAddendum'",
             "'titlePayer'",
             "'survey'",
-            "'asIs'",
+            "'homeWarranty'",
         ):
             self.assertIn(reusable_key, self.body)
 
     def test_terms_reuse_resets_prior_offer_identity_and_uploaded_documents(self):
         self.assertIn("_hofOfferId: null", self.body)
         self.assertIn("resetUploadedDisclosureDraftForOffer({});", self.body)
-        self.assertIn("client and property details cleared", self.body)
+        self.assertIn("Add the new buyer and property details.", self.body)
         self.assertIn("reuse_mode: 'terms_only'", self.body)
 
     def test_terms_reuse_does_not_allow_list_prior_party_property_or_money_fields(self):
@@ -43,12 +42,20 @@ class OfferTermsReuseTests(unittest.TestCase):
             "'price'",
             "'closingDate'",
             "'signwellDocumentId'",
+            "'hoa'",
+            "'sellerDisclosure'",
+            "'leadBuiltBefore1978'",
+            "'leadDisclosureStatus'",
+            "'saleContingency'",
+            "'backupOffer'",
+            "'appraisalAddendum'",
+            "'asIs'",
         ):
             self.assertNotIn(sensitive_key, self.body)
 
     def test_workspace_exposes_terms_only_start_without_removing_full_duplicate(self):
         self.assertIn("Reuse Last Terms", HTML)
-        self.assertIn("Keep deal choices; clear client and property details.", HTML)
+        self.assertIn("Reuse financing and closing preferences. Answer property questions again.", HTML)
         self.assertIn("hofReuseTermsFromMostRecentOffer", HTML)
         self.assertIn("root.reuseOfferTerms(offers[0].id)", HTML)
         self.assertGreaterEqual(HTML.count('>Reuse terms</button>'), 2)

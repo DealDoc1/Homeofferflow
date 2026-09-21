@@ -19,9 +19,16 @@ class ProductionBundleContractTests(unittest.TestCase):
             "supabase/",
             ".github/",
             "requirements-test.txt",
+            "tmp/",
+            "output/",
         ):
             with self.subTest(entry=entry):
                 self.assertIn(entry, ignore)
+
+    def test_private_artifacts_are_also_excluded_from_git(self):
+        ignore = (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
+        for entry in ("/tmp/", "/output/"):
+            self.assertIn(entry, ignore)
 
     def test_production_route_points_to_20_19(self):
         source = (ROOT / "api" / "fill-pdf.py").read_text(encoding="utf-8")

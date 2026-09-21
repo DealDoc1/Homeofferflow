@@ -133,14 +133,14 @@ class Txr1501RendererTests(unittest.TestCase):
             txr_1501._overlay(sample_data(), brokerage, associate)
         calls = {(call.args[1], call.args[2], call.args[3]) for call in draw.call_args_list}
         expected = {
-            ("Test Buyer One, Test Buyer Two", 108, 612),
-            ("721 Broderick Lane", 128, 594),
-            ("Prosper, TX 75078", 158, 578),
-            ("2143649890", 117, 562),
-            ("buyer@example.com", 115, 546),
-            ("OnDemand Realty", 108, 531),
-            ("2026-08-01", 224, 176),
-            ("2027-01-31", 430, 176),
+            ("Test Buyer One, Test Buyer Two", 110, 615),
+            ("721 Broderick Lane", 129, 589),
+            ("Prosper, TX 75078", 161, 577),
+            ("2143649890", 120, 564),
+            ("buyer@example.com", 116, 552),
+            ("OnDemand Realty", 110, 533),
+            ("2026-08-01", 236, 171),
+            ("2027-01-31", 460, 171),
             ("OnDemand Realty", 36, 400),
             ("Test Buyer One", 324, 400),
             ("Andrew Christian", 36, 309),
@@ -173,18 +173,18 @@ class Txr1501RendererTests(unittest.TestCase):
     def test_signer_map_requires_plan_and_supports_one_or_two_clients(self):
         one = build_signwell_fields_txr1501({**sample_data(), "signer_plan": "clients_and_associate"}, client_count=1)[0]
         two = build_signwell_fields_txr1501({**sample_data(), "signer_plan": "clients_and_associate"}, client_count=2)[0]
-        self.assertEqual(len(one), 4)
-        self.assertEqual(len(two), 6)
-        self.assertTrue(all(field["page"] == 6 for field in two))
-        self.assertEqual({field["api_id"] for field in one}, {"txr1501_client1_signature_p6", "txr1501_client1_date_p6", "txr1501_associate_signature_p6", "txr1501_associate_date_p6"})
+        self.assertEqual(len(one), 14)
+        self.assertEqual(len(two), 21)
+        self.assertEqual({field["page"] for field in two}, set(range(1,7)))
+        self.assertEqual({field["api_id"] for field in one if field['page']==6}, {"txr1501_client1_signature_p6", "txr1501_client1_date_p6", "txr1501_associate_signature_p6", "txr1501_associate_date_p6"})
         self.assertEqual(next(field["x"] for field in two if field["api_id"] == "txr1501_client1_signature_p6"), 432)
         self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1501_client1_signature_p6"), 566)
         self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1501_client2_signature_p6"), 677)
-        self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1501_associate_signature_p6"), 677)
-        self.assertEqual(next(field["x"] for field in two if field["api_id"] == "txr1501_client1_date_p6"), 720)
-        self.assertEqual(next(field["width"] for field in two if field["api_id"] == "txr1501_client1_date_p6"), 48)
-        self.assertEqual(next(field["x"] for field in two if field["api_id"] == "txr1501_associate_date_p6"), 336)
-        self.assertEqual(next(field["width"] for field in two if field["api_id"] == "txr1501_associate_date_p6"), 48)
+        self.assertEqual(next(field["y"] for field in two if field["api_id"] == "txr1501_associate_signature_p6"), 566)
+        self.assertEqual(next(field["x"] for field in two if field["api_id"] == "txr1501_client1_date_p6"), 696)
+        self.assertEqual(next(field["width"] for field in two if field["api_id"] == "txr1501_client1_date_p6"), 72)
+        self.assertEqual(next(field["x"] for field in two if field["api_id"] == "txr1501_associate_date_p6"), 312)
+        self.assertEqual(next(field["width"] for field in two if field["api_id"] == "txr1501_associate_date_p6"), 72)
         with self.assertRaisesRegex(ValueError, "broker or associate"):
             build_signwell_fields_txr1501({**sample_data(), "signer_plan": "clients_only"}, client_count=1)
         with self.assertRaisesRegex(ValueError, "broker or associate"):
