@@ -87,16 +87,23 @@ class PartnerTierUiTests(unittest.TestCase):
         self.assertLess(required_area.index('foundingPartnerMarket'), required_area.index('partner-optional-details'))
         self.assertGreater(required_area.index('foundingPartnerPhone'), required_area.index('partner-optional-details'))
 
-    def test_checkout_handoff_unlocks_only_after_essentials_and_consent(self):
-        self.assertIn('id="foundingPartnerSubmit" onclick="submitFoundingPartnerLead()" disabled aria-disabled="true"', self.html)
+    def test_checkout_action_guides_incomplete_applicants_without_bypassing_validation(self):
+        self.assertIn('id="foundingPartnerSubmit" onclick="submitFoundingPartnerLead()" aria-disabled="false"', self.html)
+        self.assertNotIn('id="foundingPartnerSubmit" onclick="submitFoundingPartnerLead()" disabled', self.html)
         self.assertIn('id="foundingPartnerRequiredCue"', self.html)
         self.assertIn("function partnerEssentialProgress()", self.html)
         self.assertIn("Complete the five essentials (${progress.complete} of 5 complete)", self.html)
         self.assertIn("Review and acknowledge the founding-partner terms below, then continue to secure checkout.", self.html)
         self.assertIn("document.getElementById('foundingPartnerConsent')?.addEventListener('change', () => { savePartnerApplicationDraft(); renderFoundingPartnerCheckoutAvailability(); });", self.html)
-        self.assertIn("Add the five essentials to continue", self.html)
-        self.assertIn("Acknowledge the terms to continue", self.html)
-        self.assertIn("Complete the five essentials to continue to secure checkout", self.html)
+        self.assertIn("Continue application — ${progress.complete} of 5 details added", self.html)
+        self.assertIn("Review terms to continue", self.html)
+        self.assertIn("Keep the primary action operable while the application is incomplete.", self.html)
+        self.assertIn("submit.disabled = false;", self.html)
+        start = self.html.index("window.submitFoundingPartnerLead")
+        validation_end = self.html.index("if (!hasSavedPartnerApplication && !document.getElementById('foundingPartnerConsent')", start)
+        validation = self.html[start:validation_end]
+        self.assertIn("firstInvalid?.focus();", validation)
+        self.assertIn("return;", validation)
 
     def test_required_acknowledgement_is_visible_before_optional_preferences(self):
         essentials = self.html.index('id="foundingPartnerEssentials"')

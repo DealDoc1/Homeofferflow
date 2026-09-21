@@ -17820,7 +17820,7 @@ function routeAfterMagicLinkIfNeeded() {
     <div aria-hidden="true" style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden;"><label for="foundingPartnerConfirm">Leave this field blank</label><input id="foundingPartnerConfirm" tabindex="-1" autocomplete="off"></div>
 
     <div class="account-actions-row" style="margin-top:1rem;">
-      <button class="btn-primary" type="button" id="foundingPartnerSubmit" onclick="submitFoundingPartnerLead()" disabled aria-disabled="true" aria-label="Complete the five essentials to continue to secure checkout">Add the five essentials to continue</button>
+      <button class="btn-primary" type="button" id="foundingPartnerSubmit" onclick="submitFoundingPartnerLead()" aria-disabled="false" aria-label="Continue partner application; 0 of 5 required details added">Continue application — 0 of 5 details added</button>
       <button class="btn-secondary" type="button" onclick="closeFoundingPartnerModal('cancel')">Cancel</button>
     </div>
     <div id="foundingPartnerCheckoutNote" class="admin-muted" style="margin-top:.55rem;line-height:1.45;">Next: review the selected Founding Partner price and payment details in secure Stripe Checkout. Your placement stays private until onboarding and written-agreement review are complete.</div>
@@ -17971,7 +17971,6 @@ function routeAfterMagicLinkIfNeeded() {
     const hasSavedApplication = Boolean(window.__hofFoundingPartnerLeadId || loadSavedPartnerLeadId());
     const progress = partnerEssentialProgress();
     const consent = !!document.getElementById('foundingPartnerConsent')?.checked;
-    const ready = hasSavedApplication || (progress.ready && consent);
     // Record stages, not applicant values. This identifies whether a partner
     // stops before completing the five essentials, before consent, or after
     // the application is sent to the server.
@@ -17995,17 +17994,22 @@ function routeAfterMagicLinkIfNeeded() {
             : '<strong>You’re ready.</strong> Review the selected tier and payment details in secure Stripe Checkout. Your placement remains private until onboarding and agreement review are complete.';
     }
     if (!submit) return;
-    submit.disabled = !ready;
-    submit.setAttribute('aria-disabled', ready ? 'false' : 'true');
+    // Keep the primary action operable while the application is incomplete.
+    // Its submit handler still blocks saving and checkout, then moves focus to
+    // the first missing answer. A disabled button made that guidance
+    // unreachable and left visitors to hunt through the form on their own.
+    submit.disabled = false;
+    submit.setAttribute('aria-disabled', 'false');
     const enabledLabel = hasSavedApplication ? 'Resume Secure Checkout — saved application' : `Continue to Secure Checkout — ${detail.label}`;
     const incompleteLabel = progress.ready
-      ? 'Acknowledge the terms to continue'
-      : 'Add the five essentials to continue';
+      ? 'Review terms to continue'
+      : `Continue application — ${progress.complete} of 5 details added`;
     const incompleteAriaLabel = progress.ready
-      ? 'Acknowledge the founding-partner terms to continue to secure checkout'
-      : 'Complete the five essentials to continue to secure checkout';
-    submit.setAttribute('aria-label', ready ? enabledLabel : incompleteAriaLabel);
-    submit.textContent = ready ? enabledLabel : incompleteLabel;
+      ? 'Review and acknowledge the founding-partner terms to continue to secure checkout'
+      : `Continue partner application; ${progress.complete} of 5 required details added`;
+    const canOpenCheckout = hasSavedApplication || (progress.ready && consent);
+    submit.setAttribute('aria-label', canOpenCheckout ? enabledLabel : incompleteAriaLabel);
+    submit.textContent = canOpenCheckout ? enabledLabel : incompleteLabel;
   }
   function campaignPartnerCategory(){
     const category = String(params().get('partner_category') || '').trim().toLowerCase();
