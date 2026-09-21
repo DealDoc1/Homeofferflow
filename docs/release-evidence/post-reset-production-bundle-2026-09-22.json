@@ -11,14 +11,9 @@
       "api/fill_pdf_20_19_staging.py"
     ]
   },
-  "file_count": 143,
-  "total_bytes": 21230214,
+  "file_count": 142,
+  "total_bytes": 21230514,
   "files": [
-    {
-      "file": ".git",
-      "bytes": 85,
-      "sha256": "cebb29d0a13189c36e1eb9c578a2f440daf471660a305208756176f100364ccd"
-    },
     {
       "file": ".gitignore",
       "bytes": 149,
@@ -581,8 +576,8 @@
     },
     {
       "file": "ondemand.html",
-      "bytes": 45239,
-      "sha256": "46c1fc5b319024671a48d7624f706fbd976ae55f0a45092e8411d1e8a6d199b5"
+      "bytes": 45624,
+      "sha256": "0175ee0e164c88403913908ba519ab11ba7f8f9b2280c7bc66e8f79da5b39d9c"
     },
     {
       "file": "package.json",
