@@ -129,9 +129,16 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
             "Open the link in this browser.",
             "Confirm your card at Stripe.",
             "Step 1 of 3:",
-            "Start my 60-day free trial",
+            "Email my secure sign-in link",
         ):
             self.assertIn(text, ONDEMAND)
+        self.assertNotIn("Start my 60-day free trial", ONDEMAND)
+
+    def test_landing_attribution_keeps_referrers_private_but_distinguishes_direct_and_referral_visits(self):
+        self.assertIn('const referrerIsExternal = (() => {', ONDEMAND)
+        self.assertIn('new URL(document.referrer).origin !== window.location.origin', ONDEMAND)
+        self.assertIn('referrerIsExternal ? "referral" : "direct"', ONDEMAND)
+        self.assertNotIn('metadata: { referrer', ONDEMAND)
 
     def test_all_public_ondemand_trial_links_share_the_same_aggregate_entry_signal(self):
         self.assertIn("function recordOnDemandTrialEntry", INDEX)
