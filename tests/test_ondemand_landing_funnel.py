@@ -42,6 +42,30 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
         self.assertIn("open it in this browser to finish starting your 60-day trial", ONDEMAND)
         self.assertIn("keepalive: true", ONDEMAND)
 
+    def test_mobile_enrollment_card_precedes_supporting_copy(self):
+        self.assertIn('<div class="hero-copy">', ONDEMAND)
+        self.assertIn(".hero .card { order:1; width:100%; }", ONDEMAND)
+        self.assertIn(".hero-copy { order:2; }", ONDEMAND)
+        self.assertLess(
+            ONDEMAND.index(".hero .card { order:1; width:100%; }"),
+            ONDEMAND.index("@media (max-width:520px)"),
+        )
+
+    def test_email_intent_captures_focus_and_autofill_safe_input_once(self):
+        self.assertIn(
+            'const recordEmailIntent = () => recordAggregateLandingEvent("ondemand_email_started");',
+            ONDEMAND,
+        )
+        self.assertIn(
+            '$("email").addEventListener("focus", recordEmailIntent, { once: true });',
+            ONDEMAND,
+        )
+        self.assertIn(
+            '$("email").addEventListener("input", recordEmailIntent, { once: true });',
+            ONDEMAND,
+        )
+        self.assertIn("if (sessionStorage.getItem(key) === \"1\") return;", ONDEMAND)
+
     def test_enrollment_script_declares_the_legal_policy_version_once(self):
         self.assertEqual(ONDEMAND.count('const LEGAL_POLICY_VERSION = "2026-07-30";'), 1)
 

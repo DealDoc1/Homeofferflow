@@ -23,6 +23,7 @@ class VercelReleaseManifestTests(unittest.TestCase):
             (root / "api" / "fill-pdf.py").write_text("production", encoding="utf-8")
             (root / ".vercel").mkdir()
             (root / ".vercel" / "project.json").write_text("local", encoding="utf-8")
+            (root / ".git").write_text("gitdir: /outside/worktree", encoding="utf-8")
             (root / ".env.local").write_text("secret", encoding="utf-8")
             result = manifest.build_manifest(root)
             self.assertEqual(result["file_count"], 2)

@@ -20,7 +20,8 @@ def production_files(root: Path) -> list[Path]:
             continue
         relative = path.relative_to(root).as_posix()
         if (
-            relative.startswith((".git/", ".vercel/", ".github/"))
+            relative == ".git"
+            or relative.startswith((".git/", ".vercel/", ".github/"))
             or "/__pycache__/" in f"/{relative}/"
             or path.name.startswith(".env")
         ):

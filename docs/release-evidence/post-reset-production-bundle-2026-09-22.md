@@ -3,7 +3,7 @@
 ## Release boundary
 
 - Prior verified production revision: `133a32bff9a736544c8bf9c9d04cd549c11b8570`.
-- Exact candidate revision: `5a9d4177527252507969ae61c1fbc9af4d70e1bf` or a later release-safety merge whose production tree is independently compared to this candidate.
+- Exact candidate revision: `f3b6af3c90b37e8ce2df294caf334bfcdc96789e` or a later reviewed merge whose production tree is independently compared and captured in the attached manifest.
 - Canonical production origin: `https://www.homeofferflow.com`.
 - Deployment method: one intentional, prebuilt Vercel production deployment. Automatic Git deployments and routine previews remain disabled.
 - Customer scope: the accumulated HomeOfferFlow reliability, plain-language interview, agent activation, PWA return, signing recovery, purchase-packet, and Texas-form corrections merged since the prior production revision.
@@ -84,6 +84,7 @@ The release is corrective: where the completed provider PDF exposed a defect, th
 - `bundled-packet-golden-baseline-2026-09-21.md` records the reviewed 20-page packet and regenerated privacy-safe golden manifest.
 - `compact-signwell-geometry-qa-2026-09-18.md` records the completed six-form provider packet and refreshed privacy-safe geometry baselines.
 - `signing-reliability-main-merge-2026-09-18.md`, `stable-packet-delivery-retries-2026-09-15.md`, `purchase-offer-delivery-recovery-2026-09-15.md`, and `durable-signature-recovery-2026-09-15.md` cover concurrent invitations and delivery recovery.
+- `ondemand-mobile-enrollment-2026-09-21.md` records the aggregate trial-funnel evidence, mobile-first enrollment ordering, autofill-safe intent measurement, and the unchanged price/billing boundary.
 - `seller-financing-purchase-packet-2026-09-18.md`, `loan-assumption-packet-foundation-2026-09-18.md`, `environmental-purchase-packet-2026-09-18.md`, `mineral-purchase-packet-2026-09-18.md`, and `hydrostatic-purchase-packet-2026-09-15.md` cover the new packet paths.
 - The exact release commit must rerun the full suite, golden packet rendering, standalone geometry, Supabase branch preflight, release preflight, and whitespace check in GitHub Actions.
 
@@ -107,7 +108,7 @@ After deployment:
 
 - confirm the deployment is Ready and both canonical domains alias it;
 - run the read-only production PWA and packet-runtime checks;
-- verify agent sign-in continuation, saved-agent installed-app return, customer-friendly packet recovery, Paragraph 4C choices, checkout recovery, and signing status on the canonical site;
+- verify agent sign-in continuation, saved-agent installed-app return, the OnDemand phone-sized enrollment fold, customer-friendly packet recovery, Paragraph 4C choices, checkout recovery, and signing status on the canonical site;
 - scan runtime logs for new errors;
 - update every affected roadmap item using exact production evidence; and
 - run only the narrowly scoped provider QA packets still identified above.
