@@ -10,11 +10,22 @@ const end = html.indexOf('\n  function prevStep()', start);
 assert.ok(start >= 0 && end > start, 'Buyer Continue handler must be present');
 const source = html.slice(start, end);
 
-function setup({throwDuringRefresh = false} = {}) {
+function setup({throwDuringRefresh = false, termsAccepted = true} = {}) {
   const calls = [];
-  const state = {step: 0, termsOK: true, data: {userType: 'homebuyer'}};
+  const state = {step: 0, termsOK: termsAccepted, data: {userType: 'homebuyer'}};
+  const terms = {
+    setAttribute: (name, value) => calls.push(['termsAttribute', name, value]),
+    focus: () => calls.push('focusTerms'),
+  };
+  const termsRow = {
+    style: {}, dataset: {},
+    scrollIntoView: () => calls.push('scrollTerms'),
+  };
   const context = vm.createContext({
     state,
+    document: {
+      getElementById: id => id === 'termsAccepted' ? terms : id === 'termsCheckRow' ? termsRow : null,
+    },
     getCurrentSteps: () => ['step3', 'step5'],
     wireSmartCalculations: () => calls.push('wire'),
     syncFinancingFieldsFromPrice: () => {
@@ -32,6 +43,15 @@ function setup({throwDuringRefresh = false} = {}) {
   vm.runInContext(source, context);
   return {calls, context};
 }
+
+test('opening Continue guides to acknowledgement without advancing', async () => {
+  const page = setup({termsAccepted: false});
+  await page.context.nextStep();
+  assert.deepEqual(JSON.parse(JSON.stringify(page.calls)), [
+    ['status', 'Acknowledge the terms above to continue to the property questions.'],
+    'scrollTerms', ['termsAttribute', 'aria-invalid', 'true'], 'focusTerms',
+  ]);
+});
 
 test('financing Continue refreshes defaults and advances the interview', async () => {
   const page = setup();

@@ -4414,7 +4414,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
   <div class="wizard-footer">
     <button class="btn-back" id="backBtn" onclick="prevStep()" style="display:none">← Back</button>
-    <button class="btn-next" id="nextBtn" onclick="nextStep()" disabled>Continue →</button>
+    <button class="btn-next" id="nextBtn" onclick="nextStep()" aria-disabled="false">Acknowledge to continue →</button>
   </div>
 </div>
 
@@ -10019,6 +10019,7 @@ function routeAfterMagicLinkIfNeeded() {
     nb.style.display = isPayment ? 'none' : 'block';
     const isAccountUser = ['agent', 'investor'].includes(state.data.userType || '');
     const nextStepLabels = {
+      step0: state.termsOK ? 'Continue →' : 'Acknowledge to continue →',
       step3: 'Review addenda →',
       step5: 'Continue to property details →',
       step6: 'Continue to closing & possession →',
@@ -10027,7 +10028,12 @@ function routeAfterMagicLinkIfNeeded() {
     nb.textContent = stepId === 'step8'
       ? (isAccountUser ? 'Generate Packet →' : 'Review Offer →')
       : (nextStepLabels[stepId] || 'Continue →');
-    nb.disabled = state.step === 0 && !state.termsOK;
+    // Keep Continue usable so an incomplete answer can trigger the interview's
+    // existing guidance. Required answers still gate every step transition.
+    if (nb.getAttribute('aria-busy') !== 'true') {
+      nb.disabled = false;
+      nb.setAttribute('aria-disabled', 'false');
+    }
   }
 
   function toggleTermsFromRow(e) {
@@ -10062,6 +10068,15 @@ function routeAfterMagicLinkIfNeeded() {
       delete state.data.legalAcceptance;
     }
     document.getElementById('termsCheckRow').classList.toggle('accepted', cb.checked);
+    if (cb.checked) {
+      const row = document.getElementById('termsCheckRow');
+      if (row) {
+        row.style.outline = '';
+        delete row.dataset.validationInvalid;
+      }
+      cb.removeAttribute('aria-invalid');
+      setValidationStatus('');
+    }
     scheduleDraftSave?.();
     updateProgress();
   }
@@ -10092,7 +10107,19 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   async function nextStep() {
-    if (state.step === 0 && !state.termsOK) return;
+    if (state.step === 0 && !state.termsOK) {
+      const terms = document.getElementById('termsAccepted');
+      const row = document.getElementById('termsCheckRow');
+      setValidationStatus('Acknowledge the terms above to continue to the property questions.');
+      if (row) {
+        row.style.outline = '2px solid var(--warn)';
+        row.dataset.validationInvalid = 'true';
+        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      terms?.setAttribute('aria-invalid', 'true');
+      terms?.focus({ preventScroll: true });
+      return;
+    }
 
     const currentStepId = getCurrentSteps()[state.step];
     // A restored draft, browser autofill, or a quick tap after choosing a
