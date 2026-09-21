@@ -111,6 +111,22 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
         self.assertIn("We couldn’t open secure checkout. Please try again.", ONDEMAND)
         self.assertNotIn('showStatus(error.message, "err")', ONDEMAND)
 
+    def test_optional_brokerage_config_never_blocks_sign_in_or_measurement(self):
+        init_start = ONDEMAND.index("async function init()")
+        init_end = ONDEMAND.index('$("signInButton").addEventListener', init_start)
+        init = ONDEMAND[init_start:init_end]
+        self.assertNotIn("await loadConfig();", init)
+        self.assertIn('recordAggregateLandingEvent("ondemand_landing_viewed", channel, campaign);', init)
+        self.assertIn("void loadConfig();", init)
+        self.assertLess(
+            init.index('recordAggregateLandingEvent("ondemand_landing_viewed", channel, campaign);'),
+            init.index("void loadConfig();"),
+        )
+        self.assertIn("You can still request your secure sign-in link", ONDEMAND)
+        self.assertIn('showStatus(customerErrorMessage(error, "We couldn’t refresh the brokerage details.', ONDEMAND)
+        self.assertIn('").textContent.trim())', ONDEMAND)
+        self.assertIn(".status.note", ONDEMAND)
+
     def test_trial_renewal_date_refreshes_when_authenticated_enrollment_renders(self):
         self.assertIn("function refreshRenewalDate()", ONDEMAND)
         self.assertIn("refreshRenewalDate();\n        const signedIn", ONDEMAND)
