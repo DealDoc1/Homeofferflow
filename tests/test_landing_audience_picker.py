@@ -49,7 +49,7 @@ class LandingAudiencePickerTests(unittest.TestCase):
         audience = HTML[audience_start:audience_end]
         for audience_key, label in (
             ("homebuyer", "Build a HomeOfferFlow homebuyer offer with no payment to start"),
-            ("agent", "Choose an agent or broker transaction workflow"),
+            ("agent", "Choose an agent or broker transaction path"),
             ("investor", "Open the HomeOfferFlow investor workspace"),
         ):
             with self.subTest(audience=audience_key):
