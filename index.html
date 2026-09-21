@@ -3076,6 +3076,77 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   </div>
 </div>
 
+<script id="hof-modal-isolation-v1">
+  (() => {
+    const isolationStack = [];
+    const skippedTags = new Set(['SCRIPT', 'STYLE', 'LINK', 'TEMPLATE']);
+
+    function topLevelModal(modal) {
+      if (!modal || !document.body) return null;
+      let root = modal;
+      while (root.parentElement && root.parentElement !== document.body) root = root.parentElement;
+      return root.parentElement === document.body ? root : null;
+    }
+
+    function restoreIsolationEntry(entry) {
+      entry.states.forEach((prior, element) => {
+        if (!element?.isConnected) return;
+        element.inert = prior.inert;
+        if (prior.ariaHidden === null) element.removeAttribute('aria-hidden');
+        else element.setAttribute('aria-hidden', prior.ariaHidden);
+      });
+      if (entry.root?.isConnected) entry.root.inert = entry.rootInert;
+    }
+
+    function activateIsolation(modal) {
+      const root = topLevelModal(modal);
+      if (!root || isolationStack.some(entry => entry.root === root)) return;
+      const entry = {
+        root,
+        rootInert: !!root.inert,
+        rootAriaHidden: root.hasAttribute('aria-hidden') ? root.getAttribute('aria-hidden') : null,
+        states: new Map()
+      };
+      root.inert = false;
+      Array.from(document.body.children).forEach(element => {
+        if (element === root || skippedTags.has(element.tagName)) return;
+        entry.states.set(element, {
+          inert: !!element.inert,
+          ariaHidden: element.hasAttribute('aria-hidden') ? element.getAttribute('aria-hidden') : null
+        });
+        element.inert = true;
+        element.setAttribute('aria-hidden', 'true');
+      });
+      isolationStack.push(entry);
+    }
+
+    function deactivateIsolation(modal) {
+      const root = topLevelModal(modal);
+      const index = isolationStack.map(entry => entry.root).lastIndexOf(root);
+      if (index < 0) return;
+      const closedAriaHidden = root.hasAttribute('aria-hidden') ? root.getAttribute('aria-hidden') : null;
+      const remainingEntries = isolationStack
+        .filter((entry, entryIndex) => entryIndex !== index)
+        .map(entry => ({ root: entry.root, ariaHidden: entry.rootAriaHidden }));
+      while (isolationStack.length) restoreIsolationEntry(isolationStack.pop());
+      if (root?.isConnected) {
+        if (closedAriaHidden === null) root.removeAttribute('aria-hidden');
+        else root.setAttribute('aria-hidden', closedAriaHidden);
+      }
+      remainingEntries.forEach(entry => {
+        if (entry.ariaHidden === null) entry.root.removeAttribute('aria-hidden');
+        else entry.root.setAttribute('aria-hidden', entry.ariaHidden);
+        activateIsolation(entry.root);
+      });
+    }
+
+    window.setHofModalIsolation = function setHofModalIsolation(modal, active) {
+      if (active) activateIsolation(modal);
+      else deactivateIsolation(modal);
+    };
+  })();
+</script>
+
 <div class="auth-modal" id="authModal" aria-hidden="true" data-nosnippet>
   <div class="auth-box" role="dialog" aria-modal="true" aria-labelledby="authTitle">
     <div class="auth-box-header">
@@ -3120,7 +3191,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 </div>
 
 <div class="account-modal" id="accountModal" aria-hidden="true" data-nosnippet>
-  <div class="account-shell" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
+  <div class="account-shell" role="dialog" aria-modal="true" aria-labelledby="accountTitle" tabindex="-1">
     <div class="account-head">
       <div>
         <h3 id="accountTitle">Your HomeOfferFlow Account</h3>
@@ -3359,7 +3430,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 </div>
 
 
-<div class="wizard-overlay" id="wizardOverlay" data-nosnippet>
+<div class="wizard-overlay" id="wizardOverlay" role="dialog" aria-modal="true" aria-label="Guided offer interview" aria-hidden="true" tabindex="-1" data-nosnippet>
   <div class="wizard-header">
     <div class="wizard-logo" onclick="returnHomeFromWizard()" title="Exit wizard — your progress stays saved">Home<span>Offer</span>Flow</div>
     <div class="wizard-header-actions">
@@ -4497,6 +4568,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     if (modal) {
       modal.classList.add('active');
       modal.setAttribute('aria-hidden', 'false');
+      window.setHofModalIsolation?.(modal, true);
     }
     updateAuthUI();
     setTimeout(() => document.getElementById('authEmail')?.focus(), 80);
@@ -4507,6 +4579,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     if (modal) {
       modal.classList.remove('active');
       modal.setAttribute('aria-hidden', 'true');
+      window.setHofModalIsolation?.(modal, false);
     }
   }
 
@@ -6010,6 +6083,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     if (modal) {
       modal.classList.add('active');
       modal.setAttribute('aria-hidden', 'false');
+      window.setHofModalIsolation?.(modal, true);
+      setTimeout(() => modal.querySelector('.account-shell')?.focus({ preventScroll: true }), 0);
     }
     const dashboard = document.getElementById('accountPanelDashboard');
     if (dashboard) {
@@ -6061,6 +6136,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     if (modal) {
       modal.classList.remove('active');
       modal.setAttribute('aria-hidden', 'true');
+      window.setHofModalIsolation?.(modal, false);
     }
   }
 
@@ -6987,6 +7063,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     if (modal) {
       modal.classList.add('active');
       modal.setAttribute('aria-hidden', 'false');
+      window.setHofModalIsolation?.(modal, true);
       setTimeout(() => msg?.focus(), 80);
     }
     return false;
@@ -7155,6 +7232,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     if (modal) {
       modal.classList.remove('active');
       modal.setAttribute('aria-hidden', 'true');
+      window.setHofModalIsolation?.(modal, false);
     }
   }
 
@@ -9765,7 +9843,10 @@ function routeAfterMagicLinkIfNeeded() {
       userType: state.data.userType || 'homebuyer',
       entrySurface: window.__hofOfferEntrySurface || 'direct'
     });
-    document.getElementById('wizardOverlay').classList.add('active');
+    const wizard = document.getElementById('wizardOverlay');
+    wizard.classList.add('active');
+    wizard.setAttribute('aria-hidden', 'false');
+    window.setHofModalIsolation?.(wizard, true);
     document.body.style.overflow = 'hidden';
 
     // Browser/session restore can visually keep the checkbox checked while state.termsOK is false.
@@ -9791,6 +9872,7 @@ function routeAfterMagicLinkIfNeeded() {
 
     applyAudienceWorkflow();
     updateProgress();
+    setTimeout(() => wizard.focus({ preventScroll: true }), 0);
     applySmartDefaults();
     applyProfileDefaultsToWizard(false);
     const placesLoad = window.loadHofPlaces?.();
@@ -9821,7 +9903,11 @@ function routeAfterMagicLinkIfNeeded() {
       try { scheduleDraftSave?.(); } catch (e) {}
     }
 
-    if (overlay) overlay.classList.remove('active');
+    if (overlay) {
+      overlay.classList.remove('active');
+      overlay.setAttribute('aria-hidden', 'true');
+      window.setHofModalIsolation?.(overlay, false);
+    }
     document.body.style.overflow = '';
     window.scrollTo({ top: 0, behavior: 'smooth' });
     // scheduleDraftSave captures the now-closed overlay; wait for that local
@@ -11278,7 +11364,10 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   function backToHomeAfterPayment() {
-    document.getElementById('wizardOverlay').classList.remove('active');
+    const overlay = document.getElementById('wizardOverlay');
+    overlay.classList.remove('active');
+    overlay.setAttribute('aria-hidden', 'true');
+    window.setHofModalIsolation?.(overlay, false);
     document.body.style.overflow = '';
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -14241,7 +14330,10 @@ function routeAfterMagicLinkIfNeeded() {
       }
 
       if (draft.wizardOpen) {
-        document.getElementById('wizardOverlay')?.classList.add('active');
+        const wizard = document.getElementById('wizardOverlay');
+        wizard?.classList.add('active');
+        wizard?.setAttribute('aria-hidden', 'false');
+        window.setHofModalIsolation?.(wizard, true);
         document.body.style.overflow = 'hidden';
       }
 
@@ -16753,6 +16845,7 @@ function routeAfterMagicLinkIfNeeded() {
       fsboFunnel.requiredReady = false;
       m.style.display = 'flex';
       m.setAttribute('aria-hidden','false');
+      window.setHofModalIsolation?.(m, true);
       trackFsboFunnel('FSBO Seller Intake Opened', { campaignPackage: campaignPackage || null });
       setTimeout(() => {
         try { window.restoreFsboDraft?.(); } catch(_) { try { window.renderFsboNeedDetails?.(); } catch(__) {} }
@@ -16768,7 +16861,11 @@ function routeAfterMagicLinkIfNeeded() {
   };
   window.closeFsboSellerModal = function(options = {}){
     const m = document.getElementById('fsboSellerModal');
-    if (m) { m.style.display = 'none'; m.setAttribute('aria-hidden','true'); }
+    if (m) {
+      m.style.display = 'none';
+      m.setAttribute('aria-hidden','true');
+      window.setHofModalIsolation?.(m, false);
+    }
     const returnFocus = fsboFunnel.returnFocus;
     fsboFunnel.returnFocus = null;
     if (options.restoreFocus !== false && returnFocus?.isConnected) returnFocus.focus();
@@ -17880,6 +17977,7 @@ function routeAfterMagicLinkIfNeeded() {
     restorePartnerApplicationDraft();
     modal.style.display = 'flex';
     modal.setAttribute('aria-hidden', 'false');
+    window.setHofModalIsolation?.(modal, true);
     const confirmation = document.getElementById('foundingPartnerCheckoutConfirmation');
     const checkoutState = window.__hofFoundingPartnerCheckoutState || params().get('partner_checkout');
     if (confirmation) confirmation.style.display = checkoutState === 'success' ? 'block' : 'none';
@@ -17975,6 +18073,7 @@ function routeAfterMagicLinkIfNeeded() {
     }
     modal.style.display = 'none';
     modal.setAttribute('aria-hidden', 'true');
+    window.setHofModalIsolation?.(modal, false);
   };
   window.submitFoundingPartnerLead = async function(){
     const status = document.getElementById('foundingPartnerStatus');
@@ -19903,6 +20002,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (modal) {
       modal.classList.add('active');
       modal.setAttribute('aria-hidden','false');
+      window.setHofModalIsolation?.(modal, true);
     } else if (typeof oldOpenAuthModal === 'function') {
       oldOpenAuthModal(offerUserTypeForRole(normalized));
     }
