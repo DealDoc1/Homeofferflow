@@ -3,7 +3,8 @@
 ## Release boundary
 
 - Prior verified production revision: `133a32bff9a736544c8bf9c9d04cd549c11b8570`.
-- Exact candidate revision: `f3b6af3c90b37e8ce2df294caf334bfcdc96789e` or a later reviewed merge whose production tree is independently compared and captured in the attached manifest.
+- Exact application candidate revision: `c1678c818c98b61cc11253d7e2b387b85b921f68`. The release commit may be the later protected-main merge containing this evidence-only reconciliation; the production tree remains the attached manifest.
+- Candidate manifest: 142 deployable files / 21,237,737 bytes.
 - Canonical production origin: `https://www.homeofferflow.com`.
 - Deployment method: one intentional, prebuilt Vercel production deployment. Automatic Git deployments and routine previews remain disabled.
 - Customer scope: the accumulated HomeOfferFlow reliability, plain-language interview, agent activation, PWA return, signing recovery, purchase-packet, and Texas-form corrections merged since the prior production revision.
@@ -23,6 +24,8 @@ The candidate code depends on six production capability migrations that were con
 7. `20260921203652_homeofferflow_release_schema_readiness.sql`
 
 The database and application changes are one release unit. Do not apply the behavior-changing migrations hours in advance, and do not deploy the candidate code while the required tables, functions, trigger, and `hof_usage_events.generation_key` column are absent. The release workflow calls the service-only `hof_release_schema_readiness` contract after it pulls the production environment and before it spends Vercel build or deployment capacity; a missing capability, credential, or unreadable response stops the release. Also verify migration history and the named schema objects before starting the Vercel build.
+
+The September 21 live read-only preflight confirmed all seven migrations are absent, all 20 referenced production columns have the expected types, both canonical-profile seed identities exist, the canonical agent profile exists, no release trigger name conflicts exist, and the subscription user key is unique. All 44 existing usage rows had a user, offer, and valid billing month; there were no duplicate subscription users. This proves dependency readiness only—the migrations remain intentionally unapplied until the coordinated release.
 
 Rollback is application-first: move the production alias back to the prior Ready deployment if a material regression appears. Preserve the additive tables, immutable receipts, usage records, and customer data; do not drop them during routine rollback.
 
@@ -79,14 +82,16 @@ The release is corrective: where the completed provider PDF exposed a defect, th
 
 ## Regression evidence
 
-- Candidate regression: 2,369 repository tests passed locally on September 21, 2026.
-- Pull request #1242 checks passed, and protected-main run `35649412072` passed after merge.
+- Candidate regression: 2,376 repository tests passed locally on September 21, 2026.
+- Pull requests #1253 and #1254 passed protected checks. Protected-main runs `35667003856` and `35668079386` passed after merge; their intentional Vercel release jobs were skipped.
 - `bundled-packet-golden-baseline-2026-09-21.md` records the reviewed 20-page packet and regenerated privacy-safe golden manifest.
 - `compact-signwell-geometry-qa-2026-09-18.md` records the completed six-form provider packet and refreshed privacy-safe geometry baselines.
 - `signing-reliability-main-merge-2026-09-18.md`, `stable-packet-delivery-retries-2026-09-15.md`, `purchase-offer-delivery-recovery-2026-09-15.md`, and `durable-signature-recovery-2026-09-15.md` cover concurrent invitations and delivery recovery.
 - `ondemand-mobile-enrollment-2026-09-21.md` records the aggregate trial-funnel evidence, mobile-first enrollment ordering, autofill-safe intent measurement, and the unchanged price/billing boundary.
 - `ondemand-sign-in-clarity-2026-09-21.md` records the truthful secure-link action label and privacy-safe direct/referral attribution without storing a referrer URL or identity.
 - `ondemand-enrollment-resilience-2026-09-21.md` records the nonblocking brokerage-configuration load and the unchanged server-side eligibility and checkout authority.
+- `form-library-session-recovery-2026-09-21.md` records one-time expired-session recovery and suppression of repeat rejected-token function calls.
+- `ondemand-install-handoff-2026-09-21.md` records the single post-checkout PWA install surface, privacy-safe accept/dismiss measurement, and unchanged vendor-cost boundary.
 - `seller-financing-purchase-packet-2026-09-18.md`, `loan-assumption-packet-foundation-2026-09-18.md`, `environmental-purchase-packet-2026-09-18.md`, `mineral-purchase-packet-2026-09-18.md`, and `hydrostatic-purchase-packet-2026-09-15.md` cover the new packet paths.
 - The exact release commit must rerun the full suite, golden packet rendering, standalone geometry, Supabase branch preflight, release preflight, and whitespace check in GitHub Actions.
 
