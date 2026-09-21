@@ -16777,7 +16777,7 @@ function routeAfterMagicLinkIfNeeded() {
     </div>
     <div id="fsboRequiredReadyCue" class="notice sage" role="status" aria-live="polite" style="margin-top:.75rem;"><strong>Step 1 of 2:</strong> Enter the property address, then your email.</div>
     <div style="margin-top:.9rem;display:flex;align-items:center;justify-content:flex-end;gap:.75rem;flex-wrap:wrap;">
-      <button class="btn-primary" type="button" id="fsboSellerQuickSubmit" data-fsbo-submit onclick="submitFsboSellerLead('quick')" disabled aria-disabled="true" aria-label="Get My Free Seller Plan — enter address and email to continue">Enter address + email to continue</button>
+      <button class="btn-primary" type="button" id="fsboSellerQuickSubmit" data-fsbo-submit onclick="submitFsboSellerLead('quick')" aria-disabled="false" aria-label="Continue seller plan; 0 of 2 required details added">Continue seller plan — 0 of 2 details added</button>
     </div>
 
     <div id="fsboGuidedGoalCard" hidden style="margin-top:1rem; padding:.9rem; border:1px solid rgba(200,151,63,.24); border-radius:12px; background:rgba(200,151,63,.055);">
@@ -16857,7 +16857,7 @@ function routeAfterMagicLinkIfNeeded() {
     <div class="field" style="margin-top:.8rem;"><label id="fsboNotesLabel" for="fsboNotes">Tell us about your situation <span style="color:var(--gray);font-weight:500;">(optional)</span></label><textarea id="fsboNotes" rows="3" placeholder="Anything we should know? Property condition, pricing concerns, whether you already have photos, whether offers are already coming in, partner needs, etc."></textarea></div>
     <div class="notice gold" style="margin-top:.8rem;"><strong>Your request is free.</strong> The displayed amounts are starting prices; we confirm your exact scope and price before any paid service begins. No payment is collected here. HomeOfferFlow does not provide legal advice. When a service requires a licensed professional, the appropriate provider handles that part.</div>
     <div class="account-actions-row" style="margin-top:1rem;">
-      <button class="btn-primary" type="button" id="fsboSellerSubmit" data-fsbo-submit onclick="submitFsboSellerLead('full')" disabled aria-disabled="true" aria-label="Save My Seller Request — enter address and email to continue">Enter address + email to continue</button>
+      <button class="btn-primary" type="button" id="fsboSellerSubmit" data-fsbo-submit onclick="submitFsboSellerLead('full')" aria-disabled="false" aria-label="Continue seller request; 0 of 2 required details added">Continue seller request — 0 of 2 details added</button>
       <button class="btn-secondary" type="button" onclick="closeFsboSellerModal()">Cancel</button>
     </div>
       </div>
@@ -17000,6 +17000,9 @@ function routeAfterMagicLinkIfNeeded() {
     const cue = document.getElementById('fsboRequiredReadyCue');
     const addressProvided = !!fsboVal('fsboPropertyAddress');
     const emailProvided = !!fsboVal('fsboSellerEmail');
+    const emailInput = document.getElementById('fsboSellerEmail');
+    const validEmailProvided = emailProvided && !!emailInput?.checkValidity();
+    const requiredProgress = Number(addressProvided) + Number(validEmailProvided);
     const ready = fsboRequiredFieldsReady();
     const goalCard = document.getElementById('fsboGuidedGoalCard');
     if (goalCard) goalCard.hidden = !ready;
@@ -17007,9 +17010,6 @@ function routeAfterMagicLinkIfNeeded() {
     const item = fsboNeedCopy[key] || fsboNeedCopy.free_intake;
     const isFreePlan = key === 'free_intake';
     const requestLabel = isFreePlan ? 'Get My Free Seller Plan' : `Request ${item.title} Details`;
-    const lockedRequestLabel = isFreePlan
-      ? 'Get My Free Seller Plan — enter address and email to continue'
-      : `Request ${item.title} Details — enter address and email to continue`;
     if (cue) {
       cue.innerHTML = ready
         ? (isFreePlan
@@ -17023,17 +17023,19 @@ function routeAfterMagicLinkIfNeeded() {
     }
     const quickSubmit = document.getElementById('fsboSellerQuickSubmit');
     const fullSubmit = document.getElementById('fsboSellerSubmit');
-    if (quickSubmit) {
-      quickSubmit.disabled = !ready;
-      quickSubmit.setAttribute('aria-disabled', ready ? 'false' : 'true');
-      quickSubmit.setAttribute('aria-label', ready ? requestLabel : lockedRequestLabel);
-      quickSubmit.textContent = ready ? requestLabel : 'Enter address + email to continue';
+    if (quickSubmit && quickSubmit.getAttribute('aria-busy') !== 'true') {
+      // Keep the action usable so the existing validation can explain and
+      // focus the exact missing field. Readiness still gates every save.
+      quickSubmit.disabled = false;
+      quickSubmit.setAttribute('aria-disabled', 'false');
+      quickSubmit.setAttribute('aria-label', ready ? requestLabel : `Continue seller plan; ${requiredProgress} of 2 required details added`);
+      quickSubmit.textContent = ready ? requestLabel : `Continue seller plan — ${requiredProgress} of 2 details added`;
     }
-    if (fullSubmit) {
-      fullSubmit.disabled = !ready;
-      fullSubmit.setAttribute('aria-disabled', ready ? 'false' : 'true');
-      fullSubmit.setAttribute('aria-label', ready ? (isFreePlan ? 'Save My Free Seller Request' : requestLabel) : (isFreePlan ? 'Save My Seller Request — enter address and email to continue' : lockedRequestLabel));
-      fullSubmit.textContent = ready ? (isFreePlan ? 'Save My Free Seller Request' : requestLabel) : 'Enter address + email to continue';
+    if (fullSubmit && fullSubmit.getAttribute('aria-busy') !== 'true') {
+      fullSubmit.disabled = false;
+      fullSubmit.setAttribute('aria-disabled', 'false');
+      fullSubmit.setAttribute('aria-label', ready ? (isFreePlan ? 'Save My Free Seller Request' : requestLabel) : `Continue seller request; ${requiredProgress} of 2 required details added`);
+      fullSubmit.textContent = ready ? (isFreePlan ? 'Save My Free Seller Request' : requestLabel) : `Continue seller request — ${requiredProgress} of 2 details added`;
     }
   }
   function trackFsboRequiredFieldsReady(){

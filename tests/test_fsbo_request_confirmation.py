@@ -56,12 +56,15 @@ class FsboRequestConfirmationTests(unittest.TestCase):
         self.assertIn("window.renderFsboGuidedGoal?.();", clear_action)
         self.assertIn("renderFsboRequiredReadyCue();", clear_action)
 
-    def test_fsbo_free_plan_action_stays_locked_until_the_two_required_fields_are_valid(self):
-        self.assertIn('id="fsboSellerQuickSubmit" data-fsbo-submit onclick="submitFsboSellerLead(\'quick\')" disabled aria-disabled="true"', HTML)
-        self.assertIn('aria-label="Save My Seller Request — enter address and email to continue"', HTML)
+    def test_fsbo_free_plan_action_guides_missing_details_without_bypassing_validation(self):
+        self.assertIn('id="fsboSellerQuickSubmit" data-fsbo-submit onclick="submitFsboSellerLead(\'quick\')" aria-disabled="false"', HTML)
+        self.assertNotIn('id="fsboSellerQuickSubmit" data-fsbo-submit onclick="submitFsboSellerLead(\'quick\')" disabled', HTML)
+        self.assertIn('aria-label="Continue seller request; 0 of 2 required details added"', HTML)
         self.assertIn("function fsboRequiredFieldsReady()", HTML)
         self.assertIn("emailInput?.checkValidity()", HTML)
-        self.assertIn("Enter address + email to continue", HTML)
+        self.assertIn("Continue seller plan — ${requiredProgress} of 2 details added", HTML)
+        self.assertIn("Continue seller request — ${requiredProgress} of 2 details added", HTML)
+        self.assertIn("Readiness still gates every save.", HTML)
         self.assertIn("<strong>Step 1 of 2:</strong>", HTML)
         self.assertIn("<strong>Step 2 of 2:</strong>", HTML)
         self.assertIn("Clear saved information", HTML)
