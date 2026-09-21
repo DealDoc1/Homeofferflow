@@ -137,6 +137,9 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN" --scope=dealdoc1s-projects
 
+      - name: Verify coordinated production database is ready
+        run: python scripts/check_production_schema_readiness.py --env-file .vercel/.env.production.local
+
       - name: Verify the existing production project
         run: |
           python - <<'PY'

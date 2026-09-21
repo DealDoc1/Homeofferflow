@@ -30,10 +30,19 @@ class ProductionReleaseWorkflowTests(unittest.TestCase):
         self.assertNotIn("inputs.base_ref || 'HEAD^'", self.text)
         self.assertIn("python -m unittest discover -s tests -q", self.text)
         self.assertIn("vercel pull --yes --environment=production", self.text)
+        self.assertIn("Verify coordinated production database is ready", self.text)
+        self.assertIn(
+            "python scripts/check_production_schema_readiness.py --env-file .vercel/.env.production.local",
+            self.text,
+        )
         self.assertIn("Check Vercel deployment and spend safety", self.text)
         self.assertIn("python scripts/check_vercel_deployment_capacity.py", self.text)
         self.assertIn("vercel build --prod", self.text)
         self.assertIn("vercel deploy --prebuilt --prod --yes", self.text)
+        self.assertLess(
+            self.text.index("Verify coordinated production database is ready"),
+            self.text.index("Build the exact production artifact"),
+        )
 
     def test_release_never_uses_a_remote_build_deploy_command(self):
         deploy_lines = [
