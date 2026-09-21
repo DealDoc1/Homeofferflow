@@ -738,6 +738,12 @@ def build_pages_data(
         # lease addendum before a checked option can be sent for signature.
         (52, 202, ck(lease_residential), "check_small"),
         (52, 176, ck(lease_fixture), "check_small"),
+        # Natural-resource leases are disclosed directly in Paragraph 4C; the
+        # contract itself supplies the three-day Seller delivery deadline.
+        (50, 135, ck(lease_natural), "check_small"),
+        (63, 99, ck(lease_natural and val_lower(lease_nr_delivered) == "yes"), "check_small"),
+        (63, 85, ck(lease_natural and val_lower(lease_nr_delivered) == "no"), "check_small"),
+        (350, 60, str(lease_nr_term_days) if lease_natural and val_lower(lease_nr_delivered) == "no" else ""),
     ]
 
     escrow_agent = s.get("escrowAgent") or ""

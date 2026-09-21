@@ -258,6 +258,38 @@ class ControlledLaunchTests(unittest.TestCase):
         self.assertIn((62, 542, "X", "check_small"), pages[8])
         self.assertIn((62, 529, "X", "check_small"), pages[8])
 
+    def test_natural_resource_lease_is_written_into_paragraph4_without_an_addendum(self):
+        offer = minimal_offer(
+            leases="yes",
+            leaseNaturalResource="yes",
+            leaseNRDelivered="no",
+            naturalResourceTerminationDays="7",
+        )
+        adapter.validate_supported_offer(offer)
+        packet = adapter.fill_and_merge_20_19(offer)
+        self.assertEqual(len(PdfReader(BytesIO(packet)).pages), 12)
+        pages = adapter.verified.build_pages_data(
+            offer, "1438 Whitaker Road, Van Alstyne, TX 75495", "Controlled Launch Buyer",
+            "August 21", "26", "", "", False, False, False, False, False,
+            False, 500000, 0, 500000, "buyer", "buyer", "buyerNew", "received",
+            "yes", "funding", "1", "A",
+        )
+        self.assertIn((50, 135, "X", "check_small"), pages[0])
+        self.assertIn((63, 85, "X", "check_small"), pages[0])
+        self.assertIn((350, 60, "7"), pages[0])
+        self.assertEqual(adapter.paragraph4_execution_parties(offer), [])
+
+    def test_natural_resource_lease_fails_closed_when_contract_choices_are_incomplete(self):
+        with self.assertRaisesRegex(adapter.UnsupportedOfferPathError, "delivery choice"):
+            adapter.validate_supported_offer(minimal_offer(
+                leases="yes", leaseNaturalResource="yes",
+            ))
+        with self.assertRaisesRegex(adapter.UnsupportedOfferPathError, "termination days"):
+            adapter.validate_supported_offer(minimal_offer(
+                leases="yes", leaseNaturalResource="yes", leaseNRDelivered="no",
+                naturalResourceTerminationDays="",
+            ))
+
     def test_fixture_lease_fails_closed_when_required_terms_are_missing(self):
         with self.assertRaisesRegex(adapter.UnsupportedOfferPathError, "leased fixture selection"):
             adapter.validate_supported_offer(fixture_lease_offer(leasedFixtureTypes=[]))

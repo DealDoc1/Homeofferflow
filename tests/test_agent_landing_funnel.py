@@ -434,9 +434,9 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn('id="agentTrialOffer"', AGENTS)
 
     def test_buyer_offer_fixture_lease_stays_in_the_package_interview(self):
-        self.assertIn('HomeOfferFlow will include the right addendum', INDEX)
+        self.assertIn('We’ll ask only the lease questions the contract needs', INDEX)
         self.assertIn('id="fixtureLeaseInterview"', INDEX)
-        self.assertIn('The completed lease addendum will be placed in this offer package automatically.', INDEX)
+        self.assertIn('HomeOfferFlow will complete the lease terms in the contract and include any required lease addendum.', INDEX)
         step_start = INDEX.index('<div class="wizard-step" id="step2">')
         step_end = INDEX.index('<div class="wizard-step" id="step3">', step_start)
         self.assertNotIn('utm_medium=lease_handoff', INDEX[step_start:step_end])
