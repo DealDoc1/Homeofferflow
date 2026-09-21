@@ -5419,6 +5419,7 @@ class handler(BaseHTTPRequestHandler):
                 "dismissed": 0,
                 "installed": 0,
                 "instructions_opened": 0,
+                "returned": 0,
             }
             # Keep the attribution vocabulary intentionally small. This is
             # enough to improve the install surface without retaining raw
@@ -5428,6 +5429,7 @@ class handler(BaseHTTPRequestHandler):
                 "buyer_review",
                 "buyer_success",
                 "account_dashboard",
+                "agent_saved_offer",
                 "/", "/agents", "/buyers", "/sellers", "/investors", "/partners", "/directory", "/ondemand",
                 "/texas-fsbo-guide", "/texas-home-service-partner-guide", "/texas-agent-offer-workflow", "/texas-listing-workflow", "/texas-lease-offer-workflow",
                 "/texas-agent-form-library", "/texas-seller-offer-review", "/texas-homebuyer-offer-guide", "/texas-investor-offer-guide",
@@ -6950,6 +6952,7 @@ class handler(BaseHTTPRequestHandler):
                 "pwaInstallAcceptedCount": pwa_install_event_counts["accepted"],
                 "pwaInstallDismissedCount": pwa_install_event_counts["dismissed"],
                 "pwaInstalledCount": pwa_install_event_counts["installed"],
+                "pwaInstallReturnedCount": pwa_install_event_counts["returned"],
                 "pwaInstallCtaClickRate": round(
                     (pwa_install_event_counts["cta_clicked"] / pwa_install_event_counts["shown"]) * 100, 1
                 ) if pwa_install_event_counts["shown"] else 0,
@@ -6968,6 +6971,11 @@ class handler(BaseHTTPRequestHandler):
                 "pwaInstallCompletionRate": round(
                     (pwa_install_event_counts["installed"] / pwa_install_event_counts["prompt_opened"]) * 100, 1
                 ) if pwa_install_event_counts["prompt_opened"] else 0,
+                "pwaInstallReturnRate": round(
+                    (pwa_install_event_counts["returned"] / (
+                        pwa_install_event_counts["accepted"] + pwa_install_event_counts["instructions_opened"]
+                    )) * 100, 1
+                ) if (pwa_install_event_counts["accepted"] + pwa_install_event_counts["instructions_opened"]) else 0,
                 "activationFollowUpEmailStartCount": activation_follow_up_email_start_count,
                 "brokerageActivationFollowUpEmailStartCount": brokerage_activation_follow_up_email_start_count,
                 "activationMilestoneCounts": activation_milestone_counts,

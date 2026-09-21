@@ -92,6 +92,7 @@
   const installDismissedUntilKey = 'hof_public_pwa_install_dismissed_until_v1';
   const installShownUntilKey = 'hof_public_pwa_install_shown_until_v1';
   const preferredLaunchKey = 'hof_pwa_preferred_launch_action';
+  const installIntentSurfaceKey = 'hof_pwa_install_intent_surface';
   const publicPreferredLaunchActions = {
     '/buyers': 'buyer_offer',
     '/texas-homebuyer-offer-guide': 'buyer_offer',
@@ -149,7 +150,10 @@
   const rememberPreferredPublicLaunch = () => {
     const action = publicPreferredLaunchActions[window.location.pathname];
     if (!action) return;
-    try { localStorage.setItem(preferredLaunchKey, action); } catch (_) {}
+    try {
+      localStorage.setItem(preferredLaunchKey, action);
+      localStorage.setItem(installIntentSurfaceKey, window.location.pathname);
+    } catch (_) {}
   };
   const trackInstallEvent = (event, extra = {}) => {
     try {
@@ -166,7 +170,7 @@
   const publicInstallEvents = {
     Shown: 'shown', NativeAvailable: 'native_available', CtaClicked: 'cta_clicked',
     PromptOpened: 'prompt_opened', Accepted: 'accepted', Dismissed: 'dismissed',
-    Installed: 'installed', InstructionsOpened: 'instructions_opened',
+    Installed: 'installed', InstructionsOpened: 'instructions_opened', Returned: 'returned',
   };
   const publicInstallPlatform = () => /iPhone|iPad|iPod/i.test(navigator.userAgent || '')
     || (navigator.maxTouchPoints > 1 && /Macintosh/i.test(navigator.userAgent || '')) ? 'ios'

@@ -266,9 +266,11 @@ PUBLIC_PWA_INSTALL_EVENT_TYPES = {
     "pwa_install_dismissed": "dismissed",
     "pwa_install_installed": "installed",
     "pwa_install_instructions_opened": "instructions_opened",
+    "pwa_install_returned": "returned",
 }
 PUBLIC_PWA_INSTALL_PLATFORMS = {"ios", "android", "web"}
 PUBLIC_PWA_INSTALL_SURFACES = {
+    "seller_success", "buyer_review", "buyer_success", "agent_saved_offer",
     "/", "/agents", "/buyers", "/sellers", "/investors", "/partners", "/directory", "/ondemand",
     "/texas-fsbo-guide", "/texas-home-service-partner-guide", "/texas-agent-offer-workflow", "/texas-listing-workflow", "/texas-lease-offer-workflow",
     "/texas-agent-form-library", "/texas-seller-offer-review", "/texas-homebuyer-offer-guide", "/texas-investor-offer-guide",
