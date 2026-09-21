@@ -1,0 +1,733 @@
+{
+  "format": "homeofferflow-vercel-production-manifest-v1",
+  "excluded": {
+    "prefixes": [
+      "docs/",
+      "tests/",
+      "scripts/",
+      "supabase/"
+    ],
+    "files": [
+      "api/fill_pdf_20_19_staging.py"
+    ]
+  },
+  "file_count": 143,
+  "total_bytes": 21230214,
+  "files": [
+    {
+      "file": ".git",
+      "bytes": 85,
+      "sha256": "cebb29d0a13189c36e1eb9c578a2f440daf471660a305208756176f100364ccd"
+    },
+    {
+      "file": ".gitignore",
+      "bytes": 149,
+      "sha256": "2ede43a896b75122d1f212d8ed83c82241352499a9cf3a71adbc768d2a6aa7ca"
+    },
+    {
+      "file": ".vercelignore",
+      "bytes": 945,
+      "sha256": "13145072160b9e84492535dfad921582ecc586c8d77c808df2596eb877740b1c"
+    },
+    {
+      "file": "20-18_0.pdf",
+      "bytes": 791388,
+      "sha256": "df02fbe9de3935496d0fc08cc2d9acfa1984713f3cee94c8b39eafd504a434d1"
+    },
+    {
+      "file": "20-19_0.pdf",
+      "bytes": 759476,
+      "sha256": "be3fa154f00476a674c73ba20f6c589111a905bc1e0894e0d5786b714f16f8d4"
+    },
+    {
+      "file": "404.html",
+      "bytes": 3904,
+      "sha256": "1451228a83036fccc13ea24a7368128788805115efb7ce5bc8c2cb9258c48176"
+    },
+    {
+      "file": "AGENTS.md",
+      "bytes": 1635,
+      "sha256": "d2a13d0dfcb38e04989c6f64037f699e01c7d8c75d43df37a5303770abd1f74e"
+    },
+    {
+      "file": "FOUNDING_PARTNER_PILOT_DEPLOY.md",
+      "bytes": 5099,
+      "sha256": "2f0d6786962e53b5161f3c009cd849ab41d2b2eed75ae7273f317ce7483f5549"
+    },
+    {
+      "file": "PARTNER_RATE_CARD.md",
+      "bytes": 4465,
+      "sha256": "4bf9895fda89b9ca9ab6e62824914c6d2c9091beebe1cebba88f5f2673b6d32e"
+    },
+    {
+      "file": "README.md",
+      "bytes": 200,
+      "sha256": "abda9ccff7ea55ec7fb904f94519b9c5e6de495a9ca2df7a6d0c73017d2226ba"
+    },
+    {
+      "file": "agents.html",
+      "bytes": 20750,
+      "sha256": "5eb60362f3f6885a040cc6834ae0df83bf98484f5ab12db023d170806a703248"
+    },
+    {
+      "file": "api/admin-dashboard.py",
+      "bytes": 411154,
+      "sha256": "a6f6bc6cd166a42c083872b6b2a90d6e39a26ed8d54dc1661aa6382b513ee075"
+    },
+    {
+      "file": "api/ai-offer-review.py",
+      "bytes": 40860,
+      "sha256": "20ff7ca91a274c3a8ca639e7c965e2234a23d2274f11c249de9e7f90ee400ee0"
+    },
+    {
+      "file": "api/create-billing-portal/index.py",
+      "bytes": 5462,
+      "sha256": "f102968fb0ef64ff5dbaa48e436200a4e4adcc2b7b3eaf3f49b033cac38bdfa0"
+    },
+    {
+      "file": "api/create-checkout.js",
+      "bytes": 10201,
+      "sha256": "017b6adaa6c68be13ac1357721cb3b5eb7ce4c34e658cdf9784434588eb255f7"
+    },
+    {
+      "file": "api/create-subscription-checkout/index.py",
+      "bytes": 19596,
+      "sha256": "e56a50e3727cf1bfa5c5163e840bb7f87ad0607298dbe9239006d3c652aafb6e"
+    },
+    {
+      "file": "api/feedback-alert/index.py",
+      "bytes": 5466,
+      "sha256": "4f8278f838c9a4343a0576ddca632338e58566ac5356b7a8ac93471a2db25d2d"
+    },
+    {
+      "file": "api/fill-pdf.py",
+      "bytes": 113079,
+      "sha256": "fb2c5561fbcd139292d3f765f018d8779fa0671edc537dece2bddb6d14449d17"
+    },
+    {
+      "file": "api/fsbo-lead.py",
+      "bytes": 94509,
+      "sha256": "931d2fee7442e22c2b7e5e10596c68dd8c09bdea0df0db5b4a3306e7a68ae983"
+    },
+    {
+      "file": "api/signwell-status.js",
+      "bytes": 20349,
+      "sha256": "24e5fa57a4fc8fc05e3eb396bbbbc684d72a609392135439f2c4e961115bc0c6"
+    },
+    {
+      "file": "api/signwell-webhook.py",
+      "bytes": 18955,
+      "sha256": "67ef1725a596a8d6f232fc1248abdeaf2c0eea1c1ee217cef5b0730d7aaf1503"
+    },
+    {
+      "file": "api/stripe-webhook/index.py",
+      "bytes": 49762,
+      "sha256": "29c40cdb28d72b37d6a756412d4eef3e3eeb3aeae0a078606c72fca79803c344"
+    },
+    {
+      "file": "api/submit-feedback/index.py",
+      "bytes": 15413,
+      "sha256": "0587ab5c3778c01ed789e89f9425ce98824b13318143c41781f0d0728911f1f4"
+    },
+    {
+      "file": "appraisal_addendum.pdf",
+      "bytes": 314033,
+      "sha256": "9cc7f9508a282830265dad72bdbef414afc3a78915c991b7e34d480d755e4b23"
+    },
+    {
+      "file": "assets/agent-landing-focus.css",
+      "bytes": 442,
+      "sha256": "4feff80a68d279c6ace91d6125fc99873d6cfbdf8faf5a862e1fc5a410fb2e94"
+    },
+    {
+      "file": "assets/agent-landing-focus.js",
+      "bytes": 3367,
+      "sha256": "6ed334e06022ae882a25a600d23fd46f89f8850f6bad16d3921fad48c73bbd45"
+    },
+    {
+      "file": "assets/agent-workflow-guide-metrics.js",
+      "bytes": 2825,
+      "sha256": "4119a3d67b98f5a41555b1bae40f848ca68174acb9d7ba52a698f62bb0b09373"
+    },
+    {
+      "file": "assets/fsbo-closing-checklist-metrics.js",
+      "bytes": 1968,
+      "sha256": "c46861150737d5223e4f9710b36f7ee5676a61a24f25e70ae4c1d473359c0fd4"
+    },
+    {
+      "file": "assets/fsbo-guide-metrics.js",
+      "bytes": 2239,
+      "sha256": "a4a6daa9e6bb6c5e2045016ec48946a5ff5c37b9ec6961d252814595033aa266"
+    },
+    {
+      "file": "assets/homeofferflow-app-icon-192.png",
+      "bytes": 28296,
+      "sha256": "35a4c8d3a448fc226907599f9533f256e06e49a57f17d4be97f280dcc4aaaa18"
+    },
+    {
+      "file": "assets/homeofferflow-app-icon-512.png",
+      "bytes": 202905,
+      "sha256": "4ffd90c2493fb0a55789ff9a421c2cff42541429cc3fc9d017a2ebab83a58a18"
+    },
+    {
+      "file": "assets/homeofferflow-app-icon.svg",
+      "bytes": 996,
+      "sha256": "8b3d2369fa6360deb49fc62a3150dd99d59b7b37575d897efa579260a993648d"
+    },
+    {
+      "file": "assets/homeofferflow-apple-touch-icon.png",
+      "bytes": 25141,
+      "sha256": "f35d0df4a3e5e3cbcf4ea81c2fa52e53bee8bc37d1f5a6e249ef8b08aa80e582"
+    },
+    {
+      "file": "assets/homeofferflow-social-preview-v2.jpg",
+      "bytes": 113341,
+      "sha256": "bee4c03994a28a4e1549cfcf9eeb9bf6d69684e9c5373e41ae81d7cc7370423f"
+    },
+    {
+      "file": "assets/investor-attribution.js",
+      "bytes": 809,
+      "sha256": "d7fd9ea16b80c97a5b7fc764b0445fa86f97b709b496821ac6ced50a6dce212d"
+    },
+    {
+      "file": "assets/investor-offer-guide-metrics.js",
+      "bytes": 1193,
+      "sha256": "34c1a3c68d79db246c4b0756beb38cd4674ae456de8c30942a810620ce787a43"
+    },
+    {
+      "file": "assets/partner-guide-metrics.js",
+      "bytes": 1227,
+      "sha256": "d485244a955b27996b1c8d609d8b385a18dc13389a10ad1983e17c748ab6bb8e"
+    },
+    {
+      "file": "assets/partner-landing-focus.css",
+      "bytes": 363,
+      "sha256": "6028f3fd7e1e41bc5e5d74026ecc366750bcbadc43a7183bfbb97d603783cef2"
+    },
+    {
+      "file": "assets/partner-landing-focus.js",
+      "bytes": 1992,
+      "sha256": "b4437e20d49ba6a5b7bd730138b3128da903931382fb15334cd780bf3b49955e"
+    },
+    {
+      "file": "assets/pwa-register.js",
+      "bytes": 24224,
+      "sha256": "d939c92fdeb8ee9ad376afda416dc0a7279d38af1e357999b9fd8ab532968f9e"
+    },
+    {
+      "file": "assets/pwa-share-target.js",
+      "bytes": 6467,
+      "sha256": "ee80c2fb58154bffa1be0ba67bd9364b11913a994dc6eeca3df1770f65787bc2"
+    },
+    {
+      "file": "assets/receipt-funnel-channel.js",
+      "bytes": 1099,
+      "sha256": "31db89021dd2daaf88c7d97bec62176ccfa7f70c3b807499ca8915a715c8094e"
+    },
+    {
+      "file": "assets/seller-campaign-package-bridge.js",
+      "bytes": 2612,
+      "sha256": "ca8464e0afc9391350d40fbdb5472039fdad09d2031454134b8b434941846f84"
+    },
+    {
+      "file": "back_up_contract_addendum.pdf",
+      "bytes": 360604,
+      "sha256": "a79821a0534d9a09ae8586e0ac5678be240105fb99e3e0a237d4c9a773a5871c"
+    },
+    {
+      "file": "backup_contract_addendum_11-9.pdf",
+      "bytes": 291741,
+      "sha256": "1bc6edd2f69f43ad3d8a1cfd82603a395d7e68b0164170fa5800fbf80d33f832"
+    },
+    {
+      "file": "buyer_temporary_residential_lease_16-7.pdf",
+      "bytes": 893512,
+      "sha256": "6692db491db42fde7b78652c49c3f152433cf5a9f3be41668e180ae772a7702f"
+    },
+    {
+      "file": "buyers.html",
+      "bytes": 20252,
+      "sha256": "19ee2fa79119e61d24a4e6e5393093aa96feb13a5cb1d6c1020ce969f1c8ba5c"
+    },
+    {
+      "file": "directory.html",
+      "bytes": 31756,
+      "sha256": "c443af22fd935902404d9dd677ef8ea9182930136e66c6432d02a4c619325469"
+    },
+    {
+      "file": "disclaimer.html",
+      "bytes": 9334,
+      "sha256": "8126e434f343441dc948b25eb4aed0d39ce93495d4851280ef1b737ef2b9fcb1"
+    },
+    {
+      "file": "esign-consent.html",
+      "bytes": 8415,
+      "sha256": "dae086820be6ccb003d30176e6fdc58b4c8481cf6437248bbf8eac11eb12ece1"
+    },
+    {
+      "file": "field-mapper.html",
+      "bytes": 15981,
+      "sha256": "15c6602cc5958b4d578b7b77b2e91e00369b44b90bec705e9297feea01b525ca"
+    },
+    {
+      "file": "hoa_addendum.pdf",
+      "bytes": 330327,
+      "sha256": "31c21aeb16ba6c916398211874bbb5a1f62718fc455fc90eb72b70103e8d332f"
+    },
+    {
+      "file": "hydrostatic_testing_48-1.pdf",
+      "bytes": 257002,
+      "sha256": "3eb6e7ced0723ceaab6bef2645fcd7868ee3c2cd2734a6a5f03dbe049bd5df6a"
+    },
+    {
+      "file": "index.html",
+      "bytes": 1723651,
+      "sha256": "435280d9202461a036183d28bd192c583fdc06c22169bfc55a5a1e6fdb3fdd56"
+    },
+    {
+      "file": "investors.html",
+      "bytes": 12593,
+      "sha256": "c225f39321266216b5aa72d79246bd97f7df7320c36fe6d1d855a6c67d85f6cb"
+    },
+    {
+      "file": "lead_based_paint_56-0.pdf",
+      "bytes": 425718,
+      "sha256": "eb8bdfb943cafbe8402e6b44fe44d73eb66d6acd6a99f31f73498f938fd76e6c"
+    },
+    {
+      "file": "lib/backup_contract_layout.py",
+      "bytes": 3480,
+      "sha256": "1d79466e6e3acaece25f1b1cd762325c15ca2e282e1f4712436533774357326c"
+    },
+    {
+      "file": "lib/checkout_packet_preflight.js",
+      "bytes": 2924,
+      "sha256": "c4a2166ecc334b8dadd08129236cb6dded56d2a1e3378c325d64fe2d96c6ae3e"
+    },
+    {
+      "file": "lib/checkout_payload.js",
+      "bytes": 2595,
+      "sha256": "0db6c883015c31ddf80bff0e0e98825f6a64bc6cb77f1af122a9e186d38a2a2a"
+    },
+    {
+      "file": "lib/checkout_payload.py",
+      "bytes": 5712,
+      "sha256": "c7e42743348feb7aa4fd8031f61f2501b34814f9924db76b0b54fb9bd405e8a9"
+    },
+    {
+      "file": "lib/contract_money.py",
+      "bytes": 950,
+      "sha256": "3375251f77f8f14e388fdd8f0f4cdf8d7c5cdc0907539331096db195bce10299"
+    },
+    {
+      "file": "lib/contract_terms_continuation.py",
+      "bytes": 2056,
+      "sha256": "b39fa1146dfe40aa5e08fca8554b58d2ad177402dcdcb096a7e28e5d8dde793f"
+    },
+    {
+      "file": "lib/email_delivery.py",
+      "bytes": 10858,
+      "sha256": "f2cc3c2918548123074721bc242305c5f4c5b67a453ff39fcf0ae0ffa9ff324b"
+    },
+    {
+      "file": "lib/email_delivery_store.py",
+      "bytes": 4858,
+      "sha256": "e31e0ebec77b2bf69011be51052645b51d1bca71606a9533e316c37b2500689d"
+    },
+    {
+      "file": "lib/email_receipt_lookup.py",
+      "bytes": 2973,
+      "sha256": "1bf0669424c774f5fae63f698846c1ad97297ab805d68ba708e2af03c3ff76e7"
+    },
+    {
+      "file": "lib/financing_addendum_layout.py",
+      "bytes": 4029,
+      "sha256": "5820dc7ac710bb5f59ea18f4ddd9de932a0a694c92ebebbc774d1193b29e6d45"
+    },
+    {
+      "file": "lib/fonts/HOFUnicodeSC-Regular.ttf",
+      "bytes": 10596332,
+      "sha256": "0416cb4024b21fcd9059ed6d3bc1a08130b893091c3d979a69d0b1890af6dd5a"
+    },
+    {
+      "file": "lib/fonts/NotoSans-Regular.ttf",
+      "bytes": 569208,
+      "sha256": "b85c38ecea8a7cfb39c24e395a4007474fa5a4fc864f6ee33309eb4948d232d5"
+    },
+    {
+      "file": "lib/fonts/OFL-NotoSans.txt",
+      "bytes": 4377,
+      "sha256": "0dab92d0544f7b233403f14b84a663bdbfa746982eda629e7f4f9ffe1b036feb"
+    },
+    {
+      "file": "lib/fonts/OFL-NotoSansCJK.txt",
+      "bytes": 4301,
+      "sha256": "6a73f9541c2de74158c0e7cf6b0a58ef774f5a780bf191f2d7ec9cc53efe2bf2"
+    },
+    {
+      "file": "lib/fonts/README.md",
+      "bytes": 2063,
+      "sha256": "05d9ee3179a0a63b8a6b5cdba9698df9b50c5306a825e58519a710cfcd6d37e4"
+    },
+    {
+      "file": "lib/hoa_addendum_layout.py",
+      "bytes": 3192,
+      "sha256": "6fc6a75f4744f0b4d7ab4608e186998cd506874acc0c743171261d88c22082dc"
+    },
+    {
+      "file": "lib/lease_terms_continuation.py",
+      "bytes": 6006,
+      "sha256": "7d143c3bb586d1ab670c5a47eeacc4d30a893bf2ee602a2c3ca5c0e9ddf524c3"
+    },
+    {
+      "file": "lib/loan_assumption.py",
+      "bytes": 4134,
+      "sha256": "6722c9ccaccd1a1f3fe105337b1b4e4c9bf51f8b1541a28ddccb6d0a1e7e1520"
+    },
+    {
+      "file": "lib/nonrealty_continuation.py",
+      "bytes": 2250,
+      "sha256": "0347273de79ebea6c728ad70c74760aa030bdc1085aed22cfa993a5424079c58"
+    },
+    {
+      "file": "lib/offer_signwell_delivery.py",
+      "bytes": 7857,
+      "sha256": "32c25bd882f0e9cc3a399eb50cdcf80d92f92ae2f79c7c1f259319a477ed5edb"
+    },
+    {
+      "file": "lib/packet_generation.py",
+      "bytes": 6797,
+      "sha256": "0aaa541a40794ddabc0a7f98424fd6ac3cb2771cdd76cfa571ef0dd718d9bea3"
+    },
+    {
+      "file": "lib/partner_marketplace_agreement.py",
+      "bytes": 9422,
+      "sha256": "a4500e2ed746510d98f61867ef4ae2935d30cb84952766e5ce8692c27011d7aa"
+    },
+    {
+      "file": "lib/pdf_source_audit.py",
+      "bytes": 662,
+      "sha256": "1f7a69acb3188d6f1807d06deb6ad0b4a65eb2ba6f0e73c3d87b24871298990a"
+    },
+    {
+      "file": "lib/pdf_text.py",
+      "bytes": 2958,
+      "sha256": "ffc5700dfdafa07a669d147ca2f209a76851861e40efc3558dc28d8be0d7d6c7"
+    },
+    {
+      "file": "lib/platform_form_source_upload.py",
+      "bytes": 14227,
+      "sha256": "d4743eac12c31336c3c1fe7b4bf63f9b191b78c7573c1a7dd50cdc3c29b043d0"
+    },
+    {
+      "file": "lib/production_adapter.py",
+      "bytes": 46328,
+      "sha256": "c7c2121b974baabdf3cedd58356b1d06bb6448b1136e1aaf69b59b132a976f08"
+    },
+    {
+      "file": "lib/repair_continuation.py",
+      "bytes": 4964,
+      "sha256": "73acb9f8be7d3a9d1d806adfb49b422f6478cdd9a8bec06c59a05330988f5a11"
+    },
+    {
+      "file": "lib/sale_contingency_layout.py",
+      "bytes": 2579,
+      "sha256": "30b84d3b3230cda27805e39452a4dfb0d1354780705c0cb53ac0f773b77f5d31"
+    },
+    {
+      "file": "lib/seller_checkout.py",
+      "bytes": 10100,
+      "sha256": "4ce6c285b79400c1b48252eca76cfc68930771a183d11e01fab6ee3b3b616fbd"
+    },
+    {
+      "file": "lib/seller_disclosure_draft.py",
+      "bytes": 3533,
+      "sha256": "25e62a691e8cac88289de01ed738f86b573555858bbdc482db204c32094fc74a"
+    },
+    {
+      "file": "lib/seller_financing.py",
+      "bytes": 7714,
+      "sha256": "bd62e8ae9c54f2f85d3cd8abfe51a05e9ebdc32067e71bb6ade0f8f60c9c1211"
+    },
+    {
+      "file": "lib/seller_review_access.py",
+      "bytes": 3445,
+      "sha256": "6f21b937d8f86a74b03eb9ad8b9e10b160b542f088cd4c38cc50173e4e9265d6"
+    },
+    {
+      "file": "lib/signwell_delivery.py",
+      "bytes": 8928,
+      "sha256": "715c29446688bb7233f9b32a44fcb1b990c54bf3fcfe10dbf87ea0e5572c0ceb"
+    },
+    {
+      "file": "lib/signwell_request.py",
+      "bytes": 4441,
+      "sha256": "582c0eb98005214c64d2ada63c9ded7b69b9db43068a7f752a343586d17985a6"
+    },
+    {
+      "file": "lib/trec_48_1.py",
+      "bytes": 6304,
+      "sha256": "9d60573a6371fe2f5c5d14d3a940434e039b59764ec7cba1525595de244715eb"
+    },
+    {
+      "file": "lib/trec_seller_disclosure.py",
+      "bytes": 24069,
+      "sha256": "418fcafefd9a26463f002cffa42c4b19471325e400847094db8a5904d24906e7"
+    },
+    {
+      "file": "lib/trec_seller_disclosure_schema.py",
+      "bytes": 7437,
+      "sha256": "dead2875a86370e513828ef8e7cfc9c92b4a26bc0fc498cf6b7dc9e4c9363adc"
+    },
+    {
+      "file": "lib/txr1501_answers.py",
+      "bytes": 6142,
+      "sha256": "a26a483727f8419163180fab9b654d3d19fdbba979fe4dec7dddb18dfd8496f7"
+    },
+    {
+      "file": "lib/txr1506_answers.py",
+      "bytes": 2763,
+      "sha256": "260699620edaa5655c7043de6c48d0ea157991843bb09694bf30aa14793c067d"
+    },
+    {
+      "file": "lib/txr1507_answers.py",
+      "bytes": 3026,
+      "sha256": "460eebef05d799eb91383aaffacb4f934829bd63549a37ed3dfccee2a8e0b0dc"
+    },
+    {
+      "file": "lib/txr1508_answers.py",
+      "bytes": 2442,
+      "sha256": "027d5564ad3e284c1fe1d4f70b4c6c03f0fd82e306c345cef3cc536e2ca03184"
+    },
+    {
+      "file": "lib/txr_1501.py",
+      "bytes": 10863,
+      "sha256": "1cf0ad7c2597c6cabcb8d623ef93eb5e9da4084f6829d4dce2e2c737d6de2315"
+    },
+    {
+      "file": "lib/txr_1506.py",
+      "bytes": 5266,
+      "sha256": "1ae76618a5ee0f621265b030900b5b16310208e40fe71bb835b98d1c74eb7f7c"
+    },
+    {
+      "file": "lib/txr_1507.py",
+      "bytes": 9655,
+      "sha256": "057affbc5590e6653670d3dc03283dd02bbd35e510d3b7aa8c73ce6786d1aa47"
+    },
+    {
+      "file": "lib/txr_1508.py",
+      "bytes": 5161,
+      "sha256": "462ee619ab2de0ccac6d7f7d2e4cc4079100958f6d060cfa2a8e752c9b7b39a0"
+    },
+    {
+      "file": "lib/txr_1905.py",
+      "bytes": 3914,
+      "sha256": "82b7b015dbec056b5e2485db7f64ebfa77825f33b8a761a9a704f0668bab17ad"
+    },
+    {
+      "file": "lib/txr_1914.py",
+      "bytes": 8221,
+      "sha256": "cc48e8df176d8c78abcd5abae95c88b5af863b535a2f819f04a00c5dbf34d773"
+    },
+    {
+      "file": "lib/txr_1917.py",
+      "bytes": 3450,
+      "sha256": "3cecf6f3222656c66361dca4af45d068d32cff011f973c88494b3593b8c8f39e"
+    },
+    {
+      "file": "lib/txr_1919.py",
+      "bytes": 9969,
+      "sha256": "dc19e54ba76e7a7b966eaab9203f15bc3b3a80ae27898db198cb3fdc346c9e6d"
+    },
+    {
+      "file": "lib/txr_1948.py",
+      "bytes": 10082,
+      "sha256": "9a0fa4e9103ed127281f22f02be143d064c95b55b2dce25ba6d6c500c6a7b53b"
+    },
+    {
+      "file": "lib/txr_1953.py",
+      "bytes": 4518,
+      "sha256": "aba4acf8428d7344936b3c5d585cbe4bf8493e35c701a6cb81ff4acd6581972f"
+    },
+    {
+      "file": "lib/txr_1954.py",
+      "bytes": 5465,
+      "sha256": "d88054bc002451fcb2dd26960501a409c2236a910b2477a5eb96dd9c412a4e07"
+    },
+    {
+      "file": "lib/txr_addenda_layout.py",
+      "bytes": 3860,
+      "sha256": "9998cc19f66496d7da54d2ea15335e31bdc3946b870c4fc9cc5d5f909482161e"
+    },
+    {
+      "file": "lib/txr_source_imprint.py",
+      "bytes": 4132,
+      "sha256": "209f37a431732ab490c5b1a5ad03501eb102893d3e3912b7b94a7f2de107fb80"
+    },
+    {
+      "file": "lib/verified_20_19.py",
+      "bytes": 95221,
+      "sha256": "3575a0d202f6c0b2d28b22450c6318ae28d9942b21a69d78b19ec78fe00e34cd"
+    },
+    {
+      "file": "manifest.webmanifest",
+      "bytes": 2566,
+      "sha256": "cdd1df307ab36edbc45d7f76b1053998966d00e98eebd4eac87eef462fdafa5c"
+    },
+    {
+      "file": "non_realty_items_addendum.pdf",
+      "bytes": 422877,
+      "sha256": "5a839817f3f12964b75615b1edcda99ad5697288555528f444f25cd9be64e319"
+    },
+    {
+      "file": "ondemand.html",
+      "bytes": 45239,
+      "sha256": "46c1fc5b319024671a48d7624f706fbd976ae55f0a45092e8411d1e8a6d199b5"
+    },
+    {
+      "file": "package.json",
+      "bytes": 120,
+      "sha256": "d8ee3688223844d39daef911fd4d58182e5b5df182ecaf7da7c1d6aa589e3f97"
+    },
+    {
+      "file": "partners.html",
+      "bytes": 26017,
+      "sha256": "8eafcc103d01dd647f3cf17c647bad3b429135a407ef844747d7338c251d5f7d"
+    },
+    {
+      "file": "privacy.html",
+      "bytes": 12300,
+      "sha256": "bf441bf9d438fea20203b6b1038a455c412c50a0bdb6c8e92897a6417a4dd0c0"
+    },
+    {
+      "file": "requirements-test.txt",
+      "bytes": 39,
+      "sha256": "a07c007f93dc6c77e54e74f7a9e9c971d48f57bd5af116b39d4cb8f29b594124"
+    },
+    {
+      "file": "requirements.txt",
+      "bytes": 44,
+      "sha256": "ad48013e48cbfb53464c3f23103569866aef3beace974ce11bd3532cd681b670"
+    },
+    {
+      "file": "robots.txt",
+      "bytes": 75,
+      "sha256": "ebdeb2eb517c03f08536d003752ef392a117789ec3f28bee98dfbc4c54f74986"
+    },
+    {
+      "file": "sale_of_other_property_addendum.pdf",
+      "bytes": 66365,
+      "sha256": "3b29e372f7d41c0d75b5754969d893a26ea214e54807b689f098fca2da5778ba"
+    },
+    {
+      "file": "seller-review.html",
+      "bytes": 7712,
+      "sha256": "3fc2bd9c308713103e7a421bff819696c99b74bde5add855de5336c1757a300a"
+    },
+    {
+      "file": "seller_temporary_residential_lease_15-7.pdf",
+      "bytes": 761930,
+      "sha256": "7b493c3ee665808eda55d36ac291ae8a469d0cb8be18d40c2bc981cacec61646"
+    },
+    {
+      "file": "sellers.html",
+      "bytes": 26385,
+      "sha256": "82a13d58fdbee2d6a5547300c4c5daafa707f7427d1a8321aa96a94f13e6e283"
+    },
+    {
+      "file": "service-worker.js",
+      "bytes": 4194,
+      "sha256": "b50baa9078736d44e61e28dee928eb69cd24cd71d85197824964602990720a4c"
+    },
+    {
+      "file": "sitemap.xml",
+      "bytes": 2669,
+      "sha256": "3c68cb96414f0544a282ac0000b40176cda21d0be520fa1fd4b02b7971cea2b5"
+    },
+    {
+      "file": "terms.html",
+      "bytes": 19036,
+      "sha256": "eead8f751a94c9405d60cbca8ffff37b841103924c49210e91176c8d17ceb2da"
+    },
+    {
+      "file": "texas-agent-form-library.html",
+      "bytes": 13086,
+      "sha256": "c7eb7a9b8fd510a53d0f7409bdf9b71ad4439ce24810085f252ae9e3e3f90566"
+    },
+    {
+      "file": "texas-agent-offer-workflow.html",
+      "bytes": 16380,
+      "sha256": "0fca68a6a35e164b52d683dcf82aeb95df3a304b63d10ddc8790b41e2352ea67"
+    },
+    {
+      "file": "texas-buyer-representation-guide.html",
+      "bytes": 11985,
+      "sha256": "9458cb0114e439d5345b6a7b81cbc395df994a1ce61d795a8c8f7d9031f4eefa"
+    },
+    {
+      "file": "texas-flat-fee-mls-guide.html",
+      "bytes": 10935,
+      "sha256": "9a4f5d5fa7bfddb32f190f32c9a25fd9ed4fa97d9417c2e670b30c6c5ba4e7ed"
+    },
+    {
+      "file": "texas-fsbo-closing-checklist.html",
+      "bytes": 11486,
+      "sha256": "7da4858da7d66bf38dd39dbfbe4ce3c648fc1be0eea0a93a45f4ab7ebd8e3800"
+    },
+    {
+      "file": "texas-fsbo-guide.html",
+      "bytes": 16883,
+      "sha256": "db84e6a037b0db9a80d968552c658ca23b5166f4d191a668f65c564a48b03508"
+    },
+    {
+      "file": "texas-home-service-partner-guide.html",
+      "bytes": 12828,
+      "sha256": "1368e4e5543c88d277ea01df4f741c75ca60b2ed3f57668ffee6abcd6b217d50"
+    },
+    {
+      "file": "texas-homebuyer-offer-guide.html",
+      "bytes": 13446,
+      "sha256": "8ce6a130fd6f0184824574454818c8767d7edee36eae24d578c09e79fc3aae2d"
+    },
+    {
+      "file": "texas-investor-offer-guide.html",
+      "bytes": 12535,
+      "sha256": "3c95f4d242677370778e39dc4b3d697799bc454033e32ed036e5adfc7800b582"
+    },
+    {
+      "file": "texas-lease-offer-workflow.html",
+      "bytes": 11740,
+      "sha256": "9c13101d9109219b735f607a69f636ee89f7ae752b094c941fc7323a88ce5373"
+    },
+    {
+      "file": "texas-listing-workflow.html",
+      "bytes": 11698,
+      "sha256": "a5d6c6eaea6e971ef3c32e6331306549e95dd9d0e7b89692fbc12c134761a827"
+    },
+    {
+      "file": "texas-seller-financing-guide.html",
+      "bytes": 11519,
+      "sha256": "131dcb78769dd65b4f5f5f6347ed41b6a68a762b1809fcff6415db4c07e6b0ec"
+    },
+    {
+      "file": "texas-seller-net-proceeds-calculator.html",
+      "bytes": 13860,
+      "sha256": "91091f755c4c3c600fd355f4eb97f2c102e042dfa56657b8c2eedba24f2a64cc"
+    },
+    {
+      "file": "texas-seller-offer-review.html",
+      "bytes": 14033,
+      "sha256": "b61ac720a15b2874492bbe880f926767fd20ef0693185ef34d768c66fac8a5a0"
+    },
+    {
+      "file": "third_party_financing_addendum.pdf",
+      "bytes": 534601,
+      "sha256": "e723f2a542c099c6b25d03240aaaefde1d3e914362bc1f4eae1353162647471a"
+    },
+    {
+      "file": "vercel.json",
+      "bytes": 8091,
+      "sha256": "2753653b62738ead8426bda33a81cf2d879db19e2e3455c046c4addac2f788e0"
+    }
+  ]
+}
