@@ -79,13 +79,14 @@ The release is corrective: where the completed provider PDF exposed a defect, th
 
 ## Regression evidence
 
-- Candidate regression: 2,368 repository tests passed locally on September 21, 2026.
+- Candidate regression: 2,369 repository tests passed locally on September 21, 2026.
 - Pull request #1242 checks passed, and protected-main run `35649412072` passed after merge.
 - `bundled-packet-golden-baseline-2026-09-21.md` records the reviewed 20-page packet and regenerated privacy-safe golden manifest.
 - `compact-signwell-geometry-qa-2026-09-18.md` records the completed six-form provider packet and refreshed privacy-safe geometry baselines.
 - `signing-reliability-main-merge-2026-09-18.md`, `stable-packet-delivery-retries-2026-09-15.md`, `purchase-offer-delivery-recovery-2026-09-15.md`, and `durable-signature-recovery-2026-09-15.md` cover concurrent invitations and delivery recovery.
 - `ondemand-mobile-enrollment-2026-09-21.md` records the aggregate trial-funnel evidence, mobile-first enrollment ordering, autofill-safe intent measurement, and the unchanged price/billing boundary.
 - `ondemand-sign-in-clarity-2026-09-21.md` records the truthful secure-link action label and privacy-safe direct/referral attribution without storing a referrer URL or identity.
+- `ondemand-enrollment-resilience-2026-09-21.md` records the nonblocking brokerage-configuration load and the unchanged server-side eligibility and checkout authority.
 - `seller-financing-purchase-packet-2026-09-18.md`, `loan-assumption-packet-foundation-2026-09-18.md`, `environmental-purchase-packet-2026-09-18.md`, `mineral-purchase-packet-2026-09-18.md`, and `hydrostatic-purchase-packet-2026-09-15.md` cover the new packet paths.
 - The exact release commit must rerun the full suite, golden packet rendering, standalone geometry, Supabase branch preflight, release preflight, and whitespace check in GitHub Actions.
 

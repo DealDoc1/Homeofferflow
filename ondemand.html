@@ -135,6 +135,7 @@
     .status { display:none; border-radius:11px; padding:12px 13px; margin:14px 0; font-size:14px; line-height:1.45; }
     .status.show { display:block; }
     .status.ok { background:rgba(109,179,143,.11); border:1px solid rgba(109,179,143,.35); color:#bce8d0; }
+    .status.note { background:rgba(200,151,63,.10); border:1px solid rgba(232,184,109,.35); color:#f4d39c; }
     .status.err { background:rgba(224,108,90,.10); border:1px solid rgba(224,108,90,.32); color:#ffc0b7; }
     .checkout-recovery { display:none; background:rgba(200,151,63,.11); border:1px solid rgba(232,184,109,.42); border-radius:12px; padding:13px; margin:15px 0; color:#f4d39c; font-size:13px; line-height:1.5; }
     .checkout-recovery strong { color:#ffe1a9; }
@@ -510,7 +511,12 @@
             $("brandMark").appendChild(image);
           }
         } catch (error) {
-          showStatus(customerErrorMessage(error, "We couldn’t load the OnDemand enrollment details. Refresh and try again."), "err");
+          // Brokerage styling is helpful but it is not an authentication
+          // gate. Keep the passwordless sign-in path usable while the server
+          // remains the authority for eligibility and final checkout terms.
+          if (!$("status").textContent.trim()) {
+            showStatus(customerErrorMessage(error, "We couldn’t refresh the brokerage details. You can still request your secure sign-in link; final enrollment terms are confirmed before checkout."), "note");
+          }
         }
       }
 
@@ -658,7 +664,6 @@
       }
 
       async function init() {
-        await loadConfig();
         const params = new URLSearchParams(window.location.search);
         const source = String(params.get("utm_source") || "").trim().toLowerCase();
         const medium = String(params.get("utm_medium") || "").trim().toLowerCase();
@@ -674,6 +679,11 @@
           ? String(params.get("utm_campaign") || "").trim().toLowerCase()
           : "";
         recordAggregateLandingEvent("ondemand_landing_viewed", channel, campaign);
+        // Do not make passwordless authentication or landing measurement wait
+        // for optional brokerage styling/configuration. loadConfig handles its
+        // own recovery message and the checkout endpoint still enforces the
+        // authoritative enrollment rules.
+        void loadConfig();
         if (params.get("checkout") === "success") {
           showStatus("Your secure checkout is complete. Open your workspace or choose your first transaction while agent access finishes activating.", "ok");
         } else if (params.get("checkout") === "cancelled") {
