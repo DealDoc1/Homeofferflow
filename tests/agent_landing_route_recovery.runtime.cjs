@@ -21,6 +21,7 @@ function setup({session, workflow = 'purchase', ready = true, openDashboard} = {
   const authSubtitle = {textContent:''};
   const window = {
     __hofDraftRestoreAuthReady: ready,
+    __hofAccountRouteAuthPending: true,
     hofAuth: {session: session ? {user:{id:'agent'}} : null},
     location,
     setAudience: role => calls.push(['audience', role]),
@@ -54,6 +55,7 @@ test('a signed-in agent opens the preserved transaction exactly once', () => {
     ['event', 'agent_landing_package_handoff', 'opened', 'purchase'],
   ]);
   assert.equal(page.window.__hofAgentLandingRouteProcessed, true);
+  assert.equal(page.window.__hofAccountRouteAuthPending, false);
   assert.equal(page.storage.has('hof_agent_route_pending_v1'), false);
 });
 
@@ -86,6 +88,7 @@ test('a signed-out agent sees the preserved workflow in the secure sign-in hando
   assert.equal(page.storage.get('hof_agent_landing_package_workflow'), 'lease_representation');
   assert.equal(page.authTitle.textContent, 'Continue to your tenant representation transaction');
   assert.match(page.authSubtitle.textContent, /open the next questions/i);
+  assert.equal(page.window.__hofAccountRouteAuthPending, true);
 });
 
 test('a route already handled by the DOM-ready path does not open another destination', () => {
