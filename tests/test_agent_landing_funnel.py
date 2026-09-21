@@ -158,6 +158,15 @@ class AgentLandingFunnelTests(unittest.TestCase):
 
     def test_agent_deep_link_recovers_if_the_ready_event_precedes_the_dom_handler(self):
         self.assertIn('id="hof-agent-route-primer-v1"', INDEX)
+        primer_start = INDEX.index('id="hof-agent-route-primer-v1"')
+        primer_end = INDEX.index('</script>', primer_start)
+        primer = INDEX[primer_start:primer_end]
+        self.assertIn("window.__hofAccountRouteAuthPending = true;", primer)
+        self.assertIn("route.get('investor') === '1'", primer)
+        restore_start = INDEX.index("function restoreDraft({ automatic = false")
+        restore_end = INDEX.index("const raw = localStorage.getItem", restore_start)
+        self.assertIn("window.__hofAccountRouteAuthPending", INDEX[restore_start:restore_end])
+        self.assertIn("document.getElementById('authModal')?.classList.contains('active')", INDEX[restore_start:restore_end])
         self.assertIn("'hof_agent_route_pending_v1'", INDEX)
         self.assertIn('id="hof-agent-landing-route-recovery-v1"', INDEX)
         self.assertIn("window.__hofAgentLandingRouteProcessed = true;", INDEX)

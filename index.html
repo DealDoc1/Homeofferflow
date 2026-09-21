@@ -32,6 +32,19 @@
   (function () {
     try {
       const route = new URLSearchParams(window.location.search || '');
+      const returningToAccountRoute = [
+        'hof_agent_landing_package_workflow',
+        'hof_agent_landing_start_draft',
+        'hof_agent_landing_open_seller_workspace',
+        'hof_agent_landing_open_relationship_workspace',
+        'hof_investor_landing_workspace'
+      ].some(key => !!localStorage.getItem(key));
+      if (route.get('agent') === '1' || route.get('investor') === '1' || returningToAccountRoute) {
+        // Keep an older local offer closed while an account route is deciding
+        // between the secure sign-in screen and the authenticated workspace.
+        // The draft remains available through the explicit Resume action.
+        window.__hofAccountRouteAuthPending = true;
+      }
       if (route.get('agent') !== '1') return;
       const workflows = new Set(['purchase', 'sale_listing', 'lease_listing', 'lease_representation']);
       const workspaces = new Set(['seller', 'relationship']);
@@ -8917,6 +8930,7 @@ function routeAfterMagicLinkIfNeeded() {
     const pending = localStorage.getItem('hof_auth_pending');
     const hasAuthHash = /access_token|refresh_token|type=magiclink|type=recovery/.test(window.location.hash || window.location.href || '');
     if (!pending && !hasAuthHash) return;
+    window.__hofAccountRouteAuthPending = false;
     hofAuth.routedAfterLogin = true;
     const role = (hofAuth.session.user?.user_metadata?.role || pending || hofAuth.role || 'agent') === 'investor' ? 'investor' : 'agent';
     const returnToHomebuyerReview = localStorage.getItem('hof_ai_review_return') === 'homebuyer';
@@ -14149,7 +14163,8 @@ function routeAfterMagicLinkIfNeeded() {
     // Startup and delayed account initialization may both try to restore.
     // Neither may replace work the user has already opened or begun editing.
     // Explicit Resume remains available even after automatic restore settles.
-    if (automatic && (window.__hofAutomaticDraftRestoreSettled || window.__hofPaymentReturn)) return false;
+    const secureSignInOpen = document.getElementById('authModal')?.classList.contains('active');
+    if (automatic && (window.__hofAutomaticDraftRestoreSettled || window.__hofPaymentReturn || window.__hofAccountRouteAuthPending || secureSignInOpen)) return false;
     const raw = localStorage.getItem(HOF_STORAGE_KEY);
     if (!raw) return false;
     const ownerUserId = localStorage.getItem(HOF_STORAGE_OWNER_KEY) || '';
@@ -18385,6 +18400,7 @@ function routeAfterMagicLinkIfNeeded() {
       } catch (_) {}
       window.setAudience?.('agent', { presentationOnly: true });
       if (window.hofAuth?.session) {
+        window.__hofAccountRouteAuthPending = false;
         if (agentLandingWorkflow) {
           const accountDashboard = window.openAccountDashboard?.({ tab: 'dashboard' });
           const continueToSelectedTransaction = () => window.setTimeout(() => {
@@ -18453,6 +18469,7 @@ function routeAfterMagicLinkIfNeeded() {
       } catch (_) {}
       window.setAudience?.('investor', { presentationOnly: true });
       if (window.hofAuth?.session && window.hofAuth?.role === 'investor') {
+        window.__hofAccountRouteAuthPending = false;
         window.openAccountDashboard?.({ tab: 'dashboard' });
         window.logOfferEvent?.(null, 'investor_landing_workspace_handoff', 'opened', 'Signed-in investor opened the workspace from the public landing page.', { source: investorLandingSource });
       } else if (window.hofAuth?.session) {
@@ -18514,6 +18531,7 @@ function routeAfterMagicLinkIfNeeded() {
     } catch (_) {}
 
     if (window.hofAuth?.session) {
+      window.__hofAccountRouteAuthPending = false;
       const accountDashboard = window.openAccountDashboard?.({ tab: workspace === 'seller' ? 'seller' : (workspace === 'relationship' ? 'relationships' : 'dashboard') });
       if (workflow) {
         const continueToSelectedTransaction = () => window.setTimeout(() => {

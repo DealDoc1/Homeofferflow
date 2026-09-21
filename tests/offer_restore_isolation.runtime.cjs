@@ -442,6 +442,17 @@ test('a payment return cannot automatically reopen the saved pricing interview',
   const x=setup();enableLocalDraft(x,startupDraft);x.ctx.window.__hofPaymentReturn=true;const original=x.ctx.state.data;
   assert.equal(x.ctx.restoreDraft({automatic:true}),false);assert.equal(x.ctx.state.data,original);
 });
+test('an account sign-in handoff keeps an older local draft closed until explicitly resumed',()=>{
+  const x=setup();enableLocalDraft(x,startupDraft);x.ctx.window.__hofAccountRouteAuthPending=true;const original=x.ctx.state.data;
+  assert.equal(x.ctx.restoreDraft({automatic:true}),false);assert.equal(x.ctx.state.data,original);
+  assert.notEqual(x.ctx.window.__hofAutomaticDraftRestoreSettled,true);
+  assert.equal(x.ctx.restoreDraft(),true);assert.equal(x.get('buyer1First').value,'Saved');
+});
+test('an open secure sign-in screen prevents a stale wizard from appearing behind it',()=>{
+  const x=setup();enableLocalDraft(x,startupDraft);x.get('authModal').classList.add('active');const original=x.ctx.state.data;
+  assert.equal(x.ctx.restoreDraft({automatic:true}),false);assert.equal(x.ctx.state.data,original);
+  assert.notEqual(x.ctx.window.__hofAutomaticDraftRestoreSettled,true);
+});
 test('an owner waiting for account resolution can still restore once it completes',()=>{
   const x=setup();enableLocalDraft(x,startupDraft);x.ctx.hofAuth.session=null;
   assert.equal(x.ctx.restoreDraft({automatic:true}),false);
