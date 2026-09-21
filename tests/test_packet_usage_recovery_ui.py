@@ -17,6 +17,7 @@ const elements = Object.fromEntries(['packetGenerationRecoveryNotice', 'packetGe
 const document={getElementById:id=>elements[id]};
 const calls=[];
 const openAccountDashboard=async options=>calls.push(options.tab);
+const prevStep=()=>calls.push('review');
 const logOfferEvent=async()=>{};
 const generateSubscribedPacket=async()=>calls.push('generate');
 const state={data:{}}; const hofAuth={};
@@ -42,3 +43,11 @@ elements.packetGenerationRetryButton.onclick().then(()=>process.stdout.write(JSO
         result=self.run_recovery('packet_allowance_unavailable')
         self.assertEqual(result['calls'], ['dashboard'])
         self.assertEqual(result['button'], 'Open Account')
+
+    def test_incomplete_offer_returns_to_review_instead_of_retrying_generation(self):
+        for code in ('unsupported_offer_path', 'checkout_answers_invalid'):
+            result=self.run_recovery(code)
+            self.assertEqual(result['calls'], ['review'])
+            self.assertEqual(result['button'], 'Review offer')
+            self.assertEqual(result['category'], 'validation')
+            self.assertIn('Review the offer details', result['text'])
