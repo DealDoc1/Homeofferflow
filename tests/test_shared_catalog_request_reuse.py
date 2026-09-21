@@ -18,9 +18,14 @@ class SharedCatalogRequestReuseTests(unittest.TestCase):
           let clock = 1000;
           const Date = {now:()=>clock};
           const requests = [];
+          let refreshes = 0;
           const rows = [{form_code:'TXR-1507',source_revision:'v1'},
                         {form_code:'TXR-1501',source_revision:'v1'}];
-          const success = (sources=rows) => ({ok:true,json:async()=>({sources})});
+          const success = (sources=rows) => ({ok:true,status:200,json:async()=>({sources})});
+          root.getSupabaseClient = () => ({auth:{refreshSession:async()=>{
+            refreshes++;
+            return {data:{session:{access_token:'token-refreshed',user:{id:'agent-a'}}},error:null};
+          }}});
           let respond = async () => success();
           const fetch = (url, options) => {
             requests.push({url,options});
@@ -74,6 +79,54 @@ class SharedCatalogRequestReuseTests(unittest.TestCase):
                   assert.equal((await root.hofLoadApprovedFormCatalog()).length,2);
                   assert.equal(requests.length,2);
                 ''')
+
+    def test_expired_session_refreshes_once_and_retries_with_the_new_token(self):
+        self.run_js('''
+          let attempt=0;
+          respond=async()=>++attempt===1
+            ? {ok:false,status:401,json:async()=>({error:'expired'})}
+            : success();
+          const sources=await root.hofLoadApprovedFormCatalog();
+          assert.equal(sources.length,2);
+          assert.equal(refreshes,1);
+          assert.equal(requests.length,2);
+          assert.equal(requests[0].options.headers.Authorization,'Bearer token-a');
+          assert.equal(requests[1].options.headers.Authorization,'Bearer token-refreshed');
+          assert.equal(root.hofAuth.session.access_token,'token-refreshed');
+          await root.hofLoadApprovedFormCatalog();
+          assert.equal(requests.length,2);
+        ''')
+
+    def test_rejected_refreshed_token_is_not_sent_to_vercel_repeatedly(self):
+        self.run_js('''
+          respond=async()=>({ok:false,status:401,json:async()=>({error:'expired'})});
+          await assert.rejects(root.hofLoadApprovedFormCatalog(),/secure session ended/);
+          assert.equal(refreshes,1);
+          assert.equal(requests.length,2);
+          await assert.rejects(root.hofLoadApprovedFormCatalog(),/secure session ended/);
+          assert.equal(refreshes,1);
+          assert.equal(requests.length,2);
+          root.hofClearApprovedFormCatalog();
+          await assert.rejects(root.hofLoadApprovedFormCatalog(),/secure session ended/);
+          assert.equal(requests.length,3);
+        ''')
+
+    def test_failed_refresh_is_suppressed_until_auth_state_changes(self):
+        self.run_js('''
+          root.getSupabaseClient=()=>({auth:{refreshSession:async()=>{
+            refreshes++;
+            return {data:{session:null},error:new Error('refresh failed')};
+          }}});
+          respond=async()=>({ok:false,status:401,json:async()=>({error:'expired'})});
+          await assert.rejects(root.hofLoadApprovedFormCatalog(),/secure session ended/);
+          await assert.rejects(root.hofLoadApprovedFormCatalog(),/secure session ended/);
+          assert.equal(refreshes,1);
+          assert.equal(requests.length,1);
+          root.hofAuth.session={access_token:'token-b',user:{id:'agent-a'}};
+          respond=async()=>success();
+          await root.hofLoadApprovedFormCatalog();
+          assert.equal(requests.length,2);
+        ''')
 
     def test_refresh_or_account_change_never_reuses_the_previous_session(self):
         self.run_js('''
