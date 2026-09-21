@@ -5561,6 +5561,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.agentResourceLinksExpandedCount || 0} shared-form/workflow resource expansions.</div>
             <div class="admin-metric-value">${metrics.agentLandingViewCount || 0} views</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.agentLandingQuestionOneViewCount || 0} reached Question 1 (${Number(metrics.agentLandingQuestionOneViewRate || 0).toFixed(1)}% of views) · ${metrics.agentLandingQuestionOneOpenCount || 0} used the Start Question 1 shortcut (${Number(metrics.agentLandingQuestionOneOpenRate || 0).toFixed(1)}% of views) · ${metrics.agentLandingCtaCount || 0} continued to the workspace (${Number(metrics.agentLandingCtaRate || 0).toFixed(1)}%) · ${metrics.agentLandingDraftHandoffUserCount || 0} reached the private draft (${Number(metrics.agentLandingDraftHandoffRate || 0).toFixed(1)}% of landing views).</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Public-agent sign-in continuation: ${Number(metrics.agentLandingAuthOpenCount || 0)} prompts opened · ${Number(metrics.agentLandingEmailStartCount || 0)} emails started (${Number(metrics.agentLandingEmailStartRate || 0).toFixed(1)}% of prompts) · ${Number(metrics.agentLandingMagicLinkRequestCount || 0)} secure links requested (${Number(metrics.agentLandingMagicLinkRequestRate || 0).toFixed(1)}% of email starts).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Workspace paths after sign-in: ${metrics.agentLandingSellerWorkspaceHandoffUserCount || 0} listing tools · ${metrics.agentLandingRelationshipWorkspaceHandoffUserCount || 0} relationship drafts.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Landing CTA choices: ${Number(metrics.agentLandingCtaPathCounts?.client_draft || 0)} purchase offers · ${Number(metrics.agentLandingCtaPathCounts?.seller_listing || 0)} sale listings · ${Number(metrics.agentLandingCtaPathCounts?.lease_listing || 0)} lease listings · ${Number(metrics.agentLandingCtaPathCounts?.lease_representation || 0)} tenant representation · ${Number(metrics.agentLandingCtaPathCounts?.relationship_drafts || 0)} relationship drafts · ${Number(metrics.agentLandingCtaPathCounts?.listing_guide || 0)} listing guides · ${Number(metrics.agentLandingCtaPathCounts?.lease_guide || 0)} lease guides · ${Number(metrics.agentLandingCtaPathCounts?.form_library_guide || 0)} form-library guides.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Authenticated transaction choices: ${Number(metrics.agentTransactionChoiceCounts?.purchase || 0)} purchase · ${Number(metrics.agentTransactionChoiceCounts?.sale_listing || 0)} sale listings · ${Number(metrics.agentTransactionChoiceCounts?.lease_listing || 0)} lease listings · ${Number(metrics.agentTransactionChoiceCounts?.lease_representation || 0)} tenant representation · ${Number(metrics.agentWorkflowResumeCount || 0)} resumes.</div>
@@ -5802,6 +5803,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       emailInput?.focus();
       return;
     }
+    recordAgentLandingAuthStage('agent_landing_email_started');
     try {
       setAuthStatus('Connecting secure sign-in…');
       const client = await ensureSupabaseClient();
@@ -5816,12 +5818,47 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         }
       });
       if (error) throw error;
+      recordAgentLandingAuthStage('agent_landing_magic_link_requested');
+      try { sessionStorage.removeItem('hof_agent_landing_auth_funnel'); } catch (_) {}
       setAuthStatus('Magic link sent. Check your email, then return here after signing in.', 'ok');
     } catch (err) {
       console.error('Magic link failed', err);
       setAuthStatus(err?.message || 'Could not send magic link. Check Supabase Auth URL settings.', 'err');
     }
   }
+
+  function recordAgentLandingAuthStage(eventType) {
+    const allowedEvents = new Set([
+      'agent_landing_auth_opened',
+      'agent_landing_email_started',
+      'agent_landing_magic_link_requested'
+    ]);
+    if (!allowedEvents.has(eventType)) return;
+    let channel = 'unspecified';
+    try {
+      if (sessionStorage.getItem('hof_agent_landing_auth_funnel') !== '1') return;
+      const allowedChannels = new Set([
+        'direct', 'homepage', 'organic', 'pwa_shortcut', 'direct_outreach',
+        'email', 'social', 'referral', 'local_event', 'print', 'unspecified'
+      ]);
+      const storedChannel = String(sessionStorage.getItem('hof_agent_landing_channel') || 'unspecified');
+      channel = allowedChannels.has(storedChannel) ? storedChannel : 'unspecified';
+      const eventKey = `hof_agent_landing_auth_stage_${eventType}`;
+      if (sessionStorage.getItem(eventKey) === '1') return;
+      sessionStorage.setItem(eventKey, '1');
+    } catch (_) { return; }
+    fetch('/api/fsbo-lead', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      keepalive: true,
+      body: JSON.stringify({
+        request_type: 'agent_landing_event',
+        event_type: eventType,
+        channel
+      })
+    }).catch(() => {});
+  }
+  window.recordAgentLandingAuthStage = recordAgentLandingAuthStage;
 
   async function signOutAccount() {
     const client = getSupabaseClient();
@@ -18590,12 +18627,20 @@ function routeAfterMagicLinkIfNeeded() {
         }
       } else {
         try {
+          sessionStorage.setItem('hof_agent_landing_auth_funnel', '1');
+          const agentAuthChannel = agentRouteParams.get('utm_medium') === 'organic_content'
+            ? 'organic'
+            : agentRouteParams.get('utm_medium') === 'installed_app'
+              ? 'pwa_shortcut'
+              : 'unspecified';
+          sessionStorage.setItem('hof_agent_landing_channel', agentAuthChannel);
           if (agentLandingSource === 'texas_agent_offer_workflow') localStorage.setItem('hof_agent_landing_source', agentLandingSource);
           if (agentLandingWorkflow) localStorage.setItem('hof_agent_landing_package_workflow', agentLandingWorkflow);
           if (agentLandingWorkspace === 'seller') localStorage.setItem('hof_agent_landing_open_seller_workspace', '1');
           else if (agentLandingWorkspace === 'relationship') localStorage.setItem('hof_agent_landing_open_relationship_workspace', '1');
           else localStorage.setItem('hof_agent_landing_start_draft', '1');
         } catch (_) {}
+        window.recordAgentLandingAuthStage?.('agent_landing_auth_opened');
         window.openAuthModal?.('agent');
         // The public transaction choice is already stored in a small allowlist
         // for the sign-in return. Say that plainly here so an agent never
@@ -18608,8 +18653,15 @@ function routeAfterMagicLinkIfNeeded() {
         }[agentLandingWorkflow] || 'transaction chooser';
         const authTitle = document.getElementById('authTitle');
         const authSubtitle = document.getElementById('authSubtitle');
+        const authEmail = document.getElementById('authEmail');
         if (authTitle) authTitle.textContent = `Continue to your ${workflowLabel}`;
-        if (authSubtitle) authSubtitle.textContent = `Enter your email for a secure sign-in link. We’ll open the next questions for this ${workflowLabel} after you return.`;
+        if (authSubtitle) authSubtitle.textContent = `Enter your email for a secure sign-in link. No payment is required to start. We’ll open the next questions for this ${workflowLabel} after you return.`;
+        if (authEmail?.addEventListener && authEmail.dataset.agentLandingFunnelBound !== '1') {
+          authEmail.dataset.agentLandingFunnelBound = '1';
+          authEmail.addEventListener('input', () => {
+            if (authEmail.value.trim()) recordAgentLandingAuthStage('agent_landing_email_started');
+          });
+        }
       }
       }), 80);
     }
