@@ -46,6 +46,14 @@ Both signing-map baselines are now locked to the reviewed geometry; 13 focused
 checks and the complete 2,333-test repository suite pass. See
 [compact SignWell QA evidence](release-evidence/compact-signwell-geometry-qa-2026-09-18.md).
 
+The bundled purchase-packet golden manifest now matches the visually approved
+execution geometry for financing, appraisal, HOA, sale-contingency, and backup
+addenda. A fresh two-buyer packet confirms every corrected signature and
+initials rectangle stays on its printed Buyer rule or footer blank, while
+unprinted date widgets remain removed. The exact cross-platform CI rendering
+guard passes locally. See
+[bundled golden-baseline evidence](release-evidence/bundled-packet-golden-baseline-2026-09-21.md).
+
 The seven-commit signing-reliability stack is now merged into `main` through
 PR #1233 at `b4d517be`. Post-merge GitHub Actions run `35404761878` passed the
 full unit suite, golden packet rendering, standalone signer-geometry guard,
