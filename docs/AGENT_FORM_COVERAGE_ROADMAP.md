@@ -36,13 +36,14 @@ confirmed-delivery rate. This requires no polling or new paid service and is
 **locally implemented, not deployed**. See
 [suppression visibility evidence](release-evidence/resend-suppression-visibility-2026-09-18.md).
 
-Outstanding completed-provider geometry checks for six corrected forms are now
-consolidated into one nonbinding SignWell document instead of six separate
-requests. The 14-page, 54-field packet is confirmed sent to the two approved QA
-inboxes with parallel signing and reminders disabled. Its provider document ID
-is `4ec37d4c-4283-4933-8416-28866c15f918`. It still requires both QA signers to
-finish the existing packet before the completed PDF can be inspected and the
-two geometry baselines reconsidered. See
+Completed-provider geometry checks for six corrected forms were consolidated
+into one nonbinding SignWell document instead of six separate requests. Both
+approved QA recipients completed the 14-page, 54-field packet, and every page
+of the provider-produced PDF passed visual placement review. Its provider
+document ID is `4ec37d4c-4283-4933-8416-28866c15f918`; its final SHA-256 is
+`59c9959922eb3cee8c6ca8c6c5de14c445817829670603201588a59c79f6e3e2`.
+Both signing-map baselines are now locked to the reviewed geometry; 13 focused
+checks and the complete 2,333-test repository suite pass. See
 [compact SignWell QA evidence](release-evidence/compact-signwell-geometry-qa-2026-09-18.md).
 
 The seven-commit signing-reliability stack is now merged into `main` through

@@ -57,16 +57,37 @@ the expected signer fields.
 The helper does not echo or persist the API credential. A saved local receipt
 prevents accidental duplicate creation from the same output directory.
 
-## Completion boundary
+## Completed-provider review - September 21, 2026
 
-The invitations being sent is not completed-signature evidence. Both QA
-recipients must complete this existing test document. Then download and render
-the provider-produced completed PDF, inspect every changed execution and
-initials area, and compare the result with the recorded source bounds.
+Both QA recipients completed the existing document. The provider completion
+email supplied the final PDF; no replacement document, reminder, or additional
+API request was created.
 
-Do not refresh either approved geometry baseline until the completed packet
-passes that review. Do not create a replacement packet merely because an email
-is delayed; inspect this same provider document first.
+- Completed PDF SHA-256:
+  `59c9959922eb3cee8c6ca8c6c5de14c445817829670603201588a59c79f6e3e2`.
+- The provider PDF is 14 US Letter pages, produced by HexaPDF, with no
+  interactive form tree or JavaScript. Every page is marked as nonbinding test
+  mode by SignWell.
+- All 14 pages were rendered at 144 DPI and visually inspected. Every one of
+  the 54 requested signature, date, and initials fields is completed. The
+  fields remain on the intended source rules or footer blanks without clipping
+  captions, crossing columns, or obscuring adjacent fields.
+- TXR-1501 and TXR-1507 include both clients plus the associate alternative;
+  complete dates remain readable inside their widened columns. TXR-1905,
+  TXR-1914, TXR-1917, and TXR-1919 include both buyer and seller rows, and the
+  page-one initials on TXR-1914 and TXR-1919 remain within their printed footer
+  blanks.
+- The prominent `Not Valid` artwork is the provider's expected test-mode
+  watermark. It is not a production form field or a placement defect.
+
+This completed provider evidence closes the outstanding geometry-review scope
+for these six corrected forms. Both privacy-safe signing-map baselines were
+refreshed from the reviewed field builders. The baseline refresh does not
+change a field or source; it locks the reviewed geometry against future drift.
+
+Thirteen focused geometry, map-review, and compact-packet tests pass against
+the refreshed baselines. The complete repository suite also passes: 2,333
+tests in 84.102 seconds.
 
 No Vercel build/deployment, production database change, customer send, real
-agreement replacement, cancellation, or reminder occurred.
+agreement replacement, cancellation, or reminder occurred during this review.

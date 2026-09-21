@@ -9,9 +9,64 @@
         "recipient_id": "associate",
         "required": true,
         "type": "date",
-        "width": 48,
-        "x": 336,
-        "y": 683
+        "width": 72,
+        "x": 312,
+        "y": 572
+      },
+      {
+        "api_id": "txr1501_associate_initials_p1",
+        "height": 14,
+        "page": 1,
+        "recipient_id": "associate",
+        "required": true,
+        "type": "initials",
+        "width": 46,
+        "x": 435,
+        "y": 976
+      },
+      {
+        "api_id": "txr1501_associate_initials_p2",
+        "height": 14,
+        "page": 2,
+        "recipient_id": "associate",
+        "required": true,
+        "type": "initials",
+        "width": 46,
+        "x": 435,
+        "y": 976
+      },
+      {
+        "api_id": "txr1501_associate_initials_p3",
+        "height": 14,
+        "page": 3,
+        "recipient_id": "associate",
+        "required": true,
+        "type": "initials",
+        "width": 46,
+        "x": 435,
+        "y": 976
+      },
+      {
+        "api_id": "txr1501_associate_initials_p4",
+        "height": 14,
+        "page": 4,
+        "recipient_id": "associate",
+        "required": true,
+        "type": "initials",
+        "width": 46,
+        "x": 435,
+        "y": 976
+      },
+      {
+        "api_id": "txr1501_associate_initials_p5",
+        "height": 14,
+        "page": 5,
+        "recipient_id": "associate",
+        "required": true,
+        "type": "initials",
+        "width": 46,
+        "x": 435,
+        "y": 976
       },
       {
         "api_id": "txr1501_associate_signature_p6",
@@ -22,7 +77,7 @@
         "type": "signature",
         "width": 240,
         "x": 48,
-        "y": 677
+        "y": 566
       },
       {
         "api_id": "txr1501_client1_date_p6",
@@ -31,9 +86,64 @@
         "recipient_id": "1",
         "required": true,
         "type": "date",
-        "width": 48,
-        "x": 720,
+        "width": 72,
+        "x": 696,
         "y": 572
+      },
+      {
+        "api_id": "txr1501_client1_initials_p1",
+        "height": 14,
+        "page": 1,
+        "recipient_id": "1",
+        "required": true,
+        "type": "initials",
+        "width": 45,
+        "x": 543,
+        "y": 976
+      },
+      {
+        "api_id": "txr1501_client1_initials_p2",
+        "height": 14,
+        "page": 2,
+        "recipient_id": "1",
+        "required": true,
+        "type": "initials",
+        "width": 45,
+        "x": 543,
+        "y": 976
+      },
+      {
+        "api_id": "txr1501_client1_initials_p3",
+        "height": 14,
+        "page": 3,
+        "recipient_id": "1",
+        "required": true,
+        "type": "initials",
+        "width": 45,
+        "x": 543,
+        "y": 976
+      },
+      {
+        "api_id": "txr1501_client1_initials_p4",
+        "height": 14,
+        "page": 4,
+        "recipient_id": "1",
+        "required": true,
+        "type": "initials",
+        "width": 45,
+        "x": 543,
+        "y": 976
+      },
+      {
+        "api_id": "txr1501_client1_initials_p5",
+        "height": 14,
+        "page": 5,
+        "recipient_id": "1",
+        "required": true,
+        "type": "initials",
+        "width": 45,
+        "x": 543,
+        "y": 976
       },
       {
         "api_id": "txr1501_client1_signature_p6",
@@ -42,7 +152,7 @@
         "recipient_id": "1",
         "required": true,
         "type": "signature",
-        "width": 272,
+        "width": 240,
         "x": 432,
         "y": 566
       },
@@ -53,9 +163,64 @@
         "recipient_id": "2",
         "required": true,
         "type": "date",
-        "width": 48,
-        "x": 720,
+        "width": 72,
+        "x": 696,
         "y": 683
+      },
+      {
+        "api_id": "txr1501_client2_initials_p1",
+        "height": 14,
+        "page": 1,
+        "recipient_id": "2",
+        "required": true,
+        "type": "initials",
+        "width": 46,
+        "x": 596,
+        "y": 976
+      },
+      {
+        "api_id": "txr1501_client2_initials_p2",
+        "height": 14,
+        "page": 2,
+        "recipient_id": "2",
+        "required": true,
+        "type": "initials",
+        "width": 46,
+        "x": 596,
+        "y": 976
+      },
+      {
+        "api_id": "txr1501_client2_initials_p3",
+        "height": 14,
+        "page": 3,
+        "recipient_id": "2",
+        "required": true,
+        "type": "initials",
+        "width": 46,
+        "x": 596,
+        "y": 976
+      },
+      {
+        "api_id": "txr1501_client2_initials_p4",
+        "height": 14,
+        "page": 4,
+        "recipient_id": "2",
+        "required": true,
+        "type": "initials",
+        "width": 46,
+        "x": 596,
+        "y": 976
+      },
+      {
+        "api_id": "txr1501_client2_initials_p5",
+        "height": 14,
+        "page": 5,
+        "recipient_id": "2",
+        "required": true,
+        "type": "initials",
+        "width": 46,
+        "x": 596,
+        "y": 976
       },
       {
         "api_id": "txr1501_client2_signature_p6",
@@ -64,7 +229,7 @@
         "recipient_id": "2",
         "required": true,
         "type": "signature",
-        "width": 272,
+        "width": 240,
         "x": 432,
         "y": 677
       }
@@ -255,9 +420,9 @@
         "recipient_id": "associate",
         "required": true,
         "type": "date",
-        "width": 48,
-        "x": 336,
-        "y": 720
+        "width": 72,
+        "x": 312,
+        "y": 692
       },
       {
         "api_id": "txr1507_associate_initials_p1",
@@ -266,9 +431,9 @@
         "recipient_id": "associate",
         "required": true,
         "type": "initials",
-        "width": 47,
+        "width": 46,
         "x": 435,
-        "y": 984
+        "y": 976
       },
       {
         "api_id": "txr1507_associate_signature_p2",
@@ -279,7 +444,7 @@
         "type": "signature",
         "width": 240,
         "x": 48,
-        "y": 714
+        "y": 684
       },
       {
         "api_id": "txr1507_client1_date_p2",
@@ -288,9 +453,9 @@
         "recipient_id": "1",
         "required": true,
         "type": "date",
-        "width": 48,
-        "x": 720,
-        "y": 720
+        "width": 72,
+        "x": 696,
+        "y": 692
       },
       {
         "api_id": "txr1507_client1_initials_p1",
@@ -299,9 +464,9 @@
         "recipient_id": "1",
         "required": true,
         "type": "initials",
-        "width": 47,
-        "x": 542,
-        "y": 984
+        "width": 46,
+        "x": 543,
+        "y": 976
       },
       {
         "api_id": "txr1507_client1_signature_p2",
@@ -310,9 +475,9 @@
         "recipient_id": "1",
         "required": true,
         "type": "signature",
-        "width": 272,
+        "width": 240,
         "x": 432,
-        "y": 714
+        "y": 684
       },
       {
         "api_id": "txr1507_client2_date_p2",
@@ -321,9 +486,9 @@
         "recipient_id": "2",
         "required": true,
         "type": "date",
-        "width": 48,
-        "x": 720,
-        "y": 830
+        "width": 72,
+        "x": 696,
+        "y": 802
       },
       {
         "api_id": "txr1507_client2_initials_p1",
@@ -332,9 +497,9 @@
         "recipient_id": "2",
         "required": true,
         "type": "initials",
-        "width": 47,
+        "width": 46,
         "x": 596,
-        "y": 984
+        "y": 976
       },
       {
         "api_id": "txr1507_client2_signature_p2",
@@ -343,9 +508,9 @@
         "recipient_id": "2",
         "required": true,
         "type": "signature",
-        "width": 272,
+        "width": 240,
         "x": 432,
-        "y": 824
+        "y": 794
       }
     ],
     "TXR1508": [
@@ -437,7 +602,7 @@
         "type": "signature",
         "width": 340,
         "x": 75,
-        "y": 883
+        "y": 881
       },
       {
         "api_id": "txr1905_seller1_signature_p1",
@@ -446,7 +611,7 @@
         "recipient_id": "3",
         "required": true,
         "type": "signature",
-        "width": 310,
+        "width": 306,
         "x": 440,
         "y": 807
       },
@@ -457,12 +622,23 @@
         "recipient_id": "4",
         "required": true,
         "type": "signature",
-        "width": 310,
+        "width": 306,
         "x": 440,
-        "y": 883
+        "y": 881
       }
     ],
     "TXR1914": [
+      {
+        "api_id": "txr1914_buyer1_initials_p1",
+        "height": 10,
+        "page": 1,
+        "recipient_id": "1",
+        "required": true,
+        "type": "initials",
+        "width": 50.666666666666664,
+        "x": 261.3333333333333,
+        "y": 1015
+      },
       {
         "api_id": "txr1914_buyer1_signature_p2",
         "height": 24,
@@ -470,9 +646,20 @@
         "recipient_id": "1",
         "required": true,
         "type": "signature",
-        "width": 340,
-        "x": 55,
-        "y": 718
+        "width": 320.0,
+        "x": 74.66666666666667,
+        "y": 715
+      },
+      {
+        "api_id": "txr1914_buyer2_initials_p1",
+        "height": 10,
+        "page": 1,
+        "recipient_id": "2",
+        "required": true,
+        "type": "initials",
+        "width": 50.666666666666664,
+        "x": 317.3333333333333,
+        "y": 1015
       },
       {
         "api_id": "txr1914_buyer2_signature_p2",
@@ -481,9 +668,20 @@
         "recipient_id": "2",
         "required": true,
         "type": "signature",
-        "width": 340,
-        "x": 55,
-        "y": 820
+        "width": 320.0,
+        "x": 74.66666666666667,
+        "y": 818
+      },
+      {
+        "api_id": "txr1914_seller1_initials_p1",
+        "height": 10,
+        "page": 1,
+        "recipient_id": "3",
+        "required": true,
+        "type": "initials",
+        "width": 38.666666666666664,
+        "x": 460.0,
+        "y": 1015
       },
       {
         "api_id": "txr1914_seller1_signature_p2",
@@ -492,9 +690,20 @@
         "recipient_id": "3",
         "required": true,
         "type": "signature",
-        "width": 340,
-        "x": 415,
-        "y": 718
+        "width": 325.3333333333333,
+        "x": 417.3333333333333,
+        "y": 715
+      },
+      {
+        "api_id": "txr1914_seller2_initials_p1",
+        "height": 10,
+        "page": 1,
+        "recipient_id": "4",
+        "required": true,
+        "type": "initials",
+        "width": 38.666666666666664,
+        "x": 502.6666666666667,
+        "y": 1015
       },
       {
         "api_id": "txr1914_seller2_signature_p2",
@@ -503,9 +712,9 @@
         "recipient_id": "4",
         "required": true,
         "type": "signature",
-        "width": 340,
-        "x": 415,
-        "y": 820
+        "width": 325.3333333333333,
+        "x": 417.3333333333333,
+        "y": 818
       }
     ],
     "TXR1917": [
@@ -516,9 +725,9 @@
         "recipient_id": "1",
         "required": true,
         "type": "signature",
-        "width": 313,
-        "x": 70,
-        "y": 686
+        "width": 308,
+        "x": 74,
+        "y": 684
       },
       {
         "api_id": "txr1917_buyer2_signature_p1",
@@ -527,9 +736,9 @@
         "recipient_id": "2",
         "required": true,
         "type": "signature",
-        "width": 313,
-        "x": 70,
-        "y": 780
+        "width": 308,
+        "x": 74,
+        "y": 778
       },
       {
         "api_id": "txr1917_seller1_signature_p1",
@@ -538,9 +747,9 @@
         "recipient_id": "3",
         "required": true,
         "type": "signature",
-        "width": 313,
-        "x": 433,
-        "y": 686
+        "width": 308,
+        "x": 434,
+        "y": 684
       },
       {
         "api_id": "txr1917_seller2_signature_p1",
@@ -549,12 +758,23 @@
         "recipient_id": "4",
         "required": true,
         "type": "signature",
-        "width": 313,
-        "x": 433,
-        "y": 780
+        "width": 308,
+        "x": 434,
+        "y": 778
       }
     ],
     "TXR1919": [
+      {
+        "api_id": "txr1919_buyer1_initials_p1",
+        "height": 10,
+        "page": 1,
+        "recipient_id": "1",
+        "required": true,
+        "type": "initials",
+        "width": 50.666666666666664,
+        "x": 254.66666666666666,
+        "y": 992
+      },
       {
         "api_id": "txr1919_buyer1_signature_p2",
         "height": 24,
@@ -565,6 +785,17 @@
         "width": 325,
         "x": 60,
         "y": 632
+      },
+      {
+        "api_id": "txr1919_buyer2_initials_p1",
+        "height": 10,
+        "page": 1,
+        "recipient_id": "2",
+        "required": true,
+        "type": "initials",
+        "width": 50.666666666666664,
+        "x": 310.6666666666667,
+        "y": 992
       },
       {
         "api_id": "txr1919_buyer2_signature_p2",
@@ -578,6 +809,17 @@
         "y": 716
       },
       {
+        "api_id": "txr1919_seller1_initials_p1",
+        "height": 10,
+        "page": 1,
+        "recipient_id": "3",
+        "required": true,
+        "type": "initials",
+        "width": 38.666666666666664,
+        "x": 434.6666666666667,
+        "y": 992
+      },
+      {
         "api_id": "txr1919_seller1_signature_p2",
         "height": 24,
         "page": 2,
@@ -587,6 +829,17 @@
         "width": 325,
         "x": 432,
         "y": 632
+      },
+      {
+        "api_id": "txr1919_seller2_initials_p1",
+        "height": 10,
+        "page": 1,
+        "recipient_id": "4",
+        "required": true,
+        "type": "initials",
+        "width": 38.666666666666664,
+        "x": 477.3333333333333,
+        "y": 992
       },
       {
         "api_id": "txr1919_seller2_signature_p2",
