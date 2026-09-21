@@ -19,12 +19,15 @@ recipients.
   financing displayed only its guided questions; the monthly-installment and
   required-escrow branches accepted valid answers; Continue advanced to the
   addenda step; and the browser reported no console errors.
+- Mobile local-browser walkthrough passed on 2026-09-21 at a 390 x 844
+  viewport: saved seller-financing answers restored; installment, protection,
+  and escrow fields remained readable and usable without horizontal clipping;
+  and a clean-tab interaction produced no browser errors. The reusable test
+  harness lives at `tests/fixtures/mobile-viewport.html`.
 
 ## Release status
 
 - Production deployment: not performed.
 - Production verification: not performed.
-- Remaining for release: mobile-width visual walkthrough, then inclusion in the
-  next intentional bundled production deployment after current Vercel headroom
-  is confirmed. The current in-app browser did not expose viewport emulation,
-  so no mobile-width visual result is claimed.
+- Remaining for release: inclusion in the next intentional bundled production
+  deployment after current Vercel headroom is confirmed.
