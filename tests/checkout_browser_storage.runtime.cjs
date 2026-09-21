@@ -16,7 +16,7 @@ function setup({quota=Infinity,blocked=false,readBlocked=false,silent=false,loca
     window:{hofUploadedDisclosureDocs:files,location:{origin:'https://www.homeofferflow.test',pathname:'/',href:'original'}},
     document:{getElementById:id=>id==='payBtn'?button:id==='paymentEmail'?email:id==='oneTimePacketAck'?{checked:true}:null},
     console:{error(){}},collectAllData(){},confirmControlledLaunchSupport:()=>true,validateParagraph4LeaseInputs:()=>true,
-    validateHydrostaticInputs:()=>true,validateMineralInputs:()=>true,validateEnvironmentalInputs:()=>true,validateAssumptionInputs:()=>true,validateSellerTemporaryLeaseInputs:()=>true,validateUploadedDisclosureDocs:()=>true,
+    validateHydrostaticInputs:()=>true,validateMineralInputs:()=>true,validateEnvironmentalInputs:()=>true,validateAssumptionInputs:()=>true,validateSellerFinancingInputs:()=>true,validateSellerTemporaryLeaseInputs:()=>true,validateUploadedDisclosureDocs:()=>true,
     setPaymentStatus:message=>notices.push(message),trackEvent(){},
     saveDraftNow:()=>{events.push('local-save');if(localFails)throw Error('Local store unavailable');},
     saveDraft:()=>events.push('delayed-save'),

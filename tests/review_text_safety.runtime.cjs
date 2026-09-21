@@ -157,7 +157,8 @@ test('district and lead reminders cannot claim a document is attached',()=>{
     assert.deepEqual(packageTags(x),['✓ TREC 1–4 Family Residential Contract']);
     assert.match(x.nodes.reviewSummary.innerHTML,/MUD \/ PID notices/);
     assert.match(x.nodes.reviewSummary.innerHTML,/Upload notices to include them in this package/);
-    assert.match(x.nodes.reviewSummary.innerHTML,/Buyer has received it/);
+    assert.match(x.nodes.reviewSummary.innerHTML,/Required before sending/);
+    assert.doesNotMatch(x.nodes.reviewSummary.innerHTML,/Buyer has received it/);
   }
   assert.doesNotMatch(html,/I'm not sure — include disclosure to be safe/);
 });
