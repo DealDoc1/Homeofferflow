@@ -51,6 +51,17 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
             ONDEMAND.index("@media (max-width:520px)"),
         )
 
+    def test_checkout_return_owns_one_quiet_install_prompt_with_aggregate_outcomes(self):
+        public_pwa = (ROOT / "assets" / "pwa-register.js").read_text(encoding="utf-8")
+        self.assertIn("if (window.location.pathname === '/ondemand') return;", public_pwa)
+        self.assertIn('function recordInstallEvent(eventType)', ONDEMAND)
+        for event in ('"cta_clicked"', '"prompt_opened"', '"accepted"', '"dismissed"'):
+            self.assertIn(event, ONDEMAND)
+        self.assertIn('request_type: "public_pwa_install_event"', ONDEMAND)
+        self.assertIn('surface: "/ondemand"', ONDEMAND)
+        self.assertIn('recordInstallEvent(choice.outcome);', ONDEMAND)
+        self.assertIn('await prompt.prompt();', ONDEMAND)
+
     def test_email_intent_captures_focus_and_autofill_safe_input_once(self):
         self.assertIn(
             'const recordEmailIntent = () => recordAggregateLandingEvent("ondemand_email_started");',

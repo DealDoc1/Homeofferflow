@@ -231,6 +231,9 @@
     });
   };
   const renderInstallCard = () => {
+    // The OnDemand checkout return owns a quieter in-card install handoff.
+    // Never stack this floating public card over that enrollment next step.
+    if (window.location.pathname === '/ondemand') return;
     if (!isMobileInstallSurface() || isStandaloneSurface() || !isInstallEligible() || isInstallDismissed() || isInstallRecentlyShown() || (!deferredInstallPrompt && !isIosInstallSurface()) || document.getElementById('hofPublicPwaInstallCard')) return;
     try { if (sessionStorage.getItem(dismissKey) === '1') return; } catch (_) {}
     const card = document.createElement('aside');

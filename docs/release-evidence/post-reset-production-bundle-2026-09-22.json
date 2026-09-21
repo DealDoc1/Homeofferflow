@@ -12,7 +12,7 @@
     ]
   },
   "file_count": 142,
-  "total_bytes": 21236310,
+  "total_bytes": 21237737,
   "files": [
     {
       "file": ".gitignore",
@@ -206,8 +206,8 @@
     },
     {
       "file": "assets/pwa-register.js",
-      "bytes": 24224,
-      "sha256": "d939c92fdeb8ee9ad376afda416dc0a7279d38af1e357999b9fd8ab532968f9e"
+      "bytes": 24435,
+      "sha256": "58d07e9fef708f21496cbc3f1048daeb41a018d31aaa2b2d1b9b6b9aedc2945c"
     },
     {
       "file": "assets/pwa-share-target.js",
@@ -576,8 +576,8 @@
     },
     {
       "file": "ondemand.html",
-      "bytes": 46861,
-      "sha256": "976e02d96cef206038a2a79088a09cedeb7e8ad00c4922d469ead21da0c9c50d"
+      "bytes": 48077,
+      "sha256": "8915e536de00e1d28e712e7cd5bdd4cc186cc8c3c3baf0f513621b90b9056547"
     },
     {
       "file": "package.json",
