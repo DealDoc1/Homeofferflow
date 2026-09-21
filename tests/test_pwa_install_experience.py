@@ -53,6 +53,7 @@ class PwaInstallExperienceTests(unittest.TestCase):
     def test_buyer_offer_install_returns_to_the_public_offer_from_a_clean_standalone_launch(self):
         self.assertIn("buyer_review: 'buyer_offer'", INDEX)
         self.assertIn("buyer_success: 'buyer_offer'", INDEX)
+        self.assertIn("agent_saved_offer: 'workspace'", INDEX)
         self.assertIn("localStorage.setItem(preferredLaunchKey, action)", INDEX)
         self.assertIn(": 'offer workspace';", INDEX)
         self.assertIn("window.beginOfferFrom?.('pwa_buyer_offer');", INDEX)
@@ -66,6 +67,7 @@ class PwaInstallExperienceTests(unittest.TestCase):
 
     def test_public_page_install_keeps_its_declared_workflow_one_tap_away(self):
         self.assertIn("const preferredLaunchKey = 'hof_pwa_preferred_launch_action';", PWA_REGISTER)
+        self.assertIn("const installIntentSurfaceKey = 'hof_pwa_install_intent_surface';", PWA_REGISTER)
         self.assertIn("const publicPreferredLaunchActions = {", PWA_REGISTER)
         for path, action in (
             ("'/buyers': 'buyer_offer'", "buyer_offer"),
@@ -78,7 +80,17 @@ class PwaInstallExperienceTests(unittest.TestCase):
             self.assertIn(path, PWA_REGISTER)
         self.assertIn("const rememberPreferredPublicLaunch = () =>", PWA_REGISTER)
         self.assertIn("localStorage.setItem(preferredLaunchKey, action)", PWA_REGISTER)
+        self.assertIn("localStorage.setItem(installIntentSurfaceKey, window.location.pathname)", PWA_REGISTER)
         self.assertIn("rememberPreferredPublicLaunch();", PWA_REGISTER)
+
+    def test_first_installed_app_return_is_privacy_safe_and_deduplicated(self):
+        self.assertIn("const installIntentSurfaceKey = 'hof_pwa_install_intent_surface';", INDEX)
+        self.assertIn("const installReturnRecordedKeyPrefix = 'hof_pwa_install_returned_';", INDEX)
+        self.assertIn("function recordFirstInstalledAppReturn()", INDEX)
+        self.assertIn("event_type: 'pwa_install_returned'", INDEX)
+        self.assertIn("installReturnRecordedKeyPrefix + surface", INDEX)
+        self.assertIn("localStorage.setItem(recordedKey, '1')", INDEX)
+        self.assertIn("recordFirstInstalledAppReturn();", INDEX)
 
     def test_completed_seller_request_can_offer_install_for_returning_mobile_work(self):
         self.assertIn("const sellerStatus = document.getElementById('fsboSellerStatus');", INDEX)
@@ -173,6 +185,8 @@ class PwaInstallExperienceTests(unittest.TestCase):
             '"pwaInstallCompletionRate"',
             '"pwaInstallAcceptedRate"',
             '"pwaInstallAcceptedSurfaceCounts"',
+            '"pwaInstallReturnedCount"',
+            '"pwaInstallReturnRate"',
             '"pwaAuthenticatedShortcutCounts"',
             '"pwaAuthenticatedShortcutPlatformCounts"',
             '"pwaAuthenticatedShortcutRepeatUserCount"',
@@ -197,6 +211,8 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("pwaOfflineRecoveryCount", INDEX)
         self.assertIn("pwaInstallAcceptedSurfaceCounts", INDEX)
         self.assertIn("pwaInstallAcceptedRate", INDEX)
+        self.assertIn("pwaInstallReturnedCount", INDEX)
+        self.assertIn("pwaInstallReturnRate", INDEX)
         self.assertIn("Shown on:", INDEX)
         self.assertIn("Authenticated workspace shortcuts:", INDEX)
         self.assertIn("PWA only: app-like mobile access", INDEX)

@@ -18,12 +18,16 @@ class PublicPwaInstallFunnelTests(unittest.TestCase):
         self.assertIn("public_pwa_install_event", API)
         self.assertIn('"public": True', API)
         self.assertIn('"/texas-home-service-partner-guide"', API)
+        self.assertIn('"pwa_install_returned": "returned"', API)
+        self.assertIn('"agent_saved_offer"', API)
 
     def test_public_install_script_records_platform_and_surface_without_identity(self):
         self.assertIn("trackPublicInstallEvent", SCRIPT)
         self.assertIn("public_pwa_install_event", SCRIPT)
         self.assertIn("publicInstallPlatform", SCRIPT)
         self.assertIn("window.location.pathname", SCRIPT)
+        self.assertIn("const installIntentSurfaceKey = 'hof_pwa_install_intent_surface';", SCRIPT)
+        self.assertIn("localStorage.setItem(installIntentSurfaceKey, window.location.pathname)", SCRIPT)
         self.assertIn("sessionStorage", SCRIPT)
         self.assertNotIn("user_id", SCRIPT)
 
@@ -32,6 +36,9 @@ class PublicPwaInstallFunnelTests(unittest.TestCase):
         self.assertIn("pwa_install_platform_counts", ADMIN)
         self.assertIn("/texas-agent-form-library", ADMIN)
         self.assertIn("/texas-home-service-partner-guide", ADMIN)
+        self.assertIn('"agent_saved_offer"', ADMIN)
+        self.assertIn('"returned": 0', ADMIN)
+        self.assertIn('"pwaInstallReturnRate"', ADMIN)
 
 
 if __name__ == "__main__":
