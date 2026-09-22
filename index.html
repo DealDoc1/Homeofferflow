@@ -808,19 +808,6 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     .terms-modal-box ul { padding-left: 1.25rem; }
     .terms-modal-box strong { color: var(--white); }
 
-    .agent-value-modal { display: none; position: fixed; inset: 0; z-index: 650; background: rgba(0,0,0,0.82); align-items: center; justify-content: center; padding: 1.5rem; }
-    .agent-value-modal.open { display: flex; }
-    .agent-value-card { background: linear-gradient(135deg, var(--navy-mid), rgba(200,151,63,0.06)); border: 1px solid rgba(200,151,63,0.22); border-radius: 18px; max-width: 560px; width: 100%; padding: 2rem; box-shadow: 0 24px 70px rgba(0,0,0,0.35); }
-    .agent-value-card h3 { font-family: 'Playfair Display', serif; font-size: 1.65rem; line-height: 1.15; margin-bottom: 0.85rem; color: var(--white); }
-    .agent-value-card p { font-size: 0.92rem; color: var(--gray-light); line-height: 1.65; margin-bottom: 0.75rem; }
-    .agent-value-card .highlight { color: var(--gold-light); font-weight: 700; }
-    .agent-value-actions { display: flex; flex-direction: column; gap: 0.7rem; margin-top: 1.25rem; }
-    .btn-modal-primary { background: var(--gold); color: var(--navy); border: none; padding: 0.9rem 1rem; border-radius: 9px; font-family: 'DM Sans', sans-serif; font-weight: 800; cursor: pointer; transition: all 0.2s; }
-    .btn-modal-primary:hover { background: var(--gold-light); transform: translateY(-1px); }
-    .btn-modal-secondary { background: transparent; color: var(--gold-light); border: 1px solid rgba(200,151,63,0.45); padding: 0.9rem 1rem; border-radius: 9px; font-family: 'DM Sans', sans-serif; font-weight: 700; cursor: pointer; transition: all 0.2s; }
-    .btn-modal-secondary:hover { background: rgba(200,151,63,0.08); }
-    .btn-modal-text { background: transparent; color: var(--gray-light); border: none; padding: 0.7rem 1rem; border-radius: 9px; font-family: 'DM Sans', sans-serif; font-weight: 600; cursor: pointer; }
-    .btn-modal-text:hover { color: var(--white); }
     @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
   
     input[type="date"]::-webkit-calendar-picker-indicator {
@@ -3042,40 +3029,6 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   <p>HomeOfferFlow is not a law firm, does not provide legal advice, and does not represent you as your real estate agent. This tool helps complete the Texas real estate forms made available in HomeOfferFlow. For legal guidance, consult a licensed Texas real estate attorney or broker.</p>
   <p>TREC forms provided by the Texas Real Estate Commission · <a href="https://trec.texas.gov" target="_blank">trec.texas.gov</a></p>
 </footer>
-
-<div class="terms-modal" id="termsModal" data-nosnippet>
-  <div class="terms-modal-box">
-    <h3>Terms, Privacy & Disclaimer</h3>
-    <p><strong style="color:var(--warn);">IMPORTANT — Please read carefully.</strong></p>
-    <ul>
-      <li><strong>Not Legal Advice.</strong> HomeOfferFlow is a form-completion tool only. Nothing on this platform constitutes legal advice, real estate advice, or a brokerage service.</li>
-      <li><strong>Not a Licensed Brokerage.</strong> HomeOfferFlow is not a licensed real estate brokerage and does not act as your agent or attorney in any transaction.</li>
-      <li><strong>TREC Forms.</strong> We assist in completing official TREC-promulgated forms. You are responsible for verifying all information entered is accurate before submitting to any party.</li>
-      <li><strong>Your Responsibility.</strong> Real estate contracts are legally binding documents. We strongly recommend having a licensed Texas real estate agent or attorney review your offer before submitting it.</li>
-      <li><strong>No Guarantee.</strong> Completion of a form does not guarantee acceptance of any offer or the success of any transaction.</li>
-      <li><strong>Data Privacy.</strong> Information you enter is used solely to populate your TREC form and is not shared with third parties except as necessary to process payment.</li>
-      <li><strong>Refund Policy.</strong> Due to the digital nature of this product, all sales are final once your PDF is generated and downloaded.</li>
-      <li><strong>Texas Jurisdiction.</strong> These terms are governed by the laws of the State of Texas.</li>
-    </ul>
-    <p>By proceeding, you acknowledge that you have read, understood, and agree to the full <a href="/terms.html" target="_blank" rel="noopener" style="color:var(--gold);">Terms of Service</a>, <a href="/privacy.html" target="_blank" rel="noopener" style="color:var(--gold);">Privacy Policy</a>, <a href="/disclaimer.html" target="_blank" rel="noopener" style="color:var(--gold);">Disclaimer</a>, and <a href="/esign-consent.html" target="_blank" rel="noopener" style="color:var(--gold);">Electronic Communications and E-Sign Consent</a>.</p>
-    <button class="btn-primary" onclick="closeTerms()" style="width:100%; margin-top:1rem;">I Understand — Close</button>
-  </div>
-</div>
-
-
-<div class="agent-value-modal" id="agentValueModal" data-nosnippet>
-  <div class="agent-value-card">
-    <h3>Thinking of using a buyer’s agent?</h3>
-    <p>HomeOfferFlow gives buyers a <span class="highlight">faster, lower-cost way</span> to create a clean Texas offer while staying in control.</p>
-    <p>You can build your offer in minutes, generate the TREC contract and key addenda, avoid missed blanks, and potentially save thousands compared with the traditional buyer-agent commission model.</p>
-    <p>You stay in control — and you can still have an attorney, agent, or advisor review before you submit.</p>
-    <div class="agent-value-actions">
-      <button type="button" class="btn-modal-primary" onclick="continueWithHomeOfferFlow()">Continue with HomeOfferFlow</button>
-      <button type="button" class="btn-modal-secondary" onclick="referMyAgent()">Refer My Agent to HomeOfferFlow</button>
-      <button type="button" class="btn-modal-text" onclick="useAgentInstead()">I’ll Use My Agent Instead</button>
-    </div>
-  </div>
-</div>
 
 <script id="hof-modal-isolation-v1">
   (() => {
@@ -10115,16 +10068,6 @@ function routeAfterMagicLinkIfNeeded() {
     scheduleDraftSave();
   }
 
-  function openTermsModal(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    document.getElementById('termsModal').classList.add('open');
-  }
-
-  function closeTerms() {
-    document.getElementById('termsModal').classList.remove('open');
-  }
-
   async function nextStep() {
     if (state.step === 0 && !state.termsOK) {
       const terms = document.getElementById('termsAccepted');
@@ -10673,105 +10616,6 @@ function routeAfterMagicLinkIfNeeded() {
     }
 
     scheduleDraftSave?.();
-  }
-
-  function showAgentValueModal() {
-    const modal = document.getElementById('agentValueModal');
-    if (modal) modal.classList.add('open');
-  }
-
-  function hideAgentValueModal() {
-    const modal = document.getElementById('agentValueModal');
-    if (modal) modal.classList.remove('open');
-  }
-
-  function continueWithHomeOfferFlow() {
-    hideAgentValueModal();
-    state.data.hasBuyerAgent = 'yes';
-    const agentFields = document.getElementById('agentFields');
-    if (agentFields) agentFields.style.display = 'block';
-  }
-
-  function referMyAgent() {
-    hideAgentValueModal();
-
-    state.data.hasBuyerAgent = 'yes';
-
-    const referralText =
-      'Hey, I found HomeOfferFlow. It helps buyers and agents create clean Texas offers faster using the TREC 1-4 Family Contract and key addenda. Thought this might help us move faster on offers: https://www.homeofferflow.com';
-
-    const notice = document.getElementById('agentPathNotice');
-    if (notice) {
-      notice.style.display = 'block';
-      notice.innerHTML = `
-        <strong>Refer your agent to HomeOfferFlow</strong><br>
-        Copy and send this to your agent:
-        <div style="margin-top:0.75rem; padding:0.75rem; border-radius:8px; background:rgba(255,255,255,0.06); color:var(--gray-light); font-size:0.84rem; line-height:1.55;">
-          ${referralText}
-        </div>
-        <button type="button" class="btn-primary" style="width:100%; margin-top:0.75rem;" onclick="copyAgentReferralText()">
-          Copy Referral Message
-        </button>
-        <button type="button" class="btn-secondary" style="width:100%; margin-top:0.5rem;" onclick="emailAgentReferral()">
-          Open Email
-        </button>
-      `;
-    }
-
-    saveDraft();
-  }
-
-  function copyAgentReferralText() {
-    const text =
-      'Hey, I found HomeOfferFlow. It helps buyers and agents create clean Texas offers faster using the TREC 1-4 Family Contract and key addenda. Thought this might help us move faster on offers: https://www.homeofferflow.com';
-
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(() => {
-        const notice = document.getElementById('agentPathNotice');
-        if (notice) {
-          notice.style.display = 'block';
-          notice.innerHTML = `
-            <strong>Referral message copied.</strong><br>
-            Send it to your agent by text or email, then continue building your offer when you're ready.
-          `;
-        }
-      }).catch(() => {
-        window.prompt('Copy this message:', text);
-      });
-    } else {
-      window.prompt('Copy this message:', text);
-    }
-  }
-
-  function emailAgentReferral() {
-    const subject = encodeURIComponent('Check out HomeOfferFlow');
-    const body = encodeURIComponent(
-      'Hey, I found HomeOfferFlow. It helps buyers and agents create clean Texas offers faster using the TREC 1-4 Family Contract and key addenda. Thought this might help us move faster on offers: https://www.homeofferflow.com'
-    );
-
-    window.location.href = `mailto:?subject=${subject}&body=${body}`;
-  }
-
-  function useAgentInstead() {
-    hideAgentValueModal();
-
-    state.data.hasBuyerAgent = '';
-    document.querySelectorAll('input[name="hasBuyerAgent"]').forEach((input) => {
-      input.checked = false;
-      const card = input.closest('.radio-card');
-      if (card) card.classList.remove('selected');
-    });
-
-    const notice = document.getElementById('agentPathNotice');
-    if (notice) {
-      notice.style.display = 'block';
-      notice.innerHTML = `
-        <strong>Still want to move faster?</strong><br>
-        Even if you use an agent, HomeOfferFlow can help you organize your offer terms, prepare a clearer offer package, and give your agent a faster starting point. You can continue building your offer, then share it with your agent before anything is submitted.
-      `;
-    }
-
-    saveDraft();
   }
 
   function buildReview() {
@@ -14117,10 +13961,6 @@ function routeAfterMagicLinkIfNeeded() {
     choices[nextIndex].click();
   };
 
-
-  document.getElementById('termsModal').addEventListener('click', function(e) {
-    if (e.target === this) closeTerms();
-  });
 
   document.addEventListener('click', function(e) {
     const modal = document.getElementById('feedbackModal');
