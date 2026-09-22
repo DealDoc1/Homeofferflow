@@ -509,6 +509,39 @@ async def _is_platform_admin(user):
     return bool(rows)
 
 
+async def _check_signwell_connection():
+    """Return a redacted, read-only provider connection result for admins."""
+    if not SIGNWELL_ENABLED or not SIGNWELL_API_KEY:
+        return {
+            "connected": False,
+            "message": "Signature delivery is not configured in production.",
+        }
+
+    try:
+        async with httpx.AsyncClient(timeout=12) as client:
+            response = await client.get(
+                "https://www.signwell.com/api/v1/documents/?limit=1",
+                headers={"X-Api-Key": SIGNWELL_API_KEY},
+            )
+    except httpx.HTTPError:
+        return {
+            "connected": False,
+            "message": "SignWell could not be reached. No document or email was created.",
+        }
+
+    if response.status_code == 200:
+        return {
+            "connected": True,
+            "message": "Signature delivery connection is ready. No document or email was created.",
+        }
+
+    if response.status_code in {401, 403}:
+        message = "SignWell rejected the production connection. Update the production key before sending documents."
+    else:
+        message = "SignWell is temporarily unavailable. No document or email was created."
+    return {"connected": False, "message": message}
+
+
 async def _brokerage_admin_context(user):
     if not user:
         return None
@@ -7289,6 +7322,10 @@ class handler(BaseHTTPRequestHandler):
                 return
             if not asyncio.run(_is_platform_admin(user)):
                 _json(self, 403, {"error": "Admin access is not enabled for this account."})
+                return
+            if data.get("action") == "check_signwell_connection":
+                result = asyncio.run(_check_signwell_connection())
+                _json(self, 200, {"ok": result["connected"], "signwell": result})
                 return
             if data.get("action") == "create_platform_partner_placement":
                 payload = _parse_partner_placement(data)
