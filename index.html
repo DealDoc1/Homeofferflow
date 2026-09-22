@@ -2937,7 +2937,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       </div>
     </details>
     <a class="nav-directory" href="/directory" onclick="trackEvent('Provider Directory Navigation Selected', { surface: 'primary_nav' });">Find a Provider</a>
-    <button class="nav-auth" id="accountCta" onclick="openAuthModal(state?.data?.userType || 'agent')">Agent / Broker Login</button>
+    <button class="nav-auth" id="accountCta" onclick="openAuthModal(state?.data?.userType || 'agent')">Sign In</button>
     <button class="nav-cta" id="navCta" onclick="beginOfferFrom('landing_nav_cta')">Build Your Offer →</button>
   </div>
 </nav>
@@ -3152,7 +3152,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   <div class="auth-box" role="dialog" aria-modal="true" aria-labelledby="authTitle">
     <div class="auth-box-header">
       <div>
-        <h3 id="authTitle">Agent / Broker Account</h3>
+        <h3 id="authTitle">HomeOfferFlow Account</h3>
         <p id="authSubtitle">Enter your email and we’ll send a secure sign-in link so you can save your work and continue where you left off.</p>
       </div>
       <button class="auth-close" type="button" onclick="closeAuthModal()" aria-label="Close account login">×</button>
@@ -4614,7 +4614,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         accountCta.classList.add('signed-in');
         accountCta.onclick = () => openAccountDashboard();
       } else {
-        accountCta.textContent = isMobile ? 'Login' : 'Agent / Broker Login';
+        accountCta.textContent = 'Sign In';
         accountCta.classList.remove('signed-in');
         accountCta.onclick = () => openAuthModal(state?.data?.userType || 'agent');
       }
@@ -6519,7 +6519,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
     if (!email || !email.includes('@') || !accessToken) {
       window.__hofSubscriptionCheckoutInFlight = false;
-      setAuthStatus('Please log in before starting a subscription.', 'err');
+      setAuthStatus('Please sign in before starting a subscription.', 'err');
       openAuthModal(normalizedPlan);
       return;
     }
@@ -6744,7 +6744,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   async function canGenerateOffer(showAlert = true) {
     if ((state.data.userType || 'homebuyer') === 'homebuyer') return true;
     if (!hofAuth.session) {
-      if (showAlert) setAuthStatus('Please log in before generating an agent or investor packet.', 'err');
+      if (showAlert) setAuthStatus('Please sign in before generating an agent or investor packet.', 'err');
       openAuthModal(state.data.userType || hofAuth.role || 'agent');
       return false;
     }
@@ -20210,7 +20210,7 @@ function routeAfterMagicLinkIfNeeded() {
         accountCta.classList.add('signed-in');
         accountCta.onclick = () => root.openAccountDashboard?.();
       } else {
-        accountCta.textContent = isMobile ? 'Login' : 'Agent / Broker Login';
+        accountCta.textContent = 'Sign In';
         accountCta.classList.remove('signed-in');
         accountCta.onclick = () => root.openAuthModal(root.state?.data?.userType || normalized || 'agent');
       }
@@ -20752,7 +20752,7 @@ function routeAfterMagicLinkIfNeeded() {
   root.updateAuthUI = function updateAuthUI(){
     if (typeof oldUpdateAuthUI === 'function') oldUpdateAuthUI();
     const account = document.getElementById('accountCta');
-    if (account && !root.hofAuth?.session) account.textContent = window.innerWidth <= 640 ? 'Login' : 'Agent / Broker Login';
+    if (account && !root.hofAuth?.session) account.textContent = 'Sign In';
   };
 
   document.addEventListener('DOMContentLoaded', function(){
