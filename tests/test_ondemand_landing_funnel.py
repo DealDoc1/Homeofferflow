@@ -79,7 +79,7 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
         self.assertIn("if (sessionStorage.getItem(key) === \"1\") return;", ONDEMAND)
 
     def test_enrollment_script_declares_the_legal_policy_version_once(self):
-        self.assertEqual(ONDEMAND.count('const LEGAL_POLICY_VERSION = "2026-07-30";'), 1)
+        self.assertEqual(ONDEMAND.count('const LEGAL_POLICY_VERSION = "2026-09-21";'), 1)
 
     def test_organic_guide_sources_are_allowlisted_for_ondemand_attribution(self):
         self.assertIn("ONDEMAND_LANDING_CHANNELS", API)

@@ -48,7 +48,7 @@ const html = fs.readFileSync(process.argv[1], 'utf8');
 const start = html.indexOf('async function recordLegalAcceptance()');
 const end = html.indexOf('async function loadConfig()', start);
 if (start < 0 || end < 0) throw new Error('recordLegalAcceptance not found');
-const LEGAL_POLICY_VERSION = '2026-07-30';
+const LEGAL_POLICY_VERSION = '2026-09-21';
 const state = {session: {user: {id: 'agent-1'}}};
 const values = new Map();
 const sessionStorage = {
