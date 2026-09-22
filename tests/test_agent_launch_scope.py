@@ -14,6 +14,14 @@ class AgentLaunchScopeTests(unittest.TestCase):
         self.assertIn("Guided documents", HTML)
         self.assertIn("For any document that can be sent for signature, review the completed PDF and confirm every recipient first.", HTML)
 
+    def test_dashboard_keeps_forms_and_support_collapsed_until_requested(self):
+        self.assertIn("const card = document.createElement('details');", HTML)
+        self.assertIn("<strong>Forms and support</strong>", HTML)
+        self.assertIn("See available forms or request a missing form.", HTML)
+        self.assertIn("class=\"hof-launch-scope-content\"", HTML)
+        self.assertIn("loadSharedSourceCatalog(card.querySelector('.hof-launch-scope-content'));", HTML)
+        self.assertIn("'agent_forms_support_opened'", HTML)
+
     def test_scope_does_not_overstate_signature_availability(self):
         self.assertIn("Every signed-in agent can prepare documents from the shared library.", HTML)
         self.assertIn("For any document that can be sent for signature", HTML)
