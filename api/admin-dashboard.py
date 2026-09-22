@@ -6130,6 +6130,17 @@ class handler(BaseHTTPRequestHandler):
                 ):
                     agent_form_package_nested_choice_events.append(item)
             agent_form_package_nested_choice_count = len(agent_form_package_nested_choice_events)
+            # Listing and lease-listing paths now continue directly from the
+            # transaction choice to the property workspace. Keep that reduced
+            # friction visible without pretending the skipped Question 2 was
+            # viewed or selected.
+            agent_form_package_direct_started_events = [
+                item for item in events
+                if item.get("event_type") == "agent_form_package_direct_started"
+                and str((item.get("metadata") or {}).get("workflow") or "")
+                in {"sale_listing", "lease_listing"}
+            ]
+            agent_form_package_direct_started_count = len(agent_form_package_direct_started_events)
             agent_form_package_interview_counts_by_workflow = {
                 workflow: len([
                     item for item in events
@@ -6158,6 +6169,13 @@ class handler(BaseHTTPRequestHandler):
                     if str((item.get("metadata") or {}).get("workflow") or "") == workflow
                 ])
                 for workflow in agent_transaction_workflows
+            }
+            agent_form_package_direct_started_counts_by_workflow = {
+                workflow: len([
+                    item for item in agent_form_package_direct_started_events
+                    if str((item.get("metadata") or {}).get("workflow") or "") == workflow
+                ])
+                for workflow in ("sale_listing", "lease_listing")
             }
             agent_transaction_event_workflows = {
                 "agent_workflow_purchase_selected": "purchase",
@@ -6884,6 +6902,8 @@ class handler(BaseHTTPRequestHandler):
                 "agentFormPackageSelectionCountsByWorkflow": agent_form_package_selection_counts_by_workflow,
                 "agentFormPackageStartedCountsByWorkflow": agent_form_package_started_counts_by_workflow,
                 "agentFormPackageNestedChoiceCountsByWorkflow": agent_form_package_nested_choice_counts_by_workflow,
+                "agentFormPackageDirectStartedCount": agent_form_package_direct_started_count,
+                "agentFormPackageDirectStartedCountsByWorkflow": agent_form_package_direct_started_counts_by_workflow,
                 "agentPrivateReviewDraftSavedCount": agent_private_review_draft_saved_count,
                 "agentPrivateReviewDraftSavedByForm": agent_private_review_draft_saved_by_form,
                 "agentPrivateReviewNextStepClickedCount": agent_private_review_next_step_clicked_count,

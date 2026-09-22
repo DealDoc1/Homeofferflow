@@ -349,16 +349,28 @@ class AgentLandingFunnelTests(unittest.TestCase):
         end = INDEX.index("lease_representation: {", start)
         lease_listing = INDEX[start:end]
         self.assertIn("Next, add the landlord and property details for this lease listing.", lease_listing)
-        self.assertIn("showAccountTab('seller');", lease_listing)
-        self.assertIn("document.getElementById('listingWorkspaceAddress')", lease_listing)
-        self.assertIn("agent_form_package_started", lease_listing)
-        self.assertIn("workflow: 'lease_listing'", lease_listing)
-        self.assertIn("package: 'Lease listing workspace'", lease_listing)
+        self.assertIn("action: () => openListingWorkspaceDirectly('lease_listing')", lease_listing)
+        launcher = INDEX[INDEX.index("const openListingWorkspaceDirectly = (workflow) =>"):start]
+        self.assertIn("showAccountTab('seller');", launcher)
+        self.assertIn("document.getElementById('listingWorkspaceAddress')", launcher)
+        self.assertIn("agent_form_package_started", launcher)
+        self.assertIn("Lease listing workspace", launcher)
         self.assertNotIn("hofOpenAgentPackageInterview('lease_listing')", lease_listing)
         self.assertNotIn("openRelationshipPackage('lease_addendum')", lease_listing)
         self.assertNotIn("openRelationshipPackage('purchase_addendum')", lease_listing)
         self.assertNotIn("hofOpenTxr1953Draft", lease_listing)
         self.assertNotIn("hofOpenTxr1954Draft", lease_listing)
+
+    def test_sale_and_lease_listings_continue_directly_to_the_property_workspace(self):
+        launcher_start = INDEX.index("window.startAgentWorkflow = function startAgentWorkflow(kind)")
+        launcher_end = INDEX.index("const HOF_OFFER_WORKSPACE_PAGE_SIZE", launcher_start)
+        launcher = INDEX[launcher_start:launcher_end]
+        self.assertIn("const openListingWorkspaceDirectly = (workflow) =>", launcher)
+        self.assertIn("action: () => openListingWorkspaceDirectly('sale_listing')", launcher)
+        self.assertIn("action: () => openListingWorkspaceDirectly('lease_listing')", launcher)
+        self.assertNotIn("hofOpenAgentPackageInterview('sale_listing')", launcher)
+        self.assertIn("agent_form_package_direct_started", launcher)
+        self.assertIn("Agent opened the listing workspace directly after choosing the transaction.", launcher)
 
     def test_guided_private_draft_handoff_offers_a_prefilled_missing_form_request(self):
         start = INDEX.index("const openRelationshipDraft = (openerName, onOpened, request)")
@@ -703,6 +715,10 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("agent_form_package_selection_events", ADMIN)
         self.assertIn("agent_form_package_started_events", ADMIN)
         self.assertIn("created_at >= first_view_at", ADMIN)
+        self.assertIn("agent_form_package_direct_started_events", ADMIN)
+        self.assertIn('"agentFormPackageDirectStartedCount": agent_form_package_direct_started_count', ADMIN)
+        self.assertIn('"agentFormPackageDirectStartedCountsByWorkflow": agent_form_package_direct_started_counts_by_workflow', ADMIN)
+        self.assertIn("agentFormPackageDirectStartedCount", INDEX)
 
     def test_homepage_offer_entry_events_keep_anonymous_campaign_source(self):
         self.assertIn("const entrySource = String(new URLSearchParams(window.location.search).get('utm_source') || 'homepage')", INDEX)

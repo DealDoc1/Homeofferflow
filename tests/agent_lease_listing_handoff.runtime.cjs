@@ -42,17 +42,20 @@ function setup() {
   return {window, calls, elements, choices, storage, flushOne, timers};
 }
 
-test('lease listing records a real workspace start only after the address question is ready', () => {
+for (const [workflow, packageLabel] of [
+  ['sale_listing', 'Sale listing workspace'],
+  ['lease_listing', 'Lease listing workspace'],
+]) test(`${workflow} continues directly and records a real workspace start only after the address question is ready`, () => {
   const page = setup();
 
-  page.window.startAgentWorkflow('lease_listing');
+  page.window.startAgentWorkflow(workflow);
   assert.deepEqual(JSON.parse(JSON.stringify(page.calls)), [
-    ['event', 'agent_workflow_lease_listing_selected', 'selected', 'Agent selected a transaction workflow from the workspace start.', {workflow: 'lease_listing'}],
+    ['event', `agent_workflow_${workflow}_selected`, 'selected', 'Agent selected a transaction workflow from the workspace start.', {workflow}],
     ['tab', 'seller'],
   ]);
-  assert.equal(page.storage.get('hof_agent_workflow_choice'), 'lease_listing');
-  assert.equal(page.window.hofAgentWorkflowContext, 'lease_listing');
-  assert.equal(page.choices.find(choice => choice.dataset.agentWorkflowChoice === 'lease_listing')['aria-pressed'], 'true');
+  assert.equal(page.storage.get('hof_agent_workflow_choice'), workflow);
+  assert.equal(page.window.hofAgentWorkflowContext, workflow);
+  assert.equal(page.choices.find(choice => choice.dataset.agentWorkflowChoice === workflow)['aria-pressed'], 'true');
 
   // The workspace has not loaded yet, so it must not count as a completed handoff.
   page.flushOne();
@@ -67,15 +70,18 @@ test('lease listing records a real workspace start only after the address questi
   assert.deepEqual(JSON.parse(JSON.stringify(card.scrollOptions)), {behavior: 'smooth', block: 'start'});
   assert.deepEqual(JSON.parse(JSON.stringify(address.focusOptions)), {preventScroll: true});
   assert.deepEqual(JSON.parse(JSON.stringify(page.calls.at(-1))), [
-    'event', 'agent_form_package_started', 'started', 'Agent opened the selected guided package workspace.',
-    {workflow: 'lease_listing', package: 'Lease listing workspace'},
+    'event', 'agent_form_package_direct_started', 'started', 'Agent opened the listing workspace directly after choosing the transaction.',
+    {workflow},
   ]);
   assert.equal(page.calls.filter(call => call[1] === 'agent_form_package_started').length, 1);
+  assert.deepEqual(JSON.parse(JSON.stringify(page.calls.at(-2))), [
+    'event', 'agent_form_package_started', 'started', 'Agent opened the selected guided package workspace.',
+    {workflow, package: packageLabel},
+  ]);
 });
 
 for (const [workflow, expectedInterview] of [
   ['purchase', 'purchase'],
-  ['sale_listing', 'sale_listing'],
   ['lease_representation', 'lease_representation'],
 ]) {
   test(`${workflow} opens Question 2 without also falling through to a workspace`, () => {
