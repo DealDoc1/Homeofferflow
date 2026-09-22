@@ -11,22 +11,22 @@ class ProductionReleaseWorkflowTests(unittest.TestCase):
     def setUpClass(cls):
         cls.text = WORKFLOW.read_text(encoding="utf-8")
 
-    def test_release_requires_manual_or_explicit_marker_confirmation(self):
+    def test_release_requires_manual_dispatch_confirmation(self):
         self.assertIn("workflow_dispatch:", self.text)
         self.assertIn("confirmation:", self.text)
         self.assertIn("inputs.confirmation == 'DEPLOY'", self.text)
         self.assertIn("inputs.confirmation != 'DEPLOY'", self.text)
-        self.assertIn("push:", self.text)
-        self.assertIn("[deploy-production]", self.text)
-        self.assertIn("github.event_name == 'push'", self.text)
+        self.assertNotIn("\n  push:", self.text)
+        self.assertNotIn("[deploy-production]", self.text)
+        self.assertNotIn("github.event_name == 'push'", self.text)
 
     def test_release_runs_preflight_before_deploying(self):
         self.assertIn("needs: verify", self.text)
         self.assertIn("python scripts/release_preflight.py", self.text)
-        self.assertIn("python scripts/release_base_ref.py", self.text)
-        self.assertIn("Evidence-File:", self.text)
-        self.assertIn("Push-triggered production release requires an Evidence-File", self.text)
-        self.assertIn('base_ref="${{ inputs.base_ref }}"', self.text)
+        self.assertNotIn("python scripts/release_base_ref.py", self.text)
+        self.assertNotIn("Push-triggered production release", self.text)
+        self.assertIn('--base "${{ inputs.base_ref }}"', self.text)
+        self.assertIn('--evidence-file "${{ inputs.evidence_file }}"', self.text)
         self.assertNotIn("inputs.base_ref || 'HEAD^'", self.text)
         self.assertIn("python -m unittest discover -s tests -q", self.text)
         self.assertIn("vercel pull --yes --environment=production", self.text)
