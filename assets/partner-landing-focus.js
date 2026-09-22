@@ -2,11 +2,15 @@
   const params = new URLSearchParams(window.location.search);
   const rawSource = String(params.get('utm_source') || '').trim().toLowerCase();
   const rawMedium = String(params.get('utm_medium') || '').trim().toLowerCase();
-  const allowedChannels = new Set(['direct', 'organic', 'pwa_shortcut', 'email', 'partner_receipt', 'social', 'referral', 'other', 'direct_outreach', 'local_event', 'print', 'owned_directory']);
-  const channel = rawMedium === 'installed_app'
+  const allowedChannels = new Set(['direct', 'homepage', 'organic', 'pwa_shortcut', 'email', 'partner_receipt', 'social', 'referral', 'other', 'direct_outreach', 'local_event', 'print', 'owned_directory']);
+  const channel = rawMedium === 'partner_receipt'
+    ? 'partner_receipt'
+    : rawMedium === 'installed_app'
     ? 'pwa_shortcut'
     : rawMedium === 'organic_content' || rawSource === 'organic'
       ? 'organic'
+      : rawMedium === 'homepage' || rawSource === 'homeofferflow'
+        ? 'homepage'
       : allowedChannels.has(rawMedium)
         ? rawMedium
         : allowedChannels.has(rawSource)

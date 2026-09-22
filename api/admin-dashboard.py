@@ -5012,7 +5012,10 @@ class handler(BaseHTTPRequestHandler):
                 if item.get("event_type") != "partner_directory_empty_search":
                     continue
                 channel = str((item.get("metadata") or {}).get("channel") or "direct").strip().lower()
-                if channel in {"direct", "pwa_shortcut", "email", "social", "referral", "other"}:
+                if channel in {
+                    "direct", "homepage", "organic", "pwa_shortcut", "email", "partner_receipt",
+                    "social", "referral", "other", "direct_outreach", "local_event", "print", "owned_directory",
+                }:
                     partner_directory_empty_search_channel_counts[channel] = (
                         partner_directory_empty_search_channel_counts.get(channel, 0) + 1
                     )
@@ -5042,7 +5045,10 @@ class handler(BaseHTTPRequestHandler):
                 partner_landing_category_cta_counts.items(), key=lambda item: (-item[1], item[0])
             ))
             partner_landing_channel_counts = {}
-            partner_landing_channels = ("direct", "organic", "pwa_shortcut", "email", "social", "referral", "other")
+            partner_landing_channels = (
+                "direct", "homepage", "organic", "pwa_shortcut", "email", "partner_receipt",
+                "social", "referral", "other", "direct_outreach", "local_event", "print", "owned_directory",
+            )
             partner_landing_view_counts_by_channel = {
                 channel: len([
                     item for item in partner_landing_events
@@ -5990,7 +5996,7 @@ class handler(BaseHTTPRequestHandler):
                 item for item in events if item.get("event_type") == "agent_workflow_guide_cta_selected"
             ])
             agent_landing_channels = (
-                "direct", "organic", "pwa_shortcut", "site_recovery", "direct_outreach", "email", "social", "referral", "local_event", "print", "unspecified",
+                "direct", "homepage", "organic", "pwa_shortcut", "site_recovery", "direct_outreach", "email", "social", "referral", "local_event", "print", "unspecified",
             )
             agent_landing_view_counts_by_channel = {
                 channel: len([
@@ -6328,7 +6334,7 @@ class handler(BaseHTTPRequestHandler):
                 item for item in events if item.get("event_type") == "investor_landing_cta_selected"
             ])
             investor_landing_channels = (
-                "direct_outreach", "email", "social", "referral", "local_event", "print", "organic", "pwa_shortcut", "unspecified",
+                "direct", "homepage", "direct_outreach", "email", "social", "referral", "local_event", "print", "organic", "pwa_shortcut", "unspecified",
             )
             investor_landing_view_counts_by_channel = {
                 channel: len([
@@ -6425,7 +6431,7 @@ class handler(BaseHTTPRequestHandler):
                 item for item in seller_landing_events if item.get("event_type") == "fsbo_support_paths_expanded"
             ])
             seller_landing_channels = (
-                "direct", "organic", "pwa_shortcut", "email", "social",
+                "direct", "homepage", "organic", "pwa_shortcut", "direct_outreach", "email", "seller_receipt", "social",
                 "referral", "local_event", "print", "unspecified",
             )
             seller_landing_view_counts_by_channel = {
