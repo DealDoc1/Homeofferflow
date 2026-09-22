@@ -694,7 +694,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("Channel views / workspace starts", INDEX)
         self.assertIn("continued to the workspace", INDEX)
         self.assertIn("Agent channel conversion:", INDEX)
-        self.assertIn("agentLandingViewCountsByChannel?.referral", INDEX)
+        self.assertIn("adminChannelStageSummary(metrics.agentLandingViewCountsByChannel, metrics.agentLandingCtaCountsByChannel)", INDEX)
         self.assertIn("agentLandingDraftHandoffUserCount", INDEX)
         self.assertIn("agentLandingDraftHandoffRate", INDEX)
         self.assertIn("Public-agent sign-in continuation:", INDEX)

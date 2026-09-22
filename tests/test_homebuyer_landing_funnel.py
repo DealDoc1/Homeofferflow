@@ -28,6 +28,7 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
         self.assertIn("Unsupported homebuyer landing channel.", API)
         self.assertIn("'homebuyer_landing_event'", API)
         self.assertIn('"surface": "homebuyer_landing"', API)
+        self.assertIn("adminChannelStageSummary(metrics.homebuyerLandingViewCountsByChannel, metrics.homebuyerLandingOfferStartedCountsByChannel)", INDEX)
 
     def test_buyer_landing_records_each_stage_once_without_buyer_or_offer_details(self):
         self.assertIn("recordAggregateFunnelEvent", BUYERS)
