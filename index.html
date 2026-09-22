@@ -12678,7 +12678,8 @@ function routeAfterMagicLinkIfNeeded() {
       throw new Error('Stripe did not return a checkout URL.');
     } catch (err) {
       console.error('Payment error:', err);
-      setPaymentStatus('Payment error: ' + (err?.message || err));
+      const checkoutFallback = 'We couldn’t open secure checkout. No payment was started. Review your details and try again.';
+      setPaymentStatus(window.hofCustomerActionError?.(err, checkoutFallback) || checkoutFallback);
       if (btn) {
         btn.disabled = false;
         btn.setAttribute('aria-disabled', 'false');
@@ -14636,6 +14637,10 @@ function routeAfterMagicLinkIfNeeded() {
     el.className = 'platform-status show ' + (type === 'err' ? 'err' : 'ok');
   }
 
+  function platformCustomerError(error, fallback) {
+    return window.hofCustomerActionError?.(error, fallback) || fallback;
+  }
+
   function platformUser() {
     return hofAuth?.session?.user || null;
   }
@@ -14751,7 +14756,7 @@ function routeAfterMagicLinkIfNeeded() {
       platformStatus('brokerageFoundationStatus', 'Brokerage profile saved. This account can now manage the brokerage workspace.', 'ok');
     } catch (err) {
       console.error('Save brokerage failed:', err);
-      platformStatus('brokerageFoundationStatus', err?.message || 'Could not save brokerage branding.', 'err');
+      platformStatus('brokerageFoundationStatus', platformCustomerError(err, 'We couldn’t save the brokerage details. Please try again.'), 'err');
     }
   }
 
@@ -15119,7 +15124,7 @@ function routeAfterMagicLinkIfNeeded() {
       await loadSellerLeadsFoundation();
     } catch (err) {
       console.error('Save seller lead failed:', err);
-      platformStatus('sellerFoundationStatus', err?.message || 'Could not save seller lead.', 'err');
+      platformStatus('sellerFoundationStatus', platformCustomerError(err, 'We couldn’t save the seller and property details. Please try again.'), 'err');
     } finally {
       if (saveButton) { saveButton.disabled = false; saveButton.setAttribute('aria-busy', 'false'); saveButton.textContent = 'Save Seller Lead'; }
     }
@@ -15143,7 +15148,7 @@ function routeAfterMagicLinkIfNeeded() {
         </div>`).join('') : '<div class="platform-list-item">No seller leads yet.</div>';
     } catch (err) {
       console.warn('Seller leads load failed:', err);
-      list.innerHTML = '<div class="platform-list-item">Seller leads could not load: ' + escapeAttr(err?.message || err) + '</div>';
+      list.innerHTML = '<div class="platform-list-item">We couldn’t load your seller list. Refresh the workspace and try again.</div>';
     }
   }
 
@@ -15239,7 +15244,7 @@ function routeAfterMagicLinkIfNeeded() {
       delete window.__hofListingWorkspaceSetupDraft;
     } catch (err) {
       console.error('Listing workspace save failed:', err);
-      platformStatus('listingWorkspaceStatus', err?.message || 'Could not create the listing workspace.', 'err');
+      platformStatus('listingWorkspaceStatus', platformCustomerError(err, 'We couldn’t create the listing workspace. Review the property details and try again.'), 'err');
     } finally {
       if (createButton) { createButton.disabled = false; createButton.setAttribute('aria-busy', 'false'); createButton.textContent = 'Save Listing Workspace'; }
     }
@@ -15407,7 +15412,7 @@ function routeAfterMagicLinkIfNeeded() {
     const user = platformUser();
     if (saveButton?.disabled) return;
     if (!client || !user || !select) return platformStatus('listingWorkspaceStatus', 'Sign in before updating a listing workspace.', 'err');
-    if (!/^[0-9a-f-]{20,80}$/i.test(id)) return platformStatus('listingWorkspaceStatus', 'Listing workspace identifier is invalid.', 'err');
+    if (!/^[0-9a-f-]{20,80}$/i.test(id)) return platformStatus('listingWorkspaceStatus', 'We couldn’t find that listing workspace. Refresh and try again.', 'err');
     if (saveButton) { saveButton.disabled = true; saveButton.setAttribute('aria-busy', 'true'); saveButton.textContent = 'Saving status…'; }
     platformStatus('listingWorkspaceStatus', 'Updating listing workspace status…');
     try {
@@ -15417,7 +15422,7 @@ function routeAfterMagicLinkIfNeeded() {
       await loadListingWorkspacesFoundation();
     } catch (err) {
       console.error('Listing workspace status update failed:', err);
-      platformStatus('listingWorkspaceStatus', err?.message || 'Could not update listing workspace status.', 'err');
+      platformStatus('listingWorkspaceStatus', platformCustomerError(err, 'We couldn’t update the listing status. Please try again.'), 'err');
     } finally {
       if (saveButton) { saveButton.disabled = false; saveButton.setAttribute('aria-busy', 'false'); saveButton.textContent = 'Save status'; }
     }
@@ -15454,7 +15459,7 @@ function routeAfterMagicLinkIfNeeded() {
     const user = platformUser();
     if (saveButton?.disabled) return;
     if (!client || !user || !select || !workspaceId) return platformStatus('listingOfferStatusMessage', 'Choose a workspace and sign in before updating an offer comparison.', 'err');
-    if (!/^[0-9a-f-]{20,80}$/i.test(id)) return platformStatus('listingOfferStatusMessage', 'Offer comparison identifier is invalid.', 'err');
+    if (!/^[0-9a-f-]{20,80}$/i.test(id)) return platformStatus('listingOfferStatusMessage', 'We couldn’t find that offer comparison. Refresh and try again.', 'err');
     const status = document.getElementById('listingOfferStatusMessage');
     if (saveButton) { saveButton.disabled = true; saveButton.setAttribute('aria-busy', 'true'); saveButton.textContent = 'Saving status…'; }
     if (status) { status.className = 'platform-status'; status.textContent = 'Updating comparison status…'; }
@@ -15465,7 +15470,7 @@ function routeAfterMagicLinkIfNeeded() {
       await loadListingWorkspaceOffersFoundation();
     } catch (err) {
       console.error('Listing workspace offer comparison status update failed:', err);
-      if (status) { status.className = 'platform-status err'; status.textContent = err?.message || 'Could not update offer comparison status.'; }
+      if (status) { status.className = 'platform-status err'; status.textContent = platformCustomerError(err, 'We couldn’t update the offer status. Please try again.'); }
     } finally {
       if (saveButton) { saveButton.disabled = false; saveButton.setAttribute('aria-busy', 'false'); saveButton.textContent = 'Save status'; }
     }
@@ -15478,7 +15483,7 @@ function routeAfterMagicLinkIfNeeded() {
     const client = getSupabaseClient();
     const user = platformUser();
     if (!client || !user || !workspaceId) return platformStatus('listingOfferStatusMessage', 'Choose a workspace and sign in before removing an offer comparison.', 'err');
-    if (!/^[0-9a-f-]{20,80}$/i.test(id)) return platformStatus('listingOfferStatusMessage', 'Offer comparison identifier is invalid.', 'err');
+    if (!/^[0-9a-f-]{20,80}$/i.test(id)) return platformStatus('listingOfferStatusMessage', 'We couldn’t find that offer comparison. Refresh and try again.', 'err');
     if (!window.confirm('Remove this offer comparison? This cannot be undone.')) return;
     const status = document.getElementById('listingOfferStatusMessage');
     if (removeButton?.disabled) return;
@@ -15491,7 +15496,7 @@ function routeAfterMagicLinkIfNeeded() {
       await loadListingWorkspaceOffersFoundation();
     } catch (err) {
       console.error('Listing workspace offer comparison removal failed:', err);
-      if (status) { status.className = 'platform-status err'; status.textContent = err?.message || 'Could not remove offer comparison.'; }
+      if (status) { status.className = 'platform-status err'; status.textContent = platformCustomerError(err, 'We couldn’t remove that offer comparison. Please try again.'); }
     } finally {
       if (removeButton) { removeButton.disabled = false; removeButton.setAttribute('aria-busy', 'false'); removeButton.textContent = 'Remove'; }
     }
@@ -15518,7 +15523,7 @@ function routeAfterMagicLinkIfNeeded() {
       renderListingWorkspaceOfferRows(hofPlatform.listingWorkspaceOffers);
     } catch (err) {
       console.warn('Listing workspace offer comparison load failed:', err);
-      list.innerHTML = '<div class="platform-list-item">Offer comparisons could not load: ' + escapeAttr(err?.message || err) + '</div>';
+      list.innerHTML = '<div class="platform-list-item">We couldn’t load the offer comparisons. Refresh the workspace and try again.</div>';
     }
   }
 
@@ -15673,7 +15678,7 @@ function routeAfterMagicLinkIfNeeded() {
       await loadListingWorkspaceOffersFoundation();
     } catch (err) {
       console.error('Listing workspace offer comparison save failed:', err);
-      if (status) { status.className = 'platform-status err'; status.textContent = err?.message || 'Could not save offer comparison.'; }
+      if (status) { status.className = 'platform-status err'; status.textContent = platformCustomerError(err, 'We couldn’t save the offer comparison. Review the details and try again.'); }
     } finally {
       if (saveButton) { saveButton.disabled = false; saveButton.setAttribute('aria-busy', 'false'); saveButton.textContent = 'Save Offer Comparison'; }
     }
@@ -15751,7 +15756,7 @@ function routeAfterMagicLinkIfNeeded() {
       }
     } catch (err) {
       console.warn('Listing workspace load failed:', err);
-      list.innerHTML = '<div class="platform-list-item">Listing workspaces could not load: ' + escapeAttr(err?.message || err) + '</div>';
+      list.innerHTML = '<div class="platform-list-item">We couldn’t load your listing workspaces. Refresh and try again.</div>';
       if (summary) { summary.textContent = ''; summary.className = 'platform-status'; }
     }
     await loadListingWorkspaceOffersFoundation();
@@ -15944,7 +15949,7 @@ function routeAfterMagicLinkIfNeeded() {
       await loadPartnerPlacementsFoundation();
     } catch (err) {
       console.error('Partner placement save failed:', err);
-      platformStatus('partnerFoundationStatus', err?.message || 'Could not save partner placement.', 'err');
+      platformStatus('partnerFoundationStatus', platformCustomerError(err, 'We couldn’t save the partner placement. Please try again.'), 'err');
     }
   }
 
@@ -15979,7 +15984,7 @@ function routeAfterMagicLinkIfNeeded() {
       }).join('') : '<div class="platform-list-item">No active platform placements yet. Add the first converted founding partner here when onboarding is complete.</div>';
     } catch (err) {
       console.warn('Partner placement load failed:', err);
-      list.innerHTML = '<div class="platform-list-item">Partners could not load: ' + escapeAttr(err?.message || err) + '</div>';
+      list.innerHTML = '<div class="platform-list-item">We couldn’t load partner placements. Refresh and try again.</div>';
     }
   }
 
