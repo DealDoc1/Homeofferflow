@@ -13,7 +13,7 @@ This record authorizes one coordinated corrective release. It does not convert a
 
 ## Database-first release sequence
 
-The candidate code depends on six production capability migrations that were confirmed absent on September 21, 2026. A seventh migration installs the service-only readiness contract that verifies the complete set. Apply and verify them in this order immediately before the code deployment:
+The candidate code depends on six production capability migrations that were confirmed absent on September 21, 2026. A seventh migration installs the service-only readiness contract that verifies the complete set, and an eighth corrects the contract's SQL `COALESCE` expression after the live verification caught the invalid schema qualification. Apply and verify them in this order before the code deployment:
 
 1. `20260915103000_canonical_agent_profile_aliases.sql`
 2. `20260915185113_durable_checkout_email_delivery.sql`
@@ -22,10 +22,11 @@ The candidate code depends on six production capability migrations that were con
 5. `20260915233303_private_buyer_checkout_payloads.sql`
 6. `20260915234223_expired_checkout_payload_cleanup.sql`
 7. `20260921203652_homeofferflow_release_schema_readiness.sql`
+8. `20260922053000_fix_release_schema_readiness_coalesce.sql`
 
-The database and application changes are one release unit. Do not apply the behavior-changing migrations hours in advance, and do not deploy the candidate code while the required tables, functions, trigger, and `hof_usage_events.generation_key` column are absent. The release workflow calls the service-only `hof_release_schema_readiness` contract after it pulls the production environment and before it spends Vercel build or deployment capacity; a missing capability, credential, or unreadable response stops the release. Also verify migration history and the named schema objects before starting the Vercel build.
+The database and application changes are one release unit. Do not deploy the candidate code while the required tables, functions, trigger, and `hof_usage_events.generation_key` column are absent. The release workflow calls the service-only `hof_release_schema_readiness` contract after it pulls the production environment and before it spends Vercel build or deployment capacity; a missing capability, credential, or unreadable response stops the release. Also verify migration history and the named schema objects before starting the Vercel build.
 
-The September 21 live read-only preflight confirmed all seven migrations are absent, all 20 referenced production columns have the expected types, both canonical-profile seed identities exist, the canonical agent profile exists, no release trigger name conflicts exist, and the subscription user key is unique. All 44 existing usage rows had a user, offer, and valid billing month; there were no duplicate subscription users. This proves dependency readiness only—the migrations remain intentionally unapplied until the coordinated release.
+The September 21 live read-only preflight confirmed the original seven migrations were absent, all 20 referenced production columns had the expected types, both canonical-profile seed identities existed, the canonical agent profile existed, no release trigger name conflicts existed, and the subscription user key was unique. All 44 existing usage rows had a user, offer, and valid billing month; there were no duplicate subscription users. On September 22, the seven planned migrations were applied in order. The first live readiness call exposed the invalid `pg_catalog.coalesce` expression in the contract function; the corrective eighth migration was then applied, and the live contract returned `ready: true`, `missing: []`, and `contract: homeofferflow-release-schema-v1`. Ten focused readiness and Supabase-preflight tests passed after the correction.
 
 Rollback is application-first: move the production alias back to the prior Ready deployment if a material regression appears. Preserve the additive tables, immutable receipts, usage records, and customer data; do not drop them during routine rollback.
 
@@ -122,7 +123,7 @@ The release is ready to enter the production workflow only after all of these pr
 
 1. Vercel's new billing cycle is visible and retains at least the configured $3 infrastructure-credit reserve.
 2. The exact candidate is authored by `andrewchri@gmail.com` and protected-main CI is green.
-3. The seven ordered migrations are applied; the six capability migrations and service-only readiness contract report every required table, function, trigger, RLS setting, and column ready.
+3. The eight ordered migrations are applied; the six capability migrations, service-only readiness contract, and corrective contract migration report every required table, function, trigger, RLS setting, and column ready.
 4. The release preflight passes against the prior production revision using this evidence file.
 
 After deployment:

@@ -1,6 +1,7 @@
--- A service-only, read-only release contract for the coordinated application
--- and database deployment. The function is intentionally created after every
--- dependency migration so an interrupted migration run cannot report ready.
+-- Correct the release-readiness function installed by the preceding migration.
+-- COALESCE is SQL syntax, not a pg_catalog function, so it must not be
+-- schema-qualified. Replacing the function is backward-compatible and keeps
+-- the service-only grants established by the original migration.
 create or replace function public.hof_release_schema_readiness()
 returns jsonb
 language plpgsql
