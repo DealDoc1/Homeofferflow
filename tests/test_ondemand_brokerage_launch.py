@@ -911,11 +911,12 @@ class BrokerageAuthorizationTests(unittest.TestCase):
     def test_brokerage_ui_does_not_present_a_form_access_gate_for_shared_forms(self):
         marker = INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"')
         final_script = INDEX_HTML[marker:]
-        self.assertIn("saveBrokerageTxrAuthorization", final_script)
-        self.assertIn("update_brokerage_txr_authorization", final_script)
         self.assertIn("Shared HomeOfferFlow forms", final_script)
+        self.assertNotIn("saveBrokerageTxrAuthorization", final_script)
+        self.assertNotIn("update_brokerage_txr_authorization", final_script)
         self.assertNotIn("Texas REALTORS® / NAR form authorization", final_script)
         self.assertNotIn('id="brokerageTxrAuthorization"', final_script)
+        self.assertNotIn("TXR/NAR attestation", final_script)
 
     def test_shared_title_defaults_save_prevents_duplicate_writes_and_restores_state(self):
         marker = INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"')
@@ -936,8 +937,9 @@ class BrokerageAuthorizationTests(unittest.TestCase):
     def test_brokerage_authorization_action_is_not_presented_as_shared_form_access(self):
         marker = INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"')
         final_script = INDEX_HTML[marker:]
-        self.assertIn("saveBrokerageTxrAuthorization", final_script)
+        self.assertNotIn("saveBrokerageTxrAuthorization", final_script)
         self.assertNotIn('id="saveBrokerageTxrAuthorizationButton"', final_script)
+        self.assertNotIn("TXR/NAR attestation", final_script)
         self.assertIn("Every signed-in agent can use the available HomeOfferFlow shared-form library", final_script)
 
     def test_broker_can_save_title_suggestions_but_not_transaction_terms(self):
