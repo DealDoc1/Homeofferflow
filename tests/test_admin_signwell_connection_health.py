@@ -16,8 +16,12 @@ SPEC.loader.exec_module(MODULE)
 
 
 class FakeResponse:
-    def __init__(self, status_code):
+    def __init__(self, status_code, payload=None):
         self.status_code = status_code
+        self.payload = payload or {}
+
+    def json(self):
+        return self.payload
 
 
 class FakeClient:
@@ -88,14 +92,77 @@ class AdminSignwellConnectionHealthTests(unittest.IsolatedAsyncioTestCase):
         source = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         admin_boundary = source.index('if not asyncio.run(_is_platform_admin(user)):')
         action = source.index('if data.get("action") == "check_signwell_connection":')
+        combined_action = source.index('if data.get("action") == "check_delivery_connections":')
         self.assertLess(admin_boundary, action)
+        self.assertLess(admin_boundary, combined_action)
 
     def test_admin_ui_explains_the_zero_send_check(self):
         source = (ROOT / "index.html").read_text(encoding="utf-8")
-        self.assertIn("Signature Delivery Connection", source)
-        self.assertIn("check_signwell_connection", source)
+        self.assertIn("Delivery Connections", source)
+        self.assertIn("check_delivery_connections", source)
         self.assertIn("does not create a document, consume a document allowance, or send an email", source)
         self.assertIn('aria-live="polite"', source)
+
+
+class AdminResendConnectionHealthTests(unittest.IsolatedAsyncioTestCase):
+    async def test_success_lists_one_domain_without_sending(self):
+        client = FakeClient(FakeResponse(200))
+        with patch.object(MODULE, "RESEND_API_KEY", "private-resend-key"), \
+             patch.object(MODULE.httpx, "AsyncClient", return_value=client):
+            result = await MODULE._check_resend_connection()
+
+        self.assertTrue(result["connected"])
+        self.assertIn("No email was sent", result["message"])
+        self.assertNotIn("private-resend-key", str(result))
+        self.assertEqual(client.calls[0]["url"], "https://api.resend.com/domains?limit=1")
+        self.assertEqual(client.calls[0]["headers"]["Authorization"], "Bearer private-resend-key")
+
+    async def test_rejected_key_returns_safe_admin_guidance(self):
+        client = FakeClient(FakeResponse(400, {"name": "validation_error"}))
+        with patch.object(MODULE, "RESEND_API_KEY", "expired-resend-key"), \
+             patch.object(MODULE.httpx, "AsyncClient", return_value=client):
+            result = await MODULE._check_resend_connection()
+
+        self.assertFalse(result["connected"])
+        self.assertIn("Update the production key", result["message"])
+        self.assertNotIn("400", result["message"])
+        self.assertNotIn("expired-resend-key", str(result))
+
+    async def test_sending_only_key_is_recognized_without_broadening_access(self):
+        client = FakeClient(FakeResponse(403, {"name": "restricted_api_key"}))
+        with patch.object(MODULE, "RESEND_API_KEY", "scoped-resend-key"), \
+             patch.object(MODULE.httpx, "AsyncClient", return_value=client):
+            result = await MODULE._check_resend_connection()
+
+        self.assertTrue(result["connected"])
+        self.assertIn("sending-only access", result["message"])
+        self.assertIn("No email was sent", result["message"])
+
+    async def test_network_failure_never_claims_an_email_was_sent(self):
+        client = FakeClient(error=httpx.ConnectError("offline"))
+        with patch.object(MODULE, "RESEND_API_KEY", "private-resend-key"), \
+             patch.object(MODULE.httpx, "AsyncClient", return_value=client):
+            result = await MODULE._check_resend_connection()
+
+        self.assertFalse(result["connected"])
+        self.assertIn("No email was sent", result["message"])
+
+    async def test_missing_configuration_stops_before_provider_access(self):
+        with patch.object(MODULE, "RESEND_API_KEY", ""), \
+             patch.object(MODULE.httpx, "AsyncClient") as client_factory:
+            result = await MODULE._check_resend_connection()
+
+        self.assertFalse(result["connected"])
+        client_factory.assert_not_called()
+
+    async def test_combined_check_runs_both_independent_services(self):
+        with patch.object(MODULE, "_check_signwell_connection", return_value={"connected": True}), \
+             patch.object(MODULE, "_check_resend_connection", return_value={"connected": True}):
+            result = await MODULE._check_delivery_connections()
+
+        self.assertEqual(set(result), {"signwell", "resend"})
+        self.assertTrue(result["signwell"]["connected"])
+        self.assertTrue(result["resend"]["connected"])
 
 
 if __name__ == "__main__":
