@@ -729,23 +729,36 @@
         } else if (params.get("checkout") === "cancelled") {
           showStatus("Checkout was canceled. Your card was not saved and your trial did not start.", "err");
         }
-        const { data } = await client.auth.getSession();
-        renderSession(data.session);
+        // Attach the listener before reading the saved session. If the initial
+        // browser read fails, a later auth recovery can still render the agent
+        // and continue invite acceptance without requiring another page load.
+        client.auth.onAuthStateChange((_event, session) => {
+          renderSession(session);
+          void acceptBrokerageInvite(session);
+        });
+        let initialSession = null;
+        try {
+          const { data, error } = await client.auth.getSession();
+          if (error) throw error;
+          initialSession = data?.session || null;
+          renderSession(initialSession);
+        } catch (error) {
+          if (!state.session?.user?.id) {
+            showStatus(customerErrorMessage(error, "We couldn’t confirm your saved sign-in. You can still request a new secure link or refresh this page."), "note");
+          }
+        }
+        const activeSession = state.session || initialSession;
         const checkoutResult = params.get("checkout");
         if (checkoutResult === "success" || checkoutResult === "cancelled") {
           await recordCheckoutFunnelEvent("subscription_checkout_returned", checkoutResult);
         }
-        if (checkoutResult === "success" && data.session?.user?.id) {
+        if (checkoutResult === "success" && activeSession?.user?.id) {
           await confirmActivatedWorkspace();
         }
-        if (checkoutResult === "cancelled" && data.session?.user?.id) {
+        if (checkoutResult === "cancelled" && activeSession?.user?.id) {
           await recordCheckoutFunnelEvent("subscription_checkout_recovery_shown", "shown");
         }
-        await acceptBrokerageInvite(data.session);
-        client.auth.onAuthStateChange((_event, session) => {
-          renderSession(session);
-          acceptBrokerageInvite(session);
-        });
+        await acceptBrokerageInvite(activeSession);
       }
 
       $("signInButton").addEventListener("click", sendMagicLink);
