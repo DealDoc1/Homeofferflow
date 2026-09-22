@@ -4,7 +4,7 @@
 
 - Prior verified production revision: `133a32bff9a736544c8bf9c9d04cd549c11b8570`.
 - Exact application candidate revision: `18a40a9b1a9dd32718c0ae500dca9c33eee2086c`. The release commit may be a later protected-main merge containing evidence-only reconciliation; the production tree remains the attached manifest.
-- Candidate manifest: 142 deployable files / 21,237,802 bytes.
+- Candidate manifest: 142 deployable files / 21,238,136 bytes.
 - Canonical production origin: `https://www.homeofferflow.com`.
 - Deployment method: one intentional, prebuilt Vercel production deployment. Automatic Git deployments and routine previews remain disabled.
 - Customer scope: the accumulated HomeOfferFlow reliability, plain-language interview, agent activation, PWA return, signing recovery, purchase-packet, and Texas-form corrections merged since the prior production revision.
@@ -82,7 +82,7 @@ The release is corrective: where the completed provider PDF exposed a defect, th
 
 ## Regression evidence
 
-- Candidate regression: 2,385 repository tests passed locally on September 21, 2026.
+- Candidate regression: 2,389 repository tests passed locally on September 21, 2026.
 - Pull requests #1253 and #1254 passed protected checks. Protected-main runs `35667003856` and `35668079386` passed after merge; their intentional Vercel release jobs were skipped.
 - `bundled-packet-golden-baseline-2026-09-21.md` records the reviewed 20-page packet and regenerated privacy-safe golden manifest.
 - `compact-signwell-geometry-qa-2026-09-18.md` records the completed six-form provider packet and refreshed privacy-safe geometry baselines.
@@ -100,6 +100,7 @@ The release is corrective: where the completed provider PDF exposed a defect, th
 - `ondemand-first-action-2026-09-21.md` records the browser-verified placement of the email and secure-link action above optional enrollment details while preserving visible price, trial, renewal, and card terms.
 - `shared-agent-library-legal-clarity-2026-09-21.md` records the synchronized Version 3.1 Terms, Disclaimer, acceptance paths, and browser verification for shared-agent access without a brokerage seat or separate per-use attestation.
 - `brokerage-roster-form-gate-cleanup-2026-09-21.md` records removal of the obsolete roster attestation column and dead browser authorization action while preserving historical server-side audit records.
+- `plain-language-account-recovery-2026-09-21.md` records customer-facing secure-link, profile-save, and feedback recovery copy plus a mobile-width browser check that keeps provider diagnostics out of the account dialog.
 - `seller-financing-purchase-packet-2026-09-18.md`, `loan-assumption-packet-foundation-2026-09-18.md`, `environmental-purchase-packet-2026-09-18.md`, `mineral-purchase-packet-2026-09-18.md`, and `hydrostatic-purchase-packet-2026-09-15.md` cover the new packet paths.
 - The exact release commit must rerun the full suite, golden packet rendering, standalone geometry, Supabase branch preflight, release preflight, and whitespace check in GitHub Actions.
 
