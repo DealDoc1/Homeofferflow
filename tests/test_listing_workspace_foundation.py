@@ -59,7 +59,7 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         )
 
     def test_dashboard_workspace_ui_preserves_private_form_boundary(self):
-        self.assertIn("workspaceTitle", INDEX)
+        self.assertIn("leadSectionTitle", INDEX)
         self.assertIn("saveListingWorkspaceFoundation", INDEX)
         self.assertIn("hof_listing_workspaces", INDEX)
         self.assertIn("/api/admin-dashboard?scope=brokerage", INDEX)
@@ -175,6 +175,42 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertNotIn("Save your brokerage foundation to finish this private listing workspace.", save)
         self.assertIn("delete window.__hofListingWorkspaceSetupDraft;", save)
 
+    def test_guided_listing_path_keeps_secondary_tools_collapsed_until_needed(self):
+        render_start = INDEX.index("function renderSellerFoundationPanel()")
+        render_end = INDEX.index("const sellerCampaignPackages", render_start)
+        render = INDEX[render_start:render_end]
+        self.assertIn("const isGuidedListingPath = ['sale_listing', 'lease_listing'].includes(window.hofAgentWorkflowContext);", render)
+        self.assertIn("const secondaryOpen = isGuidedListingPath ? '' : ' open';", render)
+        self.assertIn('id="listingLeadTools"${secondaryOpen}', render)
+        self.assertIn('Lead and outreach tools', render)
+        self.assertIn('id="listingWorkspaceLibrary"${secondaryOpen}', render)
+        self.assertIn('Existing listing workspaces', render)
+        self.assertIn('id="listingWorkspaceTools"${secondaryOpen}', render)
+        self.assertIn('Tools for a saved workspace', render)
+        self.assertIn("const firstWorkspaceSection = el.firstElementChild;", render)
+        self.assertIn("el.insertBefore(workspaceStartCard, firstWorkspaceSection);", render)
+
+    def test_lease_listing_lead_copy_uses_landlord_and_rent_language(self):
+        render_start = INDEX.index("function renderSellerFoundationPanel()")
+        render_end = INDEX.index("const sellerCampaignPackages", render_start)
+        render = INDEX[render_start:render_end]
+        self.assertIn("'Landlord lead'", render)
+        self.assertIn("'Landlord lead type'", render)
+        self.assertIn("Lease Listing / Landlord Rep", render)
+        self.assertIn("Owner / Landlord Lead", render)
+        self.assertIn("'Monthly Asking Rent'", render)
+        self.assertIn("'Desired Lease Start Date'", render)
+        self.assertIn('id="sellerLeadMortgage" type="hidden"', render)
+
+    def test_secondary_workspace_tools_open_when_the_agent_needs_them(self):
+        self.assertIn("function openListingWorkspaceSection(id)", INDEX)
+        comparison_start = INDEX.index("window.hofOpenListingOfferComparison")
+        comparison_end = INDEX.index("window.hofOpenAgentPackageInterview", comparison_start)
+        self.assertIn("openListingWorkspaceSection('listingWorkspaceTools');", INDEX[comparison_start:comparison_end])
+        save_start = INDEX.index("async function saveListingWorkspaceFoundation()")
+        save_end = INDEX.index("function listingWorkspaceLabel", save_start)
+        self.assertIn("openListingWorkspaceSection('listingWorkspaceTools');", INDEX[save_start:save_end])
+
     def test_workspace_hardening_allowlists_requested_workflows_and_refreshes_timestamp(self):
         self.assertIn("hof_listing_workspaces_requested_workflows_allowed", HARDENING_MIGRATION)
         self.assertIn("hof_listing_workflows_allowed(value jsonb)", HARDENING_MIGRATION)
@@ -187,8 +223,8 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertNotIn("completed-signature visual QA", INDEX)
         self.assertNotIn("Next seller-side release sequence:", INDEX)
         self.assertNotIn("source-approval indicators", INDEX)
-        self.assertIn("Start a sale listing by adding the seller and property.", INDEX)
-        self.assertIn("Start a lease listing by adding the landlord and property.", INDEX)
+        self.assertIn("Add the property and seller first.", INDEX)
+        self.assertIn("Add the property and landlord first.", INDEX)
         self.assertNotIn("Agent-side seller-representation tools: listing packet", INDEX)
 
     def test_optional_listing_topics_do_not_promise_an_executable_document(self):

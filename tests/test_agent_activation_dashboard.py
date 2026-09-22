@@ -394,7 +394,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
     def test_listing_and_lease_listing_start_with_the_next_property_question(self):
         self.assertIn('id="listingWorkspaceStartCard"', HTML)
         self.assertIn("const workspaceStartCard = el.querySelector('#listingWorkspaceStartCard');", HTML)
-        self.assertIn("el.insertBefore(workspaceStartCard, firstWorkspaceCard);", HTML)
+        self.assertIn("el.insertBefore(workspaceStartCard, firstWorkspaceSection);", HTML)
         self.assertIn("const address = document.getElementById('listingWorkspaceAddress');", HTML)
 
     def test_offer_review_package_opens_the_comparison_worksheet(self):
