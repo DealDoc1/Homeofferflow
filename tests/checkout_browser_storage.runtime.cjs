@@ -13,7 +13,8 @@ function setup({quota=Infinity,blocked=false,readBlocked=false,silent=false,loca
   const email={value:'buyer@example.test',checkValidity:()=>true,setAttribute(){},focus(){}};
   const c=vm.createContext({state:{selectedPlan:'self',selectedPrice:99,data:{userType:'homebuyer',address:'Current property',price:450000,
     buyer1:'Current Buyer',buyerEmail:'buyer@example.test',repairsText:'José 🏡\u2028all debris removed',uploadedDocNames:['survey.pdf']}},
-    window:{hofUploadedDisclosureDocs:files,location:{origin:'https://www.homeofferflow.test',pathname:'/',href:'original'}},
+    window:{hofUploadedDisclosureDocs:files,location:{origin:'https://www.homeofferflow.test',pathname:'/',href:'original'},
+      hofCustomerActionError:(error,fallback)=>/^Please\b/i.test(String(error?.message||error||''))?String(error?.message||error):fallback},
     document:{getElementById:id=>id==='payBtn'?button:id==='paymentEmail'?email:id==='oneTimePacketAck'?{checked:true}:null},
     console:{error(){}},collectAllData(){},confirmControlledLaunchSupport:()=>true,validateParagraph4LeaseInputs:()=>true,
     validateHydrostaticInputs:()=>true,validateMineralInputs:()=>true,validateEnvironmentalInputs:()=>true,validateAssumptionInputs:()=>true,validateSellerFinancingInputs:()=>true,validateSellerTemporaryLeaseInputs:()=>true,validateUploadedDisclosureDocs:()=>true,
@@ -84,7 +85,11 @@ for (const status of [422,503]) test(`packet check failure ${status} preserves a
   assert.equal(x.c.state.data.address,'Current property');
   assert.equal(JSON.parse(x.store.get('hofOfferData')).financing,'assumption');
   assert.equal(x.c.window.hofUploadedDisclosureDocs,x.files);
-  assert.ok(x.notices.some(notice=>notice.includes(message)));
+  const expectedNotice=status===422
+    ? message
+    : 'We couldn’t open secure checkout. No payment was started. Review your details and try again.';
+  assert.ok(x.notices.some(notice=>notice.includes(expectedNotice)));
+  assert.ok(!x.notices.some(notice=>notice.includes('Stripe')));
   x.c.fetch=originalFetch;
   await x.c.handlePayment();
   assert.equal(x.requests.length,1);
