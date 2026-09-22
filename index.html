@@ -21572,7 +21572,7 @@ function routeAfterMagicLinkIfNeeded() {
       }
       const [brokerageResult,membershipResult] = await Promise.all([
         client.from('hof_brokerages')
-          .select('id,name,dba_name,slug,logo_url,brand_color,website_url,license_number,plan_name,billing_status,default_title_company,default_title_contact,txr_all_agents_authorized,txr_authorization_attested_by,txr_authorization_attested_at')
+          .select('id,name,dba_name,slug,logo_url,brand_color,website_url,license_number,plan_name,billing_status,default_title_company,default_title_contact')
           .eq('id',brokerageId).maybeSingle(),
         client.from('hof_brokerage_members')
           .select('role,status,created_at,updated_at')
@@ -21812,59 +21812,6 @@ function routeAfterMagicLinkIfNeeded() {
       });
       restoreSaveButton();
       if (result) result.textContent = error.message || 'Could not save brokerage branding.';
-    }
-  };
-
-  root.saveBrokerageTxrAuthorization = async function saveBrokerageTxrAuthorization() {
-    const session = root.hofAuth?.session;
-    const result = document.getElementById('brokerageTxrAuthorizationResult');
-    const saveButton = document.getElementById('saveBrokerageTxrAuthorizationButton');
-    if (saveButton?.disabled) return null;
-    const restoreSaveButton = () => {
-      if (!saveButton) return;
-      saveButton.disabled = false;
-      saveButton.setAttribute('aria-busy', 'false');
-      saveButton.textContent = 'Save authorization status';
-    };
-    const status = String(document.getElementById('brokerageTxrAuthorization')?.value || 'unknown');
-    const attestation = document.getElementById('brokerageTxrAttestation')?.checked === true;
-    if (!session?.access_token) {
-      restoreSaveButton();
-      if (result) result.textContent = 'Sign in again before saving the brokerage authorization status.';
-      return;
-    }
-    if (status !== 'unknown' && !attestation) {
-      restoreSaveButton();
-      if (result) result.textContent = 'Check the administrator attestation before saving this status.';
-      return;
-    }
-    if (saveButton) {
-      saveButton.disabled = true;
-      saveButton.setAttribute('aria-busy', 'true');
-      saveButton.textContent = 'Saving authorization…';
-    }
-    if (result) result.textContent = 'Saving Texas REALTORS® / NAR authorization status…';
-    try {
-      const response = await fetch('/api/admin-dashboard', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token },
-        body: JSON.stringify({ action: 'update_brokerage_txr_authorization', status, attestation })
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok || !data.authorization) throw new Error(data.error || 'Could not save the brokerage authorization status.');
-      const auth = data.authorization;
-      root.hofPlatform.brokerage = Object.assign({}, root.hofPlatform.brokerage, {
-        txr_all_agents_authorized: auth.allAgentsAuthorized,
-        txr_authorization_attested_at: auth.attestedAt,
-        txr_authorization_attested_by: auth.attestedBy
-      });
-      if (result) result.textContent = auth.allAgentsAuthorized
-        ? 'Saved. Restricted Texas REALTORS® / NAR source workflows may now be used after each agent completes the point-of-use attestation and an approved source is available.'
-        : 'Saved. Restricted Texas REALTORS® / NAR source workflows remain locked for this brokerage.';
-      await root.renderBrokerageFoundationPanel();
-    } catch (error) {
-      restoreSaveButton();
-      if (result) result.textContent = error.message || 'Could not save the brokerage authorization status.';
     }
   };
 
@@ -22330,12 +22277,11 @@ function routeAfterMagicLinkIfNeeded() {
         '<div class="brokerage-seat-momentum"><strong>' + (seatPercent == null ? 'Team growth' : 'Seat utilization: ' + seatPercent + '%') + '</strong><span>' + safe(seatMomentum) + (teamUsagePercent == null ? '' : ' Team packet usage: ' + teamUsagePercent + '% this month.') + '</span><button type="button" class="brokerage-access-button" onclick="document.getElementById(\'brokerageInviteEmail\')?.focus()">Invite an agent</button></div>' +
         '<div class="brokerage-invite-form" style="margin-top:1rem"><label for="brokerageAgentFilter">Find an agent</label><input id="brokerageAgentFilter" type="search" placeholder="Name, email, team, status, or next action" aria-label="Find an agent" oninput="filterBrokerageAgents(this.value)"><label for="brokerageAgentAttentionFilter">Show</label><select id="brokerageAgentAttentionFilter" aria-label="Filter agents by attention" onchange="filterBrokerageAgents(document.getElementById(\'brokerageAgentFilter\')?.value || \'\')"><option value="all">All agents</option><option value="activation">Needs activation</option><option value="billing">Billing attention</option><option value="follow_up">Follow-up</option></select><button type="button" class="brokerage-access-button" onclick="exportBrokerageRoster()">Download roster CSV</button><span id="brokerageAgentFilterSummary" class="brokerage-invite-result">' + Number(agents.length) + ' agent' + (agents.length === 1 ? '' : 's') + ' shown.</span></div>' +
         '<p id="brokerageTeamResult" class="brokerage-invite-result">Private team labels organize this roster only; they do not grant permissions or change billing, roles, offers, or documents.</p>' +
-        '<table class="brokerage-safe-table"><thead><tr><th>Agent</th><th>Membership</th><th>Team</th><th>TXR/NAR attestation</th><th>Plan / renewal</th><th>Usage</th><th>Last activity</th><th>Offers</th><th>Signed</th><th>Next action</th><th>Follow up</th><th>Brokerage access</th></tr></thead><tbody>' +
+        '<table class="brokerage-safe-table"><thead><tr><th>Agent</th><th>Membership</th><th>Team</th><th>Plan / renewal</th><th>Usage</th><th>Last activity</th><th>Offers</th><th>Signed</th><th>Next action</th><th>Follow up</th><th>Brokerage access</th></tr></thead><tbody>' +
         (agents.length ? agents.map(agent =>
           '<tr data-brokerage-agent-row data-membership="' + safe(agent.membershipStatus || 'pending') + '" data-subscription="' + safe(agent.subscriptionStatus || '') + '" data-engagement="' + safe(agent.engagement || '') + '" data-search="' + safe([agent.name, agent.email, agent.teamName, agent.membershipStatus, agent.subscriptionStatus, agent.nextAction, agent.engagement].filter(Boolean).join(' ')) + '"><td><strong>' + safe(agent.name || agent.email || 'Agent') + '</strong><br><span>' + safe(agent.email || '') + '</span></td>' +
           '<td>' + safe(agent.membershipStatus || 'pending') + (agent.inviteAccepted ? '<br><small>Invite accepted</small>' : '') + '</td>' +
           '<td>' + (agent.role === 'agent' ? '<input id="brokerageTeam-' + safe(agent.userId) + '" type="text" maxlength="80" value="' + safe(agent.teamName || '') + '" placeholder="Optional team" aria-label="Private team for ' + safe(agent.name || agent.email || 'agent') + '"><button type="button" class="brokerage-access-button" onclick="setBrokerageMemberTeam(\'' + safe(agent.userId) + '\')">Save</button>' : '<span>Support-managed</span>') + '</td>' +
-          '<td>' + (agent.txrAgentAuthorized ? '<span title="Attested ' + safe(agent.txrAgentAttestedAt || '') + '">Attested</span>' : 'Not yet attested') + '</td>' +
           '<td>' + safe(brokerageAgentBillingWindow(agent)) + '</td>' +
           '<td>' + Number(agent.usage?.used || 0) + (agent.usage?.limit ? ' / ' + Number(agent.usage.limit) : '') + '<br><small>' + safe(agent.usage?.billingMonth || '') + '</small></td>' +
           '<td>' + safe(brokerageAgentDate(agent.activity?.lastOfferAt)) + '</td>' +
@@ -22348,7 +22294,7 @@ function routeAfterMagicLinkIfNeeded() {
               ? '<button type="button" class="brokerage-access-button" onclick="setBrokerageMemberStatus(\'' + safe(agent.userId) + '\',\'suspended\')">Suspend</button>'
               : '<button type="button" class="brokerage-access-button" onclick="setBrokerageMemberStatus(\'' + safe(agent.userId) + '\',\'active\',\'' + safe(agent.membershipStatus || 'pending') + '\')">' + (agent.membershipStatus === 'pending' ? 'Activate' : 'Restore') + '</button>')
             : '<span>Support-managed</span>') + '</td></tr>'
-        ).join('') : '<tr><td colspan="12">No agents have enrolled yet.</td></tr>') +
+        ).join('') : '<tr><td colspan="11">No agents have enrolled yet.</td></tr>') +
         '</tbody></table>';
       root.renderBrokerageBrandPreview();
     } catch(error) {

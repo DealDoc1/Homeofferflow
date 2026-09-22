@@ -12,7 +12,7 @@
     ]
   },
   "file_count": 142,
-  "total_bytes": 21240872,
+  "total_bytes": 21237802,
   "files": [
     {
       "file": ".gitignore",
@@ -276,8 +276,8 @@
     },
     {
       "file": "index.html",
-      "bytes": 1729679,
-      "sha256": "2d8e6ec22656f57e339acfe91262e5b56c8dafabcd65d66121a791165abe15fc"
+      "bytes": 1726609,
+      "sha256": "f6ac031d9165afa75e45028dd07d129f21f57366da3681ff1902c8f3baab4f22"
     },
     {
       "file": "investors.html",

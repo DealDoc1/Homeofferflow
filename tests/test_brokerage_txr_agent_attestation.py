@@ -28,13 +28,15 @@ class BrokerageTxrAgentAttestationTests(unittest.TestCase):
         html = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertNotIn("HomeOfferFlow records this attestation with my active brokerage membership.", html)
 
-    def test_broker_dashboard_shows_attestation_status_without_buyer_details(self):
+    def test_broker_dashboard_keeps_historical_attestation_server_side_without_ui_noise(self):
         api = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
         html = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn("txr_agent_authorized,txr_agent_attested_at", api)
         self.assertIn('"txrAgentAuthorized": member.get("txr_agent_authorized") is True', api)
-        self.assertIn("TXR/NAR attestation", html)
-        self.assertIn("Not yet attested", html)
+        self.assertNotIn("TXR/NAR attestation", html)
+        self.assertNotIn("Not yet attested", html)
+        self.assertNotIn("saveBrokerageTxrAuthorization", html)
+        self.assertNotIn("txr_all_agents_authorized,txr_authorization_attested_by", html)
         self.assertIn('"buyerDetailsIncluded": False', api)
 
     def test_suspension_clears_prior_agent_attestation(self):
