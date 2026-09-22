@@ -5864,7 +5864,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     try {
       if (sessionStorage.getItem('hof_agent_landing_auth_funnel') !== '1') return;
       const allowedChannels = new Set([
-        'direct', 'homepage', 'organic', 'pwa_shortcut', 'direct_outreach',
+        'direct', 'homepage', 'organic', 'pwa_shortcut', 'site_recovery', 'direct_outreach',
         'email', 'social', 'referral', 'local_event', 'print', 'unspecified'
       ]);
       const storedChannel = String(sessionStorage.getItem('hof_agent_landing_channel') || 'unspecified');
@@ -18656,7 +18656,7 @@ function routeAfterMagicLinkIfNeeded() {
         try {
           sessionStorage.setItem('hof_agent_landing_auth_funnel', '1');
           const allowedAgentChannels = new Set([
-            'direct', 'homepage', 'organic', 'pwa_shortcut', 'direct_outreach',
+            'direct', 'homepage', 'organic', 'pwa_shortcut', 'site_recovery', 'direct_outreach',
             'email', 'social', 'referral', 'local_event', 'print', 'unspecified'
           ]);
           const savedAgentChannel = String(sessionStorage.getItem('hof_agent_landing_channel') || '');
@@ -18664,7 +18664,9 @@ function routeAfterMagicLinkIfNeeded() {
             ? 'organic'
             : agentRouteParams.get('utm_medium') === 'installed_app'
               ? 'pwa_shortcut'
-              : '';
+              : agentRouteParams.get('utm_medium') === 'site_recovery'
+                ? 'site_recovery'
+                : '';
           const agentAuthChannel = routeAgentChannel
             || (allowedAgentChannels.has(savedAgentChannel) ? savedAgentChannel : 'direct');
           sessionStorage.setItem('hof_agent_landing_channel', agentAuthChannel);
