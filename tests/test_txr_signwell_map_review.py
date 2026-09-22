@@ -35,7 +35,7 @@ class TxrSignwellMapReviewTests(unittest.TestCase):
         maps = review.review_field_sets()
         self.assertEqual(
             set(maps),
-            {"TXR1501", "TXR1506", "TXR1507", "TXR1508", "TXR1905", "TXR1914", "TXR1917", "TXR1919", "TXR1948", "TXR1953", "TXR1954"},
+            {"TXR1501", "TXR1506", "TXR1507", "TXR1508", "TXR1905", "TXR1914", "TXR1917", "TXR1919", "TXR1948", "TXR1953", "TXR1954", "TREC620"},
         )
         for code, fields in maps.items():
             with self.subTest(code=code):

@@ -61,6 +61,7 @@ class TxrSigningRequestPathTests(unittest.TestCase):
             "TXR-1948": {"buyer_names": ["Buyer One"], "seller_names": ["Seller One"]},
             "TXR-1953": {"buyer_names": ["Buyer One"], "seller_names": ["Seller One"]},
             "TXR-1954": {"buyer_names": ["Buyer One"], "seller_names": ["Seller One"]},
+            "TREC-62-0": {"buyer_names": ["Buyer One"], "seller_names": ["Seller One"]},
         }
         for form_code, data in cases.items():
             fields = MODULE._txr_signwell_fields(form_code, {"client_names": ["Client One"], **data}, 1)
@@ -122,6 +123,25 @@ class TxrSigningRequestPathTests(unittest.TestCase):
     def test_source_aligned_buyer_seller_maps_are_live_signing_workflows(self):
         for form_code in ("TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919", "TXR-1948"):
             self.assertIn(form_code, MODULE.TXR_SIGNING_FORM_CODES)
+
+    def test_trec_62_notice_invites_only_sellers(self):
+        agreement = {
+            "form_code": "TREC-62-0",
+            "client_names": ["Seller One", "Seller Two"],
+            "agreement_data": {
+                "buyer_names": ["Buyer One"],
+                "seller_names": ["Seller One", "Seller Two"],
+            },
+        }
+        recipients = MODULE._txr_signwell_recipients(
+            agreement,
+            ["seller1@example.com", "seller2@example.com"],
+            {},
+            {"email": "agent@example.com", "name": "Agent"},
+        )
+        self.assertEqual([row["id"] for row in recipients], ["1", "2"])
+        self.assertEqual(MODULE._standalone_signer_labels(agreement), ["Seller 1", "Seller 2"])
+        self.assertIsNone(MODULE._standalone_professional_role(agreement))
 
     def test_agent_form_roadmap_matches_the_released_review_and_send_scope(self):
         roadmap = (ROOT / "docs" / "AGENT_FORM_COVERAGE_ROADMAP.md").read_text(encoding="utf-8")

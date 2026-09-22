@@ -44,6 +44,7 @@ from lib.txr_1919 import build_signwell_fields_txr1919
 from lib.txr_1948 import build_signwell_fields_txr1948
 from lib.txr_1953 import build_signwell_fields_txr1953
 from lib.txr_1954 import build_signwell_fields_txr1954
+from lib.trec_62_0 import build_signwell_fields_trec620
 
 
 PDF_WIDTH = 612
@@ -87,6 +88,9 @@ def _sample_data() -> dict[str, dict]:
             "signer_plan": "clients_and_associate",
         },
         "TXR1508": {"signer_plan": "associate_and_clients"},
+        "TREC620": {
+            "seller_names": ["Review Seller One", "Review Seller Two"],
+        },
         **{
             code: {
                 "buyer_names": ["Review Buyer One", "Review Buyer Two"],
@@ -144,6 +148,7 @@ def review_field_sets() -> dict[str, list[dict]]:
         "TXR1948": build_signwell_fields_txr1948(data["TXR1948"])[0],
         "TXR1953": build_signwell_fields_txr1953(data["TXR1953"])[0],
         "TXR1954": build_signwell_fields_txr1954(data["TXR1954"])[0],
+        "TREC620": build_signwell_fields_trec620(data["TREC620"])[0],
     }
 
 

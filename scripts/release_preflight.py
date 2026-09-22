@@ -55,8 +55,8 @@ def _is_packet_or_form_change(path: str) -> bool:
         normalized.endswith(".pdf")
         or normalized in {"api/fill-pdf.py", "api/fill_pdf_20_19_staging.py"}
         or normalized.startswith("api/fill_pdf_20_19_staging_release")
-        or normalized.startswith("api/txr_")
-        or normalized.startswith("lib/txr_")
+        or normalized.startswith(("api/txr_", "api/trec_"))
+        or normalized.startswith(("lib/txr_", "lib/trec_"))
         or normalized.startswith("forms/")
     )
 
@@ -100,11 +100,11 @@ def _required_scope_marker_groups(changed_files: list[str]) -> tuple[tuple[str, 
         )
     txr_paths = [
         path for path in normalized
-        if path.startswith("api/txr_") or path.startswith("lib/txr_")
+        if path.startswith(("api/txr_", "api/trec_")) or path.startswith(("lib/txr_", "lib/trec_"))
     ]
     for path in txr_paths:
         stem = Path(path).stem.replace("_", " ").replace("-", " ")
-        if stem.startswith("txr "):
+        if stem.startswith(("txr ", "trec ")):
             groups.append((stem,))
     # A repeated route/PDF mapping should only create one evidence requirement.
     return tuple(dict.fromkeys(groups))
@@ -126,8 +126,8 @@ def _missing_restricted_form_evidence(evidence_text: str, changed_files: list[st
     """Require the stronger gates for restricted TXR renderer/source changes."""
     normalized_files = {path.replace("\\", "/").lower() for path in changed_files}
     restricted_change = any(
-        path.startswith("api/txr_")
-        or path.startswith("lib/txr_")
+        path.startswith(("api/txr_", "api/trec_"))
+        or path.startswith(("lib/txr_", "lib/trec_"))
         or "brokerage_form_source" in path
         or "standalone_agreement" in path
         for path in normalized_files

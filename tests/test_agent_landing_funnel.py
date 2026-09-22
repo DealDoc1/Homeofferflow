@@ -329,8 +329,8 @@ class AgentLandingFunnelTests(unittest.TestCase):
         start = INDEX.index("window.hofOpenAgentPackageInterview = function")
         end = INDEX.index("window.startAgentWorkflow = function", start)
         interview = INDEX[start:end]
-        self.assertIn("Add a purchase term or addendum", interview)
-        self.assertIn("Which purchase addendum does this transaction need?", interview)
+        self.assertIn("Prepare another purchase document", interview)
+        self.assertIn("Which purchase document does this transaction need?", interview)
         for label, opener in (
             ("Seller financing", "hofOpenTxr1914Draft"),
             ("Loan assumption", "hofOpenTxr1919Draft"),
