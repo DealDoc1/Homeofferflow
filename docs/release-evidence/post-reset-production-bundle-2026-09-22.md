@@ -3,7 +3,7 @@
 ## Release boundary
 
 - Prior verified production revision: `133a32bff9a736544c8bf9c9d04cd549c11b8570`.
-- Exact application candidate revision: `18a40a9b1a9dd32718c0ae500dca9c33eee2086c`. The release commit may be a later protected-main merge containing evidence-only reconciliation; the production tree remains the attached manifest.
+- Exact application candidate revision: `7c1177166fbd4f3833da7a5d1062f0b20820e95c`. The release commit may be a later protected-main merge containing evidence-only reconciliation; the production tree remains the attached manifest.
 - Candidate manifest: 142 deployable files / 21,238,136 bytes.
 - Canonical production origin: `https://www.homeofferflow.com`.
 - Deployment method: one intentional, prebuilt Vercel production deployment. Automatic Git deployments and routine previews remain disabled.
