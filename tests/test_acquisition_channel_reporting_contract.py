@@ -20,6 +20,8 @@ class AcquisitionChannelReportingContractTests(unittest.TestCase):
     def test_admin_channel_breakdowns_cover_every_accepted_backend_channel(self):
         contracts = (
             ("PARTNER_LANDING_CHANNELS = {", "partner_landing_channels = ("),
+            ("ONDEMAND_LANDING_CHANNELS = {", "ondemand_landing_channels = ("),
+            ("HOMEBUYER_LANDING_CHANNELS = {", "homebuyer_landing_channels = ("),
             ("AGENT_LANDING_CHANNELS = {", "agent_landing_channels = ("),
             ("INVESTOR_LANDING_CHANNELS = {", "investor_landing_channels = ("),
             ("FSBO_LANDING_CHANNELS = {", "seller_landing_channels = ("),
