@@ -12,7 +12,7 @@
     ]
   },
   "file_count": 142,
-  "total_bytes": 21229958,
+  "total_bytes": 21231601,
   "files": [
     {
       "file": ".gitignore",
@@ -66,8 +66,8 @@
     },
     {
       "file": "api/admin-dashboard.py",
-      "bytes": 412424,
-      "sha256": "f3a738f4076d599d2bca9eeab791c9b5785ede44d04b6d1e2643d04fbaddc3ff"
+      "bytes": 413008,
+      "sha256": "b83c875c1ef8330d6598702261cb75cc5258d882f1388a4c71f03c101b9e1436"
     },
     {
       "file": "api/ai-offer-review.py",
@@ -276,8 +276,8 @@
     },
     {
       "file": "index.html",
-      "bytes": 1717495,
-      "sha256": "d7998810cfcfbd01c460856051bc8c75f5747da509ab4a07442bcb36cf5572de"
+      "bytes": 1718554,
+      "sha256": "413098c65a3b7b71e535b509201b4616cbcd179b6599af7ff30445deaeccb8bd"
     },
     {
       "file": "investors.html",
