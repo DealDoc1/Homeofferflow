@@ -346,12 +346,21 @@ def _campaign_text(value, max_len):
 
 
 def _seller_campaign_payload(data):
+    acquisition_channel = (_text(data.get("acquisition_channel"), 40) or "").lower()
+    if acquisition_channel not in FSBO_LANDING_CHANNELS or acquisition_channel == "unspecified":
+        acquisition_channel = None
     campaign = {
         "utm_source": _campaign_text(data.get("utm_source"), 120),
         "utm_medium": _campaign_text(data.get("utm_medium"), 120),
         "utm_campaign": _campaign_text(data.get("utm_campaign"), 160),
         "utm_content": _campaign_text(data.get("utm_content"), 160),
     }
+    # When a visit has no explicit campaign tags, retain only the aggregate
+    # channel category classified on the public landing page. Never store the
+    # referrer, search query, URL, or any visitor identity as attribution.
+    if acquisition_channel and not any(campaign.values()):
+        campaign["utm_source"] = acquisition_channel
+        campaign["utm_medium"] = "privacy_safe_channel"
     campaign["source"] = "tracked_seller_landing" if any(campaign.values()) else "website_fsbo_intake"
     return campaign
 

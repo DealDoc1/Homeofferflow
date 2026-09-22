@@ -141,8 +141,12 @@ class FsboLandingFunnelTests(unittest.TestCase):
         self.assertIn("pwa_seller_plan_shortcut_count", ADMIN)
 
     def test_private_intake_preserves_an_allowlisted_campaign_channel(self):
-        self.assertIn("const fsboCampaignChannels = new Set(['direct_outreach','email','social','referral','local_event','print']);", INDEX)
+        self.assertIn("const fsboCampaignChannels = new Set(['direct','homepage','organic','pwa_shortcut','direct_outreach','email','seller_receipt','social','referral','local_event','print']);", INDEX)
         self.assertIn("function fsboCampaignChannel()", INDEX)
+        self.assertIn("const fsboCampaignChannelKey = 'hof_seller_landing_channel';", INDEX)
+        self.assertIn("sessionStorage.getItem(fsboCampaignChannelKey)", INDEX)
+        self.assertIn("acquisition_channel: fsboCampaignChannel()", INDEX)
+        self.assertIn("sessionStorage.setItem('hof_seller_landing_channel',channel)", SELLERS)
         self.assertIn("source === 'homeofferflow_admin' && fsboCampaignChannels.has(medium)", INDEX)
         self.assertIn("channel:fsboCampaignChannel()", INDEX)
 

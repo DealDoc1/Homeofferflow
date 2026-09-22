@@ -16786,7 +16786,8 @@ function routeAfterMagicLinkIfNeeded() {
   // Preserve the same allowlisted acquisition channel from a public seller
   // page through the private intake. These events are aggregate-only and
   // never include the property address, email, or any seller-entered value.
-  const fsboCampaignChannels = new Set(['direct_outreach','email','social','referral','local_event','print']);
+  const fsboCampaignChannels = new Set(['direct','homepage','organic','pwa_shortcut','direct_outreach','email','seller_receipt','social','referral','local_event','print']);
+  const fsboCampaignChannelKey = 'hof_seller_landing_channel';
   function fsboCampaignChannel(){
     const query = new URLSearchParams(window.location.search);
     const source = String(query.get('utm_source') || '').trim().toLowerCase();
@@ -16794,8 +16795,13 @@ function routeAfterMagicLinkIfNeeded() {
     if (medium === 'seller_receipt') return 'seller_receipt';
     if (medium === 'installed_app' || source === 'pwa_shortcut') return 'pwa_shortcut';
     if (source === 'organic' || medium === 'organic_content') return 'organic';
+    if (source === 'homeofferflow' || medium === 'homepage') return 'homepage';
     if (source === 'homeofferflow_admin' && fsboCampaignChannels.has(medium)) return medium;
     if (fsboCampaignChannels.has(source)) return source;
+    try {
+      const saved = String(sessionStorage.getItem(fsboCampaignChannelKey) || '').trim().toLowerCase();
+      if (fsboCampaignChannels.has(saved)) return saved;
+    } catch (_) {}
     return 'unspecified';
   }
   // Keep seller-side provider interests allowlisted before they are saved in
@@ -17439,6 +17445,7 @@ function routeAfterMagicLinkIfNeeded() {
       utm_medium: campaignQuery.get('utm_medium') || '',
       utm_campaign: campaignQuery.get('utm_campaign') || '',
       utm_content: campaignQuery.get('utm_content') || '',
+      acquisition_channel: fsboCampaignChannel(),
       asking_price: fsboVal('fsboAskingPrice') ? Number(fsboVal('fsboAskingPrice')) : null,
       notes: [
         (fsboNeedCopy[fsboVal('fsboNeed')]?.title || fsboVal('fsboNeed')) + ' (' + (fsboVal('fsboPackagePrice') || fsboNeedCopy[fsboVal('fsboNeed')]?.price || '$0') + ')',

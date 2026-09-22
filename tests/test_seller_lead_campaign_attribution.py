@@ -34,6 +34,29 @@ class SellerLeadCampaignAttributionTests(unittest.TestCase):
             "source": "website_fsbo_intake",
         })
 
+    def test_privacy_safe_landing_channel_fills_an_untagged_seller_request(self):
+        campaign = fsbo._seller_campaign_payload({"acquisition_channel": "organic"})
+        self.assertEqual(campaign, {
+            "utm_source": "organic",
+            "utm_medium": "privacy_safe_channel",
+            "utm_campaign": None,
+            "utm_content": None,
+            "source": "tracked_seller_landing",
+        })
+
+    def test_landing_channel_is_allowlisted_and_does_not_override_campaign_tags(self):
+        rejected = fsbo._seller_campaign_payload({"acquisition_channel": "private-referrer.example/person"})
+        self.assertEqual(rejected["source"], "website_fsbo_intake")
+        self.assertIsNone(rejected["utm_source"])
+
+        explicit = fsbo._seller_campaign_payload({
+            "acquisition_channel": "organic",
+            "utm_source": "newsletter",
+            "utm_medium": "email",
+        })
+        self.assertEqual(explicit["utm_source"], "newsletter")
+        self.assertEqual(explicit["utm_medium"], "email")
+
 
 if __name__ == "__main__":
     unittest.main()
