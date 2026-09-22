@@ -303,7 +303,7 @@ AGENT_LANDING_CHANNELS = {
     "direct", "homepage", "organic", "pwa_shortcut", "direct_outreach", "email", "social", "referral", "local_event", "print", "unspecified",
 }
 AGENT_LANDING_CTA_PATHS = {
-    "client_draft", "seller_listing", "lease_listing", "relationship_drafts", "lease_representation", "listing_guide", "lease_guide", "form_library_guide",
+    "client_draft", "seller_listing", "lease_listing", "relationship_drafts", "lease_representation", "listing_guide", "lease_guide", "form_library_guide", "ondemand_trial",
 }
 AGENT_LANDING_CAMPAIGNS = {"transaction_selector"}
 INVESTOR_LANDING_EVENT_TYPES = {

@@ -18530,11 +18530,18 @@ function routeAfterMagicLinkIfNeeded() {
       } else {
         try {
           sessionStorage.setItem('hof_agent_landing_auth_funnel', '1');
-          const agentAuthChannel = agentRouteParams.get('utm_medium') === 'organic_content'
+          const allowedAgentChannels = new Set([
+            'direct', 'homepage', 'organic', 'pwa_shortcut', 'direct_outreach',
+            'email', 'social', 'referral', 'local_event', 'print', 'unspecified'
+          ]);
+          const savedAgentChannel = String(sessionStorage.getItem('hof_agent_landing_channel') || '');
+          const routeAgentChannel = agentRouteParams.get('utm_medium') === 'organic_content'
             ? 'organic'
             : agentRouteParams.get('utm_medium') === 'installed_app'
               ? 'pwa_shortcut'
-              : 'unspecified';
+              : '';
+          const agentAuthChannel = routeAgentChannel
+            || (allowedAgentChannels.has(savedAgentChannel) ? savedAgentChannel : 'direct');
           sessionStorage.setItem('hof_agent_landing_channel', agentAuthChannel);
           if (agentLandingSource === 'texas_agent_offer_workflow') localStorage.setItem('hof_agent_landing_source', agentLandingSource);
           if (agentLandingWorkflow) localStorage.setItem('hof_agent_landing_package_workflow', agentLandingWorkflow);
