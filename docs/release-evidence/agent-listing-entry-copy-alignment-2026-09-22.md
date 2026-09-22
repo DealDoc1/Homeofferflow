@@ -12,6 +12,11 @@ flow intentionally does not show. The visible card, FAQ, and FAQ structured
 data now agree with the authenticated transaction-first experience. Purchase,
 lease-listing, and tenant-representation behavior is unchanged.
 
+The same existing note now makes the starting boundary explicit: no brokerage
+seat or payment is required to begin, and paid plan terms appear before a
+recurring checkout. No unverified public price was added; Stripe checkout
+remains authoritative for the exact general-agent plan terms.
+
 ## Verification
 
 - 159 focused agent-entry, listing-workspace, discovery-metadata, and technical
