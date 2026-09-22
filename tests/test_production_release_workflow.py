@@ -35,6 +35,8 @@ class ProductionReleaseWorkflowTests(unittest.TestCase):
             "python scripts/check_production_schema_readiness.py --env-file .vercel/.env.production.local",
             self.text,
         )
+        self.assertIn("SUPABASE_URL: ${{ secrets.SUPABASE_URL }}", self.text)
+        self.assertIn("SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}", self.text)
         self.assertIn("Check Vercel deployment and spend safety", self.text)
         self.assertIn("python scripts/check_vercel_deployment_capacity.py", self.text)
         self.assertIn("vercel build --prod", self.text)
