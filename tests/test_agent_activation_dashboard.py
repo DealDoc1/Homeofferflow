@@ -337,7 +337,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("agent_form_package_interview_abandoned", HTML)
         self.assertIn("agent_form_package_follow_up_abandoned", HTML)
         self.assertIn("What kind of representation does this client need?", HTML)
-        self.assertIn("Which purchase addendum does this transaction need?", HTML)
+        self.assertIn("Which purchase document does this transaction need?", HTML)
         self.assertIn("What does this customer need?", HTML)
         self.assertIn("agent_form_package_workflow_selected", HTML)
         self.assertIn("hofOpenTxr1507Draft", HTML)

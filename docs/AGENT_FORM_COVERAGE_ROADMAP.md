@@ -4,6 +4,15 @@ Future batches follow the [lean development protocol](LEAN_DEVELOPMENT_PROTOCOL.
 to reduce model context, repeated regression runs and Vercel usage without
 reducing verification standards.
 
+TREC-62-0 now has a source-backed Seller-notice implementation for removing
+the backup-contract contingency after the first contract has ended. The guided
+interview collects the property, Buyer names, Seller names, and known delivery
+date; only Sellers are signing recipients, invitations are parallel, and both
+escrow-agent receipt sections remain blank. It is available to every signed-in
+agent without a brokerage seat. The renderer, source allowlist, database
+constraint, signing map, and purchase-document interview are locally
+implemented and under release QA; production deployment is not yet claimed.
+
 ## Local continuation status - September 18, 2026
 
 Authenticated entry, billing, help, brokerage, seller-lead and partner-plan
@@ -245,6 +254,7 @@ mineral-reservation, loan-assumption, environmental-review, appraisal-review,
 and lease-addendum workflows, plus private seller-planning workspaces.
 All released TXR workflows—TXR-1501, TXR-1506, TXR-1507, TXR-1508,
 TXR-1905, TXR-1914, TXR-1917, TXR-1919, TXR-1948, TXR-1953, and TXR-1954—
+plus TREC-62-0 Seller Notice of Removal of Backup-Contract Contingency—
 have a separate review-and-send path: the agent reviews the completed document
 and explicitly confirms each recipient before SignWell receives it. TREC-55-1
 seller disclosure and optional TREC-61-0 water disclosure are available from

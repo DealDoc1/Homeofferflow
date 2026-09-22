@@ -1,6 +1,52 @@
 {
   "coordinate_system": "SignWell 96-DPI top-origin US Letter",
   "forms": {
+    "TREC620": [
+      {
+        "api_id": "trec620_seller1_date_p1",
+        "height": 20,
+        "page": 1,
+        "recipient_id": "1",
+        "required": true,
+        "type": "date",
+        "width": 72,
+        "x": 310,
+        "y": 440
+      },
+      {
+        "api_id": "trec620_seller1_signature_p1",
+        "height": 24,
+        "page": 1,
+        "recipient_id": "1",
+        "required": true,
+        "type": "signature",
+        "width": 222,
+        "x": 83,
+        "y": 440
+      },
+      {
+        "api_id": "trec620_seller2_date_p1",
+        "height": 20,
+        "page": 1,
+        "recipient_id": "2",
+        "required": true,
+        "type": "date",
+        "width": 72,
+        "x": 659,
+        "y": 440
+      },
+      {
+        "api_id": "trec620_seller2_signature_p1",
+        "height": 24,
+        "page": 1,
+        "recipient_id": "2",
+        "required": true,
+        "type": "signature",
+        "width": 211,
+        "x": 443,
+        "y": 440
+      }
+    ],
     "TXR1501": [
       {
         "api_id": "txr1501_associate_date_p6",

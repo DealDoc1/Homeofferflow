@@ -91,3 +91,7 @@ txr1954_buyer1_signature_p1|1|signature|1|64|774|335|26
 txr1954_buyer2_signature_p1|1|signature|2|64|876|335|26
 txr1954_seller1_signature_p1|1|signature|3|418|774|324|26
 txr1954_seller2_signature_p1|1|signature|4|418|876|324|26
+trec620_seller1_date_p1|1|date|1|310|440|72|20
+trec620_seller1_signature_p1|1|signature|1|83|440|222|24
+trec620_seller2_date_p1|1|date|2|659|440|72|20
+trec620_seller2_signature_p1|1|signature|2|443|440|211|24

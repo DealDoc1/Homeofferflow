@@ -15,6 +15,10 @@ SPEC.loader.exec_module(release_preflight)
 
 
 class ReleasePreflightTests(unittest.TestCase):
+    def test_trec_renderer_change_requires_matching_evidence(self):
+        result = release_preflight.main(["--changed-file", "lib/trec_62_0.py"])
+        self.assertEqual(result, 2)
+
     def _completed_evidence(self) -> str:
         return """
         Approved source: TXR form revision approved by brokerage.

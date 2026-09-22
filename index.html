@@ -152,6 +152,7 @@
   <link rel="manifest" href="/manifest.webmanifest" />
   <script defer src="/assets/pwa-share-target.js"></script>
   <script defer src="/assets/under-contract-companion.js"></script>
+  <script defer src="/assets/trec-62-followup.js"></script>
   <link rel="icon" href="/assets/homeofferflow-app-icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/assets/homeofferflow-apple-touch-icon.png" sizes="180x180" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -5587,7 +5588,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Landing CTA choices: ${Number(metrics.agentLandingCtaPathCounts?.client_draft || 0)} purchase offers · ${Number(metrics.agentLandingCtaPathCounts?.seller_listing || 0)} sale listings · ${Number(metrics.agentLandingCtaPathCounts?.lease_listing || 0)} lease listings · ${Number(metrics.agentLandingCtaPathCounts?.lease_representation || 0)} tenant representation · ${Number(metrics.agentLandingCtaPathCounts?.relationship_drafts || 0)} relationship drafts · ${Number(metrics.agentLandingCtaPathCounts?.listing_guide || 0)} listing guides · ${Number(metrics.agentLandingCtaPathCounts?.lease_guide || 0)} lease guides · ${Number(metrics.agentLandingCtaPathCounts?.form_library_guide || 0)} form-library guides.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Authenticated transaction choices: ${Number(metrics.agentTransactionChoiceCounts?.purchase || 0)} purchase · ${Number(metrics.agentTransactionChoiceCounts?.sale_listing || 0)} sale listings · ${Number(metrics.agentTransactionChoiceCounts?.lease_listing || 0)} lease listings · ${Number(metrics.agentTransactionChoiceCounts?.lease_representation || 0)} tenant representation · ${Number(metrics.agentWorkflowResumeCount || 0)} resumes.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Question 2 package interview: ${Number(metrics.agentFormPackageInterviewViewCount || 0)} viewed · ${Number(metrics.agentFormPackageSelectionCount || 0)} package choices (${Number(metrics.agentFormPackageSelectionRate || 0).toFixed(1)}%) · ${Number(metrics.agentFormPackageNestedChoiceCount || 0)} document choices (${Number(metrics.agentFormPackageNestedChoiceRate || 0).toFixed(1)}%) · ${Number(metrics.agentFormPackageStartedCount || 0)} workspaces opened (${Number(metrics.agentFormPackageStartRate || 0).toFixed(1)}% of choices) · ${Number(metrics.agentFormPackageHandoffRecoveryCount || 0)} recovery prompts · ${Number(metrics.agentFormPackageInterviewAbandonedCount || 0)} left Question 2 · ${Number(metrics.agentFormPackageFollowUpAbandonedCount || 0)} left a document choice · purchase ${Number(metrics.agentFormPackageStartedCountsByWorkflow?.purchase || 0)}/${Number(metrics.agentFormPackageNestedChoiceCountsByWorkflow?.purchase || 0)}/${Number(metrics.agentFormPackageSelectionCountsByWorkflow?.purchase || 0)}/${Number(metrics.agentFormPackageInterviewCountsByWorkflow?.purchase || 0)} · sale listing ${Number(metrics.agentFormPackageStartedCountsByWorkflow?.sale_listing || 0)}/${Number(metrics.agentFormPackageNestedChoiceCountsByWorkflow?.sale_listing || 0)}/${Number(metrics.agentFormPackageSelectionCountsByWorkflow?.sale_listing || 0)}/${Number(metrics.agentFormPackageInterviewCountsByWorkflow?.sale_listing || 0)} · lease listing ${Number(metrics.agentFormPackageStartedCountsByWorkflow?.lease_listing || 0)}/${Number(metrics.agentFormPackageNestedChoiceCountsByWorkflow?.lease_listing || 0)}/${Number(metrics.agentFormPackageSelectionCountsByWorkflow?.lease_listing || 0)}/${Number(metrics.agentFormPackageInterviewCountsByWorkflow?.lease_listing || 0)} · tenant ${Number(metrics.agentFormPackageStartedCountsByWorkflow?.lease_representation || 0)}/${Number(metrics.agentFormPackageNestedChoiceCountsByWorkflow?.lease_representation || 0)}/${Number(metrics.agentFormPackageSelectionCountsByWorkflow?.lease_representation || 0)}/${Number(metrics.agentFormPackageInterviewCountsByWorkflow?.lease_representation || 0)}. Each path shows opened/document/package/viewed. Direct handoffs: ${Number(metrics.agentFormPackageDirectQuestionOpenedCount || 0)} document questions opened · ${Number(metrics.agentFormPackageDirectStartedCount || 0)} workspaces opened · sale ${Number(metrics.agentFormPackageDirectStartedCountsByWorkflow?.sale_listing || 0)} · lease ${Number(metrics.agentFormPackageDirectStartedCountsByWorkflow?.lease_listing || 0)} · tenant ${Number(metrics.agentFormPackageDirectStartedCountsByWorkflow?.lease_representation || 0)}.</div>
-            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Private drafts saved: ${Number(metrics.agentPrivateReviewDraftSavedCount || 0)} total · TXR-1501 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1501'] || 0)} · TXR-1506 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1506'] || 0)} · TXR-1507 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1507'] || 0)} · TXR-1508 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1508'] || 0)} · TXR-1905 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1905'] || 0)} · TXR-1914 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1914'] || 0)} · TXR-1917 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1917'] || 0)} · TXR-1919 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1919'] || 0)} · TXR-1948 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1948'] || 0)} · TXR-1953 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1953'] || 0)} · TXR-1954 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1954'] || 0)} · ${Number(metrics.agentPrivateReviewNextStepClickedCount || 0)} opened saved drafts · ${Number(metrics.agentPrivateReviewTrialCtaSelectedCount || 0)} selected the OnDemand trial CTA.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Private drafts saved: ${Number(metrics.agentPrivateReviewDraftSavedCount || 0)} total · TXR-1501 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1501'] || 0)} · TXR-1506 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1506'] || 0)} · TXR-1507 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1507'] || 0)} · TXR-1508 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1508'] || 0)} · TXR-1905 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1905'] || 0)} · TXR-1914 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1914'] || 0)} · TXR-1917 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1917'] || 0)} · TXR-1919 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1919'] || 0)} · TXR-1948 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1948'] || 0)} · TXR-1953 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1953'] || 0)} · TXR-1954 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TXR-1954'] || 0)} · TREC-62-0 ${Number(metrics.agentPrivateReviewDraftSavedByForm?.['TREC-62-0'] || 0)} · ${Number(metrics.agentPrivateReviewNextStepClickedCount || 0)} opened saved drafts · ${Number(metrics.agentPrivateReviewTrialCtaSelectedCount || 0)} selected the OnDemand trial CTA.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Agent workflow guide: ${metrics.agentWorkflowGuideViewCount || 0} views · ${metrics.agentWorkflowGuideCtaCount || 0} started a private draft (${Number(metrics.agentWorkflowGuideCtaRate || 0).toFixed(1)}% of guide views).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Guide CTA choices: ${Number(metrics.agentWorkflowGuideCtaPathCounts?.client_draft || 0)} client draft · ${Number(metrics.agentWorkflowGuideCtaPathCounts?.seller_listing || 0)} listing tools · ${Number(metrics.agentWorkflowGuideCtaPathCounts?.relationship_drafts || 0)} relationship drafts · ${Number(metrics.agentWorkflowGuideCtaPathCounts?.form_library_guide || 0)} form-library handoffs.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Channel views / workspace starts: ${adminChannelStageSummary(metrics.agentLandingViewCountsByChannel, metrics.agentLandingCtaCountsByChannel)}.</div>
@@ -6108,7 +6109,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const allCardIds = [
       'txr1501AgreementCard', 'txr1507AgreementCard', 'txr1508AgreementCard', 'txr1506AgreementCard',
       'txr1905AgreementCard', 'txr1914AgreementCard', 'txr1917AgreementCard', 'txr1919AgreementCard',
-      'txr1948AgreementCard', 'txr1953AgreementCard', 'txr1954AgreementCard', 'hofStandaloneAgreementCard'
+      'txr1948AgreementCard', 'txr1953AgreementCard', 'txr1954AgreementCard', 'trec620AgreementCard', 'hofStandaloneAgreementCard'
     ];
     // First restore cards from a prior transaction selection. This keeps the
     // current choice—not a stale saved choice—as the sole presentation rule.
@@ -8239,7 +8240,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
               { label: 'Appraisal review', copy: 'For a purchase that needs an appraisal-related termination or waiver choice.', opener: 'hofOpenTxr1948Draft', formCode: 'TXR-1948' },
               { label: 'Residential lease addendum', copy: 'For a purchase involving existing tenant leases. Record whether they will end or transfer to the buyer at closing.', opener: 'hofOpenTxr1953Draft', formCode: 'TXR-1953' },
               { label: 'Fixture lease addendum', copy: 'For a purchase involving leased fixtures, such as solar panels. Record which leases the buyer will assume at closing.', opener: 'hofOpenTxr1954Draft', formCode: 'TXR-1954' },
-              { label: 'Mineral reservation', copy: 'For a purchase where the seller will reserve mineral interests.', opener: 'hofOpenTxr1905Draft', formCode: 'TXR-1905' }
+              { label: 'Mineral reservation', copy: 'For a purchase where the seller will reserve mineral interests.', opener: 'hofOpenTxr1905Draft', formCode: 'TXR-1905' },
+              { label: 'Remove a backup-contract contingency', copy: 'For a Seller notifying the backup Buyer after the first contract has ended.', opener: 'hofOpenTrec620Draft', formCode: 'TREC-62-0' }
             ]
         : [
             { label: 'Showing Form', copy: 'For an unrepresented customer attending a showing.', opener: 'hofOpenTxr1508Draft', formCode: 'TXR-1508' },
@@ -8251,7 +8253,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const prompt = type === 'representation'
         ? 'What kind of representation does this client need?'
         : type === 'purchase_addendum'
-          ? 'Which purchase addendum does this transaction need?'
+          ? 'Which purchase document does this transaction need?'
           : 'What does this customer need?';
       followUp.innerHTML = `<div class="hof-agreement-dialog" role="dialog" aria-modal="true" aria-labelledby="hofAgentPackageFollowUpTitle"><p class="hof-agent-question-step">One more question</p><h3 id="hofAgentPackageFollowUpTitle">${prompt}</h3><p>Choose the document that fits. We’ll guide you through only the details it requires.</p><div class="hof-agreement-grid">${choices.map((choice, index) => `<button type="button" class="btn-secondary hof-agent-package-choice" data-follow-up-choice="${index}" style="text-align:left;padding:1rem"><strong style="display:block;color:var(--white)${choice.copy ? ';margin-bottom:.35rem' : ''}">${choice.label}</strong>${choice.copy ? `<span style="display:block;color:var(--gray-light);font-weight:400;line-height:1.45">${choice.copy}</span>` : ''}</button>`).join('')}</div><div class="hof-agreement-footer"><button type="button" class="btn-secondary" id="hofAgentPackageFollowUpCancel">Back</button></div></div>`;
       document.body.appendChild(followUp);
@@ -8275,7 +8277,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         choices: [
           { label: 'Write a purchase offer', copy: 'Start with the buyer, property, financing, and timing. We’ll prepare the supported documents your answers require.', primary: true, action: () => startAccountOffer(), isWorkspaceOpen: () => document.getElementById('wizardOverlay')?.classList.contains('active') },
           { label: 'Create a buyer representation agreement', copy: 'Choose the agreement that fits this client.', action: () => openRelationshipPackage('representation'), deferStartToNestedChoice: true },
-          { label: 'Add a purchase term or addendum', copy: 'Choose the specific situation the purchase needs to address. You’ll review the completed document before sending it for signature.', action: () => openRelationshipPackage('purchase_addendum'), deferStartToNestedChoice: true },
+          { label: 'Prepare another purchase document', copy: 'Choose the specific situation the purchase needs to address. You’ll review the completed document before sending it for signature.', action: () => openRelationshipPackage('purchase_addendum'), deferStartToNestedChoice: true },
           { label: 'Create a showing form or consumer notice', copy: 'Choose the document for an unrepresented customer or general consumer notice.', action: () => openRelationshipPackage('customer'), deferStartToNestedChoice: true }
         ]
       },
@@ -22615,11 +22617,10 @@ function routeAfterMagicLinkIfNeeded() {
   const root = window;
   const BUCKET = 'brokerage-form-sources';
   const MAX_BYTES = 10 * 1024 * 1024;
-  // Source approval never activates a workflow. Seller/listing codes are
-  // intentionally listed here only so a brokerage admin can privately retain
-  // the exact authorized source while the separate mapping/signing release is
-  // still gated.
-  const FORM_CODES = ['TXR-1507', 'TXR-1501', 'TXR-1508', 'TXR-1506', 'TXR-1905', 'TXR-1914', 'TXR-1917', 'TXR-1919', 'TXR-1948', 'TXR-1953', 'TXR-1954', 'TXR-1101', 'TXR-1102', 'TXR-1406', 'TXR-1418', 'TREC-55-1', 'TREC-61-0'];
+  // Source approval never activates a workflow by itself; release support is
+  // still configured separately. Released shared-library forms remain
+  // available to every signed-in agent without a brokerage seat.
+  const FORM_CODES = ['TXR-1507', 'TXR-1501', 'TXR-1508', 'TXR-1506', 'TXR-1905', 'TXR-1914', 'TXR-1917', 'TXR-1919', 'TXR-1948', 'TXR-1953', 'TXR-1954', 'TXR-1101', 'TXR-1102', 'TXR-1406', 'TXR-1418', 'TREC-55-1', 'TREC-61-0', 'TREC-62-0'];
   const escape = value => String(value ?? '').replace(/[&<>\"]/g, char => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'
   }[char]));
@@ -23792,7 +23793,7 @@ function routeAfterMagicLinkIfNeeded() {
 <script id="hof-platform-source-intake-v1">
 (function () {
   const root = window;
-  const FORM_CODES = ['TXR-1507', 'TXR-1501', 'TXR-1508', 'TXR-1506', 'TXR-1905', 'TXR-1914', 'TXR-1917', 'TXR-1919', 'TXR-1948', 'TXR-1953', 'TXR-1954', 'TXR-1101', 'TXR-1102', 'TXR-1406', 'TXR-1418'];
+  const FORM_CODES = ['TXR-1507', 'TXR-1501', 'TXR-1508', 'TXR-1506', 'TXR-1905', 'TXR-1914', 'TXR-1917', 'TXR-1919', 'TXR-1948', 'TXR-1953', 'TXR-1954', 'TXR-1101', 'TXR-1102', 'TXR-1406', 'TXR-1418', 'TREC-62-0'];
   const BUCKET_LIMIT = 10 * 1024 * 1024;
   const escape = value => String(value ?? '').replace(/[&<>\"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[char]));
   const isPlatformAdmin = () => typeof root.isCurrentAdmin === 'function' && root.isCurrentAdmin();
@@ -25706,6 +25707,7 @@ function routeAfterMagicLinkIfNeeded() {
   window.hofOpenTxr1953Draft = () => openExistingPrivateDraft('txr1953AgreementCard', 'TXR-1953');
   window.hofOpenTxr1954Draft = () => openExistingPrivateDraft('txr1954AgreementCard', 'TXR-1954');
   window.hofOpenTxr1905Draft = () => openExistingPrivateDraft('txr1905AgreementCard', 'TXR-1905');
+  window.hofOpenTrec620Draft = () => openExistingPrivateDraft('trec620AgreementCard', 'TREC-62-0');
 })();
 </script>
 <script id="hof-private-review-save-feedback-v1">
@@ -25718,12 +25720,13 @@ function routeAfterMagicLinkIfNeeded() {
     ['txr1948AgreementForm', 'TXR-1948'],
     ['txr1953AgreementForm', 'TXR-1953'],
     ['txr1954AgreementForm', 'TXR-1954'],
+    ['trec620AgreementForm', 'TREC-62-0'],
   ]);
   const signingFormIds = new Set([
     'txr1501AgreementForm', 'txr1506AgreementForm', 'txr1507AgreementForm',
     'txr1508AgreementForm', 'txr1905AgreementForm', 'txr1914AgreementForm',
     'txr1917AgreementForm', 'txr1919AgreementForm', 'txr1948AgreementForm', 'txr1953AgreementForm',
-    'txr1954AgreementForm'
+    'txr1954AgreementForm', 'trec620AgreementForm'
   ]);
   const hasSignatureQueue = form => signingFormIds.has(form.id);
   function restore(form, button) {

@@ -56,7 +56,7 @@ class UnderContractCompanionTests(unittest.TestCase):
     def test_companion_is_loaded_and_available_to_the_installed_app(self):
         self.assertIn('<script defer src="/assets/under-contract-companion.js"></script>', INDEX)
         self.assertIn("'/assets/under-contract-companion.js'", WORKER)
-        self.assertIn("homeofferflow-shell-v76", WORKER)
+        self.assertIn("homeofferflow-shell-v77", WORKER)
 
 
 if __name__ == "__main__":

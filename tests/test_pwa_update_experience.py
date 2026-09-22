@@ -25,7 +25,7 @@ class PwaUpdateExperienceTests(unittest.TestCase):
         self.assertIn("Activation alone never reloads an in-progress transaction", INDEX)
 
     def test_shell_cache_changes_for_the_update_notification(self):
-        self.assertIn("homeofferflow-shell-v76", WORKER)
+        self.assertIn("homeofferflow-shell-v77", WORKER)
         self.assertIn("fetch(event.request, { cache: 'no-store' })", WORKER)
         self.assertIn("safe-area-inset-bottom", INDEX)
 
