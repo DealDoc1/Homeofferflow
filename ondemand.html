@@ -608,13 +608,21 @@
         emailInput.setAttribute("aria-invalid", "false");
         setBusy(button, true, "Sending…", "Email my secure sign-in link");
         showStatus("");
-        const { error } = await client.auth.signInWithOtp({
-          email,
-          options: {
-            emailRedirectTo: `${window.location.origin}/ondemand${state.inviteToken ? `?invite=${encodeURIComponent(state.inviteToken)}` : ""}`,
-            data: { signup_source: "ondemand" }
-          }
-        });
+        let error = null;
+        try {
+          ({ error } = await client.auth.signInWithOtp({
+            email,
+            options: {
+              emailRedirectTo: `${window.location.origin}/ondemand${state.inviteToken ? `?invite=${encodeURIComponent(state.inviteToken)}` : ""}`,
+              data: { signup_source: "ondemand" }
+            }
+          }));
+        } catch (requestError) {
+          // A rejected network request must follow the same recoverable path as
+          // a returned authentication error. Never leave a prospective agent
+          // with a permanently disabled enrollment button.
+          error = requestError;
+        }
         setBusy(button, false, "Sending…", "Email my secure sign-in link");
         if (error) {
           showStatus(customerErrorMessage(error, "We couldn’t send a secure sign-in link right now. Please wait a moment and try again."), "err");
