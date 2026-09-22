@@ -26,7 +26,7 @@ class PublicPwaRegistrationTests(unittest.TestCase):
         self.assertIn("isMobileInstallSurface", script)
         self.assertIn("if (!isMobileInstallSurface()) return;", script)
         self.assertIn("showUpdateNotice", script)
-        self.assertIn("if (!isStandaloneSurface() || !registration?.waiting || document.getElementById('hofPublicPwaUpdateNotice')) return;", script)
+        self.assertIn("if (!isStandaloneSurface() || (!registration?.waiting && !workerAlreadyActive) || document.getElementById('hofPublicPwaUpdateNotice')) return;", script)
         self.assertIn("HOF_SKIP_WAITING", script)
         self.assertIn("Refresh for latest version", script)
         self.assertIn("Install app", script)
@@ -36,14 +36,16 @@ class PublicPwaRegistrationTests(unittest.TestCase):
         self.assertNotIn(".src = 'http", script)
         self.assertNotIn('.src = "http', script)
 
-    def test_update_refresh_waits_for_the_new_worker_to_take_control(self):
+    def test_update_refresh_handles_waiting_and_already_active_workers(self):
         self.assertIn("const waiting = registration.waiting;", SCRIPT)
+        self.assertIn("if (!waiting) {", SCRIPT)
         self.assertIn("navigator.serviceWorker.addEventListener('controllerchange', reloadAfterActivation, { once: true });", SCRIPT)
         self.assertIn("waiting.postMessage({ type: 'HOF_SKIP_WAITING' });", SCRIPT)
         update_start = SCRIPT.index("notice.querySelector('#hofPublicPwaUpdateButton')")
         update_end = SCRIPT.index("  const renderInstallCard", update_start)
         update_handler = SCRIPT[update_start:update_end]
         self.assertLess(update_handler.index("controllerchange"), update_handler.index("waiting.postMessage"))
+        self.assertIn("showUpdateNotice(activeServiceWorkerRegistration, true);", SCRIPT)
 
     def test_shell_caches_the_registration_helper(self):
         worker = (ROOT / 'service-worker.js').read_text(encoding='utf-8')

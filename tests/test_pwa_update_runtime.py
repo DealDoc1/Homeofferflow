@@ -122,15 +122,15 @@ class PwaUpdateRuntimeTests(unittest.TestCase):
           assert.equal(reloads,1);
         ''', mode='standalone')
 
-    def test_missing_waiting_worker_does_not_arm_an_unrelated_reload(self):
+    def test_already_active_worker_refreshes_once_without_arming_an_unrelated_reload(self):
         self.run_js('''
           registration.waiting=null;
           clickUpdate(); activate();
           assert.equal(messages.length,0);
-          assert.equal(reloads,0);
+          assert.equal(reloads,1);
         ''', mode='standalone')
 
-    def test_no_update_has_no_prompt_then_updatefound_displays_one(self):
+    def test_updatefound_prompts_when_the_browser_reports_a_waiting_worker(self):
         self.run_js('''
           assert.equal(nodes.size,0);
           installUpdate();
