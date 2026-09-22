@@ -39,7 +39,11 @@ def parse_env_file(path: Path) -> dict[str, str]:
 
 def first_value(names: tuple[str, ...], values: dict[str, str]) -> str:
     for name in names:
-        value = str(os.environ.get(name) or values.get(name) or "").strip()
+        value = str(os.environ.get(name) or "").strip()
+        if value:
+            return value
+    for name in names:
+        value = str(values.get(name) or "").strip()
         if value:
             return value
     return ""
