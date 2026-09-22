@@ -8,6 +8,7 @@ ADMIN = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 BUYERS = (ROOT / "buyers.html").read_text(encoding="utf-8")
 BUYERS_COMPACT = " ".join(BUYERS.split())
+ACQUISITION_CHANNEL = (ROOT / "assets" / "acquisition-channel.js").read_text(encoding="utf-8")
 
 
 class HomebuyerLandingFunnelTests(unittest.TestCase):
@@ -27,6 +28,7 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
         self.assertIn("Unsupported homebuyer landing channel.", API)
         self.assertIn("'homebuyer_landing_event'", API)
         self.assertIn('"surface": "homebuyer_landing"', API)
+        self.assertIn("adminChannelStageSummary(metrics.homebuyerLandingViewCountsByChannel, metrics.homebuyerLandingOfferStartedCountsByChannel)", INDEX)
 
     def test_buyer_landing_records_each_stage_once_without_buyer_or_offer_details(self):
         self.assertIn("recordAggregateFunnelEvent", BUYERS)
@@ -38,8 +40,12 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
         self.assertNotIn("homebuyer_landing_offer_started", BUYERS)
         self.assertIn("The destination records this stage only after the guided", BUYERS)
         self.assertIn("channel: safeChannel", BUYERS)
-        self.assertIn("allowedChannels.has(rawSource)", BUYERS)
-        self.assertIn('medium === "organic_content"', BUYERS)
+        self.assertIn('/assets/acquisition-channel.js', BUYERS)
+        self.assertIn('window.hofAcquisitionChannel?.() || "direct"', BUYERS)
+        self.assertIn("medium === 'organic_content' || source === 'organic'", ACQUISITION_CHANNEL)
+        self.assertIn("document.referrer", ACQUISITION_CHANNEL)
+        self.assertNotIn("sessionStorage", ACQUISITION_CHANNEL)
+        self.assertIn('sessionStorage.setItem("hof_homebuyer_checkout_channel", safeChannel)', BUYERS)
         self.assertIn('"organic"', BUYERS)
         self.assertIn("buyerMedium === 'organic_content'", INDEX)
         self.assertIn("keepalive: true", BUYERS)
@@ -141,6 +147,7 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
 
     def test_checkout_return_preserves_only_allowlisted_acquisition_channel(self):
         self.assertIn("const homebuyerCheckoutChannels = new Set", INDEX)
+        self.assertIn("['direct', 'homepage', 'organic', 'pwa_shortcut', 'direct_outreach'", INDEX)
         self.assertIn("const homebuyerCheckoutChannelKey = 'hof_homebuyer_checkout_channel';", INDEX)
         self.assertIn("medium === 'organic_content' || source === 'organic'", INDEX)
         self.assertIn("function rememberHomebuyerCheckoutChannel()", INDEX)

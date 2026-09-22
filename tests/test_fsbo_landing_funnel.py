@@ -12,6 +12,7 @@ SELLERS = (ROOT / "sellers.html").read_text(encoding="utf-8")
 FSBO_GUIDE = (ROOT / "texas-fsbo-guide.html").read_text(encoding="utf-8")
 FSBO_GUIDE_METRICS = (ROOT / "assets" / "fsbo-guide-metrics.js").read_text(encoding="utf-8")
 RECEIPT_CHANNEL = (ROOT / "assets" / "receipt-funnel-channel.js").read_text(encoding="utf-8")
+ACQUISITION_CHANNEL = (ROOT / "assets" / "acquisition-channel.js").read_text(encoding="utf-8")
 
 
 class FsboLandingFunnelTests(unittest.TestCase):
@@ -89,10 +90,13 @@ class FsboLandingFunnelTests(unittest.TestCase):
         self.assertIn("fsbo_support_paths_expanded", SELLERS)
         self.assertIn("sellerLandingSupportPathsExpandedCount", ADMIN)
         self.assertIn("keepalive: true", SELLERS)
-        self.assertIn("medium==='installed_app'||source==='pwa_shortcut'?'pwa_shortcut'", SELLERS)
-        self.assertIn("medium==='organic_content'||source==='organic'?'organic'", SELLERS)
+        self.assertIn("/assets/acquisition-channel.js", SELLERS)
+        self.assertIn("window.hofAcquisitionChannel?.()||'direct'", SELLERS)
+        self.assertIn("medium === 'installed_app' || source === 'pwa_shortcut'", ACQUISITION_CHANNEL)
+        self.assertIn("medium === 'organic_content' || source === 'organic'", ACQUISITION_CHANNEL)
         self.assertIn("body?.request_type==='fsbo_landing_event'", SELLERS)
-        self.assertIn("source==='homeofferflow_admin'&&outreach.has(medium)?medium", SELLERS)
+        self.assertIn("source === 'homeofferflow_admin' && outreachChannels.has(medium)", ACQUISITION_CHANNEL)
+        self.assertIn("channel: landingChannel", SELLERS)
         self.assertIn("/assets/receipt-funnel-channel.js", SELLERS)
         self.assertIn("seller_receipt", API)
         self.assertIn("direct_outreach", API)
@@ -137,8 +141,12 @@ class FsboLandingFunnelTests(unittest.TestCase):
         self.assertIn("pwa_seller_plan_shortcut_count", ADMIN)
 
     def test_private_intake_preserves_an_allowlisted_campaign_channel(self):
-        self.assertIn("const fsboCampaignChannels = new Set(['direct_outreach','email','social','referral','local_event','print']);", INDEX)
+        self.assertIn("const fsboCampaignChannels = new Set(['direct','homepage','organic','pwa_shortcut','direct_outreach','email','seller_receipt','social','referral','local_event','print']);", INDEX)
         self.assertIn("function fsboCampaignChannel()", INDEX)
+        self.assertIn("const fsboCampaignChannelKey = 'hof_seller_landing_channel';", INDEX)
+        self.assertIn("sessionStorage.getItem(fsboCampaignChannelKey)", INDEX)
+        self.assertIn("acquisition_channel: fsboCampaignChannel()", INDEX)
+        self.assertIn("sessionStorage.setItem('hof_seller_landing_channel',channel)", SELLERS)
         self.assertIn("source === 'homeofferflow_admin' && fsboCampaignChannels.has(medium)", INDEX)
         self.assertIn("channel:fsboCampaignChannel()", INDEX)
 

@@ -92,6 +92,29 @@ class PartnerLeadTests(unittest.TestCase):
         self.assertEqual(payload["monthly_budget_range"], "500_999")
         self.assertEqual(payload["status"], "new")
 
+    def test_partner_attribution_keeps_only_an_allowlisted_aggregate_channel(self):
+        base = {
+            "company_name": "North Texas Title",
+            "contact_name": "Pat Partner",
+            "contact_email": "pat@example.com",
+            "market_area": "North Texas",
+        }
+        organic = fsbo_lead._build_partner_payload({**base, "acquisition_channel": "organic"})
+        self.assertEqual(organic["source"], "tracked_partner_landing")
+        self.assertEqual(organic["utm_source"], "organic")
+        self.assertEqual(organic["utm_medium"], "privacy_safe_channel")
+        self.assertNotIn("landing_page", organic)
+
+        rejected = fsbo_lead._build_partner_payload({
+            **base,
+            "source": "caller_controlled",
+            "landing_page": "https://example.test/private?person=value",
+            "acquisition_channel": "example.test/private",
+        })
+        self.assertEqual(rejected["source"], "website_partner_modal")
+        self.assertIsNone(rejected["utm_source"])
+        self.assertNotIn("landing_page", rejected)
+
     def test_unknown_choices_fall_back_to_safe_defaults(self):
         payload = fsbo_lead._build_partner_payload({
             "partner_type": "unsupported",

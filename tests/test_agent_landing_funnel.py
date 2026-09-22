@@ -92,8 +92,9 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("cta: 'Start a Transaction'", INDEX)
 
     def test_homepage_agent_entry_has_its_own_privacy_safe_conversion_channel(self):
+        attribution = (ROOT / 'assets' / 'acquisition-channel.js').read_text(encoding='utf-8')
         self.assertIn('"homepage"', API)
-        self.assertIn("source==='homeofferflow'||medium==='homepage'?'homepage'", AGENTS)
+        self.assertIn("source === 'homeofferflow' || medium === 'homepage'", attribution)
         focus = (ROOT / 'assets' / 'agent-landing-focus.js').read_text(encoding='utf-8')
         self.assertIn("'homepage'", focus)
         self.assertNotIn("agent_email", AGENTS)
@@ -559,9 +560,9 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("utm_medium=agent_page", (ROOT / "assets" / "pwa-register.js").read_text(encoding="utf-8"))
         self.assertNotIn("hofAgentFormLibraryCta", (ROOT / "assets" / "pwa-register.js").read_text(encoding="utf-8"))
         self.assertNotIn("See the shared form library", (ROOT / "assets" / "pwa-register.js").read_text(encoding="utf-8"))
-        self.assertIn("const params=new URLSearchParams(window.location.search)", AGENTS)
-        self.assertIn("'direct_outreach','email','social','referral','local_event','print'", AGENTS)
-        self.assertIn("source==='homeofferflow_admin'&&outreach.has(medium)?medium", AGENTS)
+        self.assertIn('/assets/acquisition-channel.js', AGENTS)
+        self.assertIn("window.hofAcquisitionChannel?.()||'direct'", AGENTS)
+        self.assertIn("sessionStorage.setItem('hof_agent_landing_channel',channel)", AGENTS)
         self.assertIn("window.hofAgentLandingChannel=channel", AGENTS)
         self.assertIn("[data-agent-cta-path]", AGENTS)
         focus = (ROOT / "assets" / "agent-landing-focus.js").read_text(encoding="utf-8")
@@ -576,6 +577,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
             api._record_agent_landing_event({"event_type": "agent_landing_cta_selected", "channel": "referral", "cta_path": "seller_listing"})
             api._record_agent_landing_event({"event_type": "agent_landing_cta_selected", "channel": "referral", "cta_path": "listing_guide"})
             api._record_agent_landing_event({"event_type": "agent_landing_cta_selected", "channel": "referral", "cta_path": "lease_guide"})
+            api._record_agent_landing_event({"event_type": "agent_landing_cta_selected", "channel": "organic", "cta_path": "ondemand_trial"})
             api._record_agent_landing_event({"event_type": "agent_landing_question_one_opened", "channel": "referral"})
             api._record_agent_landing_event({"event_type": "agent_landing_question_one_viewed", "channel": "referral"})
             with self.assertRaisesRegex(ValueError, "Unsupported agent landing channel"):
@@ -584,15 +586,17 @@ class AgentLandingFunnelTests(unittest.TestCase):
                 api._record_agent_landing_event({"event_type": "agent_landing_cta_selected", "channel": "referral", "cta_path": "untrusted"})
             with self.assertRaisesRegex(ValueError, "CTA path is only allowed"):
                 api._record_agent_landing_event({"event_type": "agent_landing_viewed", "channel": "referral", "cta_path": "client_draft"})
-        self.assertEqual(len(captured), 5)
+        self.assertEqual(len(captured), 6)
         self.assertEqual(captured[0][0], "agent_landing_cta_selected")
         self.assertEqual(captured[0][3], {"surface": "agent_landing", "role": "agent", "channel": "referral", "ctaPath": "seller_listing"})
         self.assertEqual(captured[1][3]["ctaPath"], "listing_guide")
         self.assertEqual(captured[2][3]["ctaPath"], "lease_guide")
-        self.assertEqual(captured[3][0], "agent_landing_question_one_opened")
-        self.assertEqual(captured[3][3], {"surface": "agent_landing", "role": "agent", "channel": "referral"})
-        self.assertEqual(captured[4][0], "agent_landing_question_one_viewed")
+        self.assertEqual(captured[3][3]["ctaPath"], "ondemand_trial")
+        self.assertEqual(captured[3][3]["channel"], "organic")
+        self.assertEqual(captured[4][0], "agent_landing_question_one_opened")
         self.assertEqual(captured[4][3], {"surface": "agent_landing", "role": "agent", "channel": "referral"})
+        self.assertEqual(captured[5][0], "agent_landing_question_one_viewed")
+        self.assertEqual(captured[5][3], {"surface": "agent_landing", "role": "agent", "channel": "referral"})
 
     def test_agent_transaction_selector_campaign_is_validated_but_not_attached_to_selector_clicks(self):
         spec = importlib.util.spec_from_file_location("agent_landing_campaign", API_PATH)
@@ -621,9 +625,17 @@ class AgentLandingFunnelTests(unittest.TestCase):
         })
 
     def test_public_agent_landing_preserves_organic_and_pwa_attribution(self):
-        self.assertIn("medium==='installed_app'||source==='pwa_shortcut'?'pwa_shortcut'", AGENTS)
-        self.assertIn("medium==='organic_content'||source==='organic'?'organic'", AGENTS)
+        attribution = (ROOT / "assets" / "acquisition-channel.js").read_text(encoding="utf-8")
+        self.assertIn("medium === 'installed_app' || source === 'pwa_shortcut'", attribution)
+        self.assertIn("medium === 'organic_content' || source === 'organic'", attribution)
+        self.assertIn("document.referrer", attribution)
+        self.assertNotIn("sessionStorage", attribution)
         self.assertIn("body?.request_type==='agent_landing_event'", AGENTS)
+
+    def test_agent_auth_handoff_retains_the_privacy_safe_landing_channel(self):
+        self.assertIn("savedAgentChannel", INDEX)
+        self.assertIn("allowedAgentChannels.has(savedAgentChannel)", INDEX)
+        self.assertIn("? savedAgentChannel : 'direct'", INDEX)
 
     def test_transaction_selection_uses_beacon_delivery_before_navigation(self):
         self.assertIn("navigator.sendBeacon('/api/fsbo-lead',new Blob([payload],{type:'application/json'}))", AGENTS)
@@ -643,8 +655,10 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("agent_landing_cta_counts_by_campaign[campaign] <= agent_landing_view_counts_by_campaign[campaign]", ADMIN)
 
     def test_investor_landing_preserves_organic_and_pwa_attribution(self):
-        self.assertIn("medium==='installed_app'||source==='pwa_shortcut'?'pwa_shortcut'", INVESTORS)
-        self.assertIn("medium==='organic_content'||source==='organic'?'organic'", INVESTORS)
+        attribution = (ROOT / "assets" / "acquisition-channel.js").read_text(encoding="utf-8")
+        self.assertIn("/assets/acquisition-channel.js", INVESTORS)
+        self.assertIn("medium === 'installed_app' || source === 'pwa_shortcut'", attribution)
+        self.assertIn("medium === 'organic_content' || source === 'organic'", attribution)
 
     def test_admin_reports_agent_workspace_landing_conversion(self):
         for expected in (
@@ -680,7 +694,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("Channel views / workspace starts", INDEX)
         self.assertIn("continued to the workspace", INDEX)
         self.assertIn("Agent channel conversion:", INDEX)
-        self.assertIn("agentLandingViewCountsByChannel?.referral", INDEX)
+        self.assertIn("adminChannelStageSummary(metrics.agentLandingViewCountsByChannel, metrics.agentLandingCtaCountsByChannel)", INDEX)
         self.assertIn("agentLandingDraftHandoffUserCount", INDEX)
         self.assertIn("agentLandingDraftHandoffRate", INDEX)
         self.assertIn("Public-agent sign-in continuation:", INDEX)

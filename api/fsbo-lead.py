@@ -195,7 +195,7 @@ FSBO_LANDING_EVENT_TYPES = {
     "pwa_seller_plan_opened": "opened",
 }
 FSBO_LANDING_CHANNELS = {
-    "direct", "organic", "pwa_shortcut", "direct_outreach", "email", "seller_receipt", "social", "referral", "local_event", "print", "unspecified",
+    "direct", "homepage", "organic", "pwa_shortcut", "direct_outreach", "email", "seller_receipt", "social", "referral", "local_event", "print", "unspecified",
 }
 FSBO_RECEIPT_DELIVERY_STATUSES = {"sent", "failed", "not_configured", "missing_email"}
 PARTNER_APPLICATION_RECEIPT_DELIVERY_STATUSES = {"sent", "failed", "not_configured", "missing_email"}
@@ -238,7 +238,7 @@ PARTNER_LANDING_EVENT_TYPES = {
     "partner_directory_pricing_selected": "pricing_selected",
     "partner_directory_empty_search": "unfilled_search",
 }
-PARTNER_LANDING_CHANNELS = {"direct", "organic", "pwa_shortcut", "email", "partner_receipt", "social", "referral", "other", "direct_outreach", "local_event", "print", "owned_directory"}
+PARTNER_LANDING_CHANNELS = {"direct", "homepage", "organic", "pwa_shortcut", "email", "partner_receipt", "social", "referral", "other", "direct_outreach", "local_event", "print", "owned_directory"}
 PARTNER_ONBOARDING_EVENT_TYPES = {
     "partner_onboarding_opened": "opened",
     "partner_onboarding_completed": "completed",
@@ -285,7 +285,7 @@ HOMEBUYER_LANDING_EVENT_TYPES = {
     "pwa_buyer_offer_opened": "opened",
 }
 HOMEBUYER_LANDING_CHANNELS = {
-    "direct_outreach", "email", "social", "referral", "local_event", "print", "organic", "pwa_shortcut", "unspecified",
+    "direct", "homepage", "direct_outreach", "email", "social", "referral", "local_event", "print", "organic", "pwa_shortcut", "unspecified",
 }
 AGENT_LANDING_EVENT_TYPES = {
     "agent_landing_viewed": "viewed",
@@ -303,7 +303,7 @@ AGENT_LANDING_CHANNELS = {
     "direct", "homepage", "organic", "pwa_shortcut", "direct_outreach", "email", "social", "referral", "local_event", "print", "unspecified",
 }
 AGENT_LANDING_CTA_PATHS = {
-    "client_draft", "seller_listing", "lease_listing", "relationship_drafts", "lease_representation", "listing_guide", "lease_guide", "form_library_guide",
+    "client_draft", "seller_listing", "lease_listing", "relationship_drafts", "lease_representation", "listing_guide", "lease_guide", "form_library_guide", "ondemand_trial",
 }
 AGENT_LANDING_CAMPAIGNS = {"transaction_selector"}
 INVESTOR_LANDING_EVENT_TYPES = {
@@ -313,7 +313,7 @@ INVESTOR_LANDING_EVENT_TYPES = {
     "investor_offer_guide_cta_selected": "selected",
 }
 INVESTOR_LANDING_CHANNELS = {
-    "direct_outreach", "email", "social", "referral", "local_event", "print", "organic", "pwa_shortcut", "unspecified",
+    "direct", "homepage", "direct_outreach", "email", "social", "referral", "local_event", "print", "organic", "pwa_shortcut", "unspecified",
 }
 
 
@@ -346,12 +346,21 @@ def _campaign_text(value, max_len):
 
 
 def _seller_campaign_payload(data):
+    acquisition_channel = (_text(data.get("acquisition_channel"), 40) or "").lower()
+    if acquisition_channel not in FSBO_LANDING_CHANNELS or acquisition_channel == "unspecified":
+        acquisition_channel = None
     campaign = {
         "utm_source": _campaign_text(data.get("utm_source"), 120),
         "utm_medium": _campaign_text(data.get("utm_medium"), 120),
         "utm_campaign": _campaign_text(data.get("utm_campaign"), 160),
         "utm_content": _campaign_text(data.get("utm_content"), 160),
     }
+    # When a visit has no explicit campaign tags, retain only the aggregate
+    # channel category classified on the public landing page. Never store the
+    # referrer, search query, URL, or any visitor identity as attribution.
+    if acquisition_channel and not any(campaign.values()):
+        campaign["utm_source"] = acquisition_channel
+        campaign["utm_medium"] = "privacy_safe_channel"
     campaign["source"] = "tracked_seller_landing" if any(campaign.values()) else "website_fsbo_intake"
     return campaign
 
@@ -659,6 +668,19 @@ def _build_partner_payload(data):
     if not EMAIL_RE.match(contact_email):
         raise ValueError("Enter a valid contact email.")
 
+    acquisition_channel = (_text(data.get("acquisition_channel"), 40) or "").lower()
+    if acquisition_channel not in PARTNER_LANDING_CHANNELS:
+        acquisition_channel = None
+    campaign = {
+        "utm_source": _campaign_text(data.get("utm_source"), 120),
+        "utm_medium": _campaign_text(data.get("utm_medium"), 120),
+        "utm_campaign": _campaign_text(data.get("utm_campaign"), 160),
+        "utm_content": _campaign_text(data.get("utm_content"), 160),
+    }
+    if acquisition_channel and not any(campaign.values()):
+        campaign["utm_source"] = acquisition_channel
+        campaign["utm_medium"] = "privacy_safe_channel"
+
     now = datetime.now(timezone.utc).isoformat()
     return {
         "partner_type": _choice(data.get("partner_type"), ALLOWED_PARTNER_TYPES, "other"),
@@ -672,12 +694,8 @@ def _build_partner_payload(data):
         "monthly_budget_range": _choice(data.get("monthly_budget_range"), ALLOWED_BUDGETS, "discuss"),
         "preferred_model": _choice(data.get("preferred_model"), ALLOWED_MODELS, "founding_pilot"),
         "message": _text(data.get("message"), 2000),
-        "source": _text(data.get("source"), 120) or "website_partner_modal",
-        "utm_source": _text(data.get("utm_source"), 120),
-        "utm_medium": _text(data.get("utm_medium"), 120),
-        "utm_campaign": _text(data.get("utm_campaign"), 160),
-        "utm_content": _text(data.get("utm_content"), 160),
-        "landing_page": _text(data.get("landing_page"), 800),
+        "source": "tracked_partner_landing" if any(campaign.values()) else "website_partner_modal",
+        **campaign,
         "status": "new",
         "created_at": now,
         "updated_at": now,
