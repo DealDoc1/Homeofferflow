@@ -78,4 +78,3 @@ test('natural-resource-only validation accepts complete terms and rejects missin
   assert.equal(x.context.validateParagraph4LeaseInputs({...complete, naturalResourceTerminationDays: ''}), false);
   assert.match(x.paymentStatus(), /termination period from 1 to 999 days/);
 });
-
