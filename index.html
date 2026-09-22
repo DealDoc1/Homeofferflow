@@ -151,6 +151,7 @@
   </script>
   <link rel="manifest" href="/manifest.webmanifest" />
   <script defer src="/assets/pwa-share-target.js"></script>
+  <script defer src="/assets/under-contract-companion.js"></script>
   <link rel="icon" href="/assets/homeofferflow-app-icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/assets/homeofferflow-apple-touch-icon.png" sizes="180x180" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -19484,6 +19485,7 @@ function routeAfterMagicLinkIfNeeded() {
   function nextAction(o){
     const b = bucketForOffer(o);
     const status = cleanStatus(o).toLowerCase();
+    const contractTimeline = o.offer_data?.transactionTracking;
     const ageDays = Math.floor((Date.now() - new Date(o.last_updated || o.created_at || Date.now()).getTime()) / 86400000);
     if (status.includes('expired')) return 'Signature link expired — duplicate into a new draft to resend';
     if (b === 'draft' && ageDays >= 2) return 'Resume this stale draft';
@@ -19491,12 +19493,14 @@ function routeAfterMagicLinkIfNeeded() {
     if (b === 'draft') return 'Resume and finish packet';
     if (b === 'generated') return 'Confirm buyer signing email';
     if (b === 'signing') return 'Refresh buyer signing status';
-    if (b === 'signed') return 'Send to listing side';
+    if (b === 'signed' && contractTimeline?.effectiveDate) return 'Review the accepted-contract timeline';
+    if (b === 'signed') return 'Send to listing side or track the accepted contract';
     return 'Review details';
   }
 
   function addendaTags(d){
     const tags = [];
+    if (d.transactionTracking?.acceptedContractConfirmed) tags.push(['Under contract','good']);
     if (['conventional','fha','va','usda'].includes(d.financing)) tags.push(['Third Party Financing','good']);
     if (d.financing === 'assumption') tags.push(['Loan Assumption','good']);
     if (d.financing === 'cash') tags.push(['Cash','good']);
@@ -19576,6 +19580,8 @@ function routeAfterMagicLinkIfNeeded() {
     const canRetrySigning = (!hasDoc || d._hof_signature_delivery?.version === 1) && ['generated', 'generation failed'].includes(String(o.status || '').toLowerCase());
     const isExpired = cleanStatus(o).toLowerCase().includes('expired');
     const needsBuyerReminder = hasDoc && bucketForOffer(o) === 'signing' && needsAttention(o);
+    const canTrackContract = ['generated', 'signing', 'signed'].includes(bucketForOffer(o));
+    const contractTimeline = d.transactionTracking || {};
     const tags = addendaTags(d).map(([t,c]) => `<span class="${c}">${esc(t)}</span>`).join('');
     const meta = root.getOfferPacketMeta ? root.getOfferPacketMeta(o) : [];
     return `<article class="offer-workspace-card" data-offer-status="${esc(bucketForOffer(o))}">
@@ -19606,6 +19612,7 @@ function routeAfterMagicLinkIfNeeded() {
         ${hasDoc ? `<button class="offer-action-btn" type="button" onclick="refreshSignWellStatus('${esc(o.id)}', this)">Refresh</button>` : `<button class="offer-action-btn" type="button" onclick="viewOfferDetails('${esc(o.id)}')">Status</button>`}
         ${canRetrySigning ? `<button class="offer-action-btn" type="button" onclick="retryOfferSignature('${esc(o.id)}', this)">Retry signing</button>` : ''}
         ${needsBuyerReminder ? `<button class="offer-action-btn" type="button" onclick="copyBuyerSigningReminder('${esc(o.id)}')">Copy buyer reminder</button>` : ''}
+        ${canTrackContract ? `<button class="offer-action-btn" type="button" onclick="window.hofUnderContract?.open('${esc(o.id)}')">${contractTimeline.effectiveDate ? 'Contract timeline' : 'Track accepted contract'}</button>` : ''}
         <button class="offer-action-btn danger" type="button" onclick="deleteOffer('${esc(o.id)}')">Delete</button>
       </div>
     </article>`;
