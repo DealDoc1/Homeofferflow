@@ -668,6 +668,19 @@ def _build_partner_payload(data):
     if not EMAIL_RE.match(contact_email):
         raise ValueError("Enter a valid contact email.")
 
+    acquisition_channel = (_text(data.get("acquisition_channel"), 40) or "").lower()
+    if acquisition_channel not in PARTNER_LANDING_CHANNELS:
+        acquisition_channel = None
+    campaign = {
+        "utm_source": _campaign_text(data.get("utm_source"), 120),
+        "utm_medium": _campaign_text(data.get("utm_medium"), 120),
+        "utm_campaign": _campaign_text(data.get("utm_campaign"), 160),
+        "utm_content": _campaign_text(data.get("utm_content"), 160),
+    }
+    if acquisition_channel and not any(campaign.values()):
+        campaign["utm_source"] = acquisition_channel
+        campaign["utm_medium"] = "privacy_safe_channel"
+
     now = datetime.now(timezone.utc).isoformat()
     return {
         "partner_type": _choice(data.get("partner_type"), ALLOWED_PARTNER_TYPES, "other"),
@@ -681,12 +694,8 @@ def _build_partner_payload(data):
         "monthly_budget_range": _choice(data.get("monthly_budget_range"), ALLOWED_BUDGETS, "discuss"),
         "preferred_model": _choice(data.get("preferred_model"), ALLOWED_MODELS, "founding_pilot"),
         "message": _text(data.get("message"), 2000),
-        "source": _text(data.get("source"), 120) or "website_partner_modal",
-        "utm_source": _text(data.get("utm_source"), 120),
-        "utm_medium": _text(data.get("utm_medium"), 120),
-        "utm_campaign": _text(data.get("utm_campaign"), 160),
-        "utm_content": _text(data.get("utm_content"), 160),
-        "landing_page": _text(data.get("landing_page"), 800),
+        "source": "tracked_partner_landing" if any(campaign.values()) else "website_partner_modal",
+        **campaign,
         "status": "new",
         "created_at": now,
         "updated_at": now,

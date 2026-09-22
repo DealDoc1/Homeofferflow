@@ -17761,7 +17761,8 @@ function routeAfterMagicLinkIfNeeded() {
   // Never copy arbitrary query text into the intake, analytics, or lead data.
   const partnerCampaignCategories = new Set(['title','lender','inspection','surveyor','home_warranty','insurance','roofing','hvac','plumbing','electrical','foundation_structural','general_contractor','pest_termite','septic_well','restoration','repairs_handyman','photography_video','staging','cleaning','moving_storage','lawn_pool','security_smart_home','other']);
   const partnerCampaignTiers = new Set(['founding_pilot','monthly_placement','market_exclusive']);
-  const partnerCampaignChannels = new Set(['direct_outreach','email','social','referral','local_event','print']);
+  const partnerCampaignChannels = new Set(['direct','homepage','organic','pwa_shortcut','direct_outreach','email','partner_receipt','social','referral','local_event','print','owned_directory']);
+  const partnerCampaignChannelKey = 'hof_partner_landing_channel';
   function value(id){ return (document.getElementById(id)?.value || '').trim(); }
   function trackPartnerFunnel(name, data = {}) {
     try { trackEvent(name, data); } catch (_) {}
@@ -17943,8 +17944,18 @@ function routeAfterMagicLinkIfNeeded() {
   function campaignPartnerChannel(){
     const source = String(params().get('utm_source') || '').trim().toLowerCase();
     const medium = String(params().get('utm_medium') || '').trim().toLowerCase();
+    if (medium === 'partner_receipt') return 'partner_receipt';
+    if (medium === 'owned_directory') return 'owned_directory';
+    if (medium === 'installed_app' || source === 'pwa_shortcut') return 'pwa_shortcut';
+    if (medium === 'organic_content' || source === 'organic') return 'organic';
+    if (source === 'homeofferflow' || medium === 'homepage') return 'homepage';
     if (partnerCampaignChannels.has(source)) return source;
-    return source === 'homeofferflow_admin' && partnerCampaignChannels.has(medium) ? medium : '';
+    if (source === 'homeofferflow_admin' && partnerCampaignChannels.has(medium)) return medium;
+    try {
+      const saved = String(sessionStorage.getItem(partnerCampaignChannelKey) || '').trim().toLowerCase();
+      if (partnerCampaignChannels.has(saved)) return saved;
+    } catch (_) {}
+    return '';
   }
   function partnerQuickStartRequested(){
     return params().get('partner_quick_start') === '1';
@@ -18128,7 +18139,7 @@ function routeAfterMagicLinkIfNeeded() {
       utm_medium: query.get('utm_medium') || '',
       utm_campaign: query.get('utm_campaign') || '',
       utm_content: query.get('utm_content') || '',
-      landing_page: window.location.href
+      acquisition_channel: campaignPartnerChannel()
     };
     const hasType = !!payload.partner_type && !!typeInput?.checkValidity();
     const hasCompany = !!payload.company_name;

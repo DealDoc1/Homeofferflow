@@ -115,6 +115,7 @@
           ? 'owned_directory'
           : window.hofAcquisitionChannel?.() || 'direct';
       const campaignChannelForEvents = ['direct', 'homepage', 'organic', 'pwa_shortcut', 'email', 'partner_receipt', 'social', 'referral', 'other', 'direct_outreach', 'local_event', 'print', 'owned_directory'].includes(campaignChannel) ? campaignChannel : 'direct';
+      try { sessionStorage.setItem('hof_partner_landing_channel', campaignChannelForEvents); } catch (_) {}
       const recordAggregateFunnelEvent = (eventType, tierValue, categoryValue, channelValue = campaignChannelForEvents) => {
         const safeTier = allowedTiers.has(tierValue) ? tierValue : 'unspecified';
         const safeCategory = allowedCategories.has(categoryValue) ? categoryValue : 'unspecified';
