@@ -5279,8 +5279,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     }).join('');
   }
 
-  async function checkAdminSignwellConnection(button) {
-    const status = document.getElementById('adminSignwellConnectionStatus');
+  async function checkAdminDeliveryConnections(button) {
+    const status = document.getElementById('adminDeliveryConnectionStatus');
     if (!status || !hofAuth.session) return;
     const originalLabel = button?.textContent || 'Check connection';
     if (button) {
@@ -5288,7 +5288,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       button.textContent = 'Checking…';
     }
     status.className = 'admin-empty';
-    status.textContent = 'Checking the signature delivery connection without creating a document or sending an email…';
+    status.textContent = 'Checking document and email delivery without creating or sending anything…';
     try {
       const response = await fetch('/api/admin-dashboard', {
         method: 'POST',
@@ -5296,15 +5296,18 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${hofAuth.session.access_token}`
         },
-        body: JSON.stringify({ action: 'check_signwell_connection' })
+        body: JSON.stringify({ action: 'check_delivery_connections' })
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || 'The connection check could not be completed.');
-      const connected = result.signwell?.connected === true;
-      status.className = connected ? 'admin-empty' : 'notice gold';
-      status.textContent = result.signwell?.message || (connected
-        ? 'Signature delivery connection is ready.'
-        : 'Signature delivery connection needs attention.');
+      const connections = result.deliveryConnections || {};
+      const signwellReady = connections.signwell?.connected === true;
+      const resendReady = connections.resend?.connected === true;
+      status.className = signwellReady && resendReady ? 'admin-empty' : 'notice gold';
+      status.innerHTML = [
+        `<strong>SignWell:</strong> ${adminSafe(connections.signwell?.message || 'Connection status is unavailable.')}`,
+        `<strong>Resend:</strong> ${adminSafe(connections.resend?.message || 'Connection status is unavailable.')}`
+      ].join('<br>');
     } catch (error) {
       status.className = 'notice gold';
       status.textContent = error.message || 'The connection check could not be completed.';
@@ -5780,10 +5783,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         </div>
 
         <div class="admin-section">
-          <h4>Signature Delivery Connection</h4>
-          <div class="admin-muted" style="margin-bottom:.55rem;">Confirm that HomeOfferFlow can reach SignWell with the current production connection. This read-only check does not create a document, consume a document allowance, or send an email.</div>
-          <button type="button" class="admin-contact-action" onclick="checkAdminSignwellConnection(this)">Check connection</button>
-          <div id="adminSignwellConnectionStatus" class="admin-empty" role="status" aria-live="polite" style="margin-top:.55rem;">Run this check after a SignWell billing or credential change.</div>
+          <h4>Delivery Connections</h4>
+          <div class="admin-muted" style="margin-bottom:.55rem;">Confirm that document signing and transactional email are ready. This read-only check does not create a document, consume a document allowance, or send an email.</div>
+          <button type="button" class="admin-contact-action" onclick="checkAdminDeliveryConnections(this)">Check delivery connections</button>
+          <div id="adminDeliveryConnectionStatus" class="admin-empty" role="status" aria-live="polite" style="margin-top:.55rem;">Run this check after a SignWell or Resend billing or credential change.</div>
         </div>
 
         <div class="admin-section">

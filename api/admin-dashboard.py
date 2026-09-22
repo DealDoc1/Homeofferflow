@@ -542,6 +542,62 @@ async def _check_signwell_connection():
     return {"connected": False, "message": message}
 
 
+async def _check_resend_connection():
+    """Return a redacted, read-only email-provider result for admins."""
+    if not RESEND_API_KEY:
+        return {
+            "connected": False,
+            "message": "Email delivery is not configured in production.",
+        }
+
+    try:
+        async with httpx.AsyncClient(timeout=12) as client:
+            response = await client.get(
+                "https://api.resend.com/domains?limit=1",
+                headers={"Authorization": f"Bearer {RESEND_API_KEY}"},
+            )
+    except httpx.HTTPError:
+        return {
+            "connected": False,
+            "message": "Resend could not be reached. No email was sent.",
+        }
+
+    try:
+        error_name = str((response.json() or {}).get("name") or "").strip().lower()
+    except (TypeError, ValueError):
+        error_name = ""
+
+    if response.status_code == 200:
+        return {
+            "connected": True,
+            "message": "Email delivery connection is ready. No email was sent.",
+        }
+
+    # A least-privilege Resend key may be limited to sending and therefore
+    # denied access to the read-only domains endpoint. Resend's explicit
+    # restricted-key response still proves that the credential is recognized.
+    if error_name == "restricted_api_key":
+        return {
+            "connected": True,
+            "message": "Email delivery credential is ready with sending-only access. No email was sent.",
+        }
+
+    if response.status_code in {400, 401, 403}:
+        message = "Resend rejected the production connection. Update the production key before sending email."
+    else:
+        message = "Resend is temporarily unavailable. No email was sent."
+    return {"connected": False, "message": message}
+
+
+async def _check_delivery_connections():
+    """Check independent delivery providers concurrently without sending."""
+    signwell, resend = await asyncio.gather(
+        _check_signwell_connection(),
+        _check_resend_connection(),
+    )
+    return {"signwell": signwell, "resend": resend}
+
+
 async def _brokerage_admin_context(user):
     if not user:
         return None
@@ -7326,6 +7382,13 @@ class handler(BaseHTTPRequestHandler):
             if data.get("action") == "check_signwell_connection":
                 result = asyncio.run(_check_signwell_connection())
                 _json(self, 200, {"ok": result["connected"], "signwell": result})
+                return
+            if data.get("action") == "check_delivery_connections":
+                results = asyncio.run(_check_delivery_connections())
+                _json(self, 200, {
+                    "ok": all(item["connected"] for item in results.values()),
+                    "deliveryConnections": results,
+                })
                 return
             if data.get("action") == "create_platform_partner_placement":
                 payload = _parse_partner_placement(data)
