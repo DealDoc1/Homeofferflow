@@ -45,6 +45,7 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
         self.assertIn("medium === 'organic_content' || source === 'organic'", ACQUISITION_CHANNEL)
         self.assertIn("document.referrer", ACQUISITION_CHANNEL)
         self.assertNotIn("sessionStorage", ACQUISITION_CHANNEL)
+        self.assertIn('sessionStorage.setItem("hof_homebuyer_checkout_channel", safeChannel)', BUYERS)
         self.assertIn('"organic"', BUYERS)
         self.assertIn("buyerMedium === 'organic_content'", INDEX)
         self.assertIn("keepalive: true", BUYERS)
@@ -146,6 +147,7 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
 
     def test_checkout_return_preserves_only_allowlisted_acquisition_channel(self):
         self.assertIn("const homebuyerCheckoutChannels = new Set", INDEX)
+        self.assertIn("['direct', 'homepage', 'organic', 'pwa_shortcut', 'direct_outreach'", INDEX)
         self.assertIn("const homebuyerCheckoutChannelKey = 'hof_homebuyer_checkout_channel';", INDEX)
         self.assertIn("medium === 'organic_content' || source === 'organic'", INDEX)
         self.assertIn("function rememberHomebuyerCheckoutChannel()", INDEX)

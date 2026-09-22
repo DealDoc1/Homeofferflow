@@ -429,6 +429,11 @@
           ? campaignChannel
           : "unspecified";
         const attribution = safeChannel !== "unspecified" ? { channel: safeChannel } : {};
+        try {
+          if (safeChannel !== "unspecified") {
+            sessionStorage.setItem("hof_homebuyer_checkout_channel", safeChannel);
+          }
+        } catch (_) {}
         const recordAggregateFunnelEvent = (eventType) => {
           const key = "hof_homebuyer_landing_" + eventType + "_" + safeChannel;
           try {
