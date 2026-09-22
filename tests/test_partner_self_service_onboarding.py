@@ -174,6 +174,14 @@ class PartnerSelfServiceOnboardingTests(unittest.TestCase):
         self.assertIn("object/upload/sign/brokerage-branding", source)
         self.assertIn("PARTNER_LOGO_PATH_RE", source)
 
+    def test_partner_setup_has_one_customer_facing_logo_method(self):
+        html = (ROOT / "index.html").read_text()
+        self.assertIn('id="partnerSetupLogo" type="hidden"', html)
+        self.assertIn("Leave this blank to keep your current logo.", html)
+        self.assertNotIn("Or paste a secure logo URL", html)
+        self.assertNotIn("Please paste a secure logo URL instead.", html)
+        self.assertIn("Directory button text (optional)", html)
+
     def test_partner_setup_save_announces_progress_and_prevents_duplicate_submissions(self):
         html = (ROOT / "index.html").read_text()
         self.assertIn('id="partnerOnboardingStatus" class="platform-status" role="status" aria-live="polite" aria-atomic="true"', html)
