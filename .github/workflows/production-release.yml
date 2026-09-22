@@ -21,10 +21,6 @@ on:
         required: true
         default: andrewchri@gmail.com
         type: string
-  push:
-    branches:
-      - main
-
 permissions:
   contents: read
 
@@ -35,7 +31,7 @@ concurrency:
 jobs:
   verify:
     name: Verify exact release commit
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.confirmation == 'DEPLOY') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[deploy-production]')) }}
+    if: ${{ inputs.confirmation == 'DEPLOY' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -60,46 +56,26 @@ jobs:
 
       - name: Check patch whitespace
         run: |
-          if [[ "${{ github.event_name }}" == "push" ]]; then
-            base_ref="$(python scripts/release_base_ref.py)"
-          else
-            base_ref="${{ inputs.base_ref }}"
-          fi
-          echo "Release preflight base: ${base_ref}"
-          git diff --check "${base_ref}" "${{ github.sha }}"
+          echo "Release preflight base: ${{ inputs.base_ref }}"
+          git diff --check "${{ inputs.base_ref }}" "${{ github.sha }}"
 
       - name: Run fail-closed release preflight
         env:
           PYTHONPATH: .
         run: |
-          if [[ "${{ github.event_name }}" == "push" ]]; then
-            base_ref="$(python scripts/release_base_ref.py)"
-            # The only permitted push-triggered deployment is an explicit
-            # release-marker commit. It must name its own evidence in an
-            # `Evidence-File:` trailer, so no future release can inherit
-            # evidence from a prior form correction.
-            evidence_file="$(git log -1 --format=%B | sed -n 's/^Evidence-File:[[:space:]]*//p' | head -n1)"
-            if [[ -z "${evidence_file}" ]]; then
-              echo "Push-triggered production release requires an Evidence-File: commit trailer." >&2
-              exit 2
-            fi
-          else
-            base_ref="${{ inputs.base_ref }}"
-            evidence_file="${{ inputs.evidence_file }}"
-          fi
           args=(
-            --base "${base_ref}"
-            --expected-deploy-author-email "${{ inputs.expected_deploy_author_email || 'andrewchri@gmail.com' }}"
+            --base "${{ inputs.base_ref }}"
+            --expected-deploy-author-email "${{ inputs.expected_deploy_author_email }}"
           )
-          if [[ -n "${evidence_file}" ]]; then
-            args+=(--evidence-file "${evidence_file}")
+          if [[ -n "${{ inputs.evidence_file }}" ]]; then
+            args+=(--evidence-file "${{ inputs.evidence_file }}")
           fi
           python scripts/release_preflight.py "${args[@]}"
 
   deploy:
     name: Deploy complete prebuilt tree to Vercel production
     needs: verify
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.confirmation == 'DEPLOY') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[deploy-production]')) }}
+    if: ${{ inputs.confirmation == 'DEPLOY' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment:
