@@ -9,6 +9,7 @@
     <style>header{padding-top:max(1rem,env(safe-area-inset-top))}footer{padding-bottom:max(2rem,env(safe-area-inset-bottom))}</style>
     <meta name="theme-color" content="#173f35" />
     <link rel="manifest" href="/manifest.webmanifest" />
+    <script src="/assets/acquisition-channel.js"></script>
     <link rel="apple-touch-icon" href="/assets/homeofferflow-apple-touch-icon.png" />
     <meta
       name="description"
@@ -401,6 +402,8 @@
           "utm_content",
         ];
         const allowedChannels = new Set([
+          "direct",
+          "homepage",
           "direct_outreach",
           "email",
           "social",
@@ -408,6 +411,7 @@
           "local_event",
           "print",
           "organic",
+          "pwa_shortcut",
         ]);
         const campaign = new URLSearchParams();
         const track = (name, data = {}) => {
@@ -420,21 +424,11 @@
             window.va("event", { name, ...data });
           } catch (_) {}
         };
-        const rawSource = String(source.get("utm_source") || "")
-          .trim()
-          .toLowerCase();
-        const medium = String(source.get("utm_medium") || "")
-          .trim()
-          .toLowerCase();
-        const campaignChannel = medium === "organic_content" || rawSource === "organic"
-          ? "organic"
-          : allowedChannels.has(rawSource)
-          ? rawSource
-          : rawSource === "homeofferflow_admin" && allowedChannels.has(medium)
-            ? medium
-            : "";
-        const safeChannel = campaignChannel || "unspecified";
-        const attribution = campaignChannel ? { channel: campaignChannel } : {};
+        const campaignChannel = window.hofAcquisitionChannel?.() || "direct";
+        const safeChannel = allowedChannels.has(campaignChannel)
+          ? campaignChannel
+          : "unspecified";
+        const attribution = safeChannel !== "unspecified" ? { channel: safeChannel } : {};
         const recordAggregateFunnelEvent = (eventType) => {
           const key = "hof_homebuyer_landing_" + eventType + "_" + safeChannel;
           try {

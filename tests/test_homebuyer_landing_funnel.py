@@ -8,6 +8,7 @@ ADMIN = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 BUYERS = (ROOT / "buyers.html").read_text(encoding="utf-8")
 BUYERS_COMPACT = " ".join(BUYERS.split())
+ACQUISITION_CHANNEL = (ROOT / "assets" / "acquisition-channel.js").read_text(encoding="utf-8")
 
 
 class HomebuyerLandingFunnelTests(unittest.TestCase):
@@ -38,8 +39,11 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
         self.assertNotIn("homebuyer_landing_offer_started", BUYERS)
         self.assertIn("The destination records this stage only after the guided", BUYERS)
         self.assertIn("channel: safeChannel", BUYERS)
-        self.assertIn("allowedChannels.has(rawSource)", BUYERS)
-        self.assertIn('medium === "organic_content"', BUYERS)
+        self.assertIn('/assets/acquisition-channel.js', BUYERS)
+        self.assertIn('window.hofAcquisitionChannel?.() || "direct"', BUYERS)
+        self.assertIn("medium === 'organic_content' || source === 'organic'", ACQUISITION_CHANNEL)
+        self.assertIn("document.referrer", ACQUISITION_CHANNEL)
+        self.assertNotIn("sessionStorage", ACQUISITION_CHANNEL)
         self.assertIn('"organic"', BUYERS)
         self.assertIn("buyerMedium === 'organic_content'", INDEX)
         self.assertIn("keepalive: true", BUYERS)

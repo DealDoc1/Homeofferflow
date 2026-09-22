@@ -195,7 +195,7 @@ FSBO_LANDING_EVENT_TYPES = {
     "pwa_seller_plan_opened": "opened",
 }
 FSBO_LANDING_CHANNELS = {
-    "direct", "organic", "pwa_shortcut", "direct_outreach", "email", "seller_receipt", "social", "referral", "local_event", "print", "unspecified",
+    "direct", "homepage", "organic", "pwa_shortcut", "direct_outreach", "email", "seller_receipt", "social", "referral", "local_event", "print", "unspecified",
 }
 FSBO_RECEIPT_DELIVERY_STATUSES = {"sent", "failed", "not_configured", "missing_email"}
 PARTNER_APPLICATION_RECEIPT_DELIVERY_STATUSES = {"sent", "failed", "not_configured", "missing_email"}
@@ -238,7 +238,7 @@ PARTNER_LANDING_EVENT_TYPES = {
     "partner_directory_pricing_selected": "pricing_selected",
     "partner_directory_empty_search": "unfilled_search",
 }
-PARTNER_LANDING_CHANNELS = {"direct", "organic", "pwa_shortcut", "email", "partner_receipt", "social", "referral", "other", "direct_outreach", "local_event", "print", "owned_directory"}
+PARTNER_LANDING_CHANNELS = {"direct", "homepage", "organic", "pwa_shortcut", "email", "partner_receipt", "social", "referral", "other", "direct_outreach", "local_event", "print", "owned_directory"}
 PARTNER_ONBOARDING_EVENT_TYPES = {
     "partner_onboarding_opened": "opened",
     "partner_onboarding_completed": "completed",
@@ -285,7 +285,7 @@ HOMEBUYER_LANDING_EVENT_TYPES = {
     "pwa_buyer_offer_opened": "opened",
 }
 HOMEBUYER_LANDING_CHANNELS = {
-    "direct_outreach", "email", "social", "referral", "local_event", "print", "organic", "pwa_shortcut", "unspecified",
+    "direct", "homepage", "direct_outreach", "email", "social", "referral", "local_event", "print", "organic", "pwa_shortcut", "unspecified",
 }
 AGENT_LANDING_EVENT_TYPES = {
     "agent_landing_viewed": "viewed",
@@ -313,7 +313,7 @@ INVESTOR_LANDING_EVENT_TYPES = {
     "investor_offer_guide_cta_selected": "selected",
 }
 INVESTOR_LANDING_CHANNELS = {
-    "direct_outreach", "email", "social", "referral", "local_event", "print", "organic", "pwa_shortcut", "unspecified",
+    "direct", "homepage", "direct_outreach", "email", "social", "referral", "local_event", "print", "organic", "pwa_shortcut", "unspecified",
 }
 
 

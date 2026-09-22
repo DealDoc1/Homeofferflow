@@ -655,8 +655,10 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("agent_landing_cta_counts_by_campaign[campaign] <= agent_landing_view_counts_by_campaign[campaign]", ADMIN)
 
     def test_investor_landing_preserves_organic_and_pwa_attribution(self):
-        self.assertIn("medium==='installed_app'||source==='pwa_shortcut'?'pwa_shortcut'", INVESTORS)
-        self.assertIn("medium==='organic_content'||source==='organic'?'organic'", INVESTORS)
+        attribution = (ROOT / "assets" / "acquisition-channel.js").read_text(encoding="utf-8")
+        self.assertIn("/assets/acquisition-channel.js", INVESTORS)
+        self.assertIn("medium === 'installed_app' || source === 'pwa_shortcut'", attribution)
+        self.assertIn("medium === 'organic_content' || source === 'organic'", attribution)
 
     def test_admin_reports_agent_workspace_landing_conversion(self):
         for expected in (

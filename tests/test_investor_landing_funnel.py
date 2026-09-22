@@ -13,6 +13,7 @@ INVESTORS = (ROOT / "investors.html").read_text(encoding="utf-8")
 INVESTOR_ATTRIBUTION = (ROOT / "assets" / "investor-attribution.js").read_text(encoding="utf-8")
 INVESTOR_GUIDE = (ROOT / "texas-investor-offer-guide.html").read_text(encoding="utf-8")
 INVESTOR_GUIDE_METRICS = (ROOT / "assets" / "investor-offer-guide-metrics.js").read_text(encoding="utf-8")
+ACQUISITION_CHANNEL = (ROOT / "assets" / "acquisition-channel.js").read_text(encoding="utf-8")
 VERCEL = (ROOT / "vercel.json").read_text(encoding="utf-8")
 
 
@@ -71,8 +72,10 @@ class InvestorLandingFunnelTests(unittest.TestCase):
         self.assertIn("request_type:'investor_landing_event'", INVESTORS)
         self.assertIn("investor_landing_viewed", INVESTORS)
         self.assertIn("investor_landing_cta_selected", INVESTORS)
-        self.assertIn("new URLSearchParams(window.location.search).get('utm_source')", INVESTORS)
-        self.assertIn("'direct_outreach','email','social','referral','local_event','print'", INVESTORS)
+        self.assertIn('/assets/acquisition-channel.js', INVESTORS)
+        self.assertIn("window.hofAcquisitionChannel?.()||'direct'", INVESTORS)
+        self.assertIn("document.referrer", ACQUISITION_CHANNEL)
+        self.assertNotIn("sessionStorage", ACQUISITION_CHANNEL)
 
     def test_investor_landing_channel_is_allowlisted_without_visitor_identity(self):
         spec = importlib.util.spec_from_file_location("investor_landing_channel", API_PATH)

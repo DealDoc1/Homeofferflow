@@ -5,6 +5,7 @@
   <link rel="stylesheet" href="/assets/partner-landing-focus.css" />
   <script defer src="/assets/partner-landing-focus.js"></script>
   <script src="/assets/receipt-funnel-channel.js"></script>
+  <script src="/assets/acquisition-channel.js"></script>
   <link rel="apple-touch-icon" href="/assets/homeofferflow-apple-touch-icon.png" />
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -108,8 +109,12 @@
       const selectedCategory = allowedCategories.has(category) ? category : '';
       const selectedTier = allowedTiers.has(tier) ? tier : '';
       const medium = String(source.get('utm_medium') || '').trim().toLowerCase();
-      const campaignChannel = medium === 'installed_app' ? 'pwa_shortcut' : medium || 'direct';
-      const campaignChannelForEvents = campaignChannel === 'organic_content' ? 'organic' : (['direct', 'organic', 'pwa_shortcut', 'email', 'partner_receipt', 'social', 'referral', 'other', 'direct_outreach', 'local_event', 'print', 'owned_directory'].includes(campaignChannel) ? campaignChannel : 'direct');
+      const campaignChannel = medium === 'partner_receipt'
+        ? 'partner_receipt'
+        : medium === 'owned_directory'
+          ? 'owned_directory'
+          : window.hofAcquisitionChannel?.() || 'direct';
+      const campaignChannelForEvents = ['direct', 'homepage', 'organic', 'pwa_shortcut', 'email', 'partner_receipt', 'social', 'referral', 'other', 'direct_outreach', 'local_event', 'print', 'owned_directory'].includes(campaignChannel) ? campaignChannel : 'direct';
       const recordAggregateFunnelEvent = (eventType, tierValue, categoryValue, channelValue = campaignChannelForEvents) => {
         const safeTier = allowedTiers.has(tierValue) ? tierValue : 'unspecified';
         const safeCategory = allowedCategories.has(categoryValue) ? categoryValue : 'unspecified';
