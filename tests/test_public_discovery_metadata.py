@@ -485,7 +485,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('confirm the recipients before it is sent.', AGENTS)
         self.assertIn('href="/?agent=1&amp;workflow=purchase&amp;utm_source=agent_workspace&amp;utm_medium=agent_page&amp;utm_campaign=transaction_selector"', AGENTS)
         self.assertIn('Lease listing goes directly to the landlord and property details.', AGENTS)
-        self.assertIn('No brokerage seat required.', AGENTS)
+        self.assertIn('No brokerage seat or payment required to start.', AGENTS)
         self.assertIn('href="/ondemand?utm_source=agent_workspace&amp;utm_medium=agent_page&amp;utm_campaign=ondemand_trial"', AGENTS)
         self.assertIn('"name":"OnDemand Agent Workspace"', AGENTS)
         self.assertIn('"price":"29"', AGENTS)
