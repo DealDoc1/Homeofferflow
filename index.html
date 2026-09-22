@@ -1091,6 +1091,14 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 .platform-card { background:rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.09); border-radius:14px; padding:1rem; margin-bottom:1rem; }
 .platform-card h4 { color:var(--gold-light); font-size:0.86rem; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.75rem; }
 .platform-card p { color:var(--gray-light); font-size:0.86rem; line-height:1.55; margin:0.25rem 0 0.75rem; }
+.listing-workspace-secondary { padding:0; overflow:hidden; }
+.listing-workspace-secondary > summary { cursor:pointer; list-style:none; padding:1rem; color:var(--gold-light); font-size:.86rem; font-weight:800; letter-spacing:.04em; }
+.listing-workspace-secondary > summary::-webkit-details-marker { display:none; }
+.listing-workspace-secondary > summary::after { content:'+'; float:right; color:var(--sage-light); font-size:1.1rem; line-height:1; }
+.listing-workspace-secondary[open] > summary::after { content:'−'; }
+.listing-workspace-secondary[open] > summary { border-bottom:1px solid rgba(255,255,255,.09); }
+.listing-workspace-secondary-body { padding:1rem; }
+.listing-workspace-secondary-body > .platform-card:last-child { margin-bottom:0; }
 .platform-kpi-row { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:0.65rem; margin:0.8rem 0; }
 .platform-kpi { background:rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:0.8rem; }
 .platform-kpi span { display:block; color:var(--gray-light); font-size:0.68rem; font-weight:900; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.25rem; }
@@ -7923,6 +7931,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     showAccountTab('seller');
     let attempts = 0;
     const focusComparison = () => {
+      openListingWorkspaceSection('listingWorkspaceTools');
       const card = document.getElementById('listingWorkspaceOfferComparisonCard');
       const workspace = document.getElementById('listingOfferWorkspace');
       if (!card || !workspace) {
@@ -14688,11 +14697,24 @@ function routeAfterMagicLinkIfNeeded() {
     if (!el) return;
     el.className = '';
     const isLeaseListing = window.hofAgentWorkflowContext === 'lease_listing';
+    const isGuidedListingPath = ['sale_listing', 'lease_listing'].includes(window.hofAgentWorkflowContext);
+    const secondaryOpen = isGuidedListingPath ? '' : ' open';
     const workspaceKind = isLeaseListing ? 'lease' : 'sale';
-    const workspaceTitle = isLeaseListing ? 'Lease Listing Workspace' : 'Listing Workspace';
-    const workspaceDescription = isLeaseListing
-      ? 'Start a lease listing by adding the landlord and property. Then keep your lease-listing planning in one organized workspace.'
-      : 'Start a sale listing by adding the seller and property. Then keep your launch, disclosure, and offer-review planning in one organized workspace.';
+    const leadSectionTitle = isLeaseListing ? 'Landlord lead' : 'Seller lead';
+    const leadSectionDescription = isLeaseListing
+      ? 'Save optional landlord contact details when this property began as a lead.'
+      : 'Save optional seller contact details when this property began as a lead.';
+    const leadTypeLabel = isLeaseListing ? 'Landlord lead type' : 'Seller lead type';
+    const leadTypeOptions = isLeaseListing
+      ? '<option value="agent_listing">Lease Listing / Landlord Rep</option><option value="fsbo">Owner / Landlord Lead</option>'
+      : '<option value="agent_listing">Listing Agent / Seller Rep</option><option value="fsbo">FSBO Referral / Seller Lead</option>';
+    const leadNameLabel = isLeaseListing ? 'Landlord Name' : 'Seller Name';
+    const leadEmailLabel = isLeaseListing ? 'Landlord Email' : 'Seller Email';
+    const leadPhoneLabel = isLeaseListing ? 'Landlord Phone' : 'Seller Phone';
+    const leadPriceLabel = isLeaseListing ? 'Monthly Asking Rent' : 'Asking Price';
+    const leadDateLabel = isLeaseListing ? 'Desired Lease Start Date' : 'Desired Close Date';
+    const leadNotesPlaceholder = isLeaseListing ? 'Landlord goals, property notes, and lease-listing follow-up...' : 'Seller goals, offer review request, FSBO notes, and listing follow-up...';
+    const mortgageField = isLeaseListing ? '<input id="sellerLeadMortgage" type="hidden" value="">' : '<div class="field"><label>Mortgage Balance</label><input id="sellerLeadMortgage" type="number" placeholder="Optional"></div>';
     const workflowPrompt = isLeaseListing
       ? '<label style="display:flex; gap:.35rem; align-items:center;"><input type="checkbox" name="listingWorkflow" value="lease_listing" checked> Lease-listing launch plan</label><label style="display:flex; gap:.35rem; align-items:center;"><input type="checkbox" name="listingWorkflow" value="listing_agreement"> Listing agreement discussion</label><label style="display:flex; gap:.35rem; align-items:center;"><input type="checkbox" name="listingWorkflow" value="seller_disclosure"> Seller disclosure review</label>'
       : '<label style="display:flex; gap:.35rem; align-items:center;"><input type="checkbox" name="listingWorkflow" value="listing_agreement"> Listing agreement discussion</label><label style="display:flex; gap:.35rem; align-items:center;"><input type="checkbox" name="listingWorkflow" value="seller_disclosure"> Seller disclosure review</label>';
@@ -14719,25 +14741,30 @@ function routeAfterMagicLinkIfNeeded() {
         <div id="buyerCampaignLinkStatus" class="platform-status" aria-live="polite"></div>
       </div>` : '';
     el.innerHTML = `
+      <details class="platform-card listing-workspace-secondary" id="listingLeadTools"${secondaryOpen}>
+        <summary>Lead and outreach tools</summary>
+        <div class="listing-workspace-secondary-body">
       <div class="platform-card">
-        <h4>${workspaceTitle}</h4>
-        <p>${workspaceDescription}</p>
+        <h4>${leadSectionTitle}</h4>
+        <p>${leadSectionDescription}</p>
         <div class="platform-grid">
-          <div class="field"><label>Seller lead type</label><select id="sellerLeadType"><option value="agent_listing">Listing Agent / Seller Rep</option><option value="fsbo">FSBO Referral / Seller Lead</option></select></div>
+          <div class="field"><label>${leadTypeLabel}</label><select id="sellerLeadType">${leadTypeOptions}</select></div>
           <div class="field"><label for="sellerLeadAddress">Property Address</label><input id="sellerLeadAddress" placeholder="Start typing the property address..." autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" aria-describedby="sellerLeadAddressHelp"><small id="sellerLeadAddressHelp" style="display:block;margin-top:.35rem;color:var(--gray-light);">Choose a Google address suggestion when available; manual entry still works.</small></div>
-          <div class="field"><label>Seller Name</label><input id="sellerLeadName" placeholder="Seller full name"></div>
-          <div class="field"><label>Seller Email</label><input id="sellerLeadEmail" type="email" inputmode="email" autocomplete="email" placeholder="seller@email.com"></div>
-          <div class="field"><label>Seller Phone</label><input id="sellerLeadPhone" placeholder="(214) 555-0000"></div>
-          <div class="field"><label>Asking Price</label><input id="sellerLeadPrice" type="number" placeholder="500000"></div>
-          <div class="field"><label>Mortgage Balance</label><input id="sellerLeadMortgage" type="number" placeholder="Optional"></div>
-          <div class="field"><label>Desired Close Date</label><input id="sellerLeadCloseDate" type="date"></div>
+          <div class="field"><label>${leadNameLabel}</label><input id="sellerLeadName" placeholder="${isLeaseListing ? 'Landlord full name' : 'Seller full name'}"></div>
+          <div class="field"><label>${leadEmailLabel}</label><input id="sellerLeadEmail" type="email" inputmode="email" autocomplete="email" placeholder="${isLeaseListing ? 'landlord@email.com' : 'seller@email.com'}"></div>
+          <div class="field"><label>${leadPhoneLabel}</label><input id="sellerLeadPhone" placeholder="(214) 555-0000"></div>
+          <div class="field"><label>${leadPriceLabel}</label><input id="sellerLeadPrice" type="number" placeholder="${isLeaseListing ? '2500' : '500000'}"></div>
+          ${mortgageField}
+          <div class="field"><label>${leadDateLabel}</label><input id="sellerLeadCloseDate" type="date"></div>
         </div>
-        <div class="field" style="margin-top:0.8rem;"><label>Notes</label><textarea id="sellerLeadNotes" rows="3" placeholder="Seller goals, offer review request, FSBO notes, listing-agent notes..."></textarea></div>
-        <div class="platform-actions"><button type="button" id="saveSellerLeadButton" onclick="saveSellerLeadFoundation()">Save Seller Lead</button><button type="button" onclick="loadSellerLeadsFoundation()">Refresh Leads</button></div>
+        <div class="field" style="margin-top:0.8rem;"><label>Notes</label><textarea id="sellerLeadNotes" rows="3" placeholder="${leadNotesPlaceholder}"></textarea></div>
+        <div class="platform-actions"><button type="button" id="saveSellerLeadButton" onclick="saveSellerLeadFoundation()">Save ${isLeaseListing ? 'Landlord' : 'Seller'} Lead</button><button type="button" onclick="loadSellerLeadsFoundation()">Refresh Leads</button></div>
         <div id="sellerFoundationStatus" class="platform-status" role="status" aria-live="polite" aria-atomic="true"></div>
       </div>
       ${campaignToolkit}
       <div class="platform-card"><h4>Recent Seller Leads</h4><div id="sellerLeadList" class="platform-list"><div class="platform-list-item">No seller leads loaded yet.</div></div></div>
+        </div>
+      </details>
       <div class="platform-card" id="listingWorkspaceStartCard">
         <div class="eyebrow" style="margin-bottom:.35rem;">Question 2</div>
         <h4>${isLeaseListing ? 'Which property is this lease listing for?' : 'Which property is this listing for?'}</h4>
@@ -14756,7 +14783,15 @@ function routeAfterMagicLinkIfNeeded() {
         <div class="platform-actions"><button type="button" id="createListingWorkspaceButton" onclick="saveListingWorkspaceFoundation()">Save Listing Workspace</button><button type="button" onclick="loadListingWorkspacesFoundation()">Refresh Workspaces</button></div>
         <div id="listingWorkspaceStatus" class="platform-status" role="status" aria-live="polite" aria-atomic="true"></div>
       </div>
-      <div class="platform-card"><h4>My Listing Workspaces</h4><div id="listingWorkspaceList" class="platform-list"><div class="platform-list-item">No listing workspaces loaded yet.</div></div><div id="listingWorkspaceBrokerSummary" class="platform-status" style="margin-top:.75rem;"></div></div>
+      <details class="platform-card listing-workspace-secondary" id="listingWorkspaceLibrary"${secondaryOpen}>
+        <summary>Existing listing workspaces</summary>
+        <div class="listing-workspace-secondary-body">
+          <div class="platform-card"><h4>My Listing Workspaces</h4><div id="listingWorkspaceList" class="platform-list"><div class="platform-list-item">No listing workspaces loaded yet.</div></div><div id="listingWorkspaceBrokerSummary" class="platform-status" style="margin-top:.75rem;"></div></div>
+        </div>
+      </details>
+      <details class="platform-card listing-workspace-secondary" id="listingWorkspaceTools"${secondaryOpen}>
+        <summary>Tools for a saved workspace</summary>
+        <div class="listing-workspace-secondary-body">
       <div class="platform-card" id="listingLaunchChecklistCard">
         <h4>Listing Kickoff Checklist</h4>
         <p>Generate a practical sale-listing or lease-listing kickoff checklist from the selected workspace for the agent, broker, and seller or landlord conversation. It is a planning aid only—not a listing agreement, disclosure, pricing opinion, or instruction to act.</p>
@@ -14798,14 +14833,16 @@ function routeAfterMagicLinkIfNeeded() {
         <div id="listingOfferNetStatus" class="platform-status" aria-live="polite"></div>
         <div id="listingOfferNetResult" class="platform-list" style="margin-top:.8rem;"></div>
       </div>
+        </div>
+      </details>
       `;
     // Question 1 promised a simple transaction-first path. Place the first
     // real listing question ahead of optional lead capture, campaigns, and
     // downstream tools so the next action is always property + client.
     const workspaceStartCard = el.querySelector('#listingWorkspaceStartCard');
-    const firstWorkspaceCard = el.querySelector('.platform-card');
-    if (workspaceStartCard && firstWorkspaceCard && workspaceStartCard !== firstWorkspaceCard) {
-      el.insertBefore(workspaceStartCard, firstWorkspaceCard);
+    const firstWorkspaceSection = el.firstElementChild;
+    if (workspaceStartCard && firstWorkspaceSection && workspaceStartCard !== firstWorkspaceSection) {
+      el.insertBefore(workspaceStartCard, firstWorkspaceSection);
     }
     // Restore any older transient workspace draft without requiring an agent
     // to connect a brokerage before keeping their own listing work private.
@@ -14825,6 +14862,12 @@ function routeAfterMagicLinkIfNeeded() {
     }
     loadSellerLeadsFoundation();
     loadListingWorkspacesFoundation();
+  }
+
+  function openListingWorkspaceSection(id) {
+    const section = document.getElementById(id);
+    if (section instanceof HTMLDetailsElement) section.open = true;
+    return section;
   }
 
   const sellerCampaignPackages = new Set(['free_intake','seller_prep','launch_kit','flat_fee_mls','offer_review','contract_help','premium_bundle']);
@@ -15125,6 +15168,7 @@ function routeAfterMagicLinkIfNeeded() {
           if (select && Array.from(select.options).some(option => option.value === createdWorkspaceId)) select.value = createdWorkspaceId;
         });
         await loadListingWorkspaceOffersFoundation();
+        openListingWorkspaceSection('listingWorkspaceTools');
         const kickoff = document.getElementById('listingLaunchChecklistCard');
         kickoff?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         kickoff?.querySelector('button')?.focus({ preventScroll: true });
