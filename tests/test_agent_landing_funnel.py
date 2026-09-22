@@ -372,9 +372,23 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("agent_form_package_direct_started", launcher)
         self.assertIn("Agent opened the listing workspace directly after choosing the transaction.", launcher)
 
+    def test_tenant_representation_goes_directly_to_the_agreement_choice(self):
+        interview_start = INDEX.index("window.hofOpenAgentPackageInterview = function")
+        launcher_start = INDEX.index("window.startAgentWorkflow = function", interview_start)
+        interview = INDEX[interview_start:launcher_start]
+        launcher_end = INDEX.index("const HOF_OFFER_WORKSPACE_PAGE_SIZE", launcher_start)
+        launcher = INDEX[launcher_start:launcher_end]
+        self.assertIn("const directPackage = String(options?.directPackage || '')", interview)
+        self.assertIn("kind === 'lease_representation' && directPackage === 'representation'", interview)
+        self.assertIn("openRelationshipPackage('representation', { direct: true });", interview)
+        self.assertIn("agent_form_package_direct_question_opened", interview)
+        self.assertIn("agent_form_package_direct_started", interview)
+        self.assertIn("hofOpenAgentPackageInterview('lease_representation', { directPackage: 'representation' })", launcher)
+        self.assertIn("Next, choose the representation agreement that fits this tenant.", launcher)
+
     def test_guided_private_draft_handoff_offers_a_prefilled_missing_form_request(self):
         start = INDEX.index("const openRelationshipDraft = (openerName, onOpened, request)")
-        end = INDEX.index("const openRelationshipPackage = (type)", start)
+        end = INDEX.index("const openRelationshipPackage = (type, { direct = false } = {})", start)
         handoff = INDEX[start:end]
         self.assertIn("const reportOpenError", handoff)
         self.assertIn("Promise.resolve().then(() => opener()).then(() => {", handoff)
@@ -390,11 +404,11 @@ class AgentLandingFunnelTests(unittest.TestCase):
         start = INDEX.index("window.hofOpenAgentPackageInterview = function")
         end = INDEX.index("window.startAgentWorkflow = function", start)
         interview = INDEX[start:end]
-        self.assertIn("const recordPrivateDraftWorkspaceStart = (choice, packageType)", interview)
+        self.assertIn("const recordPrivateDraftWorkspaceStart = (choice, packageType, directStart = false)", interview)
         self.assertIn("document.querySelector('.hof-agreement-dialog')", interview)
         self.assertIn("deferStartToNestedChoice: true", interview)
         self.assertIn("if (!choice.deferStartToNestedChoice && !choice.skipWorkspaceStart) recordPackageWorkspaceStart(choice);", interview)
-        self.assertIn("openRelationshipDraft(choice.opener, () => recordPrivateDraftWorkspaceStart(choice, type), choice);", interview)
+        self.assertIn("openRelationshipDraft(choice.opener, () => recordPrivateDraftWorkspaceStart(choice, type, direct), choice);", interview)
 
     def test_missing_form_request_prefills_the_selected_form_and_transaction(self):
         start = INDEX.index("function openMissingFormRequest(context = {})")
@@ -718,7 +732,9 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("agent_form_package_direct_started_events", ADMIN)
         self.assertIn('"agentFormPackageDirectStartedCount": agent_form_package_direct_started_count', ADMIN)
         self.assertIn('"agentFormPackageDirectStartedCountsByWorkflow": agent_form_package_direct_started_counts_by_workflow', ADMIN)
+        self.assertIn('"agentFormPackageDirectQuestionOpenedCount": agent_form_package_direct_question_opened_count', ADMIN)
         self.assertIn("agentFormPackageDirectStartedCount", INDEX)
+        self.assertIn("agentFormPackageDirectQuestionOpenedCount", INDEX)
 
     def test_homepage_offer_entry_events_keep_anonymous_campaign_source(self):
         self.assertIn("const entrySource = String(new URLSearchParams(window.location.search).get('utm_source') || 'homepage')", INDEX)

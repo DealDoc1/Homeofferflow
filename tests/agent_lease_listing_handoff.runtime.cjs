@@ -82,7 +82,6 @@ for (const [workflow, packageLabel] of [
 
 for (const [workflow, expectedInterview] of [
   ['purchase', 'purchase'],
-  ['lease_representation', 'lease_representation'],
 ]) {
   test(`${workflow} opens Question 2 without also falling through to a workspace`, () => {
     const page = setup();
@@ -100,3 +99,21 @@ for (const [workflow, expectedInterview] of [
     assert.equal(page.storage.get('hof_agent_workflow_choice'), workflow);
   });
 }
+
+test('tenant representation skips the redundant package question and opens the agreement choice', () => {
+  const page = setup();
+  const opened = [];
+  page.window.hofOpenAgentPackageInterview = (kind, options) => {
+    opened.push([kind, options]);
+    return true;
+  };
+
+  page.window.startAgentWorkflow('lease_representation');
+
+  assert.deepEqual(JSON.parse(JSON.stringify(opened)), [[
+    'lease_representation', {directPackage: 'representation'},
+  ]]);
+  assert.equal(page.calls.filter(call => call[0] === 'tab').length, 0);
+  assert.equal(page.window.hofAgentWorkflowContext, 'lease_representation');
+  assert.equal(page.storage.get('hof_agent_workflow_choice'), 'lease_representation');
+});
