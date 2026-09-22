@@ -23,6 +23,32 @@ SPEC.loader.exec_module(MODULE)
 
 
 class ProductionSchemaReadinessTests(unittest.TestCase):
+    def test_workflow_secret_overrides_masked_pulled_legacy_value(self):
+        values = {"SUPABASE_SERVICE_ROLE_KEY": "[SENSITIVE]"}
+
+        with patch.dict(
+            MODULE.os.environ,
+            {"SUPABASE_SECRET_KEY": "sb_secret_workflow"},
+            clear=True,
+        ):
+            selected = MODULE.first_value(MODULE.SERVICE_KEY_KEYS, values)
+
+        self.assertEqual(selected, "sb_secret_workflow")
+
+    def test_modern_secret_key_is_not_sent_as_a_bearer_token(self):
+        headers = MODULE.request_headers("sb_secret_fixture")
+
+        self.assertEqual(headers["apikey"], "sb_secret_fixture")
+        self.assertNotIn("Authorization", headers)
+
+    def test_legacy_service_role_key_remains_a_bearer_token(self):
+        headers = MODULE.request_headers("legacy-service-role-jwt")
+
+        self.assertEqual(headers["apikey"], "legacy-service-role-jwt")
+        self.assertEqual(
+            headers["Authorization"], "Bearer legacy-service-role-jwt"
+        )
+
     def test_migration_checks_every_release_dependency_and_is_service_only(self):
         for expected in (
             "hof_agent_profile_aliases",
