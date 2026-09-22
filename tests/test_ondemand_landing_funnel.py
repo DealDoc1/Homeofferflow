@@ -159,6 +159,69 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
         self.assertIn('").textContent.trim())', ONDEMAND)
         self.assertIn(".status.note", ONDEMAND)
 
+    def test_auth_listener_precedes_saved_session_read_and_survives_bootstrap_failure(self):
+        start = ONDEMAND.index("async function init()")
+        end = ONDEMAND.index('$("signInButton").addEventListener', start)
+        init = ONDEMAND[start:end]
+        self.assertIn("client.auth.onAuthStateChange", init)
+        self.assertIn("await client.auth.getSession()", init)
+        self.assertLess(
+            init.index("client.auth.onAuthStateChange"),
+            init.index("await client.auth.getSession()"),
+        )
+        self.assertIn("if (error) throw error;", init)
+        self.assertIn("catch (error)", init)
+        self.assertIn("We couldn’t confirm your saved sign-in.", init)
+        self.assertIn("const activeSession = state.session || initialSession;", init)
+        self.assertIn("await acceptBrokerageInvite(activeSession);", init)
+        self.assertNotIn("await acceptBrokerageInvite(data.session);", init)
+
+    def test_session_bootstrap_runtime_keeps_auth_recovery_listener_after_read_failure(self):
+        script = r"""
+const fs = require('fs');
+const html = fs.readFileSync(process.argv[1], 'utf8');
+const start = html.indexOf('async function init()');
+const end = html.indexOf('$("signInButton").addEventListener', start);
+if (start < 0 || end < 0) throw new Error('init not found');
+const state = {session: null};
+const window = {location: {search: ''}};
+const document = {referrer: '', title: 'HomeOfferFlow'};
+let listener = null;
+let statusMessage = '';
+let rendered = null;
+const accepted = [];
+const client = {auth: {
+  onAuthStateChange(callback) { listener = callback; },
+  async getSession() { throw new Error('temporary read failure'); }
+}};
+const recordAggregateLandingEvent = () => {};
+const loadConfig = async () => {};
+const showStatus = message => { statusMessage = message; };
+const customerErrorMessage = (_error, fallback) => fallback;
+const renderSession = session => { rendered = session; state.session = session; };
+const acceptBrokerageInvite = async session => { accepted.push(session); };
+const recordCheckoutFunnelEvent = async () => {};
+const confirmActivatedWorkspace = async () => {};
+eval(html.slice(start, end));
+(async () => {
+  await init();
+  if (typeof listener !== 'function') throw new Error('auth listener was not retained');
+  if (!statusMessage.includes('request a new secure link')) throw new Error('recovery message missing');
+  const recovered = {user: {id: 'agent-1', email: 'agent@example.com'}};
+  listener('SIGNED_IN', recovered);
+  await new Promise(resolve => setTimeout(resolve, 0));
+  if (rendered !== recovered) throw new Error('recovered session was not rendered');
+  if (!accepted.includes(recovered)) throw new Error('recovered invite path did not continue');
+})().catch(error => { console.error(error); process.exit(1); });
+"""
+        result = subprocess.run(
+            ["node", "-e", script, str(ROOT / "ondemand.html")],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+
     def test_trial_renewal_date_refreshes_when_authenticated_enrollment_renders(self):
         self.assertIn("function refreshRenewalDate()", ONDEMAND)
         self.assertIn("refreshRenewalDate();\n        const signedIn", ONDEMAND)
