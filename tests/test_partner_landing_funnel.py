@@ -7,6 +7,7 @@ API = (ROOT / "api" / "fsbo-lead.py").read_text(encoding="utf-8")
 ADMIN = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 PARTNERS = (ROOT / "partners.html").read_text(encoding="utf-8")
+ACQUISITION_CHANNEL = (ROOT / "assets" / "acquisition-channel.js").read_text(encoding="utf-8")
 
 
 class PartnerLandingFunnelTests(unittest.TestCase):
@@ -39,10 +40,13 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn("partner_landing_viewed", PARTNERS)
         self.assertIn("partner_landing_cta_selected", PARTNERS)
         self.assertIn("keepalive: true", PARTNERS)
-        self.assertIn("const campaignChannel = medium === 'installed_app' ? 'pwa_shortcut' : medium || 'direct';", PARTNERS)
+        self.assertIn("/assets/acquisition-channel.js", PARTNERS)
+        self.assertIn("window.hofAcquisitionChannel?.() || 'direct'", PARTNERS)
         self.assertIn("channel: campaignChannel", PARTNERS)
         self.assertIn("campaignChannelForEvents", PARTNERS)
-        self.assertIn("campaignChannel === 'organic_content'", PARTNERS)
+        self.assertIn("medium === 'organic_content' || source === 'organic'", ACQUISITION_CHANNEL)
+        self.assertIn("document.referrer", ACQUISITION_CHANNEL)
+        self.assertNotIn("sessionStorage", ACQUISITION_CHANNEL)
         self.assertIn("'owned_directory'", PARTNERS)
         self.assertIn("'direct_outreach'", PARTNERS)
         self.assertIn("channel: channelValue", PARTNERS)
