@@ -583,13 +583,15 @@ class AgentLandingFunnelTests(unittest.TestCase):
             api._record_agent_landing_event({"event_type": "agent_landing_cta_selected", "channel": "organic", "cta_path": "ondemand_trial"})
             api._record_agent_landing_event({"event_type": "agent_landing_question_one_opened", "channel": "referral"})
             api._record_agent_landing_event({"event_type": "agent_landing_question_one_viewed", "channel": "referral"})
+            api._record_agent_landing_event({"event_type": "agent_landing_viewed", "channel": "site_recovery"})
+            api._record_agent_landing_event({"event_type": "agent_landing_cta_selected", "channel": "site_recovery", "cta_path": "client_draft"})
             with self.assertRaisesRegex(ValueError, "Unsupported agent landing channel"):
                 api._record_agent_landing_event({"event_type": "agent_landing_viewed", "channel": "untrusted"})
             with self.assertRaisesRegex(ValueError, "Unsupported agent landing CTA path"):
                 api._record_agent_landing_event({"event_type": "agent_landing_cta_selected", "channel": "referral", "cta_path": "untrusted"})
             with self.assertRaisesRegex(ValueError, "CTA path is only allowed"):
                 api._record_agent_landing_event({"event_type": "agent_landing_viewed", "channel": "referral", "cta_path": "client_draft"})
-        self.assertEqual(len(captured), 6)
+        self.assertEqual(len(captured), 8)
         self.assertEqual(captured[0][0], "agent_landing_cta_selected")
         self.assertEqual(captured[0][3], {"surface": "agent_landing", "role": "agent", "channel": "referral", "ctaPath": "seller_listing"})
         self.assertEqual(captured[1][3]["ctaPath"], "listing_guide")
@@ -600,6 +602,8 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertEqual(captured[4][3], {"surface": "agent_landing", "role": "agent", "channel": "referral"})
         self.assertEqual(captured[5][0], "agent_landing_question_one_viewed")
         self.assertEqual(captured[5][3], {"surface": "agent_landing", "role": "agent", "channel": "referral"})
+        self.assertEqual(captured[6][3], {"surface": "agent_landing", "role": "agent", "channel": "site_recovery"})
+        self.assertEqual(captured[7][3], {"surface": "agent_landing", "role": "agent", "channel": "site_recovery", "ctaPath": "client_draft"})
 
     def test_agent_transaction_selector_campaign_is_validated_but_not_attached_to_selector_clicks(self):
         spec = importlib.util.spec_from_file_location("agent_landing_campaign", API_PATH)
@@ -639,6 +643,10 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("savedAgentChannel", INDEX)
         self.assertIn("allowedAgentChannels.has(savedAgentChannel)", INDEX)
         self.assertIn("? savedAgentChannel : 'direct'", INDEX)
+        self.assertIn("agentRouteParams.get('utm_medium') === 'site_recovery'", INDEX)
+        self.assertIn("'pwa_shortcut', 'site_recovery', 'direct_outreach'", INDEX)
+        self.assertIn('"pwa_shortcut", "site_recovery", "direct_outreach"', API)
+        self.assertIn('"pwa_shortcut", "site_recovery", "direct_outreach"', ADMIN)
 
     def test_transaction_selection_uses_beacon_delivery_before_navigation(self):
         self.assertIn("navigator.sendBeacon('/api/fsbo-lead',new Blob([payload],{type:'application/json'}))", AGENTS)

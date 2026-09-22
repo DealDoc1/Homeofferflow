@@ -46,6 +46,11 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertEqual(NOT_FOUND.count('utm_source=not_found'), 4)
         self.assertEqual(NOT_FOUND.count('utm_medium=site_recovery'), 4)
         self.assertEqual(NOT_FOUND.count('utm_campaign=transaction_selector'), 4)
+        for path in ('seller_listing', 'client_draft', 'lease_listing', 'lease_representation'):
+            self.assertIn(f'data-agent-recovery-path="{path}"', NOT_FOUND)
+        self.assertIn("record('agent_landing_viewed')", NOT_FOUND)
+        self.assertIn("record('agent_landing_cta_selected', link.dataset.agentRecoveryPath)", NOT_FOUND)
+        self.assertIn("sessionStorage.setItem('hof_agent_landing_channel', channel)", NOT_FOUND)
         self.assertIn('workflow for a property listing, purchase, lease, or Texas home-service provider search.', NOT_FOUND)
         self.assertNotIn('workflow for buying, listing, leasing', NOT_FOUND)
 
