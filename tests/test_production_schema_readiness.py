@@ -13,6 +13,10 @@ MIGRATION = (
     ROOT
     / "supabase/migrations/20260921203652_homeofferflow_release_schema_readiness.sql"
 ).read_text(encoding="utf-8")
+FIX_MIGRATION = (
+    ROOT
+    / "supabase/migrations/20260922053000_fix_release_schema_readiness_coalesce.sql"
+).read_text(encoding="utf-8")
 SPEC = importlib.util.spec_from_file_location("check_production_schema_readiness", SCRIPT)
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
@@ -46,6 +50,13 @@ class ProductionSchemaReadinessTests(unittest.TestCase):
             "grant execute on function public.hof_release_schema_readiness() to service_role",
             MIGRATION.lower(),
         )
+
+    def test_readiness_uses_sql_coalesce_without_schema_qualification(self):
+        expected = "coalesce(pg_catalog.array_length(missing, 1), 0) = 0"
+        self.assertIn(expected, MIGRATION.lower())
+        self.assertIn(expected, FIX_MIGRATION.lower())
+        self.assertNotIn("pg_catalog.coalesce", MIGRATION.lower())
+        self.assertNotIn("pg_catalog.coalesce", FIX_MIGRATION.lower())
 
     def test_success_uses_pulled_vercel_environment_without_printing_secrets(self):
         with tempfile.TemporaryDirectory() as temp:
