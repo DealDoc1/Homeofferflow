@@ -6776,7 +6776,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const client = getSupabaseClient();
     const user = hofAuth.session?.user;
     if (!client || !user) return false;
-    const key = `hof_legal_acceptance_recorded_${LEGAL_POLICY_VERSION}`;
+    const key = `hof_legal_acceptance_recorded_${LEGAL_POLICY_VERSION}_${user.id}`;
     try {
       if (sessionStorage.getItem(key) === '1') return true;
       const { error } = await client.from('hof_legal_acceptances').insert({
@@ -6834,7 +6834,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const client = getSupabaseClient();
     const user = hofAuth.session?.user;
     if (!client || !user) return false;
-    const recordedKey = `hof_legal_acceptance_recorded_${LEGAL_POLICY_VERSION}`;
+    const recordedKey = `hof_legal_acceptance_recorded_${LEGAL_POLICY_VERSION}_${user.id}`;
     try {
       if (sessionStorage.getItem(recordedKey) === '1') return true;
       const { data, error } = await client
@@ -10070,7 +10070,8 @@ function routeAfterMagicLinkIfNeeded() {
       };
       try {
         recordCurrentLegalAcceptance('offer_wizard');
-        const acceptanceKey = `hof_legal_acceptance_${LEGAL_POLICY_VERSION}`;
+        const acceptanceUserId = hofAuth.session?.user?.id || 'anonymous';
+        const acceptanceKey = `hof_legal_acceptance_${LEGAL_POLICY_VERSION}_${acceptanceUserId}`;
         if (sessionStorage.getItem(acceptanceKey) !== '1') {
           sessionStorage.setItem(acceptanceKey, '1');
           logOfferEvent(null, 'legal_terms_accepted', 'accepted', 'Legal policy accepted.', {
