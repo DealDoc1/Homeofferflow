@@ -12,7 +12,7 @@
     ]
   },
   "file_count": 142,
-  "total_bytes": 21241016,
+  "total_bytes": 21240872,
   "files": [
     {
       "file": ".gitignore",
@@ -87,7 +87,7 @@
     {
       "file": "api/create-subscription-checkout/index.py",
       "bytes": 19596,
-      "sha256": "e56a50e3727cf1bfa5c5163e840bb7f87ad0607298dbe9239006d3c652aafb6e"
+      "sha256": "5215a9bde98ad9ad4cf112db283e04de94882343fe08a709645eeaed0477ac45"
     },
     {
       "file": "api/feedback-alert/index.py",
@@ -251,13 +251,13 @@
     },
     {
       "file": "disclaimer.html",
-      "bytes": 9334,
-      "sha256": "8126e434f343441dc948b25eb4aed0d39ce93495d4851280ef1b737ef2b9fcb1"
+      "bytes": 9262,
+      "sha256": "b626299f60553b3e6ea8003b135a296874f492f6de9fd5c351ecd20b336c9349"
     },
     {
       "file": "esign-consent.html",
-      "bytes": 8415,
-      "sha256": "dae086820be6ccb003d30176e6fdc58b4c8481cf6437248bbf8eac11eb12ece1"
+      "bytes": 8420,
+      "sha256": "9a4fea0ddb6774bfc3312775089cea822b703f0efbfc36a38345cd73ce2abc5d"
     },
     {
       "file": "field-mapper.html",
@@ -277,7 +277,7 @@
     {
       "file": "index.html",
       "bytes": 1729679,
-      "sha256": "583f45e668e5403d69f8912cd17d0f0b3c4902ab6bd5c659ca5c5bad72b51179"
+      "sha256": "2d8e6ec22656f57e339acfe91262e5b56c8dafabcd65d66121a791165abe15fc"
     },
     {
       "file": "investors.html",
@@ -577,7 +577,7 @@
     {
       "file": "ondemand.html",
       "bytes": 49887,
-      "sha256": "2c24e4b221813602a5c19cd583ee8ae536da375e57e823623edb0ba4e391a64b"
+      "sha256": "d24d6a54200929aea6ff7926528a9c4ae97d69ad5a30090bf52b6b807bcd288b"
     },
     {
       "file": "package.json",
@@ -591,8 +591,8 @@
     },
     {
       "file": "privacy.html",
-      "bytes": 12300,
-      "sha256": "bf441bf9d438fea20203b6b1038a455c412c50a0bdb6c8e92897a6417a4dd0c0"
+      "bytes": 12305,
+      "sha256": "12fb10242efe6369a4ff81d1456b6f3e4498cb7d3b1c60427128315f2051ec3e"
     },
     {
       "file": "requirements-test.txt",
@@ -641,8 +641,8 @@
     },
     {
       "file": "terms.html",
-      "bytes": 19036,
-      "sha256": "eead8f751a94c9405d60cbca8ffff37b841103924c49210e91176c8d17ceb2da"
+      "bytes": 18954,
+      "sha256": "37d52e89ff2a5818728cce4ad9223ffb0f15e9a1e8e312c7ec65c79d53c57710"
     },
     {
       "file": "texas-agent-form-library.html",

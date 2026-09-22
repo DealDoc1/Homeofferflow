@@ -3,8 +3,8 @@
 ## Release boundary
 
 - Prior verified production revision: `133a32bff9a736544c8bf9c9d04cd549c11b8570`.
-- Exact application candidate revision: `c1678c818c98b61cc11253d7e2b387b85b921f68`. The release commit may be the later protected-main merge containing this evidence-only reconciliation; the production tree remains the attached manifest.
-- Candidate manifest: 142 deployable files / 21,241,016 bytes.
+- Exact application candidate revision: `6eb804bc114bb7368732fb8fd75a97638f1f9e12`. The release commit may be a later protected-main merge containing evidence-only reconciliation; the production tree remains the attached manifest.
+- Candidate manifest: 142 deployable files / 21,240,872 bytes.
 - Canonical production origin: `https://www.homeofferflow.com`.
 - Deployment method: one intentional, prebuilt Vercel production deployment. Automatic Git deployments and routine previews remain disabled.
 - Customer scope: the accumulated HomeOfferFlow reliability, plain-language interview, agent activation, PWA return, signing recovery, purchase-packet, and Texas-form corrections merged since the prior production revision.
@@ -54,7 +54,7 @@ The changed shared renderer named `txr_addenda_layout` is the TXR addenda layout
 - Approved source: the existing production TREC 20-19 asset and the exact private TXR source revisions already fingerprinted in the source vault and catalog evidence.
 - Authorization: Andrew Christian, HomeOfferFlow product owner and counsel, supplied the source files and has repeatedly authorized their use and release for all agents without a brokerage-seat gate.
 - Source revision evidence: `txr-source-inventory-2026-07-31.md`, `txr-source-vault-sync-2026-08-07.md`, `txr-source-imprint-2026-09-18.md`, and `addenda-source-imprint-2026-09-18.md`.
-- Agent attestation: the existing point-of-use form-use attestation remains the only agent acknowledgement. This release adds no broker approval, source-owner intake, or new customer gate.
+- Agent acknowledgement: released shared-library workflows require no brokerage seat or per-use agent attestation. The coordinated Version 3.1 legal acknowledgement preserves the user's responsibility to confirm lawful and appropriate form use. This release adds no broker approval, source-owner intake, or new customer gate.
 
 ## Signing plan
 
@@ -98,6 +98,7 @@ The release is corrective: where the completed provider PDF exposed a defect, th
 - `account-scoped-legal-acceptance-2026-09-21.md` records shared-browser isolation so each authenticated agent receives an individual legal-acceptance receipt while same-user retries remain deduplicated.
 - `focused-account-handoff-2026-09-21.md` records the browser-verified removal of the redundant account-role question after an agent, broker, or investor has already selected a public workflow, while preserving the full generic account chooser.
 - `ondemand-first-action-2026-09-21.md` records the browser-verified placement of the email and secure-link action above optional enrollment details while preserving visible price, trial, renewal, and card terms.
+- `shared-agent-library-legal-clarity-2026-09-21.md` records the synchronized Version 3.1 Terms, Disclaimer, acceptance paths, and browser verification for shared-agent access without a brokerage seat or separate per-use attestation.
 - `seller-financing-purchase-packet-2026-09-18.md`, `loan-assumption-packet-foundation-2026-09-18.md`, `environmental-purchase-packet-2026-09-18.md`, `mineral-purchase-packet-2026-09-18.md`, and `hydrostatic-purchase-packet-2026-09-15.md` cover the new packet paths.
 - The exact release commit must rerun the full suite, golden packet rendering, standalone geometry, Supabase branch preflight, release preflight, and whitespace check in GitHub Actions.
 
