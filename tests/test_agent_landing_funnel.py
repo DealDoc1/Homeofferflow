@@ -493,13 +493,14 @@ class AgentLandingFunnelTests(unittest.TestCase):
     def test_agent_faq_explains_the_transaction_specific_next_step(self):
         self.assertIn('What happens after I choose a transaction?', AGENTS)
         self.assertIn('<strong>Purchase</strong> lets you choose a purchase offer, buyer representation agreement, addendum, or customer showing form.', AGENTS)
-        self.assertIn('<strong>Property listing</strong> lets you choose a listing task, seller disclosure, or buyer-offer comparison.', AGENTS)
+        self.assertIn('<strong>Property listing</strong> goes directly to the seller and property details; the saved workspace then keeps disclosure preparation and buyer-offer comparisons together.', AGENTS)
         self.assertIn('<strong>Lease listing</strong> goes directly to the landlord and property details.', AGENTS)
         self.assertIn('<strong>Tenant representation</strong> lets you choose a tenant representation agreement or customer showing form.', AGENTS)
         self.assertIn('The interview then asks only for the details that apply.', AGENTS)
 
     def test_agent_landing_cards_and_structured_data_match_the_question_two_interview(self):
         self.assertIn('Choose the transaction type. We’ll take you to the next question or detail that applies.', AGENTS)
+        self.assertIn('Add the seller and property details. Your workspace will keep disclosures and offer comparisons together.', AGENTS)
         self.assertIn('Choose a purchase offer, buyer representation agreement, addendum, or showing form.', AGENTS)
         self.assertIn('Lease listing goes directly to the landlord and property details.', AGENTS)
 
