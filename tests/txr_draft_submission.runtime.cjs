@@ -5,6 +5,8 @@ const root = path.join(__dirname, '..');
 const html = process.env.HOF_TEST_SOURCE_REF
   ? execFileSync('git', ['show', process.env.HOF_TEST_SOURCE_REF + ':index.html'], {cwd:root, encoding:'utf8', maxBuffer:8*1024*1024})
   : fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const customerErrorMatch = html.match(/<script id="hof-customer-action-error-v1">([\s\S]*?)<\/script>/);
+assert.ok(customerErrorMatch, 'Customer action error filter is available');
 const tick = () => new Promise(setImmediate);
 function deferred() { let resolve, reject; const promise = new Promise((y,n) => {resolve=y;reject=n;}); return {promise,resolve,reject}; }
 
@@ -34,6 +36,7 @@ async function setup(code) {
   const values = {propertyAddress:'100 QA Street',address:'100 QA Street',buyerOne:'QA Buyer',b1:'QA Buyer',sellerOne:'QA Seller',s1:'QA Seller',clientOne:'QA Client',customerOne:'QA Client',consumerOne:'QA Client',creditDays:'5',days:'7',ack:'on',loanAssumptionReviewAcknowledgment:'on',review:['environmental'],creditDocument:['credit_report']};
   const window = {hofAuth:{role:'agent',session:{user:{id:'qa-user'},access_token:'qa-token'}},hofLoadApprovedBrokerageSource:async()=>({id:'qa-source',source_revision:'QA'}),hofOpenPreparedAgreement:async()=>{reviews++;}};
   const context = vm.createContext({window,document,console:{error(){}},FormData:class{constructor(form){assert.ok(form, 'FormData needs the form during event dispatch');}get(k){return values[k]??null;}getAll(k){return values[k]||[];}},fetch:(url,options)=>{const d=deferred();requests.push({url,options,...d});return d.promise;}});
+  vm.runInContext(customerErrorMatch[1],context);
   vm.runInContext(script,context);ready.forEach(callback=>callback());await tick();
   const opener=panel.children[0].children[0];(opener.onclick||opener.listeners.click)();
   const modal = body.children[0], form = modal.querySelector('form'), button = form.querySelector('button[type="submit"]');

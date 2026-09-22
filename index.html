@@ -608,7 +608,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       status.querySelector('button').addEventListener('click', async () => { modal.remove(); await root.hofOpenPreparedAgreement?.(); });
     } catch (error) {
       console.error('TXR-1905 draft failed:', error);
-      status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not prepare the mineral addendum.';
+      console.error('Mineral addendum preparation failed:', error);
+      status.className = 'hof-iabs-status error'; status.textContent = window.hofCustomerActionError?.(error, 'We couldn’t prepare the mineral addendum. Please review your answers and try again.') || 'We couldn’t prepare the mineral addendum. Please review your answers and try again.';
       submit.disabled = false; submit.setAttribute('aria-busy', 'false'); submit.textContent = 'Save for review';
     }
   }
@@ -5310,7 +5311,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       ].join('<br>');
     } catch (error) {
       status.className = 'notice gold';
-      status.textContent = error.message || 'The connection check could not be completed.';
+      console.error('Connection check failed:', error);
+      status.textContent = window.hofCustomerActionError?.(error, 'We couldn’t check the connection. Please try again.') || 'We couldn’t check the connection. Please try again.';
     } finally {
       if (button) {
         button.disabled = false;
@@ -8745,13 +8747,19 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         body: JSON.stringify({ action: 'retry_offer_signature', offerId })
       });
       const result = await response.json().catch(() => ({}));
-      if (!response.ok || !result.ok) throw new Error(result.error || 'Delivery could not be confirmed. Check your offer’s signature status.');
+      if (!response.ok || !result.ok) {
+        const deliveryError = new Error(result.error || 'Delivery could not be confirmed. Check your offer’s signature status.');
+        deliveryError.customerSafe = Boolean(result.deliveryUnconfirmed);
+        throw deliveryError;
+      }
       window.announceWorkspaceStatus?.(result.message || 'Buyer signature request sent.');
       try { await loadMyOffers(); } catch (_) {
         window.announceWorkspaceStatus?.((result.message || 'Buyer signature request sent.') + ' Your offer list could not refresh. Check its status from your account.');
       }
     } catch (error) {
-      window.announceWorkspaceStatus?.(error.message || 'Signature delivery is temporarily unavailable.');
+      console.error('Signature delivery failed:', error);
+      const fallback = 'We couldn’t send the signature request. Your document is still saved—please try again.';
+      window.announceWorkspaceStatus?.(error.customerSafe ? error.message : (window.hofCustomerActionError?.(error, fallback) || fallback));
       if (buttonEl) { buttonEl.disabled = false; buttonEl.textContent = original; }
     }
   }
@@ -16626,7 +16634,7 @@ function routeAfterMagicLinkIfNeeded() {
       platformStatus('aiDashboardStatus', 'AI offer review snapshot saved to Supabase.', 'ok');
     } catch (err) {
       console.error('AI review snapshot save failed:', err);
-      platformStatus('aiDashboardStatus', err?.message || 'Could not save AI review snapshot.', 'err');
+      platformStatus('aiDashboardStatus', platformCustomerError(err, 'We couldn’t save this offer review. Please try again.'), 'err');
     }
   }
 
@@ -19942,7 +19950,7 @@ function routeAfterMagicLinkIfNeeded() {
         </div>`;
     } catch (err) {
       console.error('Offer detail load failed:', err);
-      target.innerHTML = '<div class="offer-empty">Could not load offer detail: ' + esc(err?.message || err) + '</div>';
+      target.innerHTML = '<div class="offer-empty">' + esc(platformCustomerError(err, 'We couldn’t load the offer details. Refresh and try again.')) + '</div>';
     }
   };
 })();
@@ -21609,7 +21617,8 @@ function routeAfterMagicLinkIfNeeded() {
       if (!response.ok) throw new Error(data.error || 'Could not update brokerage access.');
       await root.renderBrokerageFoundationPanel();
     } catch (error) {
-      window.announceWorkspaceStatus?.(error.message || 'Could not update brokerage access.');
+      console.error('Brokerage access update failed:', error);
+      window.announceWorkspaceStatus?.(window.hofCustomerActionError?.(error, 'We couldn’t update brokerage access. Please try again.') || 'We couldn’t update brokerage access. Please try again.');
     }
   };
 
@@ -21634,7 +21643,8 @@ function routeAfterMagicLinkIfNeeded() {
       if (result) result.textContent = 'Private team label saved. Access, billing, roles, offers, and documents were not changed.';
       await root.renderBrokerageFoundationPanel();
     } catch (error) {
-      if (result) result.textContent = error.message || 'Could not save the private team label.';
+      console.error('Team label save failed:', error);
+      if (result) result.textContent = window.hofCustomerActionError?.(error, 'We couldn’t save the team name. Please try again.') || 'We couldn’t save the team name. Please try again.';
     }
   };
 
@@ -21686,7 +21696,8 @@ function routeAfterMagicLinkIfNeeded() {
       });
       await root.renderBrokerageFoundationPanel();
     } catch (error) {
-      if (result) result.textContent = error.message || 'Could not create the secure invite link.';
+      console.error('Brokerage invite creation failed:', error);
+      if (result) result.textContent = window.hofCustomerActionError?.(error, 'We couldn’t create the invitation. Please try again.') || 'We couldn’t create the invitation. Please try again.';
     } finally {
       root.__hofBrokerageInviteInFlight = false;
     }
@@ -21715,7 +21726,8 @@ function routeAfterMagicLinkIfNeeded() {
       if (!response.ok) throw new Error(data.error || 'Could not revoke the invitation.');
       await root.renderBrokerageFoundationPanel();
     } catch (error) {
-      window.announceWorkspaceStatus?.(error.message || 'Could not revoke the invitation.');
+      console.error('Brokerage invitation revoke failed:', error);
+      window.announceWorkspaceStatus?.(window.hofCustomerActionError?.(error, 'We couldn’t cancel that invitation. Please try again.') || 'We couldn’t cancel that invitation. Please try again.');
     }
   };
 
@@ -21802,7 +21814,8 @@ function routeAfterMagicLinkIfNeeded() {
         surface: 'brokerage'
       });
       restoreSaveButton();
-      if (result) result.textContent = error.message || 'Could not save brokerage branding.';
+      console.error('Brokerage branding save failed:', error);
+      if (result) result.textContent = window.hofCustomerActionError?.(error, 'We couldn’t save the brokerage branding. Please try again.') || 'We couldn’t save the brokerage branding. Please try again.';
     }
   };
 
@@ -21856,7 +21869,8 @@ function routeAfterMagicLinkIfNeeded() {
       await root.renderBrokerageFoundationPanel();
     } catch (error) {
       restoreSaveButton();
-      if (result) result.textContent = error.message || 'Could not save brokerage defaults.';
+      console.error('Brokerage defaults save failed:', error);
+      if (result) result.textContent = window.hofCustomerActionError?.(error, 'We couldn’t save the brokerage defaults. Please try again.') || 'We couldn’t save the brokerage defaults. Please try again.';
     }
   };
 
@@ -21904,7 +21918,8 @@ function routeAfterMagicLinkIfNeeded() {
     } catch (error) {
       restoreApplyButton();
       if (!isCurrentProfile()) return null;
-      if (result) result.textContent = error.message || 'Could not apply brokerage defaults.';
+      console.error('Brokerage defaults apply failed:', error);
+      if (result) result.textContent = window.hofCustomerActionError?.(error, 'We couldn’t apply the brokerage defaults. Please try again.') || 'We couldn’t apply the brokerage defaults. Please try again.';
     }
   };
 
@@ -22290,7 +22305,7 @@ function routeAfterMagicLinkIfNeeded() {
       root.renderBrokerageBrandPreview();
     } catch(error) {
       document.getElementById('brokerSafeDashboard').innerHTML =
-        '<h4>Brokerage activity</h4><div class="platform-status err">' + safe(error.message) + '</div>';
+        '<h4>Brokerage activity</h4><div class="platform-status err">' + safe(window.hofCustomerActionError?.(error, 'We couldn’t load the brokerage activity. Refresh and try again.') || 'We couldn’t load the brokerage activity. Refresh and try again.') + '</div>';
     }
   };
 
@@ -22469,7 +22484,7 @@ function routeAfterMagicLinkIfNeeded() {
       mountIabsOfferOption();
     } catch (error) {
       console.error('IABS upload failed:', error);
-      if (status) { status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not upload your IABS PDF.'; }
+      if (status) { status.className = 'hof-iabs-status error'; status.textContent = window.hofCustomerActionError?.(error, 'We couldn’t upload your IABS PDF. Please try again.') || 'We couldn’t upload your IABS PDF. Please try again.'; }
     }
   };
 
@@ -22494,7 +22509,7 @@ function routeAfterMagicLinkIfNeeded() {
       renderProfileIabsCard();
     } catch (error) {
       console.error('IABS removal failed:', error);
-      if (status) { status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not remove your IABS PDF.'; }
+      if (status) { status.className = 'hof-iabs-status error'; status.textContent = window.hofCustomerActionError?.(error, 'We couldn’t remove your IABS PDF. Please try again.') || 'We couldn’t remove your IABS PDF. Please try again.'; }
     }
   };
 
@@ -22784,7 +22799,7 @@ function routeAfterMagicLinkIfNeeded() {
       list.setAttribute('aria-busy', 'false');
     } catch (error) {
       console.error('Brokerage form-source list failed:', error);
-      list.innerHTML = '<li>Could not load form-source records.</li>';
+      list.innerHTML = '<li>We couldn’t load the brokerage forms. Refresh and try again.</li>';
       list.setAttribute('aria-busy', 'false');
     }
   }
@@ -22854,8 +22869,8 @@ function routeAfterMagicLinkIfNeeded() {
       document.getElementById('brokerageFormAttestation').checked = false;
       await refreshList();
     } catch (error) {
-      console.error('Brokerage form source upload failed:', error);
-      if (status) { status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not save the private form source.'; }
+      console.error('Brokerage form source save failed:', error);
+      if (status) { status.className = 'hof-iabs-status error'; status.textContent = window.hofCustomerActionError?.(error, 'We couldn’t save that form. Please try again.') || 'We couldn’t save that form. Please try again.'; }
     } finally {
       restoreUploadButton();
     }
@@ -23023,8 +23038,8 @@ function routeAfterMagicLinkIfNeeded() {
       status.innerHTML = 'Agreement ready. <button type="button" class="btn-secondary">Review and send</button>';
       status.querySelector('button').addEventListener('click', async () => { modal.remove(); await root.hofOpenPreparedAgreement?.(); });
     } catch (error) {
-      console.error('TXR-1507 draft failed:', error);
-      status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not save the agreement draft.';
+      console.error('Buyer representation agreement preparation failed:', error);
+      status.className = 'hof-iabs-status error'; status.textContent = window.hofCustomerActionError?.(error, 'We couldn’t prepare the representation agreement. Please review your answers and try again.') || 'We couldn’t prepare the representation agreement. Please review your answers and try again.';
       submit.disabled = false; submit.setAttribute('aria-busy', 'false'); submit.textContent = 'Prepare agreement';
     }
   }
@@ -23160,8 +23175,8 @@ function routeAfterMagicLinkIfNeeded() {
       status.innerHTML = 'Agreement ready. <button type="button" class="btn-secondary">Review and send</button>';
       status.querySelector('button').addEventListener('click', async () => { modal.remove(); await root.hofOpenPreparedAgreement?.(); });
     } catch (error) {
-      console.error('TXR-1501 draft failed:', error);
-      status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not save the agreement draft.';
+      console.error('Listing agreement preparation failed:', error);
+      status.className = 'hof-iabs-status error'; status.textContent = window.hofCustomerActionError?.(error, 'We couldn’t prepare the listing agreement. Please review your answers and try again.') || 'We couldn’t prepare the listing agreement. Please review your answers and try again.';
       submit.disabled = false; submit.setAttribute('aria-busy', 'false'); submit.textContent = 'Prepare agreement';
     }
   }
@@ -23282,8 +23297,8 @@ function routeAfterMagicLinkIfNeeded() {
       status.innerHTML = 'Showing form ready. <button type="button" class="btn-secondary">Review and send</button>';
       status.querySelector('button').addEventListener('click', async () => { modal.remove(); await root.hofOpenPreparedAgreement?.(); });
     } catch (error) {
-      console.error('TXR-1508 draft failed:', error);
-      status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not save the showing draft.';
+      console.error('Showing agreement preparation failed:', error);
+      status.className = 'hof-iabs-status error'; status.textContent = window.hofCustomerActionError?.(error, 'We couldn’t prepare the showing agreement. Please review your answers and try again.') || 'We couldn’t prepare the showing agreement. Please review your answers and try again.';
       submit.disabled = false; submit.setAttribute('aria-busy', 'false'); submit.textContent = 'Prepare showing form';
     }
   }
@@ -23336,7 +23351,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (submit.disabled) return;
     const payload = { action:'create_txr_1506_draft', formCode:FORM_CODE, formSourceId:source.id, clientNames:[form.get('consumerOne'), form.get('consumerTwo')].map(v => String(v || '').trim()).filter(Boolean), consumerRole:form.get('consumerRole'), additionalNotice:form.get('additionalNotice'), noticeAcknowledgment:form.get('noticeAcknowledgment') === 'on', signerPlan:form.get('signerPlan') };
     submit.disabled = true; submit.setAttribute('aria-busy', 'true'); submit.textContent = 'Preparing consumer notice…';
-    try { status.className = 'hof-iabs-status'; status.textContent = 'Preparing consumer notice…'; const token = root.hofAuth?.session?.access_token; const response = await fetch('/api/admin-dashboard', { method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${token}`}, body:JSON.stringify(payload) }); const result = await response.json(); if (!response.ok) throw new Error(result.error || 'Could not save the notice draft.'); submit.setAttribute('aria-busy', 'false'); submit.textContent = 'Draft ready'; status.className = 'hof-iabs-status ready'; status.innerHTML = 'Consumer notice ready. <button type="button" class="btn-secondary">Review and send</button>'; status.querySelector('button').addEventListener('click', async () => { modal.remove(); await root.hofOpenPreparedAgreement?.(); }); } catch (error) { console.error('TXR-1506 draft failed:', error); status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not save the notice draft.'; submit.disabled = false; submit.setAttribute('aria-busy', 'false'); submit.textContent = 'Prepare consumer notice'; }
+    try { status.className = 'hof-iabs-status'; status.textContent = 'Preparing consumer notice…'; const token = root.hofAuth?.session?.access_token; const response = await fetch('/api/admin-dashboard', { method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${token}`}, body:JSON.stringify(payload) }); const result = await response.json(); if (!response.ok) throw new Error(result.error || 'Could not save the notice draft.'); submit.setAttribute('aria-busy', 'false'); submit.textContent = 'Draft ready'; status.className = 'hof-iabs-status ready'; status.innerHTML = 'Consumer notice ready. <button type="button" class="btn-secondary">Review and send</button>'; status.querySelector('button').addEventListener('click', async () => { modal.remove(); await root.hofOpenPreparedAgreement?.(); }); } catch (error) { console.error('TXR-1506 draft failed:', error); status.className = 'hof-iabs-status error'; status.textContent = window.hofCustomerActionError?.(error, 'We couldn’t prepare the consumer notice. Please review your answers and try again.') || 'We couldn’t prepare the consumer notice. Please review your answers and try again.'; submit.disabled = false; submit.setAttribute('aria-busy', 'false'); submit.textContent = 'Prepare consumer notice'; }
   }
   const priorDashboard = root.renderAccountDashboard;
   root.renderAccountDashboard = function renderAccountDashboardWithNoticeDrafts() { if (typeof priorDashboard === 'function') priorDashboard.apply(this, arguments); renderNoticeCard(); };
@@ -23397,7 +23412,11 @@ function routeAfterMagicLinkIfNeeded() {
       try {
         const response = await fetch('/api/admin-dashboard', { method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${token()}`}, body:JSON.stringify({ action:'send_txr_agreement_for_signature', agreementId:agreement.id, clientEmails, confirmedRecipients, brokerSigner }) });
         const result = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(result.error || 'Could not send the signature request.');
+        if (!response.ok) {
+          const deliveryError = new Error(result.error || 'Could not send the signature request.');
+          deliveryError.customerSafe = Boolean(result.deliveryUnconfirmed);
+          throw deliveryError;
+        }
         status.className = 'hof-iabs-status ready'; status.textContent = result.message || 'Signature request sent.';
         try { await refresh(); } catch (_) {
           status.textContent += ' Your document list could not refresh. Check its status from your account.';
@@ -23405,7 +23424,9 @@ function routeAfterMagicLinkIfNeeded() {
         }
         setTimeout(() => modal.remove(), 800);
       } catch (error) {
-        status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not send the signature request.';
+        console.error('Signature request send failed:', error);
+        const fallback = 'We couldn’t send the signature request. Your document is still saved—please try again.';
+        status.className = 'hof-iabs-status error'; status.textContent = error.customerSafe ? error.message : (root.hofCustomerActionError?.(error, fallback) || fallback);
         const staleMapOpeners = {
           'TXR-1501': root.hofOpenTxr1501Draft,
           'TXR-1506': root.hofOpenTxr1506Draft,
@@ -23442,7 +23463,8 @@ function routeAfterMagicLinkIfNeeded() {
       if (!modal.isConnected) return;
       const status = modal.querySelector('#hofStandaloneSendStatus');
       status.className = 'hof-iabs-status error';
-      status.textContent = error.message || 'Could not load the signing recipients.';
+      console.error('Signing recipient load failed:', error);
+      status.textContent = window.hofCustomerActionError?.(error, 'We couldn’t load the signing recipients. Close this window and try again.') || 'We couldn’t load the signing recipients. Close this window and try again.';
       const retry = document.createElement('button');
       retry.type = 'button'; retry.className = 'btn-secondary'; retry.textContent = 'Try again';
       retry.addEventListener('click', () => openSendDialog(agreement, refresh));
@@ -23467,7 +23489,8 @@ function routeAfterMagicLinkIfNeeded() {
         ? 'Signatures are complete. Review the completed PDF in SignWell before filing it.'
         : `SignWell status: ${result.status || 'awaiting signatures'}.`);
     } catch (error) {
-      window.announceWorkspaceStatus?.(error.message || 'Could not refresh the signature status.');
+      console.error('Signature status refresh failed:', error);
+      window.announceWorkspaceStatus?.(window.hofCustomerActionError?.(error, 'We couldn’t refresh the signature status. Please try again.') || 'We couldn’t refresh the signature status. Please try again.');
       button.disabled = false;
       button.textContent = originalText;
     }
@@ -23497,7 +23520,8 @@ function routeAfterMagicLinkIfNeeded() {
       window.setTimeout(() => URL.revokeObjectURL(url), 60000);
       window.announceWorkspaceStatus?.('Completed PDF downloaded. Review it before filing or sharing it.');
     } catch (error) {
-      window.announceWorkspaceStatus?.(error.message || 'Could not download the completed PDF.');
+      console.error('Completed PDF download failed:', error);
+      window.announceWorkspaceStatus?.(window.hofCustomerActionError?.(error, 'We couldn’t download the completed PDF. Please try again.') || 'We couldn’t download the completed PDF. Please try again.');
     } finally {
       button.disabled = false;
       button.textContent = originalText;
@@ -23524,7 +23548,8 @@ function routeAfterMagicLinkIfNeeded() {
       if (!root.hofShowPdfPreview) throw new Error('PDF preview is temporarily unavailable.');
       root.hofShowPdfPreview(await response.blob(), agreement.form_code);
     } catch (error) {
-      window.announceWorkspaceStatus?.(error.message || 'Document preview is unavailable.');
+      console.error('Document preview failed:', error);
+      window.announceWorkspaceStatus?.(window.hofCustomerActionError?.(error, 'We couldn’t open the document preview. Please try again.') || 'We couldn’t open the document preview. Please try again.');
     } finally {
       button.disabled = false;
     }
@@ -23577,7 +23602,7 @@ function routeAfterMagicLinkIfNeeded() {
           const agreement = agreements.find(item => item.id === button.dataset.downloadCompleted);
           if (agreement) downloadCompletedAgreementPdf(agreement, button);
         }));
-      } catch (error) { list.innerHTML = `<div class="hof-iabs-status error">${escape(error.message || 'Could not load agreement drafts.')}</div>`; }
+      } catch (error) { console.error('Prepared document list failed:', error); list.innerHTML = `<div class="hof-iabs-status error">${escape(window.hofCustomerActionError?.(error, 'We couldn’t load your prepared documents. Refresh and try again.') || 'We couldn’t load your prepared documents. Refresh and try again.')}</div>`; }
     };
     root.hofOpenPreparedAgreement = async function hofOpenPreparedAgreement() {
       await refresh();
@@ -23799,7 +23824,7 @@ function routeAfterMagicLinkIfNeeded() {
     loadBrokerages().then(brokerages => {
       const select = card.querySelector('#platformSourceBrokerage');
       select.innerHTML = brokerages.length ? brokerages.map(item => `<option value="${escape(item.id)}">${escape(item.name)}${item.slug ? ` (${escape(item.slug)})` : ''}</option>`).join('') : '<option value="">No active brokerages</option>';
-    }).catch(error => { card.querySelector('#platformSourceStatus').className = 'hof-iabs-status error'; card.querySelector('#platformSourceStatus').textContent = error.message; });
+    }).catch(error => { console.error('Platform form library load failed:', error); card.querySelector('#platformSourceStatus').className = 'hof-iabs-status error'; card.querySelector('#platformSourceStatus').textContent = window.hofCustomerActionError?.(error, 'We couldn’t load the shared form library. Refresh and try again.') || 'We couldn’t load the shared form library. Refresh and try again.'; });
   }
   async function upload() {
     const card = document.getElementById('platformFormSourceCard');
@@ -23827,7 +23852,7 @@ function routeAfterMagicLinkIfNeeded() {
         ? `${payload.source.formCode} ${payload.source.sourceRevision} saved privately and ready for the draft/signing queue.`
         : `${payload.source.formCode} ${payload.source.sourceRevision} saved privately. Its workflow is not released for signing yet.`;
       card.querySelector('#platformSourceFile').value = ''; card.querySelector('#platformSourceAttestation').checked = false;
-    } catch (error) { status.className = 'hof-iabs-status error'; status.textContent = error.message || 'Could not save the private source.'; uploadButton.disabled = false; uploadButton.setAttribute('aria-busy', 'false'); uploadButton.textContent = 'Save library revision'; }
+    } catch (error) { console.error('Platform form library save failed:', error); status.className = 'hof-iabs-status error'; status.textContent = window.hofCustomerActionError?.(error, 'We couldn’t save that form-library revision. Please try again.') || 'We couldn’t save that form-library revision. Please try again.'; uploadButton.disabled = false; uploadButton.setAttribute('aria-busy', 'false'); uploadButton.textContent = 'Save library revision'; }
   }
   const priorDashboard = root.renderAccountDashboard;
   root.renderAccountDashboard = function renderAccountDashboardWithPlatformSourceIntake() { if (typeof priorDashboard === 'function') priorDashboard.apply(this, arguments); renderPlatformSourceIntake(); };
@@ -23971,8 +23996,9 @@ function routeAfterMagicLinkIfNeeded() {
           } catch (error) {
             console.error('Private draft preview failed:', error);
             const status = document.getElementById('privateFormDraftsStatus');
-            if (status) status.textContent = error.message || 'Preview is unavailable.';
-            else window.announceWorkspaceStatus?.(error.message || 'Preview is unavailable.');
+            console.error('Form preview failed:', error);
+            if (status) status.textContent = window.hofCustomerActionError?.(error, 'We couldn’t open the preview. Please try again.') || 'We couldn’t open the preview. Please try again.';
+            else window.announceWorkspaceStatus?.(window.hofCustomerActionError?.(error, 'We couldn’t open the preview. Please try again.') || 'We couldn’t open the preview. Please try again.');
           } finally {
             button.disabled = false; button.textContent = original;
           }
@@ -24252,7 +24278,7 @@ function routeAfterMagicLinkIfNeeded() {
         if (status) status.textContent = result.message || 'Sent for signature. HomeOfferFlow will update this disclosure when everyone has signed.';
         if (!result.recovered) root.logOfferEvent?.(null, 'seller_disclosure_signing_sent', 'sent', 'Seller disclosure sent for signature.', {signerCount: signerEmails.length});
         close(); await refreshDrafts();
-      } catch (error) { message.textContent = error.message || 'Could not send the seller disclosure for signature.'; button.disabled = false; }
+      } catch (error) { console.error('Seller disclosure signature request failed:', error); message.textContent = window.hofCustomerActionError?.(error, 'We couldn’t send the seller disclosure for signature. Your document is still saved—please try again.') || 'We couldn’t send the seller disclosure for signature. Your document is still saved—please try again.'; button.disabled = false; }
     });
   }
   async function refreshSellerDisclosureSigning(draft, downloadCompleted = false) {
@@ -24285,7 +24311,7 @@ function routeAfterMagicLinkIfNeeded() {
       if (!response.ok) throw new Error(result.error || 'Could not refresh signing status.');
       if (status) status.textContent = result.status === 'Buyer Signatures Complete' ? 'All signatures are complete. Your signed seller disclosure is ready to download.' : 'Signing status refreshed.';
       await refreshDrafts();
-    } catch (error) { if (status) status.textContent = error.message || 'Could not refresh signing status.'; }
+    } catch (error) { console.error('Seller disclosure signing status refresh failed:', error); if (status) status.textContent = window.hofCustomerActionError?.(error, 'We couldn’t refresh the signing status. Please try again.') || 'We couldn’t refresh the signing status. Please try again.'; }
   }
   async function previewSellerDisclosure(draftId, button) {
     const token = root.hofAuth?.session?.access_token;
@@ -24305,7 +24331,8 @@ function routeAfterMagicLinkIfNeeded() {
       if (status) status.textContent = 'Disclosure saved. Review the completed PDF, then send it to the seller when you are ready.';
       return true;
     } catch (error) {
-      if (status) status.textContent = error.message || 'Seller disclosure preview is unavailable.';
+      console.error('Seller disclosure preview failed:', error);
+      if (status) status.textContent = window.hofCustomerActionError?.(error, 'We couldn’t open the seller disclosure preview. Please try again.') || 'We couldn’t open the seller disclosure preview. Please try again.';
       return false;
     } finally {
       if (button) { button.disabled = false; button.textContent = originalLabel; }
@@ -24367,7 +24394,7 @@ function routeAfterMagicLinkIfNeeded() {
         const label = [workspace.property_address, workspace.listing_kind, (workspace.seller_names || []).join(', ')].filter(Boolean).join(' · ');
         return '<option value="' + escape(workspace.id) + '">' + escape(label) + '</option>';
       }).join(''));
-    } catch (error) { document.getElementById('hofSellerDraftStatus').textContent = error.message || 'Approved forms are unavailable right now.'; }
+    } catch (error) { console.error('Seller disclosure form load failed:', error); document.getElementById('hofSellerDraftStatus').textContent = window.hofCustomerActionError?.(error, 'We couldn’t load the approved forms. Close this window and try again.') || 'We couldn’t load the approved forms. Close this window and try again.'; }
     document.getElementById('hofSaveSellerDraft').addEventListener('click', async () => {
       const status = document.getElementById('hofSellerDraftStatus');
       const saveButton = document.getElementById('hofSaveSellerDraft');
@@ -24400,7 +24427,7 @@ function routeAfterMagicLinkIfNeeded() {
         if (sendButton) sendButton.disabled = !(card.dataset.sellerDraftId && document.getElementById('hofSellerEmail').value.trim());
         await refreshDrafts();
         await previewSellerDisclosure(card.dataset.sellerDraftId, saveButton);
-      } catch (error) { status.textContent = error.message || 'Could not save the seller disclosure.'; }
+      } catch (error) { console.error('Seller disclosure preparation failed:', error); status.textContent = window.hofCustomerActionError?.(error, 'We couldn’t prepare the seller disclosure. Please review your answers and try again.') || 'We couldn’t prepare the seller disclosure. Please review your answers and try again.'; }
       finally { saveButton.disabled = false; saveButton.setAttribute('aria-busy', 'false'); saveButton.textContent = 'Save and preview'; }
     });
     document.getElementById('hofSellerEmail').addEventListener('input', () => {
@@ -24435,7 +24462,8 @@ function routeAfterMagicLinkIfNeeded() {
         });
         await refreshDrafts();
       } catch (error) {
-        status.textContent = error.message || 'Could not send seller review email.';
+        console.error('Seller review email failed:', error);
+        status.textContent = window.hofCustomerActionError?.(error, 'We couldn’t send the seller review email. Your disclosure is still saved—please try again.') || 'We couldn’t send the seller review email. Your disclosure is still saved—please try again.';
         button.disabled = false;
       }
     });
@@ -25533,11 +25561,22 @@ function routeAfterMagicLinkIfNeeded() {
 <script id="hof-customer-action-error-v1">
 (() => {
   const customerMessage = /^(please|enter|choose|select|add|sign in|your session|this draft|the property|the shared form library|at least|you need|no form source|an active membership|a recipient|that invitation|signature sending is not available)/i;
+  const technicalMessage = /(supabase|postgres|database|constraint|column|row-level|\brls\b|service[_ -]?role|foreign key|\buuid\b|\bapi\b|http status|\bjson\b|exception|traceback|undefined|null value|access token|jwt|failed to fetch|networkerror|fetch failed)/i;
   window.hofCustomerActionError = (error, fallback) => {
     const message = String(error?.message || error || '').replace(/\s+/g, ' ').trim();
-    return message.length > 0 && message.length <= 220 && customerMessage.test(message)
+    return message.length > 0 && message.length <= 220 && customerMessage.test(message) && !technicalMessage.test(message)
       ? message
       : fallback;
+  };
+  window.hofSanitizeVisibleErrors = root => {
+    root.querySelectorAll?.('.hof-iabs-status.error, .platform-status.err').forEach(status => {
+      if (status.querySelector('button, a, input, select, textarea')) return;
+      const original = String(status.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!original) return;
+      const fallback = 'We couldn’t complete that action. Please try again.';
+      const revised = window.hofCustomerActionError({ message: original }, fallback);
+      if (revised !== original) status.textContent = revised;
+    });
   };
 })();
 </script>
@@ -25548,6 +25587,7 @@ function routeAfterMagicLinkIfNeeded() {
   // do not help a person completing a guided document interview.
   const normalize = root => {
     if (!(root instanceof Element || root instanceof Document)) return;
+    window.hofSanitizeVisibleErrors?.(root);
     root.querySelectorAll?.('.hof-agreement-dialog button[type="submit"]').forEach(button => {
       if (button.textContent?.trim() === 'Save private draft') button.textContent = 'Save for review';
     });
