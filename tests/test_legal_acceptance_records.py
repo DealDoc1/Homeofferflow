@@ -1,4 +1,5 @@
 from pathlib import Path
+import subprocess
 import unittest
 
 
@@ -31,6 +32,50 @@ class LegalAcceptanceRecordTests(unittest.TestCase):
         self.assertIn("await recordLegalAcceptance()", checkout)
         self.assertIn('source: "ondemand_checkout"', ONDEMAND)
         self.assertIn("LEGAL_POLICY_VERSION", ONDEMAND)
+
+    def test_browser_acceptance_cache_is_scoped_to_the_authenticated_user(self):
+        scoped_key = "hof_legal_acceptance_recorded_${LEGAL_POLICY_VERSION}_${user.id}"
+        self.assertIn(scoped_key, ONDEMAND)
+        self.assertEqual(INDEX.count(scoped_key), 2)
+        self.assertIn("hof_legal_acceptance_${LEGAL_POLICY_VERSION}_${acceptanceUserId}", INDEX)
+        self.assertNotIn("`hof_legal_acceptance_recorded_${LEGAL_POLICY_VERSION}`", ONDEMAND)
+        self.assertNotIn("`hof_legal_acceptance_recorded_${LEGAL_POLICY_VERSION}`", INDEX)
+
+    def test_ondemand_acceptance_runtime_records_each_shared_browser_identity(self):
+        script = r"""
+const fs = require('fs');
+const html = fs.readFileSync(process.argv[1], 'utf8');
+const start = html.indexOf('async function recordLegalAcceptance()');
+const end = html.indexOf('async function loadConfig()', start);
+if (start < 0 || end < 0) throw new Error('recordLegalAcceptance not found');
+const LEGAL_POLICY_VERSION = '2026-07-30';
+const state = {session: {user: {id: 'agent-1'}}};
+const values = new Map();
+const sessionStorage = {
+  getItem(key) { return values.has(key) ? values.get(key) : null; },
+  setItem(key, value) { values.set(key, value); }
+};
+const inserts = [];
+const client = {from() { return {async insert(row) { inserts.push(row); return {error: null}; }}; }};
+eval(html.slice(start, end));
+(async () => {
+  await recordLegalAcceptance();
+  await recordLegalAcceptance();
+  state.session = {user: {id: 'agent-2'}};
+  await recordLegalAcceptance();
+  if (inserts.length !== 2) throw new Error(`expected two user receipts, got ${inserts.length}`);
+  if (inserts[0].user_id !== 'agent-1' || inserts[1].user_id !== 'agent-2') {
+    throw new Error('legal acceptance receipts were not user-scoped');
+  }
+})().catch(error => { console.error(error); process.exit(1); });
+"""
+        result = subprocess.run(
+            ["node", "-e", script, str(ROOT / "ondemand.html")],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
 
     def test_receipt_labels_each_current_legal_acceptance_path_accurately(self):
         self.assertIn("subscription_checkout: 'Subscription enrollment'", INDEX)

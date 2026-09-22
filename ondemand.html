@@ -501,7 +501,7 @@
       async function recordLegalAcceptance() {
         const user = state.session?.user;
         if (!user) throw new Error("Sign in before acknowledging the enrollment terms.");
-        const key = `hof_legal_acceptance_recorded_${LEGAL_POLICY_VERSION}`;
+        const key = `hof_legal_acceptance_recorded_${LEGAL_POLICY_VERSION}_${user.id}`;
         if (sessionStorage.getItem(key) === "1") return;
         const { error } = await client.from("hof_legal_acceptances").insert({
           user_id: user.id,
