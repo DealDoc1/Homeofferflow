@@ -4,7 +4,7 @@
 
 - Prior verified production revision: `133a32bff9a736544c8bf9c9d04cd549c11b8570`.
 - Exact application candidate revision: `c1678c818c98b61cc11253d7e2b387b85b921f68`. The release commit may be the later protected-main merge containing this evidence-only reconciliation; the production tree remains the attached manifest.
-- Candidate manifest: 142 deployable files / 21,240,726 bytes.
+- Candidate manifest: 142 deployable files / 21,241,016 bytes.
 - Canonical production origin: `https://www.homeofferflow.com`.
 - Deployment method: one intentional, prebuilt Vercel production deployment. Automatic Git deployments and routine previews remain disabled.
 - Customer scope: the accumulated HomeOfferFlow reliability, plain-language interview, agent activation, PWA return, signing recovery, purchase-packet, and Texas-form corrections merged since the prior production revision.
@@ -97,6 +97,7 @@ The release is corrective: where the completed provider PDF exposed a defect, th
 - `ondemand-session-bootstrap-2026-09-21.md` records startup recovery that keeps the auth listener active when the saved-session read fails.
 - `account-scoped-legal-acceptance-2026-09-21.md` records shared-browser isolation so each authenticated agent receives an individual legal-acceptance receipt while same-user retries remain deduplicated.
 - `focused-account-handoff-2026-09-21.md` records the browser-verified removal of the redundant account-role question after an agent, broker, or investor has already selected a public workflow, while preserving the full generic account chooser.
+- `ondemand-first-action-2026-09-21.md` records the browser-verified placement of the email and secure-link action above optional enrollment details while preserving visible price, trial, renewal, and card terms.
 - `seller-financing-purchase-packet-2026-09-18.md`, `loan-assumption-packet-foundation-2026-09-18.md`, `environmental-purchase-packet-2026-09-18.md`, `mineral-purchase-packet-2026-09-18.md`, and `hydrostatic-purchase-packet-2026-09-15.md` cover the new packet paths.
 - The exact release commit must rerun the full suite, golden packet rendering, standalone geometry, Supabase branch preflight, release preflight, and whitespace check in GitHub Actions.
 

@@ -249,7 +249,7 @@ const end = html.indexOf('async function acceptBrokerageInvite', start);
 if (start < 0 || end < 0) throw new Error('renderSession not found');
 const state = {session: null};
 const elements = {};
-for (const id of ['signedOut', 'signedIn', 'signedInEmail', 'terms', 'checkoutButton', 'workspaceButton', 'firstOfferButton', 'checkoutRecovery']) {
+for (const id of ['signedOut', 'signedIn', 'signedInEmail', 'terms', 'checkoutButton', 'workspaceButton', 'firstOfferButton', 'checkoutRecovery', 'enrollmentDetails']) {
   elements[id] = {style: {}, textContent: '', checked: false, disabled: true};
 }
 const $ = id => elements[id];
@@ -260,6 +260,7 @@ eval(html.slice(start, end));
 
 renderSession({user: {id: 'agent-1', email: 'agent@example.com'}, access_token: 'first'});
 if (elements.terms.checked || !elements.checkoutButton.disabled) throw new Error('new identity was not reset');
+if (!elements.enrollmentDetails.hidden) throw new Error('signed-in enrollment still showed pre-sign-in steps');
 elements.terms.checked = true;
 elements.checkoutButton.disabled = false;
 renderSession({user: {id: 'agent-1', email: 'agent@example.com'}, access_token: 'refreshed'});
@@ -281,7 +282,7 @@ if (elements.terms.checked || !elements.checkoutButton.disabled) throw new Error
         self.assertIn("Review before sending", ONDEMAND)
         self.assertNotIn("Please read before enrolling", ONDEMAND)
 
-    def test_trial_page_explains_the_three_enrollment_steps_before_email_entry(self):
+    def test_trial_page_puts_the_email_action_before_optional_enrollment_details(self):
         for text in (
             'aria-label="How enrollment works"',
             "Use your OnDemand email.",
@@ -289,8 +290,11 @@ if (elements.terms.checked || !elements.checkoutButton.disabled) throw new Error
             "Confirm your card at Stripe.",
             "Step 1 of 3:",
             "Email my secure sign-in link",
+            "What happens next?",
         ):
             self.assertIn(text, ONDEMAND)
+        self.assertLess(ONDEMAND.index('id="signedOut"'), ONDEMAND.index('id="enrollmentDetails"'))
+        self.assertIn('$("enrollmentDetails").hidden = signedIn;', ONDEMAND)
         self.assertNotIn("Start my 60-day free trial", ONDEMAND)
 
     def test_landing_attribution_keeps_referrers_private_but_distinguishes_direct_and_referral_visits(self):
