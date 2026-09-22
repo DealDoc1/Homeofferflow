@@ -6134,11 +6134,17 @@ class handler(BaseHTTPRequestHandler):
             # transaction choice to the property workspace. Keep that reduced
             # friction visible without pretending the skipped Question 2 was
             # viewed or selected.
+            agent_form_package_direct_question_opened_events = [
+                item for item in events
+                if item.get("event_type") == "agent_form_package_direct_question_opened"
+                and str((item.get("metadata") or {}).get("workflow") or "") == "lease_representation"
+            ]
+            agent_form_package_direct_question_opened_count = len(agent_form_package_direct_question_opened_events)
             agent_form_package_direct_started_events = [
                 item for item in events
                 if item.get("event_type") == "agent_form_package_direct_started"
                 and str((item.get("metadata") or {}).get("workflow") or "")
-                in {"sale_listing", "lease_listing"}
+                in {"sale_listing", "lease_listing", "lease_representation"}
             ]
             agent_form_package_direct_started_count = len(agent_form_package_direct_started_events)
             agent_form_package_interview_counts_by_workflow = {
@@ -6175,7 +6181,7 @@ class handler(BaseHTTPRequestHandler):
                     item for item in agent_form_package_direct_started_events
                     if str((item.get("metadata") or {}).get("workflow") or "") == workflow
                 ])
-                for workflow in ("sale_listing", "lease_listing")
+                for workflow in ("sale_listing", "lease_listing", "lease_representation")
             }
             agent_transaction_event_workflows = {
                 "agent_workflow_purchase_selected": "purchase",
@@ -6904,6 +6910,7 @@ class handler(BaseHTTPRequestHandler):
                 "agentFormPackageNestedChoiceCountsByWorkflow": agent_form_package_nested_choice_counts_by_workflow,
                 "agentFormPackageDirectStartedCount": agent_form_package_direct_started_count,
                 "agentFormPackageDirectStartedCountsByWorkflow": agent_form_package_direct_started_counts_by_workflow,
+                "agentFormPackageDirectQuestionOpenedCount": agent_form_package_direct_question_opened_count,
                 "agentPrivateReviewDraftSavedCount": agent_private_review_draft_saved_count,
                 "agentPrivateReviewDraftSavedByForm": agent_private_review_draft_saved_by_form,
                 "agentPrivateReviewNextStepClickedCount": agent_private_review_next_step_clicked_count,
