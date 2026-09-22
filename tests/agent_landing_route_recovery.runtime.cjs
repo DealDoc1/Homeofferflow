@@ -19,6 +19,8 @@ function setup({session, workflow = 'purchase', ready = true, openDashboard} = {
   };
   const authTitle = {textContent:''};
   const authSubtitle = {textContent:''};
+  const authRoleRow = {hidden:false};
+  const authNote = {textContent:''};
   const window = {
     __hofDraftRestoreAuthReady: ready,
     __hofAccountRouteAuthPending: true,
@@ -39,12 +41,12 @@ function setup({session, workflow = 'purchase', ready = true, openDashboard} = {
   };
   const context = vm.createContext({
     window, URLSearchParams, URL,
-    document: {readyState:'complete', title:'HomeOfferFlow', getElementById:id => id === 'authTitle' ? authTitle : (id === 'authSubtitle' ? authSubtitle : null)},
+    document: {readyState:'complete', title:'HomeOfferFlow', getElementById:id => id === 'authTitle' ? authTitle : (id === 'authSubtitle' ? authSubtitle : (id === 'authRoleRow' ? authRoleRow : (id === 'authNote' ? authNote : null)))},
     sessionStorage: {getItem:key => storage.get(key) || null, setItem:(key, value) => storage.set(key, value), removeItem:key => storage.delete(key)},
     localStorage: {getItem:key => storage.get(key) || null, setItem:(key, value) => storage.set(key, value), removeItem:key => storage.delete(key)},
   });
   vm.runInContext(source, context);
-  return {calls, storage, window, authTitle, authSubtitle};
+  return {calls, storage, window, authTitle, authSubtitle, authRoleRow, authNote};
 }
 
 test('a signed-in agent opens the preserved transaction exactly once', () => {
@@ -88,6 +90,9 @@ test('a signed-out agent sees the preserved workflow in the secure sign-in hando
   assert.equal(page.storage.get('hof_agent_landing_package_workflow'), 'lease_representation');
   assert.equal(page.authTitle.textContent, 'Continue to your tenant representation transaction');
   assert.match(page.authSubtitle.textContent, /open the next questions/i);
+  assert.equal(page.authRoleRow.hidden, true);
+  assert.match(page.authNote.textContent, /agent or broker profile/i);
+  assert.match(page.authNote.textContent, /no password or brokerage seat is required/i);
   assert.equal(page.window.__hofAccountRouteAuthPending, true);
 });
 

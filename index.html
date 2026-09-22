@@ -917,6 +917,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     .auth-box p { color:var(--gray-light); font-size:0.88rem; line-height:1.55; margin:0.35rem 0; }
     .auth-close { background:transparent; border:none; color:var(--gray-light); font-size:1.4rem; cursor:pointer; line-height:1; padding:0.2rem; }
     .auth-role-row { display:grid; grid-template-columns:1fr 1fr; gap:0.55rem; margin:1rem 0; }
+    .auth-role-row[hidden] { display:none !important; }
     .auth-role-btn { border:1px solid rgba(255,255,255,0.12); border-radius:12px; padding:0.8rem; background:rgba(255,255,255,0.035); color:var(--gray-light); font-weight:800; cursor:pointer; font-family:'DM Sans', sans-serif; }
     .auth-role-btn.active { border-color:rgba(200,151,63,0.65); color:var(--gold-light); background:rgba(200,151,63,0.11); }
     .auth-field { margin:0.9rem 0; }
@@ -3172,7 +3173,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <button class="auth-primary" type="button" onclick="sendMagicLink()">Send Magic Link</button>
         <button class="auth-secondary" type="button" onclick="closeAuthModal()">Not now</button>
       </div>
-      <div class="auth-note">No password needed. Homebuyers can still start without an account. Agent and investor accounts are for saved profiles, defaults, and repeat use.</div>
+      <div class="auth-note" id="authNote">No password needed. Homebuyers can still start without an account. Agent and investor accounts are for saved profiles, defaults, and repeat use.</div>
     </div>
 
     <div id="signedInPanel" style="display:none;">
@@ -18703,8 +18704,12 @@ function routeAfterMagicLinkIfNeeded() {
         const authTitle = document.getElementById('authTitle');
         const authSubtitle = document.getElementById('authSubtitle');
         const authEmail = document.getElementById('authEmail');
+        const authRoleRow = document.getElementById('authRoleRow');
+        const authNote = document.getElementById('authNote');
         if (authTitle) authTitle.textContent = `Continue to your ${workflowLabel}`;
         if (authSubtitle) authSubtitle.textContent = `Enter your email for a secure sign-in link. No payment is required to start. We’ll open the next questions for this ${workflowLabel} after you return.`;
+        if (authRoleRow) authRoleRow.hidden = true;
+        if (authNote) authNote.textContent = 'Use the email tied to your agent or broker profile. No password or brokerage seat is required.';
         if (authEmail?.addEventListener && authEmail.dataset.agentLandingFunnelBound !== '1') {
           authEmail.dataset.agentLandingFunnelBound = '1';
           authEmail.addEventListener('input', () => {
@@ -18742,6 +18747,10 @@ function routeAfterMagicLinkIfNeeded() {
           localStorage.setItem('hof_investor_landing_workspace', '1');
         } catch (_) {}
         window.openAuthModal?.('investor');
+        const authRoleRow = document.getElementById('authRoleRow');
+        const authNote = document.getElementById('authNote');
+        if (authRoleRow) authRoleRow.hidden = true;
+        if (authNote) authNote.textContent = 'Use the email tied to your investor profile. No password is required.';
       }
     }), 80);
     if (params().get('partner_onboarding')) setTimeout(window.openPartnerOnboarding, 80);
@@ -18824,9 +18833,13 @@ function routeAfterMagicLinkIfNeeded() {
     window.openAuthModal?.('agent');
     const authTitle = document.getElementById('authTitle');
     const authSubtitle = document.getElementById('authSubtitle');
+    const authRoleRow = document.getElementById('authRoleRow');
+    const authNote = document.getElementById('authNote');
     const label = labels[workflow] || 'transaction chooser';
     if (authTitle) authTitle.textContent = `Continue to your ${label}`;
     if (authSubtitle) authSubtitle.textContent = `Enter your email for a secure sign-in link. We’ll open the next questions for this ${label} after you return.`;
+    if (authRoleRow) authRoleRow.hidden = true;
+    if (authNote) authNote.textContent = 'Use the email tied to your agent or broker profile. No password or brokerage seat is required.';
   }
 
   if (document.readyState === 'complete') continueAgentLandingRoute();
@@ -20159,6 +20172,10 @@ function routeAfterMagicLinkIfNeeded() {
   const oldOpenAuthModal = root.openAuthModal;
   root.openAuthModal = function openAuthModal(role = 'agent'){
     const normalized = normalizeAccountRole(role);
+    const roleRow = document.getElementById('authRoleRow');
+    const authNote = document.getElementById('authNote');
+    if (roleRow) roleRow.hidden = false;
+    if (authNote) authNote.textContent = 'No password needed. Homebuyers can still start without an account. Agent and investor accounts are for saved profiles, defaults, and repeat use.';
     root.setAuthRole(normalized);
     if (typeof root.clearAuthStatus === 'function') root.clearAuthStatus();
     const modal = document.getElementById('authModal');

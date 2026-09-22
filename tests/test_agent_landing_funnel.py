@@ -124,6 +124,16 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("lease_representation: 'tenant representation transaction'", entry)
         self.assertIn("Continue to your ${workflowLabel}", entry)
         self.assertIn("We’ll open the next questions for this ${workflowLabel} after you return.", entry)
+        self.assertIn("if (authRoleRow) authRoleRow.hidden = true;", entry)
+        self.assertIn("Use the email tied to your agent or broker profile. No password or brokerage seat is required.", entry)
+
+    def test_generic_account_login_restores_role_choices_after_a_focused_transaction_handoff(self):
+        start = INDEX.index("root.openAuthModal = function openAuthModal")
+        end = INDEX.index("root.updateAuthUI = function updateAuthUI", start)
+        entry = INDEX[start:end]
+        self.assertIn("if (roleRow) roleRow.hidden = false;", entry)
+        self.assertIn("Agent and investor accounts are for saved profiles, defaults, and repeat use.", entry)
+        self.assertIn(".auth-role-row[hidden] { display:none !important; }", INDEX)
 
     def test_agent_sign_in_role_copy_covers_listing_lease_and_purchase_work(self):
         self.assertIn("<span>Personal transaction workspace</span>", INDEX)
