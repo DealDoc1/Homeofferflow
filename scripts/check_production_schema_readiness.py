@@ -45,19 +45,28 @@ def first_value(names: tuple[str, ...], values: dict[str, str]) -> str:
     return ""
 
 
+def request_headers(service_key: str) -> dict[str, str]:
+    headers = {
+        "apikey": service_key,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "User-Agent": "HomeOfferFlow-production-schema-check/1",
+    }
+    # Supabase's modern sb_secret_* keys are API keys, not JWTs. Sending one as
+    # a bearer token makes the Data API reject an otherwise valid request with
+    # HTTP 401. Legacy service_role JWTs still require the bearer header.
+    if not service_key.startswith(("sb_secret_", "sb_publishable_")):
+        headers["Authorization"] = f"Bearer {service_key}"
+    return headers
+
+
 def fetch_readiness(url: str, service_key: str) -> dict:
     endpoint = f"{url.rstrip('/')}/rest/v1/rpc/hof_release_schema_readiness"
     request = Request(
         endpoint,
         data=b"{}",
         method="POST",
-        headers={
-            "apikey": service_key,
-            "Authorization": f"Bearer {service_key}",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-            "User-Agent": "HomeOfferFlow-production-schema-check/1",
-        },
+        headers=request_headers(service_key),
     )
     with urlopen(request, timeout=30) as response:  # noqa: S310 - configured Supabase URL
         payload = json.load(response)
