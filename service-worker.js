@@ -1,7 +1,7 @@
 // Bump the shell whenever a released public workflow changes. That makes an
-// already-installed app fetch the new worker and offer a deliberate refresh,
-// rather than continuing to run a previously cached interview script.
-const SHELL_CACHE = 'homeofferflow-shell-v74';
+// already-installed app fetch the new worker and retire stale public pages.
+// The worker activates in the background but never reloads an open workflow.
+const SHELL_CACHE = 'homeofferflow-shell-v75';
 const SHELL_ASSETS = [
   // Keep installation lightweight. Public pages cache after the visitor has
   // actually opened them; preloading every guide would spend bandwidth for
@@ -40,24 +40,29 @@ const PUBLIC_PAGE_PATHS = new Set([
 ]);
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(SHELL_CACHE).then(cache => cache.addAll(SHELL_ASSETS)));
+  event.waitUntil(
+    caches.open(SHELL_CACHE)
+      .then(cache => cache.addAll(SHELL_ASSETS))
+      .then(() => self.skipWaiting())
+  );
 });
 
-// A newer shell waits for an explicit in-app confirmation before taking over.
-// That keeps an agent in control of a live field workflow while still making
-// the update immediately available from the dashboard notification.
+// Keep compatibility with a previously installed worker that is already
+// waiting for the older explicit-update message.
 self.addEventListener('message', event => {
   if (event.data?.type === 'HOF_SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys => Promise.all(
-      keys.filter(key => key.startsWith('homeofferflow-shell-') && key !== SHELL_CACHE)
-        .map(key => caches.delete(key))
-    ))
+    Promise.all([
+      caches.keys().then(keys => Promise.all(
+        keys.filter(key => key.startsWith('homeofferflow-shell-') && key !== SHELL_CACHE)
+          .map(key => caches.delete(key))
+      )),
+      self.clients.claim()
+    ])
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', event => {

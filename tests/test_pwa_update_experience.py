@@ -14,16 +14,18 @@ class PwaUpdateExperienceTests(unittest.TestCase):
         self.assertIn('your saved work stays on this device', INDEX)
         self.assertIn("registration.addEventListener('updatefound'", INDEX)
         self.assertIn("navigator.serviceWorker.addEventListener('controllerchange'", INDEX)
-        self.assertIn("if (!isHomeOfferFlowStandaloneApp() || !registration?.waiting || document.getElementById('hofPwaUpdateCard')) return;", INDEX)
+        self.assertIn("if (!isHomeOfferFlowStandaloneApp() || (!registration?.waiting && !workerAlreadyActive) || document.getElementById('hofPwaUpdateCard')) return;", INDEX)
         self.assertIn("Reserve the update choice for an installed app", INDEX)
 
-    def test_update_only_activates_after_the_user_confirms(self):
+    def test_update_activates_without_reloading_open_work(self):
         self.assertIn("HOF_SKIP_WAITING", INDEX)
         self.assertIn("event.data?.type === 'HOF_SKIP_WAITING'", WORKER)
-        self.assertNotIn("self.skipWaiting();", WORKER.split("self.addEventListener('message'", 1)[0])
+        install_handler = WORKER.split("self.addEventListener('install'", 1)[1].split("self.addEventListener('message'", 1)[0]
+        self.assertIn(".then(() => self.skipWaiting())", install_handler)
+        self.assertIn("Activation alone never reloads an in-progress transaction", INDEX)
 
     def test_shell_cache_changes_for_the_update_notification(self):
-        self.assertIn("homeofferflow-shell-v74", WORKER)
+        self.assertIn("homeofferflow-shell-v75", WORKER)
         self.assertIn("fetch(event.request, { cache: 'no-store' })", WORKER)
         self.assertIn("safe-area-inset-bottom", INDEX)
 

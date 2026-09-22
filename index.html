@@ -24868,13 +24868,14 @@ function routeAfterMagicLinkIfNeeded() {
   // authenticated data, and API responses are always fetched from the network.
   if ('serviceWorker' in navigator) {
     let hofPwaRefreshRequested = false;
+    let hofPwaRegistration = null;
     const isHomeOfferFlowStandaloneApp = () => window.matchMedia?.('(display-mode: standalone)').matches === true
       || window.navigator.standalone === true;
 
-    function showHomeOfferFlowUpdate(registration) {
+    function showHomeOfferFlowUpdate(registration, workerAlreadyActive = false) {
       // Reserve the update choice for an installed app. A regular browser
-      // navigation already fetches the current page when online.
-      if (!isHomeOfferFlowStandaloneApp() || !registration?.waiting || document.getElementById('hofPwaUpdateCard')) return;
+      // navigation fetches the current page from the newly active worker.
+      if (!isHomeOfferFlowStandaloneApp() || (!registration?.waiting && !workerAlreadyActive) || document.getElementById('hofPwaUpdateCard')) return;
       const card = document.createElement('aside');
       card.id = 'hofPwaUpdateCard';
       card.className = 'hof-pwa-update-card';
@@ -24884,8 +24885,13 @@ function routeAfterMagicLinkIfNeeded() {
       card.querySelector('#hofPwaUpdateLater')?.addEventListener('click', () => card.remove());
       card.querySelector('#hofPwaUpdateNow')?.addEventListener('click', () => {
         const waiting = registration.waiting;
-        if (!waiting || hofPwaRefreshRequested) return;
+        if (hofPwaRefreshRequested) return;
         hofPwaRefreshRequested = true;
+        if (!waiting) {
+          hofPwaRefreshRequested = false;
+          window.location.reload();
+          return;
+        }
         waiting.postMessage({ type: 'HOF_SKIP_WAITING' });
       });
     }
@@ -24896,6 +24902,7 @@ function routeAfterMagicLinkIfNeeded() {
       // when the current page was opened from an older shell.
       navigator.serviceWorker.register('/service-worker.js', { scope: '/', updateViaCache: 'none' })
         .then(registration => {
+          hofPwaRegistration = registration;
           showHomeOfferFlowUpdate(registration);
           registration.addEventListener('updatefound', () => {
             const installing = registration.installing;
@@ -24909,9 +24916,14 @@ function routeAfterMagicLinkIfNeeded() {
         .catch(error => console.warn('HomeOfferFlow offline support was not registered:', error));
     });
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (!hofPwaRefreshRequested) return;
-      hofPwaRefreshRequested = false;
-      window.location.reload();
+      if (hofPwaRefreshRequested) {
+        hofPwaRefreshRequested = false;
+        window.location.reload();
+        return;
+      }
+      // Activation alone never reloads an in-progress transaction. Installed
+      // apps receive the refresh choice; browser tabs update on navigation.
+      showHomeOfferFlowUpdate(hofPwaRegistration, true);
     });
   }
 </script>

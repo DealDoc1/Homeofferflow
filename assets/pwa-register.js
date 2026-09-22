@@ -205,9 +205,12 @@
     notice.textContent = 'You are offline. This saved public page remains available; sign-in, live searches, and submissions resume when you reconnect.';
     document.body.appendChild(notice);
   };
-  const showUpdateNotice = registration => {
-    // Keep ordinary browsing quiet; installed apps can choose when to update.
-    if (!isStandaloneSurface() || !registration?.waiting || document.getElementById('hofPublicPwaUpdateNotice')) return;
+  let activeServiceWorkerRegistration = null;
+  const showUpdateNotice = (registration, workerAlreadyActive = false) => {
+    // Keep ordinary browsing quiet; installed apps can choose when to refresh.
+    // A newly activated worker does not reload this page, so live work remains
+    // untouched until the person chooses the button below.
+    if (!isStandaloneSurface() || (!registration?.waiting && !workerAlreadyActive) || document.getElementById('hofPublicPwaUpdateNotice')) return;
     const notice = document.createElement('aside');
     notice.id = 'hofPublicPwaUpdateNotice';
     notice.setAttribute('role', 'status');
@@ -218,8 +221,12 @@
     let refreshRequested = false;
     notice.querySelector('#hofPublicPwaUpdateButton')?.addEventListener('click', () => {
       const waiting = registration.waiting;
-      if (!waiting || refreshRequested) return;
+      if (refreshRequested) return;
       refreshRequested = true;
+      if (!waiting) {
+        window.location.reload();
+        return;
+      }
       let refreshed = false;
       const reloadAfterActivation = () => {
         if (refreshed) return;
@@ -382,11 +389,18 @@
   window.addEventListener('offline', renderOfflineNotice);
   window.addEventListener('online', renderOfflineNotice);
   window.addEventListener('load', renderOfflineNotice, { once: true });
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    // The new worker is active, but this page intentionally stays in place.
+    // Installed apps get a clear refresh choice; browser tabs update on their
+    // next normal navigation without adding noise or interrupting input.
+    showUpdateNotice(activeServiceWorkerRegistration, true);
+  });
   window.addEventListener('load', () => {
     // Always revalidate the worker itself. The public shell may intentionally
     // be cached for offline use, but a browser must still discover a released
     // workflow update promptly.
     navigator.serviceWorker.register('/service-worker.js', { scope: '/', updateViaCache: 'none' }).then(registration => {
+      activeServiceWorkerRegistration = registration;
       showUpdateNotice(registration);
       registration.addEventListener('updatefound', () => {
         const installing = registration.installing;
