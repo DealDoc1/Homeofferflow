@@ -40,6 +40,13 @@ class InvestorLandingFunnelTests(unittest.TestCase):
         # after the investor route has opened the shared account modal.
         self.assertNotIn("if (authTitle && !root.hofAuth?.session) authTitle.textContent = 'Agent / Broker Account'", INDEX)
 
+    def test_investor_handoff_does_not_repeat_the_account_role_question(self):
+        start = INDEX.index("if (params().get('investor') === '1')")
+        end = INDEX.index("if (params().get('partner_onboarding')", start)
+        entry = INDEX[start:end]
+        self.assertIn("if (authRoleRow) authRoleRow.hidden = true;", entry)
+        self.assertIn("Use the email tied to your investor profile. No password is required.", entry)
+
     def test_public_endpoint_and_page_record_only_aggregate_investor_landing_events(self):
         self.assertIn("INVESTOR_LANDING_EVENT_TYPES", API)
         self.assertIn("def _record_investor_landing_event(data):", API)
