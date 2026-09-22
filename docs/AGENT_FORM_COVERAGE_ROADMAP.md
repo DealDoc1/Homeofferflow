@@ -11,7 +11,16 @@ date; only Sellers are signing recipients, invitations are parallel, and both
 escrow-agent receipt sections remain blank. It is available to every signed-in
 agent without a brokerage seat. The renderer, source allowlist, database
 constraint, signing map, and purchase-document interview are locally
-implemented and under release QA; production deployment is not yet claimed.
+implemented and production deployed through PR #1294 and production run
+`35736239061`. Its two-recipient completed SignWell PDF passed visual placement
+review on September 22, 2026.
+
+TREC-38-8 Buyer's Notice of Termination is the next transaction follow-up
+release. Its short interview identifies the parties and property, requires the
+agent to select one or more actual contract/addendum provisions, and prepares
+Buyer-only parallel signature invitations. Seller names appear on the notice
+but Sellers and the agent are not signing recipients. The workflow is being
+implemented for every signed-in agent without a brokerage-seat requirement.
 
 ## Local continuation status - September 18, 2026
 
