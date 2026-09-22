@@ -1,4 +1,5 @@
 from pathlib import Path
+import subprocess
 import unittest
 
 
@@ -162,6 +163,54 @@ class OnDemandLandingFunnelTests(unittest.TestCase):
         self.assertIn("function refreshRenewalDate()", ONDEMAND)
         self.assertIn("refreshRenewalDate();\n        const signedIn", ONDEMAND)
         self.assertIn("same 60-day window checkout uses", ONDEMAND)
+
+    def test_same_account_token_refresh_preserves_visible_trial_consent(self):
+        start = ONDEMAND.index("function renderSession(session)")
+        end = ONDEMAND.index("async function acceptBrokerageInvite", start)
+        render = ONDEMAND[start:end]
+        self.assertIn('const previousUserId = state.session?.user?.id || "";', render)
+        self.assertIn('const nextUserId = session?.user?.id || "";', render)
+        self.assertIn("const identityChanged = previousUserId !== nextUserId;", render)
+        self.assertIn("if (identityChanged) {", render)
+        self.assertIn('$("terms").checked = false;', render)
+        self.assertIn('$("checkoutButton").disabled = true;', render)
+        self.assertLess(render.index("if (identityChanged) {"), render.index('$("terms").checked = false;'))
+        self.assertIn("TOKEN_REFRESHED", render)
+
+    def test_session_render_runtime_resets_consent_only_for_a_new_identity(self):
+        script = r"""
+const fs = require('fs');
+const html = fs.readFileSync(process.argv[1], 'utf8');
+const start = html.indexOf('function renderSession(session)');
+const end = html.indexOf('async function acceptBrokerageInvite', start);
+if (start < 0 || end < 0) throw new Error('renderSession not found');
+const state = {session: null};
+const elements = {};
+for (const id of ['signedOut', 'signedIn', 'signedInEmail', 'terms', 'checkoutButton', 'workspaceButton', 'firstOfferButton', 'checkoutRecovery']) {
+  elements[id] = {style: {}, textContent: '', checked: false, disabled: true};
+}
+const $ = id => elements[id];
+const refreshRenewalDate = () => {};
+const renderInstallHint = () => {};
+const window = {location: {search: ''}};
+eval(html.slice(start, end));
+
+renderSession({user: {id: 'agent-1', email: 'agent@example.com'}, access_token: 'first'});
+if (elements.terms.checked || !elements.checkoutButton.disabled) throw new Error('new identity was not reset');
+elements.terms.checked = true;
+elements.checkoutButton.disabled = false;
+renderSession({user: {id: 'agent-1', email: 'agent@example.com'}, access_token: 'refreshed'});
+if (!elements.terms.checked || elements.checkoutButton.disabled) throw new Error('same identity lost consent');
+renderSession({user: {id: 'agent-2', email: 'other@example.com'}, access_token: 'other'});
+if (elements.terms.checked || !elements.checkoutButton.disabled) throw new Error('new identity retained prior consent');
+"""
+        result = subprocess.run(
+            ["node", "-e", script, str(ROOT / "ondemand.html")],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
 
     def test_trial_page_summarizes_scope_without_repeating_checkout_friction(self):
         self.assertIn("Your plan at a glance", ONDEMAND)

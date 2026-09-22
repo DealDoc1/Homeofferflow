@@ -545,6 +545,9 @@
       }
 
       function renderSession(session) {
+        const previousUserId = state.session?.user?.id || "";
+        const nextUserId = session?.user?.id || "";
+        const identityChanged = previousUserId !== nextUserId;
         state.session = session || null;
         // Recalculate when the secure sign-in session arrives so a user who
         // waited on the magic link sees the same 60-day window checkout uses.
@@ -553,8 +556,13 @@
         $("signedOut").style.display = signedIn ? "none" : "block";
         $("signedIn").style.display = signedIn ? "block" : "none";
         $("signedInEmail").textContent = session?.user?.email || "";
-        $("terms").checked = false;
-        $("checkoutButton").disabled = true;
+        // Supabase can emit TOKEN_REFRESHED while an agent is reviewing the
+        // enrollment terms. Preserve their visible choice for the same account;
+        // reset it only when the signed-in identity actually changes.
+        if (identityChanged) {
+          $("terms").checked = false;
+          $("checkoutButton").disabled = true;
+        }
         const checkoutComplete = signedIn && new URLSearchParams(window.location.search).get("checkout") === "success";
         const checkoutCancelled = signedIn && new URLSearchParams(window.location.search).get("checkout") === "cancelled";
         $("workspaceButton").style.display = checkoutComplete ? "block" : "none";
