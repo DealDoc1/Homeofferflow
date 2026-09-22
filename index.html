@@ -3153,7 +3153,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     <div class="auth-box-header">
       <div>
         <h3 id="authTitle">Agent / Broker Account</h3>
-        <p id="authSubtitle">Sign in with a magic link to save your work and continue where you left off.</p>
+        <p id="authSubtitle">Enter your email and we’ll send a secure sign-in link so you can save your work and continue where you left off.</p>
       </div>
       <button class="auth-close" type="button" onclick="closeAuthModal()" aria-label="Close account login">×</button>
     </div>
@@ -3170,7 +3170,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <input id="authEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required aria-required="true" />
       </div>
       <div class="auth-actions">
-        <button class="auth-primary" type="button" onclick="sendMagicLink()">Send Magic Link</button>
+        <button class="auth-primary" type="button" onclick="sendMagicLink()">Email My Secure Sign-In Link</button>
         <button class="auth-secondary" type="button" onclick="closeAuthModal()">Not now</button>
       </div>
       <div class="auth-note" id="authNote">No password needed. Homebuyers can still start without an account. Agent and investor accounts are for saved profiles, defaults, and repeat use.</div>
@@ -5821,10 +5821,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       if (error) throw error;
       recordAgentLandingAuthStage('agent_landing_magic_link_requested');
       try { sessionStorage.removeItem('hof_agent_landing_auth_funnel'); } catch (_) {}
-      setAuthStatus('Magic link sent. Check your email, then return here after signing in.', 'ok');
+      setAuthStatus('Secure sign-in link sent. Check your email, then return here to continue.', 'ok');
     } catch (err) {
       console.error('Magic link failed', err);
-      setAuthStatus(err?.message || 'Could not send magic link. Check Supabase Auth URL settings.', 'err');
+      const fallback = 'We couldn’t email your secure sign-in link. Wait a moment and try again. If it keeps happening, contact support@homeofferflow.com.';
+      setAuthStatus(window.hofCustomerActionError?.(err, fallback) || fallback, 'err');
     }
   }
 
@@ -5867,7 +5868,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const signedOutUserId = hofAuth.session?.user?.id || '';
     const { error } = await client.auth.signOut();
     if (error) {
-      setAuthStatus(error.message || 'Could not sign out. Please try again.', 'err');
+      const fallback = 'We couldn’t sign you out. Please try again.';
+      setAuthStatus(window.hofCustomerActionError?.(error, fallback) || fallback, 'err');
       return;
     }
 
@@ -7417,7 +7419,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
       try { localStorage.setItem('hof_beta_feedback_clicked', '1'); } catch (e) {}
       try { renderBetaOnboardingChecklist(); } catch (e) {}
-      setFeedbackStatus(alertOk ? 'Thanks — feedback received and alert sent.' : 'Thanks — feedback received. Email alert did not send, but it is saved in Supabase.', 'ok');
+      setFeedbackStatus(alertOk ? 'Thanks — feedback received.' : 'Thanks — your feedback is saved securely. Our email alert is delayed, but your note was not lost.', 'ok');
       document.getElementById('feedbackMessage').value = '';
       ['missingFormTransaction', 'missingFormName'].forEach(id => { const field = document.getElementById(id); if (field) field.value = ''; });
       ['aiFeedbackUseful','aiFeedbackConcern','aiFeedbackMissing'].forEach(id => { const field = document.getElementById(id); if (field) field.value = ''; });
@@ -7425,7 +7427,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       setTimeout(closeBetaFeedback, alertOk ? 1200 : 2200);
     } catch (err) {
       console.error('Feedback submit failed:', err);
-      const fallback = 'Could not save feedback in the app. Copy your note and email support@homeofferflow.com. Error: ' + (err?.message || err);
+      const fallback = 'We couldn’t send your feedback. Copy your note and email support@homeofferflow.com.';
       setFeedbackStatus(fallback, 'err');
       try {
         const text = 'HomeOfferFlow Support Request\n\nAccount: ' + (user.email || '') + '\nIssue type: ' + issueType + '\n\n' + message;
@@ -7612,7 +7614,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
     if (!client) {
       restoreSaveButton();
-      setAccountStatus('Supabase did not load. Refresh and try again.', 'err');
+      setAccountStatus('Your workspace could not connect. Refresh and try again.', 'err');
       return;
     }
 
@@ -7790,8 +7792,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       restoreSaveButton();
       if (!isCurrentProfile()) return null;
       console.error('Profile save failed', err);
-      const msg = err?.message || JSON.stringify(err) || 'Could not save profile.';
-      setAccountStatus(msg, 'err');
+      const fallback = 'We couldn’t save your profile. Your entries are still on this screen. Please try again.';
+      setAccountStatus(window.hofCustomerActionError?.(err, fallback) || fallback, 'err');
       throw err;
     }
   }
