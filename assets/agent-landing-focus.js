@@ -2,8 +2,8 @@
   const params = new URLSearchParams(window.location.search);
   const rawSource = String(params.get('utm_source') || '').trim().toLowerCase();
   const rawMedium = String(params.get('utm_medium') || '').trim().toLowerCase();
-  const channel = window.hofAgentLandingChannel || (rawMedium === 'installed_app' ? 'pwa_shortcut' : rawSource || 'direct');
-  const allowedChannels = new Set(['direct', 'homepage', 'organic', 'pwa_shortcut', 'direct_outreach', 'email', 'social', 'referral', 'local_event', 'print']);
+  const channel = window.hofAgentLandingChannel || (rawMedium === 'installed_app' ? 'pwa_shortcut' : rawMedium === 'site_recovery' ? 'site_recovery' : rawSource || 'direct');
+  const allowedChannels = new Set(['direct', 'homepage', 'organic', 'pwa_shortcut', 'site_recovery', 'direct_outreach', 'email', 'social', 'referral', 'local_event', 'print']);
   const safeChannel = allowedChannels.has(channel) ? channel : 'direct';
   const note = document.querySelector('.note:not(#agentTrialOffer)');
   const start = document.querySelector('#transaction-start');
@@ -37,8 +37,8 @@
   const workflowLink = resourceLinks.find((link) => link.href.includes('texas-agent-offer-workflow'));
   note.replaceChildren();
   const strong = document.createElement('strong');
-  strong.textContent = 'No brokerage seat required.';
-  note.append(strong, " Every signed-in agent can use HomeOfferFlow's released shared form workflows. Start with the client and property details you have, then save your agent defaults afterward for faster repeat work.");
+  strong.textContent = 'No brokerage seat or payment required to start.';
+  note.append(strong, " Every signed-in agent can use HomeOfferFlow's released shared forms and create a listing workspace. Paid plan terms appear before recurring checkout. Save your defaults afterward for faster repeat work.");
   if (workflowLink) {
     note.append(' ', workflowLink.cloneNode(true));
   }
