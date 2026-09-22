@@ -63,7 +63,7 @@ function setup({ active = false, draft = null, search = '' } = {}) {
   vm.runInContext(source('  root.setAudience = function setAudience(', '  const oldRenderDashboard'), c);
   vm.runInContext(source('  function selectedLandingAudience()', '  function startPrimaryOffer()'), c);
   vm.runInContext(source('  function refreshResumeOfferCtas()', '  function resumeLocalOfferDraft('), c);
-  vm.runInContext(source('  window.handleAudiencePickerKey', "  document.getElementById('termsModal')"), c);
+  vm.runInContext(source('  window.handleAudiencePickerKey', "  document.addEventListener('click', function(e) {"), c);
   return { c, node, pills, calls };
 }
 function untouched(x, before, original) {

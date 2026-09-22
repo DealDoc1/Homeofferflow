@@ -187,8 +187,6 @@ class TechnicalSeoTests(unittest.TestCase):
         out the public page's buyer, agent, seller, and partner positioning.
         """
         for marker in (
-            '<div class="terms-modal" id="termsModal" data-nosnippet>',
-            '<div class="agent-value-modal" id="agentValueModal" data-nosnippet>',
             '<div class="auth-modal" id="authModal" aria-hidden="true" data-nosnippet>',
             '<div class="account-modal" id="accountModal" aria-hidden="true" data-nosnippet>',
             '<div class="feedback-modal" id="feedbackModal" aria-hidden="true" data-nosnippet>',

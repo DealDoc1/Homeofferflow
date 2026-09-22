@@ -30,7 +30,7 @@ class LandingPathContextTests(unittest.TestCase):
         # Keep both layers aligned so an agent never receives buyer-only copy
         # during initialization or after future script refactors.
         base_start = HTML.index("function setAudience(type, { presentationOnly = false } = {}) {")
-        base_end = HTML.index("document.getElementById('termsModal')", base_start)
+        base_end = HTML.index("document.addEventListener('click', function(e) {", base_start)
         base = HTML[base_start:base_end]
         agent = base[base.index("agent: {"):base.index("investor: {")]
         self.assertIn("Start with the transaction in front of you.", agent)
