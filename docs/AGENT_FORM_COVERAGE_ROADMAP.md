@@ -16,11 +16,14 @@ implemented and production deployed through PR #1294 and production run
 review on September 22, 2026.
 
 TREC-38-8 Buyer's Notice of Termination is the next transaction follow-up
-release. Its short interview identifies the parties and property, requires the
-agent to select one or more actual contract/addendum provisions, and prepares
-Buyer-only parallel signature invitations. Seller names appear on the notice
-but Sellers and the agent are not signing recipients. The workflow is being
-implemented for every signed-in agent without a brokerage-seat requirement.
+release candidate. Its short interview identifies the parties and property,
+requires the agent to select one or more actual contract/addendum provisions,
+and prepares Buyer-only parallel signature invitations. Seller names appear on
+the notice but Sellers and the agent are not signing recipients. The workflow
+is available to every signed-in agent without a brokerage-seat requirement.
+Its two-recipient completed SignWell PDF passed visual placement review on
+September 29, 2026; CI, merge, intentional production deployment, and
+canonical-domain verification remain the release execution steps.
 
 ## Local continuation status - September 18, 2026
 

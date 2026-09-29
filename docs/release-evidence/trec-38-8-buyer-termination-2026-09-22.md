@@ -29,10 +29,12 @@
 
 ## Rendered signed-PDF QA
 
-- Completed packet evidence link or secure reference: pending one SignWell test-mode document after the account session is renewed
-- Reviewer: Codex source/PDF review completed; completed-provider PDF review pending
-- Every applicable blank, checkbox, initial, signature, and date visually reviewed: the unsigned source-backed QA PDF was rendered at 200 DPI. Property, Seller continuation, reason 1, reason 8, and the five-line other-provision answer are aligned. A first render exposed and corrected an invalid Buyer-name placement in the Seller continuation. The two Buyer signature and locked-date rectangles were overlaid and visually verified against the four printed execution blanks.
-- Locked coordinates / known exceptions: completed-provider signatures and locked dates remain to be checked after both approved QA recipients sign; SignWell test mode is required and does not create a binding transaction
+- Authenticated QA: the signed-in agent form-library entry, owner-scoped draft path, private source retrieval, Buyer-only recipient contract, and send authorization are covered by the full regression suite. The completed SignWell document was generated from this release's source renderer and signing map; this release does not weaken or bypass the existing authentication boundary.
+- Completed signature visual QA: passed 2026-09-29 for the completed two-Buyer SignWell test packet.
+- Completed packet evidence link or secure reference: SignWell test document `b1be7bd2-a53f-48b8-8070-42bb04eb6ad1`, completed 2026-09-22 by both QA Buyers; completed PDF downloaded and reviewed 2026-09-29
+- Reviewer: Codex completed-provider PDF visual review
+- Every applicable blank, checkbox, initial, signature, and date visually reviewed: yes. The completed one-page packet was rendered at 150 DPI. Property, Seller continuation, reason 1, reason 8, the other-provision answer, both Buyer signatures, and both locked dates are aligned with the official printed fields. There is no clipping, unintended overlap, or misplaced recipient field.
+- Locked coordinates / known exceptions: Buyer One signature/date and Buyer Two signature/date are correctly placed on their respective execution lines. SignWell's green `Not Valid` marks and `NOT LEGALLY VALID (TEST MODE)` footer are expected test-mode watermarks and are not production document content.
 
 ## Regression
 
@@ -49,6 +51,6 @@
 
 ## Deployment decision
 
-- Ready for production: no; completed SignWell two-Buyer PDF placement QA is the sole remaining release check
+- Ready for production: yes; completed SignWell two-Buyer PDF placement QA passed on 2026-09-29. CI, merge, intentional production deployment, and canonical-domain verification remain release execution steps.
 - Rollback path: revert the release commit, redeploy the preceding production commit, retire the TREC-38-8 source row, and retain the additive database allowlist safely
 - Post-deploy verification owner: HomeOfferFlow release QA
