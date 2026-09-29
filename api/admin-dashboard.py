@@ -110,6 +110,7 @@ TXR_1954_FORM_CODE = "TXR-1954"
 TREC_55_1_FORM_CODE = "TREC-55-1"
 TREC_61_0_FORM_CODE = "TREC-61-0"
 TREC_62_0_FORM_CODE = "TREC-62-0"
+TREC_38_8_FORM_CODE = "TREC-38-8"
 BROKERAGE_TXR_FORM_CODES = (
     "TXR-1507",
     "TXR-1501",
@@ -127,6 +128,7 @@ BROKERAGE_TXR_FORM_CODES = (
     "TXR-1406",
     "TXR-1418",
     "TREC-62-0",
+    "TREC-38-8",
 )
 TXR_SIGNING_FORM_CODES = {
     TXR_1501_FORM_CODE,
@@ -141,6 +143,7 @@ TXR_SIGNING_FORM_CODES = {
     TXR_1953_FORM_CODE,
     TXR_1954_FORM_CODE,
     TREC_62_0_FORM_CODE,
+    TREC_38_8_FORM_CODE,
 }
 # Persisted with the provider document, not shown to recipients.  This makes
 # a completed PDF traceable to the exact reviewed signer geometry when a
@@ -159,6 +162,7 @@ TXR_RENDER_REVISIONS = {
     "TXR-1953": "txr-1953-2026-09-18-neutral-source-v4",
     "TXR-1954": "txr-1954-2026-09-18-neutral-source-v4",
     "TREC-62-0": "trec-62-0-2026-09-22-source-v1",
+    "TREC-38-8": "trec-38-8-2026-09-22-source-v1",
 }
 
 TXR_SIGNING_MAP_REVISIONS = {
@@ -177,6 +181,7 @@ TXR_SIGNING_MAP_REVISIONS = {
     TXR_1953_FORM_CODE: "txr-1953-2026-09-18-continuation-candidate-v3",
     TXR_1954_FORM_CODE: "txr-1954-2026-09-18-continuation-candidate-v3",
     TREC_62_0_FORM_CODE: "trec-62-0-2026-09-22-seller-execution-v1",
+    TREC_38_8_FORM_CODE: "trec-38-8-2026-09-22-buyer-execution-v1",
 }
 # Each core TXR workflow was source-calibrated after prior packets exposed
 # placement risk. Require a newly prepared copy until saved drafts created
@@ -188,6 +193,7 @@ TXR_SIGNING_MAP_REVISION_ENFORCED_FORM_CODES = {
     TXR_1507_FORM_CODE,
     TXR_1508_FORM_CODE,
     TREC_62_0_FORM_CODE,
+    TREC_38_8_FORM_CODE,
 }
 
 
@@ -221,6 +227,7 @@ TXR_BUYER_SELLER_SIGNING_FORM_CODES = {
 # TREC 62-0 is signed only by Seller. Buyer is named in the notice and then
 # receives the completed notice under the contract's delivery paragraph.
 SELLER_ONLY_SIGNING_FORM_CODES = {TREC_62_0_FORM_CODE}
+BUYER_ONLY_SIGNING_FORM_CODES = {TREC_38_8_FORM_CODE}
 
 
 def _is_sandbox_partner_lead(lead):
@@ -2616,6 +2623,56 @@ def _parse_trec_62_0_draft(data):
     }
 
 
+def _parse_trec_38_8_draft(data):
+    """Validate the guided Buyer's notice of termination."""
+    if data.get("formCode") != TREC_38_8_FORM_CODE:
+        raise ValueError("Only TREC 38-8 is available through this action.")
+    try:
+        source_id = str(uuid.UUID(_agreement_text(data.get("formSourceId"), "Approved TREC 38-8 source", 80)))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("Choose the available TREC 38-8 source from the HomeOfferFlow library.")
+
+    def names(key, label):
+        values = data.get(key)
+        if not isinstance(values, list) or not (1 <= len(values) <= 2):
+            raise ValueError(f"Add one or two {label} names.")
+        return [_agreement_text(value, f"Each {label} name", 180) for value in values]
+
+    buyer_names = names("buyerNames", "Buyer")
+    seller_names = names("sellerNames", "Seller")
+    if len({name.casefold() for name in buyer_names + seller_names}) != len(buyer_names + seller_names):
+        raise ValueError("List each Buyer or Seller only once.")
+    allowed_reasons = {
+        "option_period", "buyer_approval", "property_approval", "hoa_documents",
+        "seller_disclosure", "appraisal", "title_objections", "other",
+    }
+    termination_reasons = data.get("terminationReasons")
+    if not isinstance(termination_reasons, list) or not termination_reasons:
+        raise ValueError("Choose at least one contract provision for the termination notice.")
+    termination_reasons = [str(reason or "").strip() for reason in termination_reasons]
+    if len(set(termination_reasons)) != len(termination_reasons) or any(reason not in allowed_reasons for reason in termination_reasons):
+        raise ValueError("Choose each available termination provision only once.")
+    other_basis = str(data.get("otherTerminationBasis") or "").strip()
+    if len(other_basis) > 1200:
+        raise ValueError("Other termination provision must be 1200 characters or fewer.")
+    if "other" in termination_reasons and not other_basis:
+        raise ValueError("Identify the contract paragraph or addendum provision supporting the other termination reason.")
+    if data.get("terminationAcknowledgment") is not True:
+        raise ValueError("Confirm the Buyer selected the stated contract right and any required supporting material will accompany the notice.")
+    return {
+        "form_source_id": source_id,
+        "client_names": buyer_names,
+        "agreement_data": {
+            "property_address": _agreement_text(data.get("propertyAddress"), "Property address", 400),
+            "buyer_names": buyer_names,
+            "seller_names": seller_names,
+            "termination_reasons": termination_reasons,
+            "other_termination_basis": other_basis if "other" in termination_reasons else "",
+            "termination_acknowledgment": True,
+        },
+    }
+
+
 def _parse_txr_1948_draft(data):
     """Validate a private TXR-1948 appraisal-review draft.
 
@@ -3318,6 +3375,10 @@ async def _create_trec_62_0_draft(user, data):
     return await _create_representation_draft(user, data, TREC_62_0_FORM_CODE, _parse_trec_62_0_draft)
 
 
+async def _create_trec_38_8_draft(user, data):
+    return await _create_representation_draft(user, data, TREC_38_8_FORM_CODE, _parse_trec_38_8_draft)
+
+
 async def _create_txr_1914_draft(user, data):
     return await _create_representation_draft(user, data, TXR_1914_FORM_CODE, _parse_txr_1914_draft)
 
@@ -3990,7 +4051,7 @@ async def _render_owned_representation_agreement(user, agreement, *, for_signing
     if professional_context is None:
         professional_context = (
             {"brokerage": {}, "profile": {}}
-            if agreement.get("form_code") in (TXR_BUYER_SELLER_SIGNING_FORM_CODES | SELLER_ONLY_SIGNING_FORM_CODES)
+            if agreement.get("form_code") in (TXR_BUYER_SELLER_SIGNING_FORM_CODES | SELLER_ONLY_SIGNING_FORM_CODES | BUYER_ONLY_SIGNING_FORM_CODES)
             else await _representation_professional_context(user)
         )
     brokerage = professional_context["brokerage"]
@@ -4058,6 +4119,9 @@ async def _render_owned_representation_agreement(user, agreement, *, for_signing
     if agreement.get("form_code") == TREC_62_0_FORM_CODE:
         from lib.trec_62_0 import render_trec_62_0
         return render_trec_62_0(response.content, render_data)
+    if agreement.get("form_code") == TREC_38_8_FORM_CODE:
+        from lib.trec_38_8 import render_trec_38_8
+        return render_trec_38_8(response.content, render_data)
     raise ValueError("Private preview is not available for this form yet.")
 
 
@@ -4124,6 +4188,9 @@ def _txr_signwell_fields(form_code, agreement_data, client_count, *, rendered_pd
     if form_code == TREC_62_0_FORM_CODE:
         from lib.trec_62_0 import build_signwell_fields_trec620
         return build_signwell_fields_trec620(agreement_data, client_count=client_count)
+    if form_code == TREC_38_8_FORM_CODE:
+        from lib.trec_38_8 import build_signwell_fields_trec388
+        return build_signwell_fields_trec388(agreement_data, client_count=client_count)
     raise ValueError("This standalone form is not available for signing.")
 
 
@@ -4138,6 +4205,8 @@ def _standalone_signer_labels(agreement):
     form_code = str(agreement.get("form_code") or "")
     if form_code in SELLER_ONLY_SIGNING_FORM_CODES:
         return [f"Seller {index}" for index in range(1, len(names) + 1)]
+    if form_code in BUYER_ONLY_SIGNING_FORM_CODES:
+        return [f"Buyer {index}" for index in range(1, len(names) + 1)]
     if form_code not in TXR_BUYER_SELLER_SIGNING_FORM_CODES:
         return [f"Client {index}" for index in range(1, len(names) + 1)]
     agreement_data = agreement.get("agreement_data") or {}
@@ -4152,7 +4221,7 @@ def _standalone_professional_role(agreement):
     agreement_data = agreement.get("agreement_data") or {}
     form_code = str(agreement.get("form_code") or "")
     signer_plan = str(agreement_data.get("signer_plan") or "")
-    if form_code in (TXR_BUYER_SELLER_SIGNING_FORM_CODES | SELLER_ONLY_SIGNING_FORM_CODES):
+    if form_code in (TXR_BUYER_SELLER_SIGNING_FORM_CODES | SELLER_ONLY_SIGNING_FORM_CODES | BUYER_ONLY_SIGNING_FORM_CODES):
         return None
     if form_code == TXR_1508_FORM_CODE:
         return "associate" if signer_plan == "associate_and_clients" else "broker"
@@ -6365,6 +6434,7 @@ class handler(BaseHTTPRequestHandler):
                 "TXR-1501", "TXR-1506", "TXR-1507", "TXR-1508",
                 "TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919", "TXR-1948", "TXR-1953", "TXR-1954",
                 "TREC-62-0",
+                "TREC-38-8",
             )
             agent_private_review_draft_saved_count = len([
                 item for item in events
@@ -7427,6 +7497,10 @@ class handler(BaseHTTPRequestHandler):
                 return
             if data.get("action") == "create_trec_62_0_draft":
                 draft = asyncio.run(_create_trec_62_0_draft(user, data))
+                _json(self, 201, {"status": "ok", "agreement": draft})
+                return
+            if data.get("action") == "create_trec_38_8_draft":
+                draft = asyncio.run(_create_trec_38_8_draft(user, data))
                 _json(self, 201, {"status": "ok", "agreement": draft})
                 return
             if data.get("action") == "create_txr_1914_draft":

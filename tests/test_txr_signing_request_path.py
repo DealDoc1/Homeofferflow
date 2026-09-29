@@ -62,6 +62,7 @@ class TxrSigningRequestPathTests(unittest.TestCase):
             "TXR-1953": {"buyer_names": ["Buyer One"], "seller_names": ["Seller One"]},
             "TXR-1954": {"buyer_names": ["Buyer One"], "seller_names": ["Seller One"]},
             "TREC-62-0": {"buyer_names": ["Buyer One"], "seller_names": ["Seller One"]},
+            "TREC-38-8": {"buyer_names": ["Buyer One"], "seller_names": ["Seller One"]},
         }
         for form_code, data in cases.items():
             fields = MODULE._txr_signwell_fields(form_code, {"client_names": ["Client One"], **data}, 1)
@@ -141,6 +142,26 @@ class TxrSigningRequestPathTests(unittest.TestCase):
         )
         self.assertEqual([row["id"] for row in recipients], ["1", "2"])
         self.assertEqual(MODULE._standalone_signer_labels(agreement), ["Seller 1", "Seller 2"])
+        self.assertIsNone(MODULE._standalone_professional_role(agreement))
+
+    def test_trec_38_8_notice_invites_only_buyers(self):
+        agreement = {
+            "form_code": "TREC-38-8",
+            "client_names": ["Buyer One", "Buyer Two"],
+            "agreement_data": {
+                "buyer_names": ["Buyer One", "Buyer Two"],
+                "seller_names": ["Seller One"],
+                "termination_reasons": ["option_period"],
+            },
+        }
+        recipients = MODULE._txr_signwell_recipients(
+            agreement,
+            ["buyer1@example.com", "buyer2@example.com"],
+            {},
+            {"email": "agent@example.com", "name": "Agent"},
+        )
+        self.assertEqual([row["id"] for row in recipients], ["1", "2"])
+        self.assertEqual(MODULE._standalone_signer_labels(agreement), ["Buyer 1", "Buyer 2"])
         self.assertIsNone(MODULE._standalone_professional_role(agreement))
 
     def test_agent_form_roadmap_matches_the_released_review_and_send_scope(self):
