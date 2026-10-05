@@ -130,8 +130,10 @@ let raw='';process.stdin.on('data',c=>raw+=c);process.stdin.on('end',async()=>{
 });
 """
         import os
+        child_pythonpath = os.pathsep.join(filter(None, [str(ROOT), os.environ.get('PYTHONPATH', '')]))
         result=subprocess.run(['node','-e',script],input=json.dumps(public_offer()),cwd=ROOT,
-                              env={**os.environ,'HOF_TEST_PYTHON':sys.executable},capture_output=True,text=True)
+                              env={**os.environ,'HOF_TEST_PYTHON':sys.executable,
+                                   'PYTHONPATH':child_pythonpath},capture_output=True,text=True)
         self.assertEqual(result.returncode,0,result.stderr)
         data=json.loads(result.stdout)
         self.assertEqual(data['status'],200,data)
