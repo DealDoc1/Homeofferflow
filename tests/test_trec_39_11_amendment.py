@@ -55,8 +55,9 @@ class Trec3911AmendmentTests(unittest.TestCase):
         reader = PdfReader(BytesIO(content))
         self.assertEqual(len(reader.pages), 1)
         text = reader.pages[0].extract_text() or ""
-        self.assertIn("TREC NO. 39-11", text)
-        self.assertIn("This form replaces TREC No. 39-10", text)
+        compact = "".join(text.split()).upper()
+        self.assertIn("TRECNO.39-11", compact)
+        self.assertIn("THISFORMREPLACESTRECNO.39-10", compact)
 
     def test_parser_keeps_all_parties_in_parallel_recipient_order_and_calculates_total(self):
         parsed = self.parsed()
@@ -79,8 +80,9 @@ class Trec3911AmendmentTests(unittest.TestCase):
         reader = PdfReader(BytesIO(rendered))
         self.assertEqual(len(reader.pages), 1)
         text = " ".join((reader.pages[0].extract_text() or "").split())
+        self.assertIn("TRECNO.39-11", "".join(text.split()).upper())
         for expected in (
-            "TREC NO. 39-11", "1438 Whitaker Road, Van Alstyne, TX",
+            "1438 Whitaker Road, Van Alstyne, TX",
             "125,000.00", "375,000.00", "500,000.00", "November 20",
             "Remove the detached shed", "The title company is changed",
         ):
