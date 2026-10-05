@@ -8,6 +8,7 @@ import secrets
 import html
 import base64
 import urllib.parse
+from decimal import Decimal
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from http.server import BaseHTTPRequestHandler
@@ -111,6 +112,7 @@ TREC_55_1_FORM_CODE = "TREC-55-1"
 TREC_61_0_FORM_CODE = "TREC-61-0"
 TREC_62_0_FORM_CODE = "TREC-62-0"
 TREC_38_8_FORM_CODE = "TREC-38-8"
+TREC_39_11_FORM_CODE = "TREC-39-11"
 BROKERAGE_TXR_FORM_CODES = (
     "TXR-1507",
     "TXR-1501",
@@ -129,6 +131,7 @@ BROKERAGE_TXR_FORM_CODES = (
     "TXR-1418",
     "TREC-62-0",
     "TREC-38-8",
+    "TREC-39-11",
 )
 TXR_SIGNING_FORM_CODES = {
     TXR_1501_FORM_CODE,
@@ -144,6 +147,7 @@ TXR_SIGNING_FORM_CODES = {
     TXR_1954_FORM_CODE,
     TREC_62_0_FORM_CODE,
     TREC_38_8_FORM_CODE,
+    TREC_39_11_FORM_CODE,
 }
 # Persisted with the provider document, not shown to recipients.  This makes
 # a completed PDF traceable to the exact reviewed signer geometry when a
@@ -163,6 +167,7 @@ TXR_RENDER_REVISIONS = {
     "TXR-1954": "txr-1954-2026-09-18-neutral-source-v4",
     "TREC-62-0": "trec-62-0-2026-09-22-source-v1",
     "TREC-38-8": "trec-38-8-2026-09-22-source-v1",
+    "TREC-39-11": "trec-39-11-2026-10-05-source-v1",
 }
 
 TXR_SIGNING_MAP_REVISIONS = {
@@ -182,6 +187,7 @@ TXR_SIGNING_MAP_REVISIONS = {
     TXR_1954_FORM_CODE: "txr-1954-2026-09-18-continuation-candidate-v3",
     TREC_62_0_FORM_CODE: "trec-62-0-2026-09-22-seller-execution-v1",
     TREC_38_8_FORM_CODE: "trec-38-8-2026-09-22-buyer-execution-v1",
+    TREC_39_11_FORM_CODE: "trec-39-11-2026-10-05-party-execution-v1",
 }
 # Each core TXR workflow was source-calibrated after prior packets exposed
 # placement risk. Require a newly prepared copy until saved drafts created
@@ -194,6 +200,7 @@ TXR_SIGNING_MAP_REVISION_ENFORCED_FORM_CODES = {
     TXR_1508_FORM_CODE,
     TREC_62_0_FORM_CODE,
     TREC_38_8_FORM_CODE,
+    TREC_39_11_FORM_CODE,
 }
 
 
@@ -222,6 +229,7 @@ TXR_BUYER_SELLER_SIGNING_FORM_CODES = {
     TXR_1948_FORM_CODE,
     TXR_1953_FORM_CODE,
     TXR_1954_FORM_CODE,
+    TREC_39_11_FORM_CODE,
 }
 
 # TREC 62-0 is signed only by Seller. Buyer is named in the notice and then
@@ -2673,6 +2681,119 @@ def _parse_trec_38_8_draft(data):
     }
 
 
+def _parse_trec_39_11_draft(data):
+    """Validate the guided Amendment to Contract without choosing terms for the agent."""
+    if data.get("formCode") != TREC_39_11_FORM_CODE:
+        raise ValueError("Only TREC 39-11 is available through this action.")
+    try:
+        source_id = str(uuid.UUID(_agreement_text(data.get("formSourceId"), "Approved TREC 39-11 source", 80)))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("Choose the available TREC 39-11 source from the HomeOfferFlow library.")
+
+    def names(key, label):
+        values = data.get(key)
+        if not isinstance(values, list) or not (1 <= len(values) <= 2):
+            raise ValueError(f"Add one or two {label} names.")
+        return [_agreement_text(value, f"Each {label} name", 180) for value in values]
+
+    def amendment_date(key, label):
+        raw = str(data.get(key) or "").strip()
+        try:
+            return datetime.strptime(raw, "%Y-%m-%d").strftime("%m/%d/%Y")
+        except ValueError:
+            raise ValueError(f"Enter a valid {label}.")
+
+    buyers = names("buyerNames", "Buyer")
+    sellers = names("sellerNames", "Seller")
+    if len({name.casefold() for name in buyers + sellers}) != len(buyers + sellers):
+        raise ValueError("List each Buyer or Seller only once.")
+
+    allowed_changes = {
+        "sales_price", "repairs", "closing_date", "seller_expense",
+        "settlement_expenses", "lender_repairs", "option_extension",
+        "option_waiver", "buyer_approval_date", "other",
+    }
+    changes = data.get("changes")
+    if not isinstance(changes, list) or not changes:
+        raise ValueError("Choose at least one contract term to amend.")
+    changes = [str(value or "").strip() for value in changes]
+    if len(set(changes)) != len(changes) or any(value not in allowed_changes for value in changes):
+        raise ValueError("Choose each available amendment only once.")
+    if "option_extension" in changes and "option_waiver" in changes:
+        raise ValueError("Choose either an option-period extension or a waiver, not both.")
+
+    agreement = {
+        "property_address": _agreement_text(data.get("propertyAddress"), "Property street address and city", 400),
+        "buyer_names": buyers,
+        "seller_names": sellers,
+        "changes": changes,
+        "amendment_review_acknowledgment": True,
+    }
+    if "sales_price" in changes:
+        cash = _agreement_money(data.get("priceCash"), "Cash portion")
+        financing = _agreement_money(data.get("priceFinancing"), "Financing portion")
+        if not cash or not financing:
+            raise ValueError("Enter the cash and financing portions of the amended sales price.")
+        total = f"{Decimal(cash) + Decimal(financing):.2f}"
+        agreement["sales_price"] = {"cash": cash, "financing": financing, "total": total}
+    if "repairs" in changes:
+        agreement["repairs_text"] = _agreement_text(data.get("repairsText"), "Repairs and treatments", 3000)
+    if "closing_date" in changes:
+        agreement["closing_date"] = amendment_date("closingDate", "closing date")
+    if "seller_expense" in changes:
+        value = _agreement_money(data.get("sellerExpense"), "Seller expense")
+        if not value:
+            raise ValueError("Enter the amended Seller expense amount.")
+        agreement["seller_expense"] = value
+    if "settlement_expenses" in changes:
+        raw = data.get("settlementExpenses")
+        if not isinstance(raw, dict):
+            raise ValueError("Choose the Seller or Buyer settlement expense change.")
+        normalized = {}
+        for party in ("seller", "buyer"):
+            item = raw.get(party) or {}
+            kind = str(item.get("type") or "").strip()
+            if not kind:
+                normalized[party] = {"type": "", "value": ""}
+                continue
+            if kind not in {"amount", "percent"}:
+                raise ValueError(f"Choose a dollar amount or percentage for the {party.title()}.")
+            value = (_agreement_money(item.get("value"), f"{party.title()} settlement expense")
+                     if kind == "amount" else
+                     _agreement_percentage(item.get("value"), f"{party.title()} settlement expense"))
+            if not value:
+                raise ValueError(f"Enter the {party.title()} settlement expense value.")
+            normalized[party] = {"type": kind, "value": value}
+        if not any(item["type"] for item in normalized.values()):
+            raise ValueError("Choose at least one Seller or Buyer settlement expense change.")
+        agreement["settlement_expenses"] = normalized
+    if "lender_repairs" in changes:
+        seller_amount = _agreement_money(data.get("lenderRepairSeller"), "Seller lender-required repairs")
+        buyer_amount = _agreement_money(data.get("lenderRepairBuyer"), "Buyer lender-required repairs")
+        if not seller_amount or not buyer_amount:
+            raise ValueError("Enter both the Seller and Buyer shares of lender-required repairs, including zero when applicable.")
+        agreement["lender_repairs"] = {"seller": seller_amount, "buyer": buyer_amount}
+    if "option_extension" in changes:
+        fee = _agreement_money(data.get("optionFee"), "Additional option fee")
+        if not fee:
+            raise ValueError("Enter the additional option fee.")
+        credited = data.get("optionFeeCredited")
+        if not isinstance(credited, bool):
+            raise ValueError("Choose whether the additional option fee is credited to the sales price.")
+        agreement["option_extension"] = {
+            "fee": fee,
+            "date": amendment_date("optionExtensionDate", "option-period extension date"),
+            "credited": credited,
+        }
+    if "buyer_approval_date" in changes:
+        agreement["buyer_approval_date"] = amendment_date("buyerApprovalDate", "Buyer Approval notice date")
+    if "other" in changes:
+        agreement["other_modifications"] = _agreement_text(data.get("otherModifications"), "Other modifications", 3000)
+    if data.get("amendmentReviewAcknowledgment") is not True:
+        raise ValueError("Confirm the parties selected these amendments and will review the completed form before signing.")
+    return {"form_source_id": source_id, "client_names": buyers + sellers, "agreement_data": agreement}
+
+
 def _parse_txr_1948_draft(data):
     """Validate a private TXR-1948 appraisal-review draft.
 
@@ -3377,6 +3498,10 @@ async def _create_trec_62_0_draft(user, data):
 
 async def _create_trec_38_8_draft(user, data):
     return await _create_representation_draft(user, data, TREC_38_8_FORM_CODE, _parse_trec_38_8_draft)
+
+
+async def _create_trec_39_11_draft(user, data):
+    return await _create_representation_draft(user, data, TREC_39_11_FORM_CODE, _parse_trec_39_11_draft)
 
 
 async def _create_txr_1914_draft(user, data):
@@ -4122,6 +4247,9 @@ async def _render_owned_representation_agreement(user, agreement, *, for_signing
     if agreement.get("form_code") == TREC_38_8_FORM_CODE:
         from lib.trec_38_8 import render_trec_38_8
         return render_trec_38_8(response.content, render_data)
+    if agreement.get("form_code") == TREC_39_11_FORM_CODE:
+        from lib.trec_39_11 import render_trec_39_11
+        return render_trec_39_11(response.content, render_data)
     raise ValueError("Private preview is not available for this form yet.")
 
 
@@ -4191,6 +4319,9 @@ def _txr_signwell_fields(form_code, agreement_data, client_count, *, rendered_pd
     if form_code == TREC_38_8_FORM_CODE:
         from lib.trec_38_8 import build_signwell_fields_trec388
         return build_signwell_fields_trec388(agreement_data, client_count=client_count)
+    if form_code == TREC_39_11_FORM_CODE:
+        from lib.trec_39_11 import build_signwell_fields_trec3911
+        return build_signwell_fields_trec3911(agreement_data, client_count=client_count)
     raise ValueError("This standalone form is not available for signing.")
 
 
@@ -6435,6 +6566,7 @@ class handler(BaseHTTPRequestHandler):
                 "TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919", "TXR-1948", "TXR-1953", "TXR-1954",
                 "TREC-62-0",
                 "TREC-38-8",
+                "TREC-39-11",
             )
             agent_private_review_draft_saved_count = len([
                 item for item in events
@@ -7501,6 +7633,10 @@ class handler(BaseHTTPRequestHandler):
                 return
             if data.get("action") == "create_trec_38_8_draft":
                 draft = asyncio.run(_create_trec_38_8_draft(user, data))
+                _json(self, 201, {"status": "ok", "agreement": draft})
+                return
+            if data.get("action") == "create_trec_39_11_draft":
+                draft = asyncio.run(_create_trec_39_11_draft(user, data))
                 _json(self, 201, {"status": "ok", "agreement": draft})
                 return
             if data.get("action") == "create_txr_1914_draft":

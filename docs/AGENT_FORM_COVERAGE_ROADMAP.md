@@ -15,15 +15,26 @@ implemented and production deployed through PR #1294 and production run
 `35736239061`. Its two-recipient completed SignWell PDF passed visual placement
 review on September 22, 2026.
 
-TREC-38-8 Buyer's Notice of Termination is the next transaction follow-up
-release candidate. Its short interview identifies the parties and property,
-requires the agent to select one or more actual contract/addendum provisions,
-and prepares Buyer-only parallel signature invitations. Seller names appear on
-the notice but Sellers and the agent are not signing recipients. The workflow
-is available to every signed-in agent without a brokerage-seat requirement.
-Its two-recipient completed SignWell PDF passed visual placement review on
-September 29, 2026; CI, merge, intentional production deployment, and
-canonical-domain verification remain the release execution steps.
+TREC-38-8 Buyer's Notice of Termination is production deployed through PR
+#1295 at `a8e71093c6770887d1e9dc67852658ac190b11c3`. Its short interview
+identifies the parties and property, requires the agent to select one or more
+actual contract/addendum provisions, and prepares Buyer-only parallel
+signature invitations. Seller names appear on the notice but Sellers and the
+agent are not signing recipients. The workflow is available to every
+signed-in agent without a brokerage-seat requirement. Its two-recipient
+completed SignWell PDF passed visual placement review on September 29, 2026,
+and production deployment run `36595055940` passed.
+
+TREC-39-11 Amendment to Contract is the current transaction follow-up release
+candidate. Its concise interview exposes only the contract terms the agent
+selects, calculates an amended sales-price total, preserves exact entered
+terms on the official source and lossless continuation pages, and prepares
+parallel invitations for one or two Buyers and one or two Sellers. The agent
+and broker are not signing recipients, and the broker's final-acceptance blank
+remains empty. The current official revision is dated May 4, 2026 and became
+effective July 1, 2026. Implementation, focused tests, and local PDF placement
+review are in progress; completed-provider QA and production release are not
+yet complete. See [TREC 39-11 release evidence](release-evidence/trec-39-11-amendment-2026-10-05.md).
 
 ## Local continuation status - September 18, 2026
 

@@ -36,7 +36,7 @@ workflows that matter for an agent launch:
 | Buyer relationship | TXR-1501, TXR-1507, TXR-1508, TXR-1506 | These supplied exact PDFs are source-vaulted and available through separate guided review-and-send workflows. |
 | Leasing | TXR-2001 Residential Lease; TXR-2003 Residential Lease Application; TXR-2011 Multi-Family Lease; TXR-1910 Seller's Temporary Residential Lease; TXR-1911 Buyer's Temporary Residential Lease | The temporary-lease execution path is live for the supported purchase scenario. Full landlord/tenant leasing needs its own workflow and signer plan. |
 | Agent disclosures and notices | TXR-2501 IABS 1-2; TXR-1409 Intermediary Relationship Notice; TXR-1417 Representation Disclosure; TXR-1504 Notice from Buyer's Agent to Seller | IABS remains an agent-owned profile document with optional packet inclusion. The other notices require separate source, role, and delivery rules. |
-| Transaction follow-up | TXR-1503 Termination; TXR-1505 Amendment; TXR-1903 Amendment of Contract; TXR-1902 Notice of Buyer's Termination; TXR-1958 Critical Date List; TREC-62-0 Seller Notice of Removal of Backup-Contract Contingency; TREC-38-8 Buyer's Notice of Termination of Contract | Build each remaining form with its own data model and regression scenario. TREC-62-0 is production deployed as a Seller-only review-and-send workflow. TREC-38-8 is the current Buyer-only production release candidate; its completed two-Buyer SignWell placement QA passed September 29, 2026. |
+| Transaction follow-up | TXR-1503 Termination; TXR-1505 Amendment; TXR-1903 Amendment of Contract; TXR-1902 Notice of Buyer's Termination; TXR-1958 Critical Date List; TREC-62-0 Seller Notice of Removal of Backup-Contract Contingency; TREC-38-8 Buyer's Notice of Termination of Contract; TREC-39-11 Amendment to Contract | Build each remaining form with its own data model and regression scenario. TREC-62-0 and TREC-38-8 are production deployed as role-specific review-and-send workflows. TREC-39-11 is the current Buyer-and-Seller release candidate with parallel invitations and no brokerage-seat requirement. |
 
 The inventory also confirms specialized addenda such as seller financing,
 loan assumption, residential/fixture leases, hydrostatic testing, minerals,
@@ -80,6 +80,7 @@ release approval.
 | Seller temporary possession | Production: TREC 15-7 Seller Temporary Residential Lease, with buyer/landlord and seller/tenant execution routing and completed-signature visual QA |
 | IABS | Agent-owned, private profile PDF; optional per-packet attachment, never automatic |
 | Seller/listing documents | TREC-55-1/TREC-61-0 seller disclosure interview, seller review, signature sending, status refresh, and completed-PDF download are available to signed-in agents; listing agreements remain outside the live scope |
+| Transaction follow-up | TREC-62-0 Seller Notice of Removal of Backup-Contract Contingency and TREC-38-8 Buyer's Notice of Termination are production deployed; TREC-39-11 Amendment to Contract is the current release candidate |
 
 ## Recommended release order
 
