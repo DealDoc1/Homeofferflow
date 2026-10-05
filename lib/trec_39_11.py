@@ -65,7 +65,7 @@ def answer_layout(data):
     if "repairs" in changes:
         answers.put(
             data.get("repairs_text"),
-            [(196, 574, 362), (69, 562, 487), (69, 550, 487), (69, 539, 487)],
+            [(69, 562, 487), (69, 550, 487), (69, 539, 487)],
             "Repairs and treatments",
             size=8,
         )

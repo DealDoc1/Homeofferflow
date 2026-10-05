@@ -73,9 +73,15 @@ class Trec3911AmendmentTests(unittest.TestCase):
             ADMIN._parse_trec_39_11_draft(payload)
 
     def test_renderer_populates_selected_terms_and_preserves_source(self):
-        from lib.trec_39_11 import render_trec_39_11
+        from lib.trec_39_11 import answer_layout, render_trec_39_11
 
         data = self.parsed()["agreement_data"]
+        repair_entries = [
+            entry for entry in answer_layout(data).pages[1]
+            if "Remove the detached shed" in entry[2]
+        ]
+        self.assertTrue(repair_entries)
+        self.assertTrue(all(entry[0] == 69 and entry[1] <= 562 for entry in repair_entries))
         rendered = render_trec_39_11(SOURCE.read_bytes(), data)
         reader = PdfReader(BytesIO(rendered))
         self.assertEqual(len(reader.pages), 1)
