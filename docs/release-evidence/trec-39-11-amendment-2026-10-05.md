@@ -59,7 +59,9 @@ tree is not deployed.
   financing. Option extension disables waiver; clearing it re-enables waiver;
   selecting waiver disables extension.
 - Completed SignWell test-mode PDF visual review: pending.
-- Full repository regression suite: pending.
+- Full repository regression suite: 2,463 tests passed in 78.531 seconds using
+  the documented release environment.
+- Supabase branch preflight: passed with 115 unique, ordered migrations.
 - PR, CI, merge, migration, secure source activation, intentional production
   deployment, and canonical-domain verification: pending.
 
