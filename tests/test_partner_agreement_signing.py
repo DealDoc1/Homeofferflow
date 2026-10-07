@@ -18,7 +18,7 @@ class PartnerAgreementSigningTests(unittest.TestCase):
         self.assertIn("hof_partner_leads_partner_agreement_document_id_key", source)
 
     def test_beta_program_is_explicit_and_does_not_rewrite_payment_status(self):
-        source = (ROOT / "supabase/migrations/20261007214500_partner_program_type.sql").read_text()
+        source = (ROOT / "supabase/migrations/20261007215152_partner_program_type.sql").read_text()
         self.assertIn("partner_program text not null default 'commercial'", source)
         self.assertIn("('commercial', 'beta')", source)
         admin = ADMIN.read_text(encoding="utf-8")
@@ -77,7 +77,8 @@ class PartnerAgreementSigningTests(unittest.TestCase):
             "partner_program": "beta",
             "payment_status": "not_started",
         })
-        content = " ".join((page.extract_text() or "") for page in PdfReader(BytesIO(pdf)).pages)
+        import re
+        content = re.sub(r"\s+", " ", " ".join((page.extract_text() or "") for page in PdfReader(BytesIO(pdf)).pages))
         self.assertIn("no-charge beta marketplace placement", content)
         self.assertIn("no payment method or recurring charge is authorized", content)
         self.assertIn("does not automatically convert to a paid placement", content)

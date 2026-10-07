@@ -395,7 +395,7 @@ class AdminTrackerSecurityTests(IsolatedAsyncioTestCase):
             "status": "qualified",
         }
         with patch.object(admin_dashboard, "_get", new=AsyncMock(return_value=[lead])):
-            with self.assertRaisesRegex(PermissionError, "paid partner application"):
+            with self.assertRaisesRegex(PermissionError, "paid partner or no-charge beta partner"):
                 await admin_dashboard._create_platform_partner_placement({
                     "source_lead_id": lead["id"],
                     "placement_tier": "founding",
