@@ -17,6 +17,15 @@ class PartnerAgreementSigningTests(unittest.TestCase):
         self.assertIn("partner_agreement_signed_at", source)
         self.assertIn("hof_partner_leads_partner_agreement_document_id_key", source)
 
+    def test_beta_program_is_explicit_and_does_not_rewrite_payment_status(self):
+        source = (ROOT / "supabase/migrations/20261007214500_partner_program_type.sql").read_text()
+        self.assertIn("partner_program text not null default 'commercial'", source)
+        self.assertIn("('commercial', 'beta')", source)
+        admin = ADMIN.read_text(encoding="utf-8")
+        self.assertIn('"partner_program": "beta"', admin)
+        self.assertIn('"payment_status": "not_started"', admin)
+        self.assertIn("no automatic conversion to a paid plan", admin)
+
     def test_admin_sender_requires_paid_completed_onboarding_and_copies_support(self):
         source = ADMIN.read_text(encoding="utf-8")
         self.assertIn("async def _send_partner_agreement_for_signature", source)
@@ -52,6 +61,27 @@ class PartnerAgreementSigningTests(unittest.TestCase):
         })
         self.assertTrue(pdf.startswith(b"%PDF"))
         self.assertGreater(len(pdf), 2000)
+
+    def test_beta_agreement_is_explicitly_free_and_never_authorizes_auto_billing(self):
+        from pypdf import PdfReader
+        from io import BytesIO
+        spec = importlib.util.spec_from_file_location("partner_agreement_admin", ADMIN)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        pdf = module._partner_agreement_pdf({
+            "company_name": "Integrity First Roofing & Construction",
+            "contact_name": "Tedd Hansen",
+            "partner_type": "roofing",
+            "market_area": "Frisco / North Texas",
+            "preferred_model": "discuss",
+            "partner_program": "beta",
+            "payment_status": "not_started",
+        })
+        content = " ".join((page.extract_text() or "") for page in PdfReader(BytesIO(pdf)).pages)
+        self.assertIn("no-charge beta marketplace placement", content)
+        self.assertIn("no payment method or recurring charge is authorized", content)
+        self.assertIn("does not automatically convert to a paid placement", content)
+        self.assertNotIn("authorizes the recurring Stripe charges", content)
 
 
 if __name__ == "__main__":

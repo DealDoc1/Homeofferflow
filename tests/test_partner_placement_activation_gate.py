@@ -20,7 +20,7 @@ class PartnerPlacementActivationGateTests(unittest.TestCase):
         self.assertIn("lower(btrim(market_area))", exclusivity)
 
     def test_server_derives_public_placement_from_paid_application(self):
-        self.assertIn("Only a paid partner application can activate a public placement.", ADMIN)
+        self.assertIn("Only a paid partner or no-charge beta partner can activate a public placement.", ADMIN)
         self.assertIn("Complete the secure partner onboarding before activating a public placement.", ADMIN)
         self.assertIn("A completed HomeOfferFlow Partner Marketplace Agreement is required", ADMIN)
         self.assertIn("This paid partner application already has an active placement.", ADMIN)
@@ -37,7 +37,9 @@ class PartnerPlacementActivationGateTests(unittest.TestCase):
         self.assertIn("const agreementSendAvailable = String(readiness.code || '') === 'agreement_ready_to_send';", HTML)
         self.assertIn("Agreement signing is awaiting final Texas counsel approval.", HTML)
         self.assertIn("support@homeofferflow.com", HTML)
-        self.assertIn("No fully onboarded paid applications", HTML)
+        self.assertIn("No fully onboarded eligible applications", HTML)
+        self.assertIn("Invite a beta partner", HTML)
+        self.assertIn("This invitation is free during beta", HTML)
         self.assertIn("readinessLabel", HTML)
 
     def test_admin_defaults_placement_tier_and_fee_from_paid_selection(self):

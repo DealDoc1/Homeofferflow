@@ -1146,7 +1146,7 @@ def _create_partner_logo_upload(token, data):
 def _get_partner_onboarding(token):
     if not ONBOARDING_TOKEN_RE.match(token or ""):
         raise ValueError("This onboarding link is invalid.")
-    query = urlencode({"onboarding_token_hash": f"eq.{_onboarding_token_hash(token)}", "select": "id,company_name,partner_type,market_area,preferred_model,payment_status,status,onboarding_token_expires_at,onboarding_website_url,onboarding_logo_url,onboarding_cta_label,onboarding_market_area", "limit": "1"})
+    query = urlencode({"onboarding_token_hash": f"eq.{_onboarding_token_hash(token)}", "select": "id,company_name,contact_name,contact_email,partner_type,market_area,preferred_model,payment_status,partner_program,status,onboarding_token_expires_at,onboarding_website_url,onboarding_logo_url,onboarding_cta_label,onboarding_market_area,partner_agreement_status", "limit": "1"})
     headers = {"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}"}
     with httpx.Client(timeout=12) as client:
         response = client.get(f"{SUPABASE_URL}/rest/v1/hof_partner_leads?{query}", headers=headers)
@@ -1154,7 +1154,8 @@ def _get_partner_onboarding(token):
         raise RuntimeError("Could not load partner onboarding.")
     rows = response.json() if response.text else []
     lead = rows[0] if isinstance(rows, list) and rows else None
-    if not lead or str(lead.get("payment_status") or "") != "paid" or str(lead.get("status") or "") in {"declined", "waitlist"}:
+    eligible_program = str((lead or {}).get("partner_program") or "commercial").lower() == "beta" or str((lead or {}).get("payment_status") or "") == "paid"
+    if not lead or not eligible_program or str(lead.get("status") or "") in {"declined", "waitlist"}:
         raise LookupError("This onboarding link is unavailable.")
     try:
         expires_at = datetime.fromisoformat(str(lead["onboarding_token_expires_at"]).replace("Z", "+00:00"))
@@ -1171,7 +1172,7 @@ def _public_partner_onboarding(lead):
 
 
 def _dispatch_partner_agreement_after_onboarding(lead):
-    """Send exactly one commercial agreement after paid onboarding completes.
+    """Send exactly one appropriate agreement after onboarding completes.
 
     Onboarding is never rolled back if SignWell is temporarily unavailable: the
     paid partner remains in the existing admin queue for a retry.  A successful
@@ -1180,7 +1181,7 @@ def _dispatch_partner_agreement_after_onboarding(lead):
     """
     if not PARTNER_AGREEMENT_SIGNING_ENABLED or not SIGNWELL_ENABLED or not SIGNWELL_API_KEY:
         return {"state": "not_enabled"}
-    if str(lead.get("payment_status") or "").lower() != "paid":
+    if str(lead.get("partner_program") or "commercial").lower() != "beta" and str(lead.get("payment_status") or "").lower() != "paid":
         return {"state": "not_paid"}
     if str(lead.get("partner_agreement_status") or "not_started").lower() in {"sent", "signed"}:
         return {"state": "already_dispatched"}
