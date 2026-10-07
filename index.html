@@ -4744,36 +4744,38 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const email = String(row?.contact_email || '').trim();
     if (!email) return '';
     const paid = String(row?.payment_status || '') === 'paid';
+    const beta = String(row?.partner_program || '') === 'beta';
+    const eligible = paid || beta;
     const onboarding = String(row?.onboarding_status || 'not_started');
     const readiness = row?.activation_readiness || {};
     const setupComplete = ['complete', 'completed'].includes(onboarding);
-    const activationStage = paid && readiness.partner_message
+    const activationStage = eligible && readiness.partner_message
       ? String(readiness.partner_message)
-      : paid && onboarding === 'not_started'
+      : eligible && onboarding === 'not_started'
       ? 'confirm category, market, logo, and written placement terms'
-      : paid && onboarding === 'ready'
+      : eligible && onboarding === 'ready'
       ? 'complete the partner onboarding details and confirm the launch window'
-      : paid && onboarding === 'in_progress'
+      : eligible && onboarding === 'in_progress'
       ? 'finish the remaining onboarding details so the placement can go live'
-      : paid
+      : eligible
       ? 'review the next placement activation step'
       : 'review category, market, tier, and next steps';
-    const subject = paid
-      ? `HomeOfferFlow partner onboarding next step: ${onboarding.replace(/_/g, ' ')}`
+    const subject = eligible
+      ? `HomeOfferFlow ${beta ? 'beta ' : ''}partner onboarding next step: ${onboarding.replace(/_/g, ' ')}`
       : 'HomeOfferFlow founding partner application';
-    const body = paid
-      ? `Thanks for partnering with HomeOfferFlow. Let’s ${activationStage}: https://homeofferflow.com/?partner=1`
+    const body = eligible
+      ? `Thanks for partnering with HomeOfferFlow. ${beta ? 'Your placement is free during beta, with no payment method or automatic paid conversion. ' : ''}Let’s ${activationStage}: https://homeofferflow.com/?partner=1`
       : `Following up on your HomeOfferFlow partner application. We can ${activationStage}: https://homeofferflow.com/?partner=1`;
-    const eventMetadata = adminEventMetadata({ paid, onboarding, activationStage, surface: 'admin' });
+    const eventMetadata = adminEventMetadata({ paid, beta, onboarding, activationStage, surface: 'admin' });
     const accessMissing = String(readiness.code || '') === 'setup_access_missing';
     const emailSetupLabel = accessMissing ? 'Restore setup access' : 'Email setup link';
-    const onboardingButton = paid && !setupComplete ? ` <button type="button" class="admin-contact-action" onclick="copyPartnerOnboardingLink('${adminSafe(row.id, '')}')">Copy setup link</button><button type="button" class="admin-contact-action" onclick="copyPartnerOnboardingInvitation('${adminSafe(row.id, '')}')">Copy setup invitation</button><button type="button" class="admin-contact-action" onclick="emailPartnerOnboardingLink('${adminSafe(row.id, '')}')">${emailSetupLabel}</button>` : '';
+    const onboardingButton = eligible && !setupComplete ? ` <button type="button" class="admin-contact-action" onclick="copyPartnerOnboardingLink('${adminSafe(row.id, '')}')">Copy setup link</button><button type="button" class="admin-contact-action" onclick="copyPartnerOnboardingInvitation('${adminSafe(row.id, '')}')">Copy setup invitation</button><button type="button" class="admin-contact-action" onclick="emailPartnerOnboardingLink('${adminSafe(row.id, '')}')">${emailSetupLabel}</button>` : '';
     const agreementStatus = String(row?.partner_agreement_status || 'not_started').toLowerCase();
     const agreementSendAvailable = String(readiness.code || '') === 'agreement_ready_to_send';
-    const agreementButton = paid && agreementSendAvailable && ['complete', 'completed'].includes(onboarding) && !['signed', 'sent'].includes(agreementStatus)
+    const agreementButton = eligible && agreementSendAvailable && ['complete', 'completed'].includes(onboarding) && !['signed', 'sent'].includes(agreementStatus)
       ? ` <button type="button" class="admin-contact-action" onclick="sendPartnerAgreementForSignature('${adminSafe(row.id, '')}')">Send agreement to SignWell</button>`
       : '';
-    const agreementPendingNote = paid && setupComplete && String(readiness.code || '') === 'agreement_review_pending'
+    const agreementPendingNote = eligible && setupComplete && String(readiness.code || '') === 'agreement_review_pending'
       ? ' <span class="admin-muted">Agreement signing is awaiting final Texas counsel approval.</span>'
       : '';
     const checkoutButton = !paid && String(row?.payment_status || '') === 'checkout_started'
@@ -15797,24 +15799,36 @@ function routeAfterMagicLinkIfNeeded() {
     el.innerHTML = `
       <div class="platform-card">
         <h4>HomeOfferFlow Partner Marketplace</h4>
-        <p>Platform-wide advertising inventory only. These placements belong to HomeOfferFlow, never to an agent or brokerage. Paid placement modules stay separate from the neutral provider selector and are never preselected.</p>
+        <p>Platform-wide partner listings belong to HomeOfferFlow, never to an agent or brokerage. Paid placements stay separate from the neutral provider selector and are never preselected; no-charge beta listings are managed separately from paid billing.</p>
         <div class="platform-kpi-row">
           <div class="platform-kpi"><span>Core Partner</span><strong>$149</strong></div>
           <div class="platform-kpi"><span>Featured Partner</span><strong>$399</strong></div>
           <div class="platform-kpi"><span>Premier Partner</span><strong>$799</strong></div>
         </div>
-        <div class="notice gold">The launch price covers the first 90 days for one category and market; the selected tier then renews at its listed monthly fee. Premier Partner is limited to one active paid placement position per category and market, but it never creates required selection or referral rights.</div>
+        <div class="notice gold">The launch price covers the first 90 days for paid tiers; the selected tier then renews only under its signed order terms. Beta listings remain free with no automatic paid conversion. Premier Partner is limited to one active paid placement position per category and market, but it never creates required selection or referral rights.</div>
       </div>
       ${campaignToolkit}
       <div class="partner-create-card">
+        <h4 style="color:var(--gold-light); font-size:0.86rem; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.75rem;">Invite a beta partner</h4>
+        <p>This invitation is free during beta. No payment method is collected or charged, and it will not convert to a paid placement automatically.</p>
+        <div class="platform-grid">
+          <div class="field"><label for="partnerBetaCompany">Business name</label><input id="partnerBetaCompany" maxlength="250" placeholder="Business name"></div>
+          <div class="field"><label for="partnerBetaContact">Contact name</label><input id="partnerBetaContact" maxlength="250" placeholder="Contact name"></div>
+          <div class="field"><label for="partnerBetaEmail">Contact email</label><input id="partnerBetaEmail" type="email" maxlength="254" placeholder="name@business.com"></div>
+          <div class="field"><label for="partnerBetaWebsite">Website (optional)</label><input id="partnerBetaWebsite" type="url" maxlength="500" placeholder="https://example.com"></div>
+        </div>
+        <div class="platform-actions"><button type="button" onclick="createPartnerBetaInvitation()">Send no-charge beta setup invite</button></div>
+        <div id="partnerBetaInviteStatus" class="platform-status" role="status" aria-live="polite"></div>
+      </div>
+      <div class="partner-create-card">
         <h4 style="color:var(--gold-light); font-size:0.86rem; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.75rem;">Create Partner Placement</h4>
         <div class="platform-grid">
-          <div class="field"><label>Paid partner application</label><select id="partnerLeadId" disabled onchange="applyPartnerPlacementDefaultsFromLead()"><option value="">Loading paid applications…</option></select></div>
+          <div class="field"><label>Eligible partner application</label><select id="partnerLeadId" disabled onchange="applyPartnerPlacementDefaultsFromLead()"><option value="">Loading eligible applications…</option></select></div>
           <div class="field"><label>Placement Tier</label><select id="partnerTier"><option value="founding">Core Partner · $149 / first 90 days</option><option value="premier">Featured Partner · $399 / first 90 days</option><option value="exclusive_market">Premier Partner · $799 / first 90 days</option></select></div>
           <div class="field"><label>Monthly fee after 90 days</label><input id="partnerMonthlyFee" type="number" placeholder="149"></div>
         </div>
-        <div class="notice gold" style="margin-top:.85rem;">A completed HomeOfferFlow Partner Marketplace Agreement is required before activation. Send it from the paid-partner activation queue; SignWell copies each completed PDF to support@homeofferflow.com.</div>
-        <div class="notice gold" style="margin-top:.7rem;">Only paid partners with completed secure onboarding appear here. Public placement details are derived from the paid application so company, category, and market cannot be mismatched. Paid placements remain separate from neutral provider selection.</div>
+        <div class="notice gold" style="margin-top:.85rem;">A completed HomeOfferFlow Partner Marketplace Agreement is required before activation. SignWell copies each completed PDF to support@homeofferflow.com.</div>
+        <div class="notice gold" style="margin-top:.7rem;">Paid partners and signed no-charge beta partners with completed secure onboarding appear here. Public placement details come from the partner application so company, category, and market cannot be mismatched.</div>
         <div class="platform-actions"><button type="button" onclick="savePartnerPlacementFoundation()">Save Partner Placement</button><button type="button" onclick="loadPartnerPlacementsFoundation()">Refresh Partners</button></div>
         <div id="partnerFoundationStatus" class="platform-status"></div>
       </div>
@@ -15824,6 +15838,49 @@ function routeAfterMagicLinkIfNeeded() {
 
   const partnerCampaignCategories = new Set(['title','lender','inspection','surveyor','home_warranty','insurance','roofing','hvac','plumbing','electrical','foundation_structural','general_contractor','pest_termite','septic_well','restoration','repairs_handyman','photography_video','staging','cleaning','moving_storage','lawn_pool','security_smart_home','other']);
   const partnerCampaignTiers = new Set(['founding_pilot','monthly_placement','market_exclusive']);
+
+  async function createPartnerBetaInvitation() {
+    const status = document.getElementById('partnerBetaInviteStatus');
+    const button = document.querySelector('button[onclick="createPartnerBetaInvitation()"]');
+    if (!hofAuth?.session?.access_token || !status) return;
+    const value = id => String(document.getElementById(id)?.value || '').trim();
+    const payload = {
+      action: 'create_partner_beta_invitation',
+      company_name: value('partnerBetaCompany'),
+      contact_name: value('partnerBetaContact'),
+      contact_email: value('partnerBetaEmail'),
+      website_url: value('partnerBetaWebsite')
+    };
+    if (!payload.company_name || !payload.contact_name || !payload.contact_email) {
+      status.textContent = 'Add the business name, contact name, and contact email.';
+      status.className = 'platform-status err';
+      return;
+    }
+    if (button) { button.disabled = true; button.setAttribute('aria-busy', 'true'); }
+    status.textContent = 'Sending the no-charge beta setup invitation…';
+    status.className = 'platform-status';
+    try {
+      const response = await fetch('/api/admin-dashboard', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${hofAuth.session.access_token}`},
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json().catch(() => ({}));
+      const invitation = result?.partnerBetaInvitation;
+      if (!response.ok || invitation?.program !== 'beta' || invitation?.paymentStatus !== 'not_started' || invitation?.onboarding?.delivery !== 'sent') {
+        throw new Error(result.error || 'Could not send the beta invitation.');
+      }
+      status.textContent = `No-charge beta setup invitation sent to ${invitation.contactEmail}. No payment was taken or scheduled.`;
+      status.className = 'platform-status ok';
+      ['partnerBetaCompany', 'partnerBetaContact', 'partnerBetaEmail', 'partnerBetaWebsite'].forEach(id => { const field = document.getElementById(id); if (field) field.value = ''; });
+      await loadAdminDashboard(true);
+    } catch (error) {
+      status.textContent = error?.message || 'Could not send the beta invitation.';
+      status.className = 'platform-status err';
+    } finally {
+      if (button) { button.disabled = false; button.setAttribute('aria-busy', 'false'); }
+    }
+  }
   // These are the deliberate campaign sources created by the partner
   // workspace, plus the public paths that can continue into this same
   // private application. Keep them aligned with the aggregate-event
@@ -16006,19 +16063,20 @@ function routeAfterMagicLinkIfNeeded() {
   function populatePaidPartnerPlacementLeads(leads) {
     const select = document.getElementById('partnerLeadId');
     if (!select) return;
-    const paid = (leads || []).filter(lead =>
-      String(lead?.payment_status || '') === 'paid'
+    const eligible = (leads || []).filter(lead =>
+      (String(lead?.payment_status || '') === 'paid' || String(lead?.partner_program || '') === 'beta')
       && ['complete', 'completed'].includes(String(lead?.onboarding_status || '').toLowerCase())
       && String(lead?.partner_agreement_status || '').toLowerCase() === 'signed'
       && !['declined', 'waitlist'].includes(String(lead?.status || ''))
     );
-    select.disabled = !paid.length;
-    select.innerHTML = paid.length
-      ? '<option value="">Choose a paid application…</option>' + paid.map(lead => {
-          const defaults = partnerPlacementDefaults(lead?.preferred_model);
+    select.disabled = !eligible.length;
+    select.innerHTML = eligible.length
+      ? '<option value="">Choose a partner application…</option>' + eligible.map(lead => {
+          const isBeta = String(lead?.partner_program || '') === 'beta';
+          const defaults = isBeta ? {tier: 'founding', fee: 0, label: 'No-charge beta'} : partnerPlacementDefaults(lead?.preferred_model);
           return '<option value="' + escapeAttr(lead.id || '') + '" data-placement-tier="' + defaults.tier + '" data-monthly-fee="' + defaults.fee + '">' + escapeAttr(lead.company_name || 'Partner') + ' · ' + escapeAttr(lead.partner_type || 'other') + ' · ' + escapeAttr(lead.market_area || 'market') + ' · ' + defaults.label + '</option>';
         }).join('')
-      : '<option value="">No fully onboarded paid applications</option>';
+      : '<option value="">No fully onboarded eligible applications</option>';
   }
 
   function partnerPlacementDefaults(preferredModel) {
@@ -16037,7 +16095,7 @@ function routeAfterMagicLinkIfNeeded() {
     const tierInput = document.getElementById('partnerTier');
     const feeInput = document.getElementById('partnerMonthlyFee');
     if (tierInput && option.dataset.placementTier) tierInput.value = option.dataset.placementTier;
-    if (feeInput && option.dataset.monthlyFee) feeInput.value = option.dataset.monthlyFee;
+      if (feeInput && option.dataset.monthlyFee !== undefined) feeInput.value = option.dataset.monthlyFee;
   }
 
   function estimateOfferScoreFromCurrentState() {

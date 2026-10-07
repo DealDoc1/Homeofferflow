@@ -224,7 +224,7 @@ class PartnerTierUiTests(unittest.TestCase):
     def test_admin_partner_leads_have_privacy_limited_follow_up_action(self):
         self.assertIn("partnerLeadFollowUpAction", self.html)
         self.assertIn("Email partner", self.html)
-        self.assertIn("HomeOfferFlow partner onboarding next step", self.html)
+        self.assertIn("partner onboarding next step:", self.html)
         self.assertIn("contact_email", self.html)
 
     def test_homepage_audience_grid_links_to_partner_offer(self):
