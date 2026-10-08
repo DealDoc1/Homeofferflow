@@ -566,19 +566,10 @@ def validate_supported_offer(offer):
         "leadBasedPaintAttached", "attachLeadBasedPaintAddendum",
         "sellerLeadDisclosureAttached", "leadDisclosureAttached",
     ))
-    if lead_answer in {"unknown", "not sure", "unsure"}:
-        blocked.append("confirm whether the home was built before 1978")
-    if verified.lead_required_from_offer(offer):
-        if str(offer.get("leadDisclosureStatus") or "").strip().lower() != "received":
-            blocked.append("completed lead-based paint disclosure from the listing side")
-        if not lead_upload:
-            blocked.append("uploaded lead-based paint disclosure PDF")
-    if legacy_generated_lead and not lead_upload:
-        blocked.append("uploaded lead-based paint disclosure PDF instead of a generated blank form")
-    if lead_upload:
-        # The source contract's Paragraph 22 checkbox reflects the uploaded
-        # disclosure. verified_20_19 detects the upload and will not append a
-        # second generated blank form.
+    if verified.lead_disclosure_should_attach(offer) or lead_upload or legacy_generated_lead:
+        # The authorized TREC 56-0 source is appended when the completed seller
+        # disclosure is not already available; missing paperwork never blocks
+        # packet generation. Paragraph 22 reflects the included form.
         offer["leadBasedPaintAttached"] = "yes"
 
     if blocked:

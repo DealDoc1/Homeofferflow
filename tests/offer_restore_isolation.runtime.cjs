@@ -144,6 +144,10 @@ test('reuse terms clears prior DOM contacts and restores only allowed deal choic
 function enableConditionalRestore(x) {
   x.ctx.updateUnrepresentedConcessionTip=()=>{};
   x.ctx.updateAppraisalAddendumVisibility=()=>{};
+  x.ctx.updateAssumptionVisibility=()=>{};
+  x.ctx.updateSellerFinancingVisibility=()=>{};
+  x.ctx.updateParagraph4LeaseVisibility=()=>{};
+  x.ctx.updateHoaFollowUpVisibility=()=>{};
   vm.runInContext(source('  function restoreConditionalSections()', '  function clearSavedDraft()'),x.ctx);
 }
 const visibilityCases=[
@@ -172,7 +176,7 @@ for(const [group,value,id,expected] of visibilityCases) {
     assert.equal(x.get(id).style.display,expected);
     assert.equal(x.get('nonRealtyAmount').value,'0');assert.equal(x.get('nonRealtyDescription').value,'Kitchen refrigerator');
     assert.equal(x.get('brokerFeeAmount').value,'4500');assert.equal(x.get('brokerFeePercent').value,'2.5');
-    assert.equal(x.ctx.getRadio('leadDisclosureStatus'),'received');
+    assert.equal(x.ctx.getRadio('leadBuiltBefore1978'),group==='leadBuiltBefore1978'?value:'');
   });
 }
 for(const role of ['homebuyer','investor','agent']) {

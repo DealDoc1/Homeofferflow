@@ -415,7 +415,6 @@ class ControlledLaunchTests(unittest.TestCase):
             minimal_offer(hydrostaticTesting="yes"),
             minimal_offer(environmentalAssessment="yes"),
             minimal_offer(mineralReservation="yes"),
-            minimal_offer(leadBasedPaintAttached="yes"),
         ]
         for offer in blocked_offers:
             with self.subTest(offer=offer):

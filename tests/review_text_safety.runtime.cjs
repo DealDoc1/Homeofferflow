@@ -151,20 +151,23 @@ test('a cash-only packet shows its contract without irrelevant addenda',()=>{
   assert.deepEqual(packageTags(x),['✓ TREC 1–4 Family Residential Contract']);
   assert.doesNotMatch(x.nodes.reviewSummary.innerHTML,/addendum-tag na|Lead-Based Paint — flag/);
 });
-test('district and lead reminders cannot claim a document is attached',()=>{
+test('lead disclosure is visibly included without requiring an already completed seller copy',()=>{
   for(const choice of ['yes','unknown']){
     const x=setup({mud:choice,leadBuiltBefore1978:choice,leadDisclosureStatus:'received'});x.buildReview();
-    assert.deepEqual(packageTags(x),['✓ TREC 1–4 Family Residential Contract']);
+    assert.deepEqual(packageTags(x),['✓ TREC 1–4 Family Residential Contract','✓ TREC 56-0 Lead-Based Paint Addendum']);
     assert.match(x.nodes.reviewSummary.innerHTML,/MUD \/ PID notices/);
     assert.match(x.nodes.reviewSummary.innerHTML,/Upload notices to include them in this package/);
-    assert.match(x.nodes.reviewSummary.innerHTML,/Required before sending/);
+    assert.match(x.nodes.reviewSummary.innerHTML,/Blank TREC Form 56-0 included for completion/);
     assert.doesNotMatch(x.nodes.reviewSummary.innerHTML,/Buyer has received it/);
   }
+  const newer=setup({mud:'no',leadBuiltBefore1978:'no'});newer.buildReview();
+  assert.deepEqual(packageTags(newer),['✓ TREC 1–4 Family Residential Contract']);
   assert.doesNotMatch(html,/I'm not sure — include disclosure to be safe/);
+  assert.doesNotMatch(html,/Required before sending/);
 });
 test('an uploaded notice appears as an upload, not as an automatically generated disclosure',()=>{
   const x=setup({mud:'yes',leadBuiltBefore1978:'yes'},[{name:'Provided district notice.pdf',base64:'JVBERg=='}]);x.buildReview();
-  assert.deepEqual(packageTags(x),['✓ TREC 1–4 Family Residential Contract','✓ Uploaded documents']);
+  assert.deepEqual(packageTags(x),['✓ TREC 1–4 Family Residential Contract','✓ TREC 56-0 Lead-Based Paint Addendum','✓ Uploaded documents']);
   assert.match(x.nodes.reviewSummary.innerHTML,/Provided district notice.pdf/);
 });
 test('appraisal eligibility matches current packet financing choices and drops stale selections',()=>{
