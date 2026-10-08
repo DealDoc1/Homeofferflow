@@ -146,13 +146,14 @@
     let activeField = specs[0]?.[0] || 'buyer1_signature';
     let pdf = null;
     let currentPage = 1;
+    let placements = Array.isArray(doc.signaturePlacements) ? doc.signaturePlacements.map(placement => ({...placement})) : [];
 
     function setStatus(message) { status.textContent = message || ''; }
     function paintPins() {
       wrap.querySelectorAll('.hof-signing-pin').forEach(pin => pin.remove());
       const renderedWidth = canvas.clientWidth || canvas.width;
       const renderedHeight = canvas.clientHeight || canvas.height;
-      (doc.signaturePlacements || []).filter(pin => Number(pin.page) === currentPage).forEach((placement,index) => {
+      placements.filter(pin => Number(pin.page) === currentPage).forEach((placement,index) => {
         const spec = specs.find(([type]) => type === placement.type) || FIELD_TYPES.find(([type]) => type === placement.type);
         if (!spec) return;
         const pin = document.createElement('button');
@@ -166,7 +167,7 @@
         pin.style.height = `${Math.max(10,spec[3]/1056*renderedHeight)}px`;
         pin.addEventListener('click', event => {
           event.stopPropagation();
-          doc.signaturePlacements.splice((doc.signaturePlacements || []).indexOf(placement),1);
+          placements.splice(placements.indexOf(placement),1);
           paintPins();
           setStatus('Field removed. Choose a field and click to place it again.');
         });
@@ -202,7 +203,7 @@
     modal.addEventListener('click', event => { if (event.target === modal) closeDialog(); });
     modal.addEventListener('keydown', event => { if (event.key === 'Escape') closeDialog(); });
     modal.querySelector('.hof-signing-done').addEventListener('click', () => {
-      doc.signaturePlacements = Array.isArray(doc.signaturePlacements) ? doc.signaturePlacements : [];
+      doc.signaturePlacements = placements;
       resetAck();
       closeDialog();
       enhanceRows();
@@ -212,8 +213,7 @@
       if (event.target.closest('.hof-signing-pin')) return;
       const rect = canvas.getBoundingClientRect();
       if (!rect.width || !rect.height) return;
-      doc.signaturePlacements = Array.isArray(doc.signaturePlacements) ? doc.signaturePlacements : [];
-      doc.signaturePlacements.push({type:activeField,page:currentPage,xRatio:Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width)),yRatio:Math.max(0,Math.min(1,(event.clientY-rect.top)/rect.height))});
+      placements.push({type:activeField,page:currentPage,xRatio:Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width)),yRatio:Math.max(0,Math.min(1,(event.clientY-rect.top)/rect.height))});
       paintPins();
       setStatus(`${specs.find(([type]) => type === activeField)?.[1] || activeField} placed. Continue, or click the field to remove it.`);
     });
