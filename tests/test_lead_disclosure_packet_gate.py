@@ -79,6 +79,40 @@ class LeadDisclosurePacketTests(unittest.TestCase):
             },
         )
 
+    def test_pre_1978_single_buyer_packet_has_only_one_buyer_and_agent_signing_fields(self):
+        offer = minimal_offer(
+            yearBuilt="1972",
+            leadBuiltBefore1978="yes",
+            leadDisclosureStatus="request",
+            buyer2="",
+            buyer2Email="",
+            agentEmail="agent@example.com",
+            address="456 Sample Ave",
+            city="Austin",
+            county="Travis",
+            zip="78701",
+        )
+        packet = adapter.fill_and_merge_20_19(offer)
+        reader = PdfReader(BytesIO(packet))
+        self.assertEqual(len(reader.pages), 13)
+        self.assertIn("TREC NO. 56", reader.pages[-1].extract_text())
+
+        lead_fields = [
+            field for field in adapter.build_signwell_fields_20_19(offer, packet)[0]
+            if "lead_based_paint_addendum" in field["api_id"]
+        ]
+        self.assertEqual({field["recipient_id"] for field in lead_fields}, {"1", "3"})
+        self.assertEqual({field["page"] for field in lead_fields}, {13})
+        self.assertEqual(
+            {(field["api_id"], field["x"], field["y"]) for field in lead_fields},
+            {
+                ("buyer1_lead_based_paint_addendum_signature", 76, 768),
+                ("buyer1_lead_based_paint_addendum_date", 290, 768),
+                ("buyer_agent_lead_based_paint_addendum_signature", 76, 886),
+                ("buyer_agent_lead_based_paint_addendum_date", 290, 886),
+            },
+        )
+
     def test_completed_uploaded_disclosure_replaces_blank_source_exactly_once(self):
         offer = minimal_offer(
             yearBuilt="1972",
