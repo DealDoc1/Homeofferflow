@@ -24695,8 +24695,25 @@ function routeAfterMagicLinkIfNeeded() {
   let deferredInstallPrompt = null;
 
   function trackInstall(event, metadata = {}) {
+    const surface = String(metadata.surface || installSurface()).trim().toLowerCase();
+    const platform = String(metadata.platform || installPlatform()).trim().toLowerCase();
+    if (!surface || surface === 'unknown' || surface === 'unavailable') return;
+    if (!['ios', 'android', 'web'].includes(platform)) return;
+    // Install choices are useful even before sign-in. Record only the same
+    // aggregate event shape accepted by the public funnel endpoint; do not
+    // attach an account, offer, device, or free-form metadata to this signal.
     try {
-      root.logOfferEvent?.(null, 'pwa_install_' + event, event, 'PWA install funnel event.', metadata);
+      fetch('/api/fsbo-lead', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        keepalive: true,
+        body: JSON.stringify({
+          request_type: 'public_pwa_install_event',
+          event_type: 'pwa_install_' + event,
+          platform,
+          surface
+        })
+      }).catch(() => {});
     } catch (_) {}
   }
 
@@ -24905,13 +24922,18 @@ function routeAfterMagicLinkIfNeeded() {
     // browser can present the native install UX or whether the user needs the
     // manual Home Screen path. This stays aggregate-only and carries neither
     // account nor device identity.
-    const availabilitySurface = installTarget()?.surface || 'unavailable';
-    try {
-      const key = nativeAvailableKeyPrefix + availabilitySurface;
-      if (sessionStorage.getItem(key) === '1') return renderInstallCard();
-      sessionStorage.setItem(key, '1');
-    } catch (_) {}
-    trackInstall('native_available', { platform: installPlatform(), surface: availabilitySurface });
+    const availabilityTarget = installTarget();
+    if (availabilityTarget) {
+      const key = nativeAvailableKeyPrefix + availabilityTarget.surface;
+      let shouldTrackAvailability = true;
+      try {
+        shouldTrackAvailability = sessionStorage.getItem(key) !== '1';
+        if (shouldTrackAvailability) sessionStorage.setItem(key, '1');
+      } catch (_) {}
+      if (shouldTrackAvailability) {
+        trackInstall('native_available', { platform: installPlatform(), surface: availabilityTarget.surface });
+      }
+    }
     renderInstallCard();
   });
   window.addEventListener('appinstalled', () => {
