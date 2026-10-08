@@ -112,6 +112,12 @@ def lead_required_from_offer(s):
     return raw in ["yes", "true", "1", "required"] or (year_built and year_built < 1978)
 
 
+def lead_disclosure_should_attach(s):
+    """Include TREC 56-0 when pre-1978 status is known or still uncertain."""
+    raw = val_lower(first_present(s.get("leadBuiltBefore1978"), s.get("leadBasedPaint"), s.get("leadRequired")))
+    return lead_required_from_offer(s) or raw in {"unknown", "not sure", "unsure"}
+
+
 def lead_pdf_path():
     return find_existing_pdf(
         "lead_based_paint_56-0.pdf",
@@ -703,7 +709,7 @@ def build_pages_data(
     lead_required = lead_required_from_offer(s)
     # Paragraph 22 must reflect the actual seller/listing-side disclosure that
     # production validation requires for a pre-1978 offer packet.
-    lead_addendum_attached = has_uploaded_lead_disclosure(s) or truthy(first_present(
+    lead_addendum_attached = has_uploaded_lead_disclosure(s) or lead_disclosure_should_attach(s) or truthy(first_present(
         s.get("leadBasedPaintAttached"),
         s.get("attachLeadBasedPaintAddendum"),
         s.get("sellerLeadDisclosureAttached"),
@@ -1098,23 +1104,25 @@ def fill_and_merge(offer):
 
     lead_path = lead_pdf_path()
     lead_addendum_uploaded = has_uploaded_lead_disclosure(s)
-    lead_addendum_attached = lead_addendum_uploaded or truthy(first_present(
+    lead_addendum_attached = lead_addendum_uploaded or lead_disclosure_should_attach(s) or truthy(first_present(
         s.get("leadBasedPaintAttached"),
         s.get("attachLeadBasedPaintAddendum"),
         s.get("sellerLeadDisclosureAttached"),
         s.get("leadDisclosureAttached"),
     ))
-    if lead_addendum_attached and not lead_addendum_uploaded and lead_path and os.path.exists(lead_path):
-        # Legacy generated-form support remains isolated from uploaded seller
-        # disclosures. Production validation rejects a generated blank form.
+    if lead_addendum_attached and not lead_addendum_uploaded:
+        if not lead_path or not os.path.exists(lead_path):
+            raise ValueError("The TREC 56-0 Lead-Based Paint Addendum source is unavailable.")
+        # Use the authorized TREC source when no completed seller disclosure
+        # was provided. Never preselect seller disclosures or buyer receipts.
         lead_pages = {
             0: [
                 (205, 679, addr_full, 8),
                 (92, 528, ck(str(s.get("leadBuyerInspectionWaived") or "").strip().lower() in ["yes", "true", "1", "on"]), "check_small"),
                 (92, 502, ck(str(s.get("leadBuyerInspectionDays") or "").strip() != ""), "check_small"),
                 (70, 494, str(s.get("leadBuyerInspectionDays") or "") if str(s.get("leadBuyerInspectionDays") or "").strip() else "", 8),
-                (92, 407, ck(str(s.get("leadReceivedInfo") or "yes").strip().lower() in ["yes", "true", "1", "on"]), "check_small"),
-                (92, 389, ck(str(s.get("leadReceivedPamphlet") or "yes").strip().lower() in ["yes", "true", "1", "on"]), "check_small"),
+                (92, 407, ck(str(s.get("leadReceivedInfo") or "").strip().lower() in ["yes", "true", "1", "on"]), "check_small"),
+                (92, 389, ck(str(s.get("leadReceivedPamphlet") or "").strip().lower() in ["yes", "true", "1", "on"]), "check_small"),
             ]
         }
         lead_pages = add_debug_grid_to_pages(lead_pages)
@@ -1370,7 +1378,7 @@ def build_signwell_fields(offer, pdf_bytes):
     has_non_realty = str(offer.get("nonRealtyItems") or "no").strip().lower() in {"yes", "true", "1", "on"} and bool(str(get_non_realty_description(offer) or "").strip())
     lead_required = lead_required_from_offer(offer)
     lead_addendum_uploaded = has_uploaded_lead_disclosure(offer)
-    lead_addendum_attached = lead_addendum_uploaded or truthy(first_present(
+    lead_addendum_attached = lead_addendum_uploaded or lead_disclosure_should_attach(offer) or truthy(first_present(
         offer.get("leadBasedPaintAttached"),
         offer.get("attachLeadBasedPaintAddendum"),
         offer.get("sellerLeadDisclosureAttached"),
@@ -1544,11 +1552,13 @@ def build_signwell_fields(offer, pdf_bytes):
     # Lead-Based Paint Addendum - buyer signatures plus buyer-agent broker acknowledgment
     # when explicitly attached. Seller fields are still not created in buyer-side packets.
     if lead_page:
-        add_sig_date_pair("buyer1_lead_based_paint_addendum", lead_page, 76, 762, 246, 762, "1")
+        # The first signature row is 6 SignWell px lower than the legacy mapping;
+        # dates sit at the right edge of each signer line, not beside the signature box.
+        add_sig_date_pair("buyer1_lead_based_paint_addendum", lead_page, 76, 768, 290, 768, "1")
         if has_buyer2:
-            add_sig_date_pair("buyer2_lead_based_paint_addendum", lead_page, 76, 827, 246, 827, "2")
+            add_sig_date_pair("buyer2_lead_based_paint_addendum", lead_page, 76, 827, 290, 827, "2")
         if first_present(offer.get("agentEmail"), offer.get("buyerAgentEmail"), ""):
-            add_sig_date_pair("buyer_agent_lead_based_paint_addendum", lead_page, 76, 905, 246, 905, "3")
+            add_sig_date_pair("buyer_agent_lead_based_paint_addendum", lead_page, 76, 886, 290, 886, "3")
 
     # TREC 16-7 Buyer Temporary Residential Lease. Buyer-side packet creates
     # Tenant fields only; Landlord initials/signatures remain for seller execution.
@@ -1762,12 +1772,12 @@ def create_signwell_signature_request(offer, pdf_bytes):
     # Only add the buyer-agent/broker as a SignWell recipient when an explicitly attached
     # lead-based paint disclosure needs the broker acknowledgment signed. This preserves
     # the normal buyer-only offer workflow and avoids adding a third signer to ordinary packets.
-    lead_addendum_attached_for_agent = not has_uploaded_lead_disclosure(offer) and truthy(first_present(
+    lead_addendum_attached_for_agent = not has_uploaded_lead_disclosure(offer) and (lead_disclosure_should_attach(offer) or truthy(first_present(
         offer.get("leadBasedPaintAttached"),
         offer.get("attachLeadBasedPaintAddendum"),
         offer.get("sellerLeadDisclosureAttached"),
         offer.get("leadDisclosureAttached"),
-    ))
+    )))
     agent_email_for_signing = first_present(offer.get("agentEmail"), offer.get("buyerAgentEmail"), "")
     if lead_addendum_attached_for_agent and agent_email_for_signing:
         recipients.append({

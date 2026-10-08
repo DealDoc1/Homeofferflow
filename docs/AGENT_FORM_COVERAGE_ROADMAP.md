@@ -4,6 +4,14 @@ Future batches follow the [lean development protocol](LEAN_DEVELOPMENT_PROTOCOL.
 to reduce model context, repeated regression runs and Vercel usage without
 reducing verification standards.
 
+The current purchase-packet candidate now includes blank TREC Form 56-0 when
+the home's year is pre-1978 or unknown, without requiring an uploaded completed
+seller disclosure; an uploaded completed form replaces the blank once. Seller
+answers remain unselected. One- and two-buyer layouts passed local visual and
+focused regression checks. The change is locally tested, **not deployed**;
+completed SignWell-PDF QA is still pending because the authenticated Mac
+session is locked. See [lead addendum evidence](release-evidence/pre1978-lead-addendum-auto-inclusion-2026-10-08.md).
+
 TREC-62-0 now has a source-backed Seller-notice implementation for removing
 the backup-contract contingency after the first contract has ended. The guided
 interview collects the property, Buyer names, Seller names, and known delivery

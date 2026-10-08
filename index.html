@@ -4083,25 +4083,19 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
       <div style="padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.07); margin-bottom:1.25rem;">
         <p style="font-size:0.8rem; font-weight:700; color:var(--gold-light); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.5rem;">Lead-Based Paint Check</p>
-        <div class="radio-group-label" style="margin-top:0.75rem;">Was the home built before 1978? <button class="helper-btn" onclick="toggleHelper('h-lead-built')">?</button></div><div class="helper-box" id="h-lead-built" style="margin-bottom:0.75rem;"><strong>💡 Lead-Based Paint Disclosure</strong>Federal lead-based paint disclosure rules may apply to residential property built before 1978. If the year built is unknown, verify before signing or sending the offer packet.</div>
+        <div class="radio-group-label" style="margin-top:0.75rem;">Was the home built before 1978? <button class="helper-btn" onclick="toggleHelper('h-lead-built')">?</button></div><div class="helper-box" id="h-lead-built" style="margin-bottom:0.75rem;"><strong>💡 Lead-Based Paint Disclosure</strong>TREC Form 56-0 applies to homes built before 1978. If you are not sure, we will include it so the form is not missed.</div>
         <div class="radio-cards" style="margin-bottom:0.75rem;">
           <label class="radio-card" onclick="selectCard(this,'leadBuiltBefore1978','no')"><input type="radio" name="leadBuiltBefore1978" value="no"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No / built 1978 or later</strong><small>No lead-based paint addendum should be needed</small></div></label>
-          <label class="radio-card" onclick="selectCard(this,'leadBuiltBefore1978','yes')"><input type="radio" name="leadBuiltBefore1978" value="yes"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — built before 1978</strong><small>Seller/listing side should provide required disclosure</small></div></label>
-          <label class="radio-card" onclick="selectCard(this,'leadBuiltBefore1978','unknown')"><input type="radio" name="leadBuiltBefore1978" value="unknown"/><div class="radio-dot"></div><div class="radio-card-text"><strong>I’m not sure</strong><small>Flag this before signing or sending</small></div></label>
+          <label class="radio-card" onclick="selectCard(this,'leadBuiltBefore1978','yes')"><input type="radio" name="leadBuiltBefore1978" value="yes"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — built before 1978</strong><small>TREC Form 56-0 will be included</small></div></label>
+          <label class="radio-card" onclick="selectCard(this,'leadBuiltBefore1978','unknown')"><input type="radio" name="leadBuiltBefore1978" value="unknown"/><div class="radio-dot"></div><div class="radio-card-text"><strong>I’m not sure</strong><small>We’ll include TREC Form 56-0</small></div></label>
         </div>
 
         <div id="leadDisclosureBox" style="display:none;">
-          <div class="notice warn" style="margin-bottom:0.75rem;"><strong>The seller’s lead-based paint disclosure is required for this packet.</strong><br/>Get the completed disclosure and any available records from the seller or listing agent before sending the offer.</div>
-          <div class="radio-group-label">Has the seller/listing agent provided the Lead-Based Paint Disclosure?</div>
-          <div class="radio-cards" style="margin-bottom:0.75rem;">
-            <label class="radio-card" onclick="selectCard(this,'leadDisclosureStatus','received')"><input type="radio" name="leadDisclosureStatus" value="received"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — buyer has received it</strong><small>Attach it below so it is included with the offer</small></div></label>
-            <label class="radio-card" onclick="selectCard(this,'leadDisclosureStatus','request')"><input type="radio" name="leadDisclosureStatus" value="request"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No — request it from listing agent/seller</strong></div></label>
-            <label class="radio-card" onclick="selectCard(this,'leadDisclosureStatus','unknown')"><input type="radio" name="leadDisclosureStatus" value="unknown"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Not sure</strong></div></label>
-          </div>
+          <div class="notice" style="margin-bottom:0.75rem;"><strong>TREC Form 56-0 will be included in the signing package.</strong><br/>If the seller has already completed it, you can attach that PDF instead. If not, continue—the form will travel with the offer for completion.</div>
           <div id="leadDisclosureUploadPanel" class="field" style="margin-top:0.85rem;">
-            <label for="leadDisclosureUpload">Attach the completed lead-based paint disclosure</label>
+            <label for="leadDisclosureUpload">Attach a completed TREC Form 56-0 (optional)</label>
             <input type="file" id="leadDisclosureUpload" accept="application/pdf,.pdf" onchange="handleLeadDisclosureUpload(this.files)"/>
-            <small style="display:block; margin-top:0.35rem; color:var(--muted);">PDF only. The exact file you attach will be added to the offer packet.</small>
+            <small style="display:block; margin-top:0.35rem; color:var(--muted);">PDF only. If you do not have the completed form yet, the blank TREC form will be included automatically.</small>
             <div id="leadDisclosureUploadStatus" class="platform-status" role="status" aria-live="polite"></div>
           </div>
         </div>
@@ -9710,16 +9704,6 @@ function routeAfterMagicLinkIfNeeded() {
         requireField('disclosureDays', 'seller disclosure delivery days', missing);
       }
       if (getRadio('asIs') === 'repairs') requireField('repairsText', 'specific repairs required', missing);
-      if (getRadio('leadBuiltBefore1978') === 'yes') {
-        requireRadioSelection('leadDisclosureStatus', 'lead-based paint disclosure status', missing);
-        if (getRadio('leadDisclosureStatus') && getRadio('leadDisclosureStatus') !== 'received') {
-          missing.push('completed lead-based paint disclosure from the seller or listing agent');
-        } else if (getRadio('leadDisclosureStatus') === 'received' && !hasLeadDisclosureUpload()) {
-          missing.push('lead-based paint disclosure PDF');
-        }
-      } else if (getRadio('leadBuiltBefore1978') === 'unknown') {
-        missing.push('confirmation of whether the home was built before 1978');
-      }
     }
 
     if (stepId === 'step7') {
@@ -10792,7 +10776,7 @@ function routeAfterMagicLinkIfNeeded() {
         <div class="review-row"><span class="rl">Survey Rejection Paid By</span><span class="rv">${s.survey === 'sellerExisting' ? (s.surveyIfRejectedPaidBy === 'buyer' ? 'Buyer' : s.surveyIfRejectedPaidBy === 'seller' ? 'Seller' : '—') : '—'}</span></div>
         
         <div class="review-row"><span class="rl">Lead-Based Paint</span><span class="rv">${s.leadBuiltBefore1978 === 'yes' ? 'Built before 1978' : (s.leadBuiltBefore1978 === 'unknown' ? 'Year not confirmed' : (s.leadBuiltBefore1978 === 'no' ? 'Built 1978 or later' : '—'))}</span></div>
-        ${s.leadBuiltBefore1978 === 'yes' || s.leadBuiltBefore1978 === 'unknown' ? `<div class="review-row"><span class="rl">Lead Disclosure</span><span class="rv">${hasLeadDisclosureUpload() ? `Included — ${text((window.hofUploadedDisclosureDocs || []).find(d => d.type === 'lead_based_paint')?.name || 'attached PDF')}` : (s.leadDisclosureStatus === 'request' ? 'Waiting for seller/listing side' : 'Required before sending')}</span></div>` : ''}
+        ${s.leadBuiltBefore1978 === 'yes' || s.leadBuiltBefore1978 === 'unknown' ? `<div class="review-row"><span class="rl">Lead Disclosure</span><span class="rv">${hasLeadDisclosureUpload() ? `Completed TREC Form 56-0 included — ${text((window.hofUploadedDisclosureDocs || []).find(d => d.type === 'lead_based_paint')?.name || 'attached PDF')}` : 'Blank TREC Form 56-0 included for completion'}</span></div>` : ''}
         ${s.mud === 'yes' || s.mud === 'unknown' ? `<div class="review-row"><span class="rl">MUD / PID notices</span><span class="rv">${s.mud === 'yes' ? 'Confirm the applicable district notices with the listing side.' : 'Confirm district status and any applicable notices with the listing side.'} Upload notices to include them in this package.</span></div>` : ''}
         <div class="review-row"><span class="rl">Seller Disclosure</span><span class="rv">${text(s.sellerDisclosure === 'received' ? 'Received' : s.sellerDisclosure === 'notReceived' ? `Not received — ${s.disclosureDays || '—'} days` : s.sellerDisclosure === 'exempt' ? 'Seller exempt' : '—')}</span></div>
         <div class="review-row"><span class="rl">Property Condition</span><span class="rv">${s.asIs === 'yes' ? 'As Is' : s.asIs === 'repairs' ? 'As Is with repairs' : '—'}</span></div>
@@ -10821,6 +10805,7 @@ function routeAfterMagicLinkIfNeeded() {
       <div class="review-section"><div class="review-section-title">Your document package</div>
         <div style="margin-top:0.4rem; line-height:2.3;">
           ${atag('TREC 1–4 Family Residential Contract', true)}
+          ${atag('TREC 56-0 Lead-Based Paint Addendum', s.leadBuiltBefore1978 === 'yes' || s.leadBuiltBefore1978 === 'unknown')}
           ${atag('Third Party Financing Addendum', hasLoan)}
           ${atag('Appraisal Addendum', hasAppraisal)}
           ${atag('HOA Addendum', s.hoa === 'yes' || s.hoa === 'unknown')}
@@ -11640,9 +11625,9 @@ function routeAfterMagicLinkIfNeeded() {
     if (doc) {
       status.textContent = 'Included in this offer packet: ' + doc.name;
       status.className = 'platform-status show ok';
-    } else if (getRadio('leadBuiltBefore1978') === 'yes') {
-      status.textContent = 'Attach the completed disclosure before sending this offer.';
-      status.className = 'platform-status show err';
+    } else if (getRadio('leadBuiltBefore1978') === 'yes' || getRadio('leadBuiltBefore1978') === 'unknown') {
+      status.textContent = 'Blank TREC Form 56-0 will be included automatically.';
+      status.className = 'platform-status show ok';
     } else {
       status.textContent = '';
       status.className = 'platform-status';
@@ -11776,26 +11761,6 @@ function routeAfterMagicLinkIfNeeded() {
     }
     setUploadedDisclosureStatus('');
     return true;
-  }
-
-  function validateLeadDisclosurePacket(data = {}) {
-    const leadAnswer = String(data.leadBuiltBefore1978 || getRadio('leadBuiltBefore1978') || '').toLowerCase();
-    const disclosureStatus = String(data.leadDisclosureStatus || getRadio('leadDisclosureStatus') || '').toLowerCase();
-    let message = '';
-    if (leadAnswer === 'unknown') {
-      message = 'Confirm whether the home was built before 1978 before sending this offer.';
-    } else if (leadAnswer === 'yes' && disclosureStatus !== 'received') {
-      message = 'Get the completed lead-based paint disclosure from the seller or listing agent before sending this offer.';
-    } else if (leadAnswer === 'yes' && !hasLeadDisclosureUpload()) {
-      message = 'Attach the completed lead-based paint disclosure PDF before sending this offer.';
-    }
-    if (!message) return true;
-    setPaymentStatus(message);
-    const leadStep = getCurrentSteps().indexOf('step6');
-    if (leadStep >= 0) showStep(leadStep);
-    refreshLeadDisclosureUploadStatus();
-    document.getElementById('leadDisclosureBox')?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
-    return false;
   }
 
   function renderUploadedDocsList() {
@@ -12593,7 +12558,6 @@ function routeAfterMagicLinkIfNeeded() {
       if (!validateAssumptionInputs(state.data)) return;
       if (!validateSellerFinancingInputs(state.data)) return;
       if (!validateSellerTemporaryLeaseInputs(state.data)) return;
-      if (typeof validateLeadDisclosurePacket === 'function' && !validateLeadDisclosurePacket(state.data)) return;
       if (!validateUploadedDisclosureDocs()) return;
 
       const paymentEmailInput = document.getElementById('paymentEmail');
@@ -12722,7 +12686,6 @@ function routeAfterMagicLinkIfNeeded() {
     if (!validateAssumptionInputs(state.data)) return;
     if (!validateSellerFinancingInputs(state.data)) return;
     if (!validateSellerTemporaryLeaseInputs(state.data)) return;
-    if (typeof validateLeadDisclosurePacket === 'function' && !validateLeadDisclosurePacket(state.data)) return;
     if (!validateUploadedDisclosureDocs()) return;
 
     const email =
