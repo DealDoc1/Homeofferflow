@@ -24692,6 +24692,7 @@ function routeAfterMagicLinkIfNeeded() {
   const installSurfaceKey = 'hof_pwa_install_surface';
   const preferredLaunchKey = 'hof_pwa_preferred_launch_action';
   const installIntentSurfaceKey = 'hof_pwa_install_intent_surface';
+  const nativeAvailableSurfacesTracked = new Set();
   let deferredInstallPrompt = null;
 
   function trackInstall(event, metadata = {}) {
@@ -24715,6 +24716,18 @@ function routeAfterMagicLinkIfNeeded() {
         })
       }).catch(() => {});
     } catch (_) {}
+  }
+
+  function trackNativeInstallAvailability(surface){
+    if (!surface || nativeAvailableSurfacesTracked.has(surface)) return;
+    const key = nativeAvailableKeyPrefix + surface;
+    let shouldTrack = true;
+    try {
+      shouldTrack = sessionStorage.getItem(key) !== '1';
+      if (shouldTrack) sessionStorage.setItem(key, '1');
+    } catch (_) {}
+    nativeAvailableSurfacesTracked.add(surface);
+    if (shouldTrack) trackInstall('native_available', { platform: installPlatform(), surface });
   }
 
   function isStandalone(){
@@ -24827,6 +24840,10 @@ function routeAfterMagicLinkIfNeeded() {
 
   function renderInstallCard(){
     const target = installTarget();
+    // A browser may expose its prompt before this module reaches a useful
+    // transaction milestone. Attribute availability when the prompt and a
+    // relevant surface are both present, including a later dashboard refresh.
+    if (target && deferredInstallPrompt) trackNativeInstallAvailability(target.surface);
     if (!target || isStandalone() || isDismissed() || isRecentlyShown()) return;
     // Keep the prompt contextual: mobile users can install after a meaningful
     // return-work milestone, and desktop users see it only when their browser
@@ -24918,22 +24935,6 @@ function routeAfterMagicLinkIfNeeded() {
   window.addEventListener('beforeinstallprompt', event => {
     event.preventDefault();
     deferredInstallPrompt = event;
-    // Availability is distinct from a visible card: it tells us whether a
-    // browser can present the native install UX or whether the user needs the
-    // manual Home Screen path. This stays aggregate-only and carries neither
-    // account nor device identity.
-    const availabilityTarget = installTarget();
-    if (availabilityTarget) {
-      const key = nativeAvailableKeyPrefix + availabilityTarget.surface;
-      let shouldTrackAvailability = true;
-      try {
-        shouldTrackAvailability = sessionStorage.getItem(key) !== '1';
-        if (shouldTrackAvailability) sessionStorage.setItem(key, '1');
-      } catch (_) {}
-      if (shouldTrackAvailability) {
-        trackInstall('native_available', { platform: installPlatform(), surface: availabilityTarget.surface });
-      }
-    }
     renderInstallCard();
   });
   window.addEventListener('appinstalled', () => {

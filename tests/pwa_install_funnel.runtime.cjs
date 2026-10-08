@@ -46,7 +46,7 @@ const navigator = { userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac
 const window = {
   navigator,
   matchMedia: () => ({ matches: false }),
-  state: { data: { userType: 'homebuyer' } },
+  state: { data: { userType: 'agent' } },
   hofAuth: { session: null },
   logOfferEvent() { throw new Error('PWA install events must not require authentication'); },
   addEventListener(type, handler) { listeners[type] = handler; }
@@ -68,6 +68,9 @@ const context = {
 vm.runInNewContext(match[1], context);
 
 listeners.beforeinstallprompt({ preventDefault() {} });
+assert.equal(requests.length, 0, 'native availability is not attributed to an unrelated surface');
+window.state.data.userType = 'homebuyer';
+window.renderPwaInstallCard();
 assert.deepEqual(requests.map(row => row.payload.event_type).sort(), [
   'pwa_install_native_available',
   'pwa_install_shown'
