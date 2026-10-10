@@ -343,7 +343,7 @@ class TechnicalSeoTests(unittest.TestCase):
             with self.subTest(filename=filename):
                 guide = (ROOT / filename).read_text(encoding="utf-8")
                 blocks = re.findall(
-                    r'<script type="application/ld\\+json">\\s*(.*?)\\s*</script>',
+                    r'<script type="application/ld\+json">\s*(.*?)\s*</script>',
                     guide,
                     re.DOTALL,
                 )
