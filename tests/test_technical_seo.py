@@ -337,5 +337,20 @@ class TechnicalSeoTests(unittest.TestCase):
         )
 
 
+    def test_public_seo_guides_keep_all_json_ld_valid(self):
+        """Catch schema syntax errors before Google Search Console does."""
+        for filename in SEO_GUIDES:
+            with self.subTest(filename=filename):
+                guide = (ROOT / filename).read_text(encoding="utf-8")
+                blocks = re.findall(
+                    r'<script type="application/ld\\+json">\\s*(.*?)\\s*</script>',
+                    guide,
+                    re.DOTALL,
+                )
+                self.assertTrue(blocks, "Expected structured data on public SEO guide")
+                for block in blocks:
+                    json.loads(block)
+
+
 if __name__ == "__main__":
     unittest.main()
