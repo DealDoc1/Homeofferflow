@@ -34,3 +34,12 @@ Close the fresh completed-provider verification gap for the deployed purchase-co
 - Ten QA-helper/workflow tests and six source-alignment tests pass locally.
 - Full local regression: 2,491 tests passed with one skipped. Protected CI and the actual test submission are recorded at their completed checkpoints.
 - Preparing or submitting a test is not inbox-delivery proof, completed signing, or final provider-PDF inspection. Those remain unverified until their actual evidence is available.
+
+## First controlled attempt and credential diagnosis
+
+- PR #1307 passed independent run `38154326122` and merged as `6a4963a`; no Vercel deployment was requested.
+- Controlled attempt `38154670719` matched the reviewed layout and existing project, found an existing configured credential, and saved the attempt metadata before calling SignWell.
+- SignWell returned HTTP 401. The safe receipt records authentication rejection and no confirmed document ID; no resend was performed. The authenticated Documents list remained at 142 records and did not show the requested release-tagged test.
+- The original environment parser did not decode Vercel's quoted control-character serialization. Correct the QA reader, and add an explicitly read-only `AUTH_CHECK` mode that looks up the existing nonbinding QA document `0093c1e0-8491-4a14-b659-dda35a8fbed4`.
+- Compare legacy and properly decoded credential handling inside the protected runner. Export only lengths, control-character flags, response codes, and confirmation of the known QA record. Do not export keys, response bodies, signer links, or environment files; do not create a new credential or change live configuration.
+- Credential diagnosis cannot send a document or reserve a new send attempt. Production credential health is not yet inferred from the failed QA reader; wait for the read-only result before claiming a live authentication problem.

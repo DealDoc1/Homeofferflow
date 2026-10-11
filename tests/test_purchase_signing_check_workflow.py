@@ -29,7 +29,20 @@ class PurchaseSigningCheckWorkflowTests(unittest.TestCase):
         self.assertIn("--expected-layout-sha256", text)
         self.assertNotIn("path: .vercel", text)
         self.assertNotIn("path: tmp/", text.replace("path: tmp/controlled-purchase-qa/manifest.json", "")
-                         .replace("path: tmp/controlled-purchase-qa/receipt.json", ""))
+                         .replace("path: tmp/controlled-purchase-qa/receipt.json", "")
+                         .replace("path: tmp/controlled-purchase-qa/credential-check.json", ""))
+
+    def test_auth_check_cannot_execute_a_send_or_reserve_a_send_attempt(self):
+        text = (ROOT / ".github/workflows/purchase-signing-qa.yml").read_text()
+        for step in ("Verify reviewed specimen and unchanged deployed generator",
+                     "Preserve the synthetic unsigned review specimen",
+                     "Refuse a duplicate controlled test attempt",
+                     "Record the attempt before the provider call",
+                     "Send exactly one nonbinding parallel test"):
+            section = text.split("- name: " + step, 1)[1].split("- name:", 1)[0]
+            self.assertIn("if: ${{ inputs.confirmation == 'QA_ONLY' }}", section)
+        self.assertIn("--diagnose-credential", text)
+        self.assertIn("inputs.confirmation == 'AUTH_CHECK'", text)
 
 
 if __name__ == "__main__":

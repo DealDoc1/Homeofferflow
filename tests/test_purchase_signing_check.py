@@ -6,10 +6,14 @@ from pathlib import Path
 import tempfile
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 from pypdf import PdfReader
 
-from scripts.qa.purchase_signing_check import build_packet, build_payload, layout_fingerprint, send_once
+from scripts.qa.purchase_signing_check import (
+    EXISTING_QA_DOCUMENT, build_packet, build_payload, diagnose_credential,
+    existing_key, layout_fingerprint, send_once,
+)
 
 
 SHA = "da511a0d242d3026e7b716ad6cfbfeea3c4c49a5"
@@ -116,6 +120,51 @@ class PurchaseSigningCheckTests(unittest.TestCase):
                 self.assertEqual(len(calls), 1)
                 with self.assertRaises(ValueError):
                     send_once(self.packet, self.fields, SHA, "SECRET_KEY", receipt, post=post)
+
+    def test_serialized_controls_are_decoded_and_direct_environment_values_are_not_reinterpreted(self):
+        with tempfile.TemporaryDirectory() as directory, patch.dict("os.environ", {"SIGNWELL_API_KEY": ""}):
+            path = Path(directory) / "environment.local"
+            path.write_text('SIGNWELL_API_KEY="TEST_SECRET\\r\\n"\n')
+            self.assertEqual(existing_key(path), "TEST_SECRET")
+            self.assertEqual(existing_key(path, trim=False), "TEST_SECRET\r\n")
+            path.write_text("SIGNWELL_API_KEY='TEST_SECRET'\n")
+            self.assertEqual(existing_key(path), "TEST_SECRET")
+            with patch.dict("os.environ", {"SIGNWELL_API_KEY": "DIRECT_SECRET\\n"}):
+                self.assertEqual(existing_key(path), "DIRECT_SECRET\\n")
+
+    def test_read_only_diagnostic_compares_candidates_without_exporting_values_or_links(self):
+        with tempfile.TemporaryDirectory() as directory, patch.dict("os.environ", {"SIGNWELL_API_KEY": ""}):
+            path = Path(directory) / "environment.local"
+            path.write_text('SIGNWELL_API_KEY="TEST_SECRET\\n"\n')
+            calls = []
+            def get(url, **kwargs):
+                calls.append(url)
+                self.assertTrue(url.endswith(EXISTING_QA_DOCUMENT))
+                valid = kwargs["headers"]["X-Api-Key"] == "TEST_SECRET"
+                return SimpleNamespace(status_code=200 if valid else 401, json=lambda: {
+                    "id": EXISTING_QA_DOCUMENT, "name": "QA ONLY - example",
+                    "embedded_signing_url": "SECRET_SIGNING_LINK",
+                })
+            result = diagnose_credential(path, get=get)
+            self.assertIs(result["decoding_changed"], True)
+            self.assertIs(result["runtime_trailing_whitespace"], True)
+            self.assertIs(result["runtime_transport_controls"], True)
+            self.assertEqual(result["legacy"]["http_status"], 401)
+            self.assertEqual(result["normalized"]["http_status"], 200)
+            self.assertIs(result["normalized"]["confirmed_qa_document"], True)
+            self.assertNotIn("SECRET", json.dumps(result))
+            self.assertEqual(len(calls), 2)
+
+    def test_identical_candidate_and_diagnostic_errors_make_no_extra_requests_or_expose_secrets(self):
+        with patch.dict("os.environ", {"SIGNWELL_API_KEY": "TEST_SECRET"}):
+            calls = []
+            def get(url, **kwargs):
+                calls.append(url)
+                raise TimeoutError("TEST_SECRET")
+            result = diagnose_credential(None, get=get)
+            self.assertIs(result["decoding_changed"], False)
+            self.assertEqual(len(calls), 1)
+            self.assertNotIn("TEST_SECRET", json.dumps(result))
 
 
 if __name__ == "__main__":

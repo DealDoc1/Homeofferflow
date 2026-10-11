@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       confirmation:
-        description: QA_ONLY sends one nonbinding check to the existing two QA inboxes
+        description: QA_ONLY sends one test; AUTH_CHECK only reads an existing QA document
         required: true
         type: string
       release_sha:
@@ -26,7 +26,7 @@ concurrency:
 
 jobs:
   check:
-    if: ${{ github.ref == 'refs/heads/main' && inputs.confirmation == 'QA_ONLY' }}
+    if: ${{ github.ref == 'refs/heads/main' && (inputs.confirmation == 'QA_ONLY' || inputs.confirmation == 'AUTH_CHECK') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: production
@@ -49,8 +49,10 @@ jobs:
       - name: Install pinned test dependencies
         run: python -m pip install --requirement requirements-test.txt
       - name: Verify reviewed specimen and unchanged deployed generator
+        if: ${{ inputs.confirmation == 'QA_ONLY' }}
         run: python -m scripts.qa.purchase_signing_check --output-dir tmp/controlled-purchase-qa --release-sha "$QA_RELEASE_SHA" --expected-layout-sha256 "$QA_LAYOUT_SHA"
       - name: Preserve the synthetic unsigned review specimen
+        if: ${{ inputs.confirmation == 'QA_ONLY' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: purchase-signing-review-${{ inputs.release_sha }}
@@ -79,18 +81,21 @@ jobs:
           SIGNWELL_API_KEY: ${{ secrets.SIGNWELL_API_KEY }}
         run: python -m scripts.qa.purchase_signing_check --output-dir tmp/controlled-purchase-qa --release-sha "$QA_RELEASE_SHA" --env-file .vercel/.env.production.local --check-key
       - name: Refuse a duplicate controlled test attempt
+        if: ${{ inputs.confirmation == 'QA_ONLY' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           previous=$(gh api --paginate repos/DealDoc1/Homeofferflow/actions/artifacts --jq '.artifacts[] | select(.name == env.QA_ATTEMPT_NAME) | .id')
           test -z "$previous" || { echo "An earlier attempt is recorded. Inspect its receipt and SignWell instead of resending."; exit 1; }
       - name: Record the attempt before the provider call
+        if: ${{ inputs.confirmation == 'QA_ONLY' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ${{ env.QA_ATTEMPT_NAME }}
           retention-days: 90
           path: tmp/controlled-purchase-qa/manifest.json
       - name: Send exactly one nonbinding parallel test
+        if: ${{ inputs.confirmation == 'QA_ONLY' }}
         env:
           SIGNWELL_API_KEY: ${{ secrets.SIGNWELL_API_KEY }}
         run: python -m scripts.qa.purchase_signing_check --output-dir tmp/controlled-purchase-qa --release-sha "$QA_RELEASE_SHA" --expected-layout-sha256 "$QA_LAYOUT_SHA" --env-file .vercel/.env.production.local --send
@@ -102,6 +107,18 @@ jobs:
           retention-days: 90
           if-no-files-found: ignore
           path: tmp/controlled-purchase-qa/receipt.json
+      - name: Read-only credential decoding check
+        if: ${{ inputs.confirmation == 'AUTH_CHECK' }}
+        env:
+          SIGNWELL_API_KEY: ${{ secrets.SIGNWELL_API_KEY }}
+        run: python -m scripts.qa.purchase_signing_check --output-dir tmp/controlled-purchase-qa --release-sha "$QA_RELEASE_SHA" --env-file .vercel/.env.production.local --diagnose-credential
+      - name: Preserve only safe diagnostic metadata
+        if: ${{ inputs.confirmation == 'AUTH_CHECK' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: purchase-signing-credential-check-${{ inputs.release_sha }}
+          retention-days: 7
+          path: tmp/controlled-purchase-qa/credential-check.json
       - name: Remove the generated local environment file
         if: always()
         run: |
