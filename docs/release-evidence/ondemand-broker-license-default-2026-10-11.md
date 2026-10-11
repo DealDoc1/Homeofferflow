@@ -29,3 +29,12 @@ Use the owner-confirmed broker firm license `9010832` when OnDemand Realty is id
 - Final local regression: 2,502 tests in 84.916 seconds, OK with one skipped. All 46 inline browser scripts parse successfully. Migration preflight confirms the unchanged 117-migration set; patch whitespace passes.
 - One intentional prebuilt production release only. The existing release workflow checks actual Vercel headroom before building; no previews or automatic Git deployments. QA-only changes merged earlier require no standalone deployment.
 - Existing release CLI commands now read the protected Vercel token from their scoped environment rather than process arguments. No new credential or permission was created.
+
+## Initial deployed checkpoint and final profile matching correction
+
+- PR #1310 passed independent CI `38175293147` and merged as `de2b16ff935b2390ee5937c2f06a5fe33323cf3c`.
+- Intentional release `38175562394` succeeded: exact-commit regression, database readiness, spending, prebuilt build/deploy, canonical site, PWA, and packet-runtime checks all passed. READY deployment `dpl_Hnfm5BUa65epQKSouSgpRGRVKSyQ`, `homeofferflow-dyuyk05ps-dealdoc1s-projects.vercel.app`.
+- The live pre-build spending check showed $0.03 used, $19.97 unconsumed, and a $3 reserve. This is a measured snapshot, not a future-usage guarantee.
+- Final review found the brokerage-profile card could borrow a saved personal-profile license despite a different displayed firm name. Match the actual displayed brokerage before borrowing a saved license; otherwise apply only the exact named firm's known default. Preserve explicitly entered organization licenses. No backend/PDF/source/signing changes in this follow-up.
+- Twenty-eight affected local tests pass. The actual profile-card template calls the tested matching helper; six differing-name/blank/explicit-license cases are covered. Installed web shell v82 delivers the corrected card without reloading an open interview.
+- Protected CI and the corrected canonical release are recorded when actually completed. The already visual-reviewed PDF default and existing completed-provider signing gap are unchanged.

@@ -43,3 +43,13 @@ test('unrelated names and unrelated inputs do not change licenses', () => {
   assert.equal(x.nodes.get(license).value, '');
   assert.equal(x.c.brokerageLicenseDefault('Other Realty'), '');
 });
+test('brokerage profile never borrows a license from a different saved firm', () => {
+  const {c}=setup();
+  assert.equal(c.brokerageProfileLicense({name:'Other Realty'}, {brokerage_name:'OnDemand Realty'}), '');
+  assert.equal(c.brokerageProfileLicense({name:'Other Realty'}, {brokerage_name:'OnDemand Realty',brokerage_license:'9010832'}), '');
+  assert.equal(c.brokerageProfileLicense({name:'OnDemand Realty'}, {brokerage_name:'Other Realty',brokerage_license:'1234567'}), '9010832');
+  assert.equal(c.brokerageProfileLicense({name:'Other Realty',license_number:'1234567'}, {brokerage_name:'OnDemand Realty'}), '1234567');
+  assert.equal(c.brokerageProfileLicense({name:'OTHER REALTY'}, {brokerage_name:'Other Realty',brokerage_license:'7654321'}), '7654321');
+  assert.equal(c.brokerageProfileLicense({}, {brokerage_name:'OnDemand Realty'}), '9010832');
+  assert.ok(html.includes('brokerageProfileLicense(b, hofAuth.accountProfile || {})'));
+});
