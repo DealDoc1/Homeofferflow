@@ -30,6 +30,7 @@ PRODUCT_FILES = (
     "lib", "api/fill-pdf.py", "api/fill_pdf_20_19_staging.py", "20-19_0.pdf",
     "buyer_temporary_residential_lease_16-7.pdf", "seller_temporary_residential_lease_15-7.pdf",
 )
+EXISTING_QA_DOCUMENT = "0093c1e0-8491-4a14-b659-dda35a8fbed4"
 
 
 def build_packet():
@@ -137,13 +138,58 @@ def layout_fingerprint(packet, fields, cases):
     return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
 
 
-def existing_key(env_file):
-    key = os.environ.get("SIGNWELL_API_KEY", "").strip()
+def existing_key(env_file, *, trim=True):
+    key = os.environ.get("SIGNWELL_API_KEY", "")
     if not key and env_file and env_file.is_file():
-        key = parse_env_file(env_file).get("SIGNWELL_API_KEY", "").strip()
-    if not key:
+        for line in env_file.read_text().splitlines():
+            name, separator, value = line.strip().partition("=")
+            if separator and name.strip() == "SIGNWELL_API_KEY":
+                value = value.strip()
+                # Vercel's double-quoted serialization escapes control
+                # characters. Decode that serialization, not the actual key.
+                if value.startswith('"'):
+                    key = json.loads(value)
+                elif value.startswith("'") and value.endswith("'"):
+                    key = value[1:-1]
+                else:
+                    key = value
+                if not isinstance(key, str):
+                    raise ValueError("The configured credential is not a string; nothing sent.")
+                break
+    if not key or not key.strip():
         raise ValueError("The existing SignWell credential is unavailable to this runner; nothing sent.")
-    return key
+    return key.strip() if trim else key
+
+
+def diagnose_credential(env_file, *, get=httpx.get):
+    """Read one existing QA document; never create, sign, or expose a key."""
+    legacy = os.environ.get("SIGNWELL_API_KEY", "").strip()
+    if not legacy and env_file and env_file.is_file():
+        legacy = parse_env_file(env_file).get("SIGNWELL_API_KEY", "").strip()
+    normalized = existing_key(env_file)
+    runtime_value = existing_key(env_file, trim=False)
+    result = {"read_only_qa_lookup": True, "decoding_changed": legacy != normalized,
+              "runtime_trailing_whitespace": runtime_value != runtime_value.rstrip(),
+              "runtime_transport_controls": "\r" in runtime_value or "\n" in runtime_value}
+    seen = {}
+    for label, key in (("legacy", legacy), ("normalized", normalized)):
+        detail = {"length": len(key), "literal_control_escape": "\\n" in key or "\\r" in key}
+        if key not in seen:
+            try:
+                response = get("https://www.signwell.com/api/v1/documents/" + EXISTING_QA_DOCUMENT,
+                               headers={"X-Api-Key": key}, timeout=30)
+                status_detail = {"http_status": response.status_code}
+                if response.status_code == 200:
+                    document = response.json()
+                    status_detail["confirmed_qa_document"] = (
+                        document.get("id") == EXISTING_QA_DOCUMENT
+                        and str(document.get("name") or "").startswith("QA ONLY")
+                    )
+                seen[key] = status_detail
+            except Exception as error:
+                seen[key] = {"error_type": type(error).__name__}
+        result[label] = {**detail, **seen[key]}
+    return result
 
 
 def send_once(packet, fields, release_sha, key, receipt, *, post=httpx.post):
@@ -180,12 +226,21 @@ def main():
     parser.add_argument("--expected-layout-sha256")
     parser.add_argument("--env-file", type=Path)
     parser.add_argument("--check-key", action="store_true")
+    parser.add_argument("--diagnose-credential", action="store_true")
     parser.add_argument("--send", action="store_true")
     args = parser.parse_args()
     if not re.fullmatch(r"[0-9a-f]{40}", args.release_sha):
         raise ValueError("Choose the exact deployed release revision.")
     if args.send and not args.expected_layout_sha256:
         raise ValueError("A reviewed layout fingerprint is required; nothing sent.")
+    if args.diagnose_credential:
+        if args.send:
+            raise ValueError("Credential diagnostics cannot send a document.")
+        result = diagnose_credential(args.env_file)
+        args.output_dir.mkdir(parents=True, exist_ok=True)
+        (args.output_dir / "credential-check.json").write_text(json.dumps(result, indent=2) + "\n")
+        print(json.dumps(result))
+        return
     if args.check_key:
         existing_key(args.env_file)
         print("Existing SignWell credential is available; no value displayed.")
