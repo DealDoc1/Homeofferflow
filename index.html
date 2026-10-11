@@ -7864,6 +7864,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     });
   }
 
+  function brokerageProfileLicense(brokerage, profile = {}) {
+    const name = brokerage.name || profile.brokerage_name || '';
+    const normalize = value => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const sameBrokerage = normalize(name) === normalize(profile.brokerage_name);
+    return brokerageLicenseDefault(name, String(brokerage.license_number || '').trim() || (sameBrokerage ? profile.brokerage_license : ''));
+  }
+
   function wireBrokerageLicenseDefaults() {
     document.addEventListener('input', event => {
       const pairs = [['agentBrokerageQuick', 'agentBrokerLicenseQuick'], ['agentBrokerage', 'agentBrokerLicense'],
@@ -14708,7 +14715,7 @@ function routeAfterMagicLinkIfNeeded() {
           <div class="field"><label>Brokerage Slug</label><input id="brandSlug" value="${escapeAttr(slug)}" placeholder="ondemand or christian-group"></div>
           <div class="field"><label>Brokerage / Team Name</label><input id="brandBrokerageName" value="${escapeAttr(b.name || profileValue('brokerage_name') || '')}" placeholder="OnDemand Realty"></div>
           <div class="field"><label>DBA / Display Name</label><input id="brandDbaName" value="${escapeAttr(b.dba_name || profileValue('team_name') || '')}" placeholder="The Christian Group"></div>
-          <div class="field"><label>Brokerage License #</label><input id="brandLicense" value="${escapeAttr(brokerageLicenseDefault(b.name || profileValue('brokerage_name'), b.license_number || profileValue('brokerage_license')))}" placeholder="TX brokerage license"></div>
+          <div class="field"><label>Brokerage License #</label><input id="brandLicense" value="${escapeAttr(brokerageProfileLicense(b, hofAuth.accountProfile || {}))}" placeholder="TX brokerage license"></div>
           <div class="field"><label>Brand Color</label><input id="brandColor" value="${escapeAttr(b.brand_color || '#2563eb')}" placeholder="#2563eb"></div>
           <div class="field"><label>Brokerage logo</label><div class="notice" style="margin:0;padding:.65rem .75rem;font-size:.78rem;line-height:1.4;">${b.logo_url ? 'A logo is saved for this brokerage. Update it from Brokerage Administration below.' : 'Upload an optional PNG, JPG, or WebP logo from Brokerage Administration below after this brokerage is saved.'}</div></div>
           <div class="field"><label>Website URL</label><input id="brandWebsiteUrl" value="${escapeAttr(b.website_url || '')}" placeholder="https://..."></div>
