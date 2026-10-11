@@ -27,8 +27,9 @@
   }
 
   function moneyTotal(form) {
-    const cash = Number(form.elements.priceCash.value || 0);
-    const financing = Number(form.elements.priceFinancing.value || 0);
+    const amount = value => Number(String(value || '').replace(/,/g, '').trim() || 0);
+    const cash = amount(form.elements.priceCash.value);
+    const financing = amount(form.elements.priceFinancing.value);
     const output = form.querySelector('#trec3911PriceTotal');
     output.textContent = Number.isFinite(cash + financing)
       ? (cash + financing).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
@@ -41,6 +42,9 @@
       form.querySelectorAll('[data-change-panel]').forEach(panel => {
         const visible = selected(panel.dataset.changePanel);
         panel.hidden = !visible;
+        // Shared form labels use display:grid, which overrides the browser's
+        // default [hidden] rule. Keep unselected questions out of the layout.
+        panel.style.display = visible ? '' : 'none';
         panel.querySelectorAll('[data-required-when-visible]').forEach(field => { field.required = visible; });
       });
       const extension = form.querySelector('[value="option_extension"]');
@@ -78,14 +82,20 @@
     document.getElementById('trec3911AgreementDialog')?.remove();
     const modal = document.createElement('div');
     modal.id = 'trec3911AgreementDialog'; modal.className = 'hof-agreement-modal';
-    modal.innerHTML = `<form class="hof-agreement-dialog" id="trec3911AgreementForm">
+    modal.innerHTML = `<style>
+      #trec3911AgreementForm .hof-amendment-changes { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.5rem; padding:0; border:0; }
+      #trec3911AgreementForm .hof-amendment-changes legend { margin-bottom:.5rem; font-weight:700; }
+      #trec3911AgreementForm .hof-amendment-changes label { display:flex; align-items:flex-start; gap:.55rem; min-height:44px; padding:.65rem .75rem; border:1px solid rgba(255,255,255,.15); border-radius:8px; }
+      #trec3911AgreementForm .hof-amendment-changes input[type="checkbox"] { width:18px; height:18px; margin:.1rem 0 0; flex:0 0 auto; }
+      @media (max-width:640px) { #trec3911AgreementForm .hof-amendment-changes { grid-template-columns:1fr; } }
+    </style><form class="hof-agreement-dialog" id="trec3911AgreementForm">
       <p class="hof-agent-question-step">Contract changes</p><h3>Amend an existing contract</h3>
       <p>Select only the changes the parties have agreed to consider. HomeOfferFlow copies your entries onto TREC 39-11; it does not choose or draft terms.</p>
       <div class="hof-agreement-grid">
         <label class="hof-agreement-wide">Property street address and city<input name="propertyAddress" required maxlength="400" autocomplete="street-address" inputmode="text"></label>
         <label>Buyer 1 full name<input name="buyerOne" required maxlength="180" autocomplete="name"></label><label>Buyer 2 full name (optional)<input name="buyerTwo" maxlength="180" autocomplete="name"></label>
         <label>Seller 1 full name<input name="sellerOne" required maxlength="180" autocomplete="name"></label><label>Seller 2 full name (optional)<input name="sellerTwo" maxlength="180" autocomplete="name"></label>
-        <fieldset class="hof-agreement-wide hof-agreement-services"><legend>What needs to change?</legend>${changeChoices.map(([value, label]) => `<label><input type="checkbox" name="amendmentChange" value="${value}"> ${label}</label>`).join('')}</fieldset>
+        <fieldset class="hof-agreement-wide hof-agreement-services hof-amendment-changes"><legend>What needs to change?</legend>${changeChoices.map(([value, label]) => `<label><input type="checkbox" name="amendmentChange" value="${value}"> ${label}</label>`).join('')}</fieldset>
 
         <fieldset class="hof-agreement-wide" data-change-panel="sales_price" hidden><legend>Amended sales price</legend><div class="hof-agreement-grid">
           <label>Cash portion ($)<input name="priceCash" data-required-when-visible inputmode="decimal" pattern="[0-9,]+(\\.[0-9]{1,2})?"></label>
