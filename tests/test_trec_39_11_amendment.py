@@ -1,5 +1,7 @@
 import hashlib
 import importlib.util
+import shutil
+import subprocess
 import unittest
 from io import BytesIO
 from pathlib import Path
@@ -15,6 +17,14 @@ SPEC.loader.exec_module(ADMIN)
 
 
 class Trec3911AmendmentTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which('node'), 'Node.js is required for interview runtime checks')
+    def test_displayed_price_total_accepts_formatted_amounts(self):
+        result = subprocess.run(
+            ['node', '--test', str(Path(__file__).with_name('trec_39_11_price_total.runtime.cjs'))],
+            capture_output=True, text=True, timeout=20,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def payload(self):
         return {
             "formCode": "TREC-39-11",
