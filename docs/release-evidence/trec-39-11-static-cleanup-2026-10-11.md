@@ -19,7 +19,7 @@
 - Official source has 54 canonical field entries and 51 Widget annotations. The previous generated PDF retained all 51 Widgets but had zero canonical fields, producing viewer warnings and orphan editable elements.
 - Generated copies already paint the selected interview answers and use SignWell's separate signing map. Remove only original Widgets from those copies and omit any residual AcroForm tree. Preserve source bytes and non-widget links. Do not flatten or edit any signed customer PDF.
 - Synchronize the admin snapshot with renderer `trec-39-11-2026-10-11-static-source-v2` so later provider evidence identifies the actual generator.
-- The normal authenticated guided Purchase > another purchase document > amendment path opened successfully after the source loaded. The earlier transient "Opening" symptom was not reproduced as a persistent failure.
+- Authenticated QA: the normal guided Purchase > another purchase document > amendment path opened successfully after the source loaded. The earlier transient "Opening" symptom was not reproduced as a persistent failure.
 - Fault injection reproduced a separate concrete error: the amendment opener swallowed a failed source lookup and fulfilled its promise. The guided handoff then removed its loading/error state as if opening succeeded. Propagate that rejection to the existing retry handler; do not add another gate or duplicate message.
 
 ## Verification
