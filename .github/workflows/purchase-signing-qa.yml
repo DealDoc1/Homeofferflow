@@ -1,0 +1,113 @@
+name: HomeOfferFlow controlled purchase signing check
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: QA_ONLY sends one nonbinding check to the existing two QA inboxes
+        required: true
+        type: string
+      release_sha:
+        description: Exact production revision whose unchanged source is being checked
+        required: true
+        type: string
+      layout_sha256:
+        description: Fingerprint of the locally visually reviewed layout and signing fields
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: purchase-signing-qa-${{ inputs.release_sha }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    if: ${{ github.ref == 'refs/heads/main' && inputs.confirmation == 'QA_ONLY' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    env:
+      PYTHONPATH: .
+      QA_RELEASE_SHA: ${{ inputs.release_sha }}
+      QA_LAYOUT_SHA: ${{ inputs.layout_sha256 }}
+      QA_ATTEMPT_NAME: purchase-signing-attempt-${{ inputs.release_sha }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install pinned test dependencies
+        run: python -m pip install --requirement requirements-test.txt
+      - name: Verify reviewed specimen and unchanged deployed generator
+        run: python -m scripts.qa.purchase_signing_check --output-dir tmp/controlled-purchase-qa --release-sha "$QA_RELEASE_SHA" --expected-layout-sha256 "$QA_LAYOUT_SHA"
+      - name: Preserve the synthetic unsigned review specimen
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: purchase-signing-review-${{ inputs.release_sha }}
+          retention-days: 7
+          path: |
+            tmp/controlled-purchase-qa/unsigned.pdf
+            tmp/controlled-purchase-qa/manifest.json
+      - name: Install the existing pinned Vercel CLI
+        run: npm install --global vercel@57.0.0
+      - name: Read existing production configuration without displaying values
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: vercel pull --yes --environment=production --scope=dealdoc1s-projects
+      - name: Verify the existing production target
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          project = json.loads(Path('.vercel/project.json').read_text())
+          assert project['projectId'] == 'prj_LupoeEEcWigvtw6CII2bL46l0RB3'
+          assert project['orgId'] == 'team_BZUBDsoLMwlnaXtIES35YT4S'
+          print('Existing HomeOfferFlow production target verified; no deployment requested.')
+          PY
+      - name: Confirm an existing SignWell credential is available
+        env:
+          SIGNWELL_API_KEY: ${{ secrets.SIGNWELL_API_KEY }}
+        run: python -m scripts.qa.purchase_signing_check --output-dir tmp/controlled-purchase-qa --release-sha "$QA_RELEASE_SHA" --env-file .vercel/.env.production.local --check-key
+      - name: Refuse a duplicate controlled test attempt
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          previous=$(gh api --paginate repos/DealDoc1/Homeofferflow/actions/artifacts --jq '.artifacts[] | select(.name == env.QA_ATTEMPT_NAME) | .id')
+          test -z "$previous" || { echo "An earlier attempt is recorded. Inspect its receipt and SignWell instead of resending."; exit 1; }
+      - name: Record the attempt before the provider call
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ${{ env.QA_ATTEMPT_NAME }}
+          retention-days: 90
+          path: tmp/controlled-purchase-qa/manifest.json
+      - name: Send exactly one nonbinding parallel test
+        env:
+          SIGNWELL_API_KEY: ${{ secrets.SIGNWELL_API_KEY }}
+        run: python -m scripts.qa.purchase_signing_check --output-dir tmp/controlled-purchase-qa --release-sha "$QA_RELEASE_SHA" --expected-layout-sha256 "$QA_LAYOUT_SHA" --env-file .vercel/.env.production.local --send
+      - name: Preserve only the safe receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: purchase-signing-receipt-${{ inputs.release_sha }}
+          retention-days: 90
+          if-no-files-found: ignore
+          path: tmp/controlled-purchase-qa/receipt.json
+      - name: Remove the generated local environment file
+        if: always()
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('.vercel/.env.production.local')
+          if path.is_file():
+              path.unlink()
+          PY
