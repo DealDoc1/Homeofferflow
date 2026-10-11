@@ -132,6 +132,12 @@ class PurchaseSigningCheckTests(unittest.TestCase):
             with patch.dict("os.environ", {"SIGNWELL_API_KEY": "DIRECT_SECRET\\n"}):
                 self.assertEqual(existing_key(path), "DIRECT_SECRET\\n")
 
+    def test_protected_placeholders_are_rejected_before_any_provider_lookup(self):
+        for value in ("[REDACTED]", "[ENCRYPTED]", "[SENSITIVE]", "***********", "undefined", "null"):
+            with self.subTest(value=value), patch.dict("os.environ", {"SIGNWELL_API_KEY": value}):
+                with self.assertRaisesRegex(ValueError, "placeholder"):
+                    diagnose_credential(None, get=lambda *a, **kw: self.fail("No provider call allowed"))
+
     def test_read_only_diagnostic_compares_candidates_without_exporting_values_or_links(self):
         with tempfile.TemporaryDirectory() as directory, patch.dict("os.environ", {"SIGNWELL_API_KEY": ""}):
             path = Path(directory) / "environment.local"

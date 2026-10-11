@@ -158,6 +158,8 @@ def existing_key(env_file, *, trim=True):
                 break
     if not key or not key.strip():
         raise ValueError("The existing SignWell credential is unavailable to this runner; nothing sent.")
+    if key.strip().upper() in {"[REDACTED]", "[ENCRYPTED]", "[SENSITIVE]", "UNDEFINED", "NULL"} or re.fullmatch(r"\*+", key.strip()):
+        raise ValueError("A protected-value placeholder is not a SignWell credential; nothing sent.")
     return key.strip() if trim else key
 
 
