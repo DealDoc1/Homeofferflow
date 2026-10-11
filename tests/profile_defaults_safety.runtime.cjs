@@ -72,6 +72,12 @@ test('saving profile and extras preserves the current offer, while new blanks re
   x.c.applyProfileDefaultsToWizard(false);
   assert.equal(x.get('titleCompany').value,'New Title');assert.equal(x.radios.financing,'cash');assert.equal(x.radios.brokerFeeType,'percent');
 });
+test('OnDemand profile defaults do not assign its broker license to another firm',()=>{
+  const x=setup(); x.c.hofAuth.accountProfile={brokerage_name:'OnDemand Realty',brokerage_license:'9010832'};
+  x.get('agentBrokerageQuick').value='Other Realty'; x.get('agentBrokerage').value='Other Realty';
+  x.c.applyProfileDefaultsToWizard(false);
+  assert.equal(x.get('agentBrokerLicenseQuick').value,''); assert.equal(x.get('agentBrokerLicense').value,'');
+});
 for(const path of ['homebuyer','fsbo','investor']) {
   test(`agent extra defaults cannot alter the ${path} path`,()=>{
     const x=setup({path}); x.get('possession').value='';

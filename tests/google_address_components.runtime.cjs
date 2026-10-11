@@ -23,6 +23,7 @@ function setup(){
   const c=vm.createContext({document,google,window:{google,setTimeout:fn=>timers.push(fn)},markGoogleAddressSelected:input=>marked.push(input),setTimeout:fn=>timers.push(fn),Event:class{constructor(type){this.type=type;}},
     HOF_LEGACY_ADDRESS_KEYS:new Set(),isHofAddressInput:()=>true});
   // Use the actual value/event helper when present, not a second implementation.
+  require('./load_brokerage_defaults.runtime.cjs')(c, html);
   vm.runInContext(source('  let _autocompleteService =','  const _headCallback'),c);
   if(html.includes('  function _addressInputState('))vm.runInContext(source('  function _addressInputState(','  function _wireGoogleAutocomplete('),c);
   vm.runInContext(source('  function _debounce(','  function tryInitAutocomplete('),c);

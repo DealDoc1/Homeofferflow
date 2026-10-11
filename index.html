@@ -7559,7 +7559,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     renderBetaOnboardingChecklist();
   }
 
+  wireBrokerageLicenseDefaults();
+
   function profileValue(key, fallback = '') {
+    if (key === 'brokerage_license') return brokerageLicenseDefault(hofAuth.accountProfile?.brokerage_name, hofAuth.accountProfile?.[key] ?? fallback);
     return hofAuth.accountProfile && hofAuth.accountProfile[key] !== null && hofAuth.accountProfile[key] !== undefined ? hofAuth.accountProfile[key] : fallback;
   }
 
@@ -7765,7 +7768,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         agent_email: getVal('profAgentEmail'),
         agent_phone: getVal('profAgentPhone'),
         brokerage_name: getVal('profBrokerageName'),
-        brokerage_license: getVal('profBrokerageLicense'),
+        brokerage_license: brokerageLicenseDefault(getVal('profBrokerageName'), getVal('profBrokerageLicense')),
         preferred_title_company: getVal('profTitleCompany'),
         preferred_escrow_agent: getVal('profEscrowAgent'),
         preferred_escrow_address: getVal('profEscrowAddress'),
@@ -7836,6 +7839,42 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     }
   }
 
+  function brokerageLicenseDefault(name, value = '') {
+    const existing = String(value ?? '').trim();
+    if (existing) return existing;
+    return String(name ?? '').toLowerCase().replace(/[^a-z0-9]/g, '') === 'ondemandrealty' ? '9010832' : '';
+  }
+
+  function applyBrokerageLicenseDefaults(pairs = [
+    ['agentBrokerageQuick', 'agentBrokerLicenseQuick'], ['agentBrokerage', 'agentBrokerLicense'],
+    ['profBrokerageName', 'profBrokerageLicense'], ['brandBrokerageName', 'brandLicense']
+  ]) {
+    pairs.forEach(([nameId, licenseId]) => {
+      const name = document.getElementById(nameId), license = document.getElementById(licenseId);
+      if (!name || !license) return;
+      const known = brokerageLicenseDefault(name.value);
+      if (license._hofBrokerLicenseDefault && String(license.value).trim() === license._hofBrokerLicenseDefault && !known) {
+        license.value = '';
+        license._hofBrokerLicenseDefault = '';
+      }
+      if (!String(license.value || '').trim() && known) {
+        license.value = known;
+        license._hofBrokerLicenseDefault = known;
+      }
+    });
+  }
+
+  function wireBrokerageLicenseDefaults() {
+    document.addEventListener('input', event => {
+      const pairs = [['agentBrokerageQuick', 'agentBrokerLicenseQuick'], ['agentBrokerage', 'agentBrokerLicense'],
+        ['profBrokerageName', 'profBrokerageLicense'], ['brandBrokerageName', 'brandLicense']];
+      const relevant = pairs.find(pair => pair.includes(event.target?.id));
+      if (!relevant) return;
+      if (event.target.id === relevant[1]) event.target._hofBrokerLicenseDefault = '';
+      applyBrokerageLicenseDefaults([relevant]);
+    });
+  }
+
   function applyProfileDefaultsToWizard(force = false) {
     const p = hofAuth.accountProfile || {};
     // The account role is already authoritative. A newly authenticated agent
@@ -7854,7 +7893,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       setInputIfEmpty('agentEmailQuick', p.agent_email || signedInAgentEmail, force); setInputIfEmpty('agentEmail', p.agent_email || signedInAgentEmail, force);
       setInputIfEmpty('agentPhoneQuick', p.agent_phone, force); setInputIfEmpty('agentPhone', p.agent_phone, force);
       setInputIfEmpty('agentBrokerageQuick', p.brokerage_name, force); setInputIfEmpty('agentBrokerage', p.brokerage_name, force);
-      setInputIfEmpty('agentBrokerLicenseQuick', p.brokerage_license, force); setInputIfEmpty('agentBrokerLicense', p.brokerage_license, force);
+      for (const [nameId, licenseId] of [['agentBrokerageQuick', 'agentBrokerLicenseQuick'], ['agentBrokerage', 'agentBrokerLicense']]) {
+        const name = getVal(nameId);
+        const sameBrokerage = name.toLowerCase().replace(/[^a-z0-9]/g, '') === String(p.brokerage_name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        setInputIfEmpty(licenseId, brokerageLicenseDefault(name, sameBrokerage ? p.brokerage_license : ''), force);
+      }
       setInputIfEmpty('titleCompany', p.preferred_title_company, force);
       setInputIfEmpty('escrowAgent', p.preferred_escrow_agent || p.preferred_title_company, force);
       setInputIfEmpty('escrowAddress', p.preferred_escrow_address, force);
@@ -9351,6 +9394,7 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   function syncAgentQuickFields() {
+    applyBrokerageLicenseDefaults([['agentBrokerageQuick', 'agentBrokerLicenseQuick']]);
     const pairs = [
       ['agentNameQuick', 'agentName'],
       ['agentLicenseQuick', 'agentLicense'],
@@ -10307,6 +10351,7 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   function collectData() {
+    applyBrokerageLicenseDefaults();
     const s = state.data;
     const sid = getCurrentSteps()[state.step];
 
@@ -14663,7 +14708,7 @@ function routeAfterMagicLinkIfNeeded() {
           <div class="field"><label>Brokerage Slug</label><input id="brandSlug" value="${escapeAttr(slug)}" placeholder="ondemand or christian-group"></div>
           <div class="field"><label>Brokerage / Team Name</label><input id="brandBrokerageName" value="${escapeAttr(b.name || profileValue('brokerage_name') || '')}" placeholder="OnDemand Realty"></div>
           <div class="field"><label>DBA / Display Name</label><input id="brandDbaName" value="${escapeAttr(b.dba_name || profileValue('team_name') || '')}" placeholder="The Christian Group"></div>
-          <div class="field"><label>Brokerage License #</label><input id="brandLicense" value="${escapeAttr(b.license_number || profileValue('brokerage_license') || '')}" placeholder="TX brokerage license"></div>
+          <div class="field"><label>Brokerage License #</label><input id="brandLicense" value="${escapeAttr(brokerageLicenseDefault(b.name || profileValue('brokerage_name'), b.license_number || profileValue('brokerage_license')))}" placeholder="TX brokerage license"></div>
           <div class="field"><label>Brand Color</label><input id="brandColor" value="${escapeAttr(b.brand_color || '#2563eb')}" placeholder="#2563eb"></div>
           <div class="field"><label>Brokerage logo</label><div class="notice" style="margin:0;padding:.65rem .75rem;font-size:.78rem;line-height:1.4;">${b.logo_url ? 'A logo is saved for this brokerage. Update it from Brokerage Administration below.' : 'Upload an optional PNG, JPG, or WebP logo from Brokerage Administration below after this brokerage is saved.'}</div></div>
           <div class="field"><label>Website URL</label><input id="brandWebsiteUrl" value="${escapeAttr(b.website_url || '')}" placeholder="https://..."></div>
@@ -14703,7 +14748,7 @@ function routeAfterMagicLinkIfNeeded() {
       org_type: getVal('brandOrgType') || 'brokerage',
       slug: getVal('brandSlug') || null,
       dba_name: getVal('brandDbaName') || null,
-      license_number: getVal('brandLicense') || null,
+      license_number: brokerageLicenseDefault(getVal('brandBrokerageName'), getVal('brandLicense')) || null,
       brand_color: getVal('brandColor') || '#2563eb',
       website_url: getVal('brandWebsiteUrl') || null,
       office_address: getVal('brandOfficeAddress') || null,
