@@ -134,4 +134,3 @@ comment on function public.hof_release_schema_readiness() is
   'Service-only fail-closed contract checked immediately before the coordinated HomeOfferFlow production release.';
 
 commit;
-
