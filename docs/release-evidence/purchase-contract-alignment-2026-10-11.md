@@ -44,4 +44,10 @@ Recipient roles, required fields, locked signature dates, page offsets, and simu
 - All twelve golden purchase-packet scenarios match the deliberately reviewed baseline; standalone TXR signing geometry is unchanged and passes its separate baseline check. All 117 migrations pass branch preflight; whitespace and renderer synchronization checks pass.
 - Protected CI, exact release revision, and canonical production verification will be recorded at their actual checkpoints.
 
+## Protected-main release checkpoint
+
+- PR #1305 passed independent run `38150345669` and merged as `77837a23b52f2730b314b8a2602b38afc668b722`.
+- Intentional release `38150681123` passed the exact-commit full regression, then stopped on a trailing blank line in the previously merged standalone-draft migration. The Vercel deployment job was skipped: no Vercel build or deployment occurred.
+- Removed that single blank line without changing SQL statements or reapplying the already-successful live migration. The full comparison against the prior production revision is checked, not narrowed to bypass the formatting failure.
+
 This is a corrective release, not a claim that every supported form or provider signing matrix is complete. Fresh completed-provider inspection remains explicit follow-up work.
