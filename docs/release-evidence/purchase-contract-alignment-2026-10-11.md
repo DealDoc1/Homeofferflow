@@ -50,4 +50,15 @@ Recipient roles, required fields, locked signature dates, page offsets, and simu
 - Intentional release `38150681123` passed the exact-commit full regression, then stopped on a trailing blank line in the previously merged standalone-draft migration. The Vercel deployment job was skipped: no Vercel build or deployment occurred.
 - Removed that single blank line without changing SQL statements or reapplying the already-successful live migration. The full comparison against the prior production revision is checked, not narrowed to bypass the formatting failure.
 
+## Deployed and canonical verification
+
+- PR #1306 passed independent run `38151019739` and merged as `da511a0d242d3026e7b716ad6cfbfeea3c4c49a5`.
+- Corrected intentional release `38151273004` succeeded. Its exact-commit regression, release preflight, live schema readiness, spend check, prebuilt build/deploy, canonical site, PWA shell, and packet-runtime checks all passed.
+- One actual Vercel deployment: `dpl_96vs29Ewd4sSrezwrTQ7nRuYEHnS`, READY, production, exact SHA `da511a0d242d3026e7b716ad6cfbfeea3c4c49a5`. Both `www.homeofferflow.com` and `homeofferflow.com` alias this deployment.
+- Live spend check: $0.03 infrastructure credit consumed, $19.97 unconsumed, $3.00 reserved. The failed earlier GitHub verification attempt created no Vercel deployment.
+- Separate canonical API check returned `ok: true`, no errors, TREC 20-19 production, SignWell enabled in production mode. Home, OnDemand, Terms, Privacy, Disclaimer, and e-sign consent returned HTTP 200.
+- No error-level runtime logs matched this deployment during 15:29:00-15:31:36 UTC. This short sample is not proof that every transaction path was exercised.
+- The final Unicode continuation was rerendered and visually rechecked after the address-heading correction; all entered text remains legible and retained.
+- No real client packet was generated, modified, resent, or signed. Completed-provider PDF inspection for this new map remains pending; deployment and local visual evidence do not substitute for it.
+
 This is a corrective release, not a claim that every supported form or provider signing matrix is complete. Fresh completed-provider inspection remains explicit follow-up work.

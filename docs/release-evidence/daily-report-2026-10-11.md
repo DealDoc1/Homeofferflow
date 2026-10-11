@@ -25,3 +25,14 @@ Window: preceding 24 hours, checked at 09:11 America/Chicago. The report follows
 - Complete provider-signed PDF visual QA after the structural cleanup. An unsigned preview is not completed-signature evidence.
 - Other live roadmap items remain in progress; this report does not claim the whole roadmap or brokerage launch is complete.
 - No new owner authorization or source-rights approval is needed for these current technical fixes.
+
+## Subsequent same-day completion - 10:31 America/Chicago
+
+- Prioritized the owner's reported purchase-contract alignment defects. Source-based PDF review confirmed broker contact rows, a brokerage-name/address substitution, and main signing rectangles needing correction in the current generator.
+- PR #1305 implements the correction; PR #1306 removes a formatting-only release error in the earlier migration. Both independent checks passed. The release `38151273004` passed and deployed exact commit `da511a0d242d3026e7b716ad6cfbfeea3c4c49a5` to READY deployment `dpl_96vs29Ewd4sSrezwrTQ7nRuYEHnS`.
+- 2,481 final local tests passed with one skipped; 38 focused tests, twelve golden packet scenarios, unchanged standalone TXR geometry, 117 migrations, and ten changed-page visual specimens were checked.
+- Long contacts are preserved without crossing printed labels. The same long address already present in an attached temporary-lease continuation is referenced instead of duplicated. Recipient roles and simultaneous invitations remain unchanged.
+- Both canonical domains alias the exact release; canonical API and public-page checks pass. No error-level logs matched the brief post-release sample.
+- Exactly one Vercel deployment was created. The live credit check showed $0.03 consumed with $19.97 available and a $3 reserve. The earlier stopped workflow never reached a Vercel build.
+- SignWell access was restored through the existing Google session. No new QA invitation or real client packet was sent. Fresh completed-provider PDF review for the new map remains pending; it is not yet a fully verified signing matrix.
+- The other roadmap gaps recorded above remain open. This update does not claim the full brokerage launch or every form is complete.
