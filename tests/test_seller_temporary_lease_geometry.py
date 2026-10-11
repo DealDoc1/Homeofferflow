@@ -56,9 +56,9 @@ class SellerTemporaryLeaseGeometryTests(unittest.TestCase):
     def test_main_execution_signatures_stay_on_the_four_execution_rows(self):
         fields = self._fields()
         expected = {
-            "buyer1_main_contract_signature": (1, 10, 115, 433),
+            "buyer1_main_contract_signature": (1, 10, 115, 424),
             "buyer2_main_contract_signature": (2, 10, 115, 568),
-            "seller1_main_contract_signature": (3, 10, 420, 433),
+            "seller1_main_contract_signature": (3, 10, 420, 424),
             "seller2_main_contract_signature": (4, 10, 420, 568),
         }
         for api_id, (recipient_id, page, x, y) in expected.items():
@@ -72,10 +72,10 @@ class SellerTemporaryLeaseGeometryTests(unittest.TestCase):
         """Keep completion dates out of the signature lines and printed captions."""
         fields = self._fields()
         expected = {
-            "buyer1_main_contract_date": ("1", 10, 286, 433),
-            "buyer2_main_contract_date": ("2", 10, 286, 568),
-            "seller1_main_contract_date": ("3", 10, 591, 433),
-            "seller2_main_contract_date": ("4", 10, 591, 568),
+            "buyer1_main_contract_date": ("1", 10, 286, 428),
+            "buyer2_main_contract_date": ("2", 10, 286, 572),
+            "seller1_main_contract_date": ("3", 10, 591, 428),
+            "seller2_main_contract_date": ("4", 10, 591, 572),
         }
         for api_id, (recipient_id, page, x, y) in expected.items():
             field = fields[api_id]
@@ -137,18 +137,18 @@ class SellerTemporaryLeaseGeometryTests(unittest.TestCase):
             matches = [
                 word["top"]
                 for word in words
-                if word["text"] == text and word["x0"] >= 100
+                if word["text"] == text and 275 < word["top"] < 385
             ]
             self.assertTrue(matches, f"Expected rendered value {text!r} on page 11")
             return matches[0]
 
         rows = {
-            "OnDemand": (275, 295),
-            "9010832": (320, 335),
-            "Andrew": (335, 350),
-            "The": (350, 365),
-            "andrew@ondemanddfw.com": (365, 380),
-            "2143649890": (380, 395),
+            "OnDemand": (286, 296),
+            "9010832": (313, 325),
+            "Andrew": (327, 339),
+            "The": (341, 353),
+            "andrew@ondemanddfw.com": (356, 368),
+            "2143649890": (370, 382),
         }
         for text, (minimum, maximum) in rows.items():
             top = top_for(text)

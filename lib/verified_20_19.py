@@ -8,6 +8,7 @@ from lib import hoa_addendum_layout
 from lib import sale_contingency_layout
 from lib import backup_contract_layout
 from lib import financing_addendum_layout
+from lib import trec_20_19_contacts
 from lib.contract_money import currency_amount, format_currency
 from http.server import BaseHTTPRequestHandler
 
@@ -887,17 +888,11 @@ def build_pages_data(
         (420, 625, str(buyer_broker_comp_percent) if buyer_12b_active and buyer_broker_comp_type == "percent" else "", 8),
     ]
 
-    # 20-19 Page 8: expanded notices. Fill buyer/buyer's agent only.
+    contacts = contact_answer_layout(s)
+    # 20-19 Page 8: source-bounded buyer and buyer-agent notice details.
     pages[7] = [
         (129, 751, addr_full),
-
-        (105, 386, s.get("buyerMailAddr", ""), 7),
-        (128, 312, f"({phone_area}) {phone_num}" if phone_area else phone_num, 7),
-        (128, 242, s.get("buyerEmail", ""), 7),
-
-        (142, 161, s.get("agentBrokerage", "") if has_buyer_agent else "", 7),
-        (126, 91, s.get("agentPhone", "") if has_buyer_agent else "", 7),
-        (126, 54, s.get("agentEmail", "") if has_buyer_agent else "", 7),
+        *contacts.pages[8],
     ]
 
     # 20-19 Page 9: Paragraph 22 grouped addenda/notices.
@@ -942,16 +937,7 @@ def build_pages_data(
     pages[10] = [
         (127, 751, addr_full),
 
-        # Buyer-only broker block. The source form includes an Address row
-        # between Broker Firm and Broker Firm License No.; keep the remaining
-        # values on their named rows instead of shifting them one row upward.
-        (110, 503, s.get("agentBrokerage", "") if has_buyer_agent else "", 9),
-        (176, 459, s.get("agentBrokerLicense", "") if has_buyer_agent else "", 9),
-        (150, 444, s.get("agentName", "") if has_buyer_agent else "", 9),
-        (125, 429, s.get("teamName", "") if has_buyer_agent else "", 9),
-        (150, 414, s.get("agentEmail", "") if has_buyer_agent else "", 9),
-        (170, 399, s.get("agentPhone", "") if has_buyer_agent else "", 9),
-        (425, 399, s.get("agentLicense", "") if has_buyer_agent else "", 9),
+        *contacts.pages[11],
     ]
 
     # 20-19 Page 12: receipts, no buyer-generated fields.
@@ -1344,10 +1330,20 @@ def fill_and_merge(offer):
     if contract_continuation:
         merger.append(PdfReader(BytesIO(contract_continuation)))
 
+    contact_continuation = contact_answer_layout(s).continuation()
+    if contact_continuation:
+        merger.append(PdfReader(BytesIO(contact_continuation)))
+
     out = BytesIO()
     merger.write(out)
     return out.getvalue()
 
+
+
+def contact_answer_layout(offer):
+    kind = ("buyer" if buyer_temp_lease_requested(offer) and buyer_temp_lease_pdf_path()
+            else "seller" if seller_temp_lease_requested(offer) and seller_temp_lease_pdf_path() else "")
+    return trec_20_19_contacts.answer_layout(offer, lease_kind=kind)
 
 
 def build_signwell_fields(offer, pdf_bytes):
@@ -1500,17 +1496,16 @@ def build_signwell_fields(offer, pdf_bytes):
             lock_sign_date=True,
         )
 
-    # Main contract page 10 - TREC 20-19 execution page. Coordinates are carried over from the visually similar 20-18 execution page and must be QA-tested.
-    # 17S: Buyer 1 main signature was about 3 points too low.
-    add_sig_date_pair("buyer1_main_contract", main_signature_page, 115, 433, 286, 433, "1")
+    # Keep the entire widget above the actual 20-19 rule, not just its center.
+    add_sig_date_pair("buyer1_main_contract", main_signature_page, 115, 424, 286, 428, "1")
     if has_buyer2:
-        add_sig_date_pair("buyer2_main_contract", main_signature_page, 115, 568, 286, 568, "2")
+        add_sig_date_pair("buyer2_main_contract", main_signature_page, 115, 568, 286, 572, "2")
 
     # Main contract initials: pages 1-9 for 20-19 staging. No signature page, broker-contact page, or receipts page initials.
     for page in main_contract_pages:
-        add_field(f"buyer1_initials_main_p{page}", "initials", page, 286, 1018, recipient_id="1", width=24, height=10)
+        add_field(f"buyer1_initials_main_p{page}", "initials", page, 286, 1013, recipient_id="1", width=24, height=10)
         if has_buyer2:
-            add_field(f"buyer2_initials_main_p{page}", "initials", page, 352, 1018, recipient_id="2", width=24, height=10)
+            add_field(f"buyer2_initials_main_p{page}", "initials", page, 352, 1013, recipient_id="2", width=24, height=10)
 
     # Third Party Financing Addendum.
     if financing_page_1 and financing_signature_page:
@@ -1653,13 +1648,25 @@ def build_signwell_fields(offer, pdf_bytes):
         if has_buyer2:
             fields_for_file.append(continuation_field("2", page, index + 1, "lease"))
 
-    for index in range(contract_terms_page_count(offer)):
+    contract_page_count = contract_terms_page_count(offer)
+    for index in range(contract_page_count):
         page = next_page + repair_page_count + nonrealty_page_count + lease_page_count + index
         if page > page_count:
             raise ValueError("The purchase contract terms continuation is missing from this packet.")
         fields_for_file.append(continuation_field("1", page, index + 1, "contract_terms"))
         if has_buyer2:
             fields_for_file.append(continuation_field("2", page, index + 1, "contract_terms"))
+
+    contacts_start = next_page + repair_page_count + nonrealty_page_count + lease_page_count + contract_page_count
+    contact_continuation = contact_answer_layout(offer).continuation()
+    if contact_continuation:
+        for index in range(len(PdfReader(BytesIO(contact_continuation)).pages)):
+            page = contacts_start + index
+            if page > page_count:
+                raise ValueError("The purchase contract contact continuation is missing from this packet.")
+            fields_for_file.append(continuation_field("1", page, index + 1, "contacts"))
+            if has_buyer2:
+                fields_for_file.append(continuation_field("2", page, index + 1, "contacts"))
 
     fields = [fields_for_file]
 

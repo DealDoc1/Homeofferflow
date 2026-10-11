@@ -677,6 +677,7 @@ def fill_and_merge_20_19(offer):
             ("TXR-1953", TXR1953_RENDER_REVISION), ("TXR-1954", TXR1954_RENDER_REVISION)
         ) if code in paragraph4_lease_kinds(offer)
     }
+    offer["_signing_render_revisions"]["TREC-20-19"] = verified.trec_20_19_contacts.RENDER_REVISION
     with collect_source_hashes() as source_hashes:
         packet = verified.fill_and_merge(offer)
     if verified.appraisal_requested(offer):
@@ -746,7 +747,7 @@ def build_signwell_fields_20_19(offer, pdf_bytes):
     )}
     continuation_fields = [
         field for field in fields_for_file
-        if field["api_id"].startswith(("repair_continuation_", "nonrealty_continuation_", "lease_continuation_", "contract_terms_continuation_")) and field["recipient_id"] == "1"
+        if field["api_id"].startswith(("repair_continuation_", "nonrealty_continuation_", "lease_continuation_", "contract_terms_continuation_", "contacts_continuation_")) and field["recipient_id"] == "1"
     ]
     for field in continuation_fields:
         for recipient in sorted(sellers):
@@ -793,11 +794,11 @@ def build_signwell_fields_20_19(offer, pdf_bytes):
             recipient_id = party["id"]
             index = party["seller_index"]
             if index == 1:
-                append_signature_date("seller1_main_contract", main_signature_page, 420, 433, 591, 433, recipient_id)
+                append_signature_date("seller1_main_contract", main_signature_page, 420, 424, 591, 428, recipient_id)
                 append_field("seller1_initials_seller_temp_lease_p1", "initials", lease_initial_page, 476, 1004, recipient_id, 24, 10)
                 append_field("seller1_signature_seller_temp_lease", "signature", lease_signature_page, 440, 777, recipient_id, 145, 20)
             elif index == 2:
-                append_signature_date("seller2_main_contract", main_signature_page, 420, 568, 591, 568, recipient_id)
+                append_signature_date("seller2_main_contract", main_signature_page, 420, 568, 591, 572, recipient_id)
                 append_field("seller2_initials_seller_temp_lease_p1", "initials", lease_initial_page, 508, 1004, recipient_id, 24, 10)
                 append_field("seller2_signature_seller_temp_lease", "signature", lease_signature_page, 440, 845, recipient_id, 145, 20)
 
