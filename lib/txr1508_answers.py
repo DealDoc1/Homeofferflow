@@ -1,5 +1,6 @@
 """Lossless answers within the 02-25-26 showing form's measured blanks."""
 from lib.txr_addenda_layout import inline, clean
+from lib.brokerage_defaults import broker_license
 from lib.txr1501_answers import render_continuation as _continuation
 from lib.txr1501_answers import continuation_fields as _fields
 
@@ -14,7 +15,7 @@ def answer_layout(data, brokerage, associate):
     for label, value, x, y, width in [
         ('Property address and city', data.get('property_address'), 110, 654, 464),
         ('Broker or firm name', broker, 190, 316, 212),
-        ('Broker license number', brokerage.get('license_number'), 478, 316, 80),
+        ('Broker license number', broker_license(broker, brokerage.get('license_number')), 478, 316, 80),
         ('Associate name', agent, 190, 297, 212),
         ('Associate license number', associate.get('license_number'), 478, 297, 80),
         ('Customer 1 name', customers[0] if customers else '', 140, 235, 153),

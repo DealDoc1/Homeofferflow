@@ -111,7 +111,7 @@ jobs:
       - name: Pull production Vercel environment
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN" --scope=dealdoc1s-projects
+        run: vercel pull --yes --environment=production --scope=dealdoc1s-projects
 
       - name: Verify coordinated production database is ready
         env:
@@ -142,7 +142,7 @@ jobs:
       - name: Build the exact production artifact
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: vercel build --prod --token="$VERCEL_TOKEN" --scope=dealdoc1s-projects
+        run: vercel build --prod --scope=dealdoc1s-projects
 
       - name: Deploy the prebuilt artifact
         id: deploy
@@ -152,14 +152,14 @@ jobs:
           # A deploy can wait on an upstream Vercel request without producing
           # output. Bound it so the release reports a diagnosable failure
           # instead of consuming the entire job timeout.
-          url="$(timeout --foreground 8m vercel deploy --prebuilt --prod --yes --token="$VERCEL_TOKEN" --scope=dealdoc1s-projects)"
+          url="$(timeout --foreground 8m vercel deploy --prebuilt --prod --yes --scope=dealdoc1s-projects)"
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "deployment_url=$url"
 
       - name: Verify deployment is ready
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: vercel inspect "${{ steps.deploy.outputs.url }}" --token="$VERCEL_TOKEN" --scope=dealdoc1s-projects
+        run: vercel inspect "${{ steps.deploy.outputs.url }}" --scope=dealdoc1s-projects
 
       - name: Verify canonical site responds
         run: curl --fail --silent --show-error --location --max-time 30 https://www.homeofferflow.com/ > /dev/null

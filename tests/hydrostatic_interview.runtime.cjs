@@ -29,6 +29,7 @@ function setup(data = {}) {
     getCurrentSteps:() => ['step5'], moneyNumber:value => Number(value) || '',
     setPaymentStatus:message => {context.message=message;},
   });
+  require('./load_brokerage_defaults.runtime.cjs')(context, html);
   vm.runInContext(section('  function escapeAttr(', '  function withTimeout(') + helpers + collector, context);
   return {context, fields, radio, el, reviews};
 }

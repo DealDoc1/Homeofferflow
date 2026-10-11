@@ -4,6 +4,7 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from lib.pdf_text import paragraph_markup
 from lib.txr_addenda_layout import inline, clean
+from lib.brokerage_defaults import broker_license
 
 TITLE = 'TXR-1501 - Answer Continuation'
 INITIAL_X = {'1':110, '2':286, 'professional':462}
@@ -43,7 +44,7 @@ def answer_layout(data, brokerage, associate):
     put(3,data.get('payment_county'),'Paragraph 7H - Payment county',[(381,311,112)])
     for label,value,x,y,width in [
         ('Broker printed name',broker,36,400,197),
-        ('Broker license',brokerage.get('license_number'),240,400,46),
+        ('Broker license',broker_license(broker, brokerage.get('license_number')),240,400,46),
         ('Associate printed name',agent,36,309,197),
         ('Associate license',associate.get('license_number'),240,309,46),
         ('Client 1 printed name',clients[0] if clients else '',324,400,250),

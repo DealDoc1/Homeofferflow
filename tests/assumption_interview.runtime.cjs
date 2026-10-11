@@ -18,6 +18,7 @@ function setup(){
     setAppraisalAddendumRequired:()=>{},numFromEl:field=>Number(field.value),getCalcNumber:id=>Number(el(id).value),getSelectedFinancingType:()=>radio.financing,getCurrentFinancingChoice:()=>radio.financing,
   });
   vm.runInContext(section('  function escapeAttr(', '  function withTimeout(')+section('  function hydrostaticSigningSummary(', '  function validateSellerTemporaryLeaseInputs(')+section('  function collectData()', '  function selectPlan(')+section('  function validateCurrentStep()', '  function startHomebuyerOffer(')+section('  function updateAppraisalAddendumVisibility(', '  function sanitizeBuyerMailingAddressAutofill('),c);
+  require('./load_brokerage_defaults.runtime.cjs')(c, html);
   vm.runInContext(section('  function moneyNumber(', '  function buildLegalDescription('),c);
   c.restoreAssumptionAnswers(valid);el('offerPrice').value=valid.price;el('seller1Name').value=valid.seller1Name;el('seller1Email').value=valid.seller1Email;
   el('earnestMoney').value='5000';el('optionFee').value='250';el('optionDays').value='7';el('appraisalAddendumBox').style.display='none';

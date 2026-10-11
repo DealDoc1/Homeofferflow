@@ -8,6 +8,7 @@ function setup(financing='conventional'){
   const c=vm.createContext({state:{step:0,data:{}},window:{},document:{getElementById:el,querySelectorAll:()=>[],querySelector:()=>({value:radios.financing})},
     getCurrentSteps:()=>['step3','step5','step7'],getRadio:id=>radios[id]||'',getVal:id=>String(el(id).value??'').trim(),showFieldRecommendation(){},setInputIfEmpty(){},
   });
+  require('./load_brokerage_defaults.runtime.cjs')(c, html);
   vm.runInContext(section('  function moneyNumber(', '  function buildLegalDescription(')
     +section('  function numFromEl(', '  function showFieldRecommendation(')
     +section('  function calculatePriceTermsOnly(', '  function wireSmartCalculations(')

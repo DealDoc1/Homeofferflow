@@ -2,6 +2,7 @@
 
 from lib.txr_addenda_layout import SourceAnswers, clean
 from lib import lease_terms_continuation
+from lib.brokerage_defaults import broker_license
 
 
 RENDER_REVISION = "trec-20-19-2026-10-11-contacts-execution-v1"
@@ -58,6 +59,8 @@ def answer_layout(offer, *, lease_kind=""):
         answers.put(offer.get("agentEmail"), [(96, 52, 201)], "Buyer agent notice email", page=8)
         for key, blank in BROKER_BLANKS.items():
             value = agent_address(offer) if key == "agentAddress" else offer.get(key)
+            if key == "agentBrokerLicense":
+                value = broker_license(offer.get("agentBrokerage"), value)
             answers.put(value, [blank], LABELS[key], page=11)
     return answers
 

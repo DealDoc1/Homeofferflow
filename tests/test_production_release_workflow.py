@@ -57,6 +57,7 @@ class ProductionReleaseWorkflowTests(unittest.TestCase):
 
     def test_release_uses_secret_and_checks_canonical_site(self):
         self.assertIn("secrets.VERCEL_TOKEN", self.text)
+        self.assertNotIn("--token", self.text)
         self.assertNotIn("VERCEL_TOKEN=", self.text)
         self.assertIn("vercel inspect", self.text)
         self.assertIn("https://www.homeofferflow.com/", self.text)

@@ -42,8 +42,10 @@ function setup(audience, accountRole = 'agent') {
     setInputIfEmpty:(...args)=>writes.push(args),
     setRadioValue:(...args)=>writes.push(args),
     getRadio:()=>'',
+    getVal:()=>'',
     syncAgentQuickFields:()=>writes.push(['syncAgent']),
   });
+  require('./load_brokerage_defaults.runtime.cjs')(context, html);
   vm.runInContext(roleHelpers + updateAuthUI + defaults + authoritativeProfile, context);
   root.loadAccountProfile = async () => {
     root.updateAuthUI();
