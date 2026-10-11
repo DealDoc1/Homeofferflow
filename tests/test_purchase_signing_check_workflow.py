@@ -16,7 +16,20 @@ class PurchaseSigningCheckWorkflowTests(unittest.TestCase):
         self.assertIn("team_BZUBDsoLMwlnaXtIES35YT4S", text)
         for forbidden in ("vercel build", "vercel deploy", "vercel env add", "--token=", "write-all"):
             self.assertNotIn(forbidden, text)
-        self.assertIn("vercel@57.0.0", text)
+        self.assertNotIn("vercel pull", text)
+        self.assertNotIn(".vercel/.env", text)
+        self.assertNotIn("VERCEL_TOKEN", text)
+
+    def test_missing_runner_secret_stops_before_preparation_dependencies_and_any_send(self):
+        text = (ROOT / ".github/workflows/purchase-signing-qa.yml").read_text()
+        boundary = "Require an existing runner credential without exporting production Secrets"
+        self.assertLess(text.index(boundary), text.index("Install pinned test dependencies"))
+        self.assertLess(text.index(boundary), text.index("Record the attempt before the provider call"))
+        section = text.split("- name: " + boundary, 1)[1].split("- uses:", 1)[0]
+        self.assertIn("SIGNWELL_API_KEY: ${{ secrets.SIGNWELL_API_KEY }}", section)
+        self.assertIn("if not key:", section)
+        self.assertIn("raise SystemExit", section)
+        self.assertNotIn("print(key", text)
 
     def test_duplicate_attempt_is_reserved_before_send_and_only_safe_artifacts_are_exported(self):
         text = (ROOT / ".github/workflows/purchase-signing-qa.yml").read_text()

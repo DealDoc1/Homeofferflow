@@ -36,3 +36,12 @@ Window: preceding 24 hours, checked at 09:11 America/Chicago. The report follows
 - Exactly one Vercel deployment was created. The live credit check showed $0.03 consumed with $19.97 available and a $3 reserve. The earlier stopped workflow never reached a Vercel build.
 - SignWell access was restored through the existing Google session. No new QA invitation or real client packet was sent. Fresh completed-provider PDF review for the new map remains pending; it is not yet a fully verified signing matrix.
 - The other roadmap gaps recorded above remain open. This update does not claim the full brokerage launch or every form is complete.
+
+## Controlled signing verification follow-up
+
+- QA-only PRs #1307 and #1308 merged after independent CI, without another Vercel build. The compact specimen contains thirteen visually reviewed synthetic pages and 26 production-map fields covering single Buyer, four-party execution, and long Unicode contacts.
+- The controlled test attempt `38154670719` returned HTTP 401 with no confirmed document ID. No resend or customer-packet mutation followed. Read-only diagnostic `38156897506` confirmed this was not an escaped-newline decoding discrepancy.
+- Vercel metadata confirms the Production SignWell key is protected and cannot be exported by environment pull. The QA runner has no separate configured SignWell credential. This limits this particular QA execution path; it does not prove production signing is broken. Remove the ineffective fallback rather than weaken Secret protection or repeatedly call the provider.
+- Latest completed QA-tool regression before that boundary correction: 2,495 tests, one skipped. Customer-contract release verification remains the separately recorded 2,481-test candidate and actual canonical deployment above.
+- Protected-credential boundary correction: sixteen focused tests and 2,497 full local tests pass, with one skipped. QA-only changes remove wasted provider attempts and environment pulls; no additional Vercel deployment is needed.
+- Remaining: actual completed-provider PDF inspection, amendment orphan-widget cleanup, guided-document handoff reproduction, and other open roadmap items. UX gains are clearer questions and better document placement; no measured revenue or conversion improvement is claimed.
