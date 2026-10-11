@@ -38,3 +38,14 @@ Use the owner-confirmed broker firm license `9010832` when OnDemand Realty is id
 - Final review found the brokerage-profile card could borrow a saved personal-profile license despite a different displayed firm name. Match the actual displayed brokerage before borrowing a saved license; otherwise apply only the exact named firm's known default. Preserve explicitly entered organization licenses. No backend/PDF/source/signing changes in this follow-up.
 - Twenty-eight affected local tests pass. The actual profile-card template calls the tested matching helper; six differing-name/blank/explicit-license cases are covered. Installed web shell v82 delivers the corrected card without reloading an open interview.
 - Protected CI and the corrected canonical release are recorded when actually completed. The already visual-reviewed PDF default and existing completed-provider signing gap are unchanged.
+
+## Corrected canonical production verification
+
+- PR #1311 passed full independent CI `38175989764` and merged as `0109881c426a8328225bd58d9b2c18b3c1cfa67c`.
+- Intentional corrective UI release `38176231757` succeeded. Its 2,502-test regression passed with one skipped; whitespace, preflight, database readiness, spending, prebuilt build/deploy, canonical, PWA, and packet-runtime checks passed.
+- READY deployment `dpl_3n8uXBf7obNbZaaPmfTdgNTzgHtq`, `homeofferflow-27qjuwe2v-dealdoc1s-projects.vercel.app`, exact SHA `0109881c426a8328225bd58d9b2c18b3c1cfa67c`. Both `www.homeofferflow.com` and `homeofferflow.com` alias it.
+- Canonical HTML SHA-256 matches the local released page exactly: `ef6a5916198558575e71527c8ac0ae5f6c17c74857ce6e889218c1ed05c79443`. Canonical worker is v82. All six public-page checks returned HTTP 200; production packet health passed and signing test mode remains false.
+- Latest pre-build Vercel check: $0.03 used of the $20 infrastructure credit, $19.97 unconsumed, $3 reserved. The profile-card edge case required a second intentional UI release; no preview or automatic deployment was created.
+- Authenticated live owner-profile review displayed OnDemand Realty and 9010832 separately from the associate's license. No profile fields were edited or saved. The public agent Purchase route reached the authenticated Question 2 chooser after initialization; no client offer was opened.
+- Existing authenticated Admin delivery-connection check reported both SignWell and Resend ready. It explicitly created no document or email. This verifies production-runtime connectivity, not completed signing or inbox delivery, and refutes treating the inaccessible QA-runner key as proof of a production outage.
+- No real client packet or signed PDF was altered or resent. Fresh completed-provider inspection of the earlier signing-map change remains outstanding.
