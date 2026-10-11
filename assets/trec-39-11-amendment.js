@@ -157,7 +157,9 @@
     form.querySelector('[name="propertyAddress"]')?.focus();
   }
 
-  root.hofOpenTrec3911Draft = () => openDraftDialog().catch(error => root.announceWorkspaceStatus?.(root.hofApprovedSourceStatusCopy?.(error) || 'We couldn’t open that document. Please try again.'));
+  // The guided handoff owns its loading status and retry control. Preserve
+  // rejection so a failed source load cannot look like a successful opening.
+  root.hofOpenTrec3911Draft = () => openDraftDialog();
   async function renderCard() {
     const panel = document.getElementById('accountPanelRelationships'); if (!panel || !activeAgent() || document.getElementById('trec3911AgreementCard')) return;
     const card = document.createElement('div'); card.id = 'trec3911AgreementCard'; card.className = 'account-card hof-agreement-card'; card.innerHTML = '<h4>Amendment to Contract</h4><p>Checking the HomeOfferFlow form library…</p>'; panel.appendChild(card);

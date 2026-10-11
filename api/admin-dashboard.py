@@ -164,7 +164,7 @@ TXR_RENDER_REVISIONS = {
     "TXR-1954": "txr-1954-2026-09-18-neutral-source-v4",
     "TREC-62-0": "trec-62-0-2026-09-22-source-v1",
     "TREC-38-8": "trec-38-8-2026-09-22-source-v1",
-    "TREC-39-11": "trec-39-11-2026-10-05-source-v1",
+    "TREC-39-11": "trec-39-11-2026-10-11-static-source-v2",
 }
 
 TXR_SIGNING_MAP_REVISIONS = {

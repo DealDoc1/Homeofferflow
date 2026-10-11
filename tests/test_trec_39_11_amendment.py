@@ -6,7 +6,8 @@ import unittest
 from io import BytesIO
 from pathlib import Path
 
-from pypdf import PdfReader
+from pypdf import PdfReader, PdfWriter
+from pypdf.generic import ArrayObject, DictionaryObject, FloatObject, NameObject, TextStringObject
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,6 +18,12 @@ SPEC.loader.exec_module(ADMIN)
 
 
 class Trec3911AmendmentTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which('node'), 'Node.js is required for interview runtime checks')
+    def test_guided_opener_failure_reaches_its_retry_handler(self):
+        result = subprocess.run(['node','--test',str(Path(__file__).with_name('trec_39_11_opener.runtime.cjs'))],
+                                capture_output=True,text=True,timeout=20)
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+
     @unittest.skipUnless(shutil.which('node'), 'Node.js is required for interview runtime checks')
     def test_displayed_price_total_accepts_formatted_amounts(self):
         result = subprocess.run(
@@ -114,6 +121,48 @@ class Trec3911AmendmentTests(unittest.TestCase):
         self.assertEqual(len(signatures), 4)
         self.assertTrue(all(field["page"] == 1 for field in signatures))
         self.assertFalse(any(field["type"] == "date" for field in fields))
+
+    def test_generated_signing_copy_has_no_orphan_source_widgets_or_field_tree(self):
+        from lib.trec_39_11 import render_trec_39_11
+        original = SOURCE.read_bytes()
+        source_reader = PdfReader(BytesIO(original))
+        self.assertTrue(source_reader.get_fields())
+        source_widgets = [a for a in source_reader.pages[0]['/Annots'].get_object()
+                          if a.get_object().get('/Subtype') == '/Widget']
+        self.assertEqual(len(source_widgets), 51)
+        for long_terms in (False, True):
+            data = self.parsed()['agreement_data']
+            if long_terms:
+                data['other_modifications'] = 'Exact entered amendment term ' * 180
+            result = PdfReader(BytesIO(render_trec_39_11(original, data)))
+            self.assertFalse(result.get_fields())
+            self.assertNotIn('/AcroForm', result.trailer['/Root'])
+            for page in result.pages:
+                self.assertFalse(any(a.get_object().get('/Subtype') == '/Widget'
+                                     for a in page.get('/Annots', [])))
+        self.assertEqual(SOURCE.read_bytes(), original)
+
+    def test_admin_snapshot_identifies_the_actual_clean_renderer_revision(self):
+        from lib.trec_39_11 import RENDER_REVISION
+        self.assertEqual(ADMIN.TXR_RENDER_REVISIONS['TREC-39-11'], RENDER_REVISION)
+
+    def test_source_link_annotations_are_preserved_when_widgets_are_removed(self):
+        from lib.trec_39_11 import render_trec_39_11
+        writer = PdfWriter()
+        writer.clone_document_from_reader(PdfReader(BytesIO(SOURCE.read_bytes())))
+        link = DictionaryObject({
+            NameObject('/Type'): NameObject('/Annot'), NameObject('/Subtype'): NameObject('/Link'),
+            NameObject('/Rect'): ArrayObject([FloatObject(n) for n in (30, 30, 60, 40)]),
+            NameObject('/A'): DictionaryObject({NameObject('/S'): NameObject('/URI'),
+                                                NameObject('/URI'): TextStringObject('https://www.trec.texas.gov')}),
+        })
+        writer.add_annotation(0, link)
+        output = BytesIO(); writer.write(output)
+        reader = PdfReader(BytesIO(render_trec_39_11(output.getvalue(), self.parsed()['agreement_data'])))
+        annotations = [a.get_object() for a in reader.pages[0]['/Annots']]
+        self.assertEqual(len(annotations), 1)
+        self.assertEqual(annotations[0]['/Subtype'], '/Link')
+        self.assertEqual(annotations[0]['/A']['/URI'], 'https://www.trec.texas.gov')
 
     def test_single_buyer_and_seller_use_the_first_printed_signature_lines(self):
         from lib.trec_39_11 import build_signwell_fields_trec3911

@@ -5,6 +5,7 @@ from decimal import Decimal, InvalidOperation
 from io import BytesIO
 
 from pypdf import PdfReader, PdfWriter
+from pypdf.generic import NameObject
 from reportlab.pdfgen.canvas import Canvas
 
 from lib.txr_addenda_layout import SourceAnswers, draw_entries
@@ -12,7 +13,7 @@ from lib.txr_addenda_layout import SourceAnswers, draw_entries
 
 PAGE_WIDTH = 612
 PAGE_HEIGHT = 792
-RENDER_REVISION = "trec-39-11-2026-10-05-source-v1"
+RENDER_REVISION = "trec-39-11-2026-10-11-static-source-v2"
 
 CHANGE_MARKS = {
     "sales_price": (39, 654),
@@ -142,6 +143,12 @@ def render_trec_39_11(source_pdf_bytes, data):
     continuation = answers.continuation()
     if continuation:
         writer.append(PdfReader(BytesIO(continuation)))
+    # The interview paints answers onto the source; SignWell supplies the
+    # execution fields. Original blank AcroForm widgets are not that signing
+    # map and must not remain as orphaned, viewer-editable annotations.
+    # Keep non-widget annotations (such as links) and the original source.
+    writer.remove_annotations(subtypes='/Widget')
+    writer._root_object.pop(NameObject('/AcroForm'), None)
     output = BytesIO()
     writer.write(output)
     return output.getvalue()
