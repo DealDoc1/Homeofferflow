@@ -78,3 +78,30 @@ test('natural-resource-only validation accepts complete terms and rejects missin
   assert.equal(x.context.validateParagraph4LeaseInputs({...complete, naturalResourceTerminationDays: ''}), false);
   assert.match(x.paymentStatus(), /termination period from 1 to 999 days/);
 });
+
+test('received leases hide termination days and require no seller addendum signers', () => {
+  const x = setup();
+  x.ids.get('leaseNaturalResource').checked = true;
+  x.ids.get('leaseNRDelivered').value = 'yes';
+  x.context.updateParagraph4LeaseVisibility();
+  assert.equal(x.ids.get('naturalResourceLeaseInterview').style.display, 'block');
+  assert.equal(x.ids.get('naturalResourceTerminationDaysField').style.display, 'none');
+  assert.equal(x.ids.get('paragraph4SellerFields').style.display, 'none');
+  assert.equal(x.context.validateParagraph4LeaseInputs({
+    leases: 'yes', leaseNaturalResource: 'yes', leaseResidential: 'no', leaseFixture: 'no',
+    leaseNRDelivered: 'yes', naturalResourceTerminationDays: '',
+  }), true);
+  x.ids.get('leaseNRDelivered').value = 'no';
+  x.context.updateParagraph4LeaseVisibility();
+  assert.equal(x.ids.get('naturalResourceTerminationDaysField').style.display, 'block');
+  x.ids.get('leaseNRDelivered').value = 'yes';
+  x.context.updateParagraph4LeaseVisibility();
+  assert.equal(x.ids.get('naturalResourceTerminationDaysField').style.display, 'none');
+});
+
+test('natural-resource not-received answer enforces the printed termination-day range', () => {
+  const x = setup();
+  const data = {leases:'yes',leaseNaturalResource:'yes',leaseResidential:'no',leaseFixture:'no',leaseNRDelivered:'no'};
+  for (const days of ['1', '999']) assert.equal(x.context.validateParagraph4LeaseInputs({...data,naturalResourceTerminationDays:days}), true);
+  for (const days of ['0', '1000', '1.5', 'seven']) assert.equal(x.context.validateParagraph4LeaseInputs({...data,naturalResourceTerminationDays:days}), false);
+});

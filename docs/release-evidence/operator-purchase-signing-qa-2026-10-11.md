@@ -36,3 +36,16 @@
 - PR #1313 passed independent run `38197900775` (regression, golden rendering, standalone geometry, schema preflight) and merged as `c436aef4365a3d2381c98d7760ca617ebb6c93a0`.
 - Release run `38198137957` passed its regression but stopped at committed-range whitespace validation: one blank line at the end of the new test file. No Vercel build, deployment or provider send occurred.
 - Remove only that trailing blank line; no customer code, map, source, behavior or test assertion changes. Check whitespace against the actual release baseline before the retry. The local full-candidate regression remains applicable to the identical executable content.
+
+## Actual production and operator result
+
+- PR #1314 passed exact-head CI `38198484543` and merged as `a9f636f226f53aed0001a126c8252067257a1f96`.
+- Intentional release `38198807443` succeeded. Exact-commit cloud regression: 2,519 tests, OK (two environment-dependent skips); whitespace, preflight, schema readiness, spend safety, prebuilt deploy and canonical PWA/API/packet checks passed.
+- READY production `dpl_2LPhspe1wD7Axovg9rFhLzgjcrms`, both canonical domains aliased, metadata confirms that exact merge SHA. Shell v84. Pre-build credit snapshot at 03:14:52 UTC: $0.03/$20 used, $19.97 unconsumed, $3 reserve. Not a future usage guarantee.
+- Canonical unsigned operator request returned HTTP 401; no signing action reached the provider. The existing authenticated owner `andrewchri@gmail.com` opened Admin, confirmed no prior run, and clicked the deployed Send one signing test exactly once.
+- Persistent run `d9ce0647-e883-45b3-9d01-3197e6c9913e`, phase `created`, production SHA verified, provider document `6ad57745-57bc-4bd0-8324-e7d68b51c86e`, confirmed test mode true, exact reviewed field digest `9d4579cd2e2ece934aacdae185d462ac3528a45c6f831cb610bb575872a73691`.
+- Fresh read-only Check test status accepted the exact provider QA identity/recipients and reported awaiting completion; Send remains disabled. Screenshot saved locally. Ledger status intentionally remains running, not passed.
+- One test document was created. No repeated send, customer packet, live signing setting, allowance, profile, schema, source or credential was changed. Provider creation is not proof of either inbox delivery, completed signatures or final signed-PDF geometry.
+- Bounded production error-level log scan, deployment above, 03:15:20 through 03:48:04 UTC: no matching logs. This is a sampled error window, not universal end-to-end coverage.
+- Final completed-provider PDF visual review remains in progress. Keep the existing purchase/form roadmap items partial until that evidence exists.
+- Gmail metadata confirms the actual SignWell request is in Andrew's INBOX: message `1a12e3961233c653`, Delivered-To `andrewchri@gmail.com`, subject `TEST ONLY: corrected HomeOfferFlow purchase-contract placement`, X-SW-Document matches `6ad57745-57bc-4bd0-8324-e7d68b51c86e`, received 03:47:54 UTC. No signer link or body was read/exported. BrewBQ inbox delivery is not independently verified.
