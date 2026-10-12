@@ -4633,6 +4633,16 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     hofAuth.authoritativeRole = null;
     hofAuth.profileReady = false;
     hofAuth.profileLoadError = '';
+    if (window.hofPlatform) {
+      window.hofPlatform.brokerage = null;
+      window.hofPlatform.brokerageMembership = null;
+      window.hofPlatform.brokerageAgents = [];
+      window.hofPlatform.brokerageLoadError = '';
+    }
+    window.__hofBrokerageLoad = null;
+    window.__hofBrokerageRender = null;
+    const brokeragePanel = document.getElementById('brokerageFoundationPanel');
+    if (brokeragePanel) brokeragePanel.innerHTML = '';
     if (state.data) state.data.includeAgentIabs = false;
     window.hofClearProfileEditDraft?.();
     document.getElementById('agentIabsProfileCard')?.remove();
@@ -21698,17 +21708,26 @@ function routeAfterMagicLinkIfNeeded() {
     // platform enhancement initializes this namespace. Brokerage access must
     // remain optional and must never prevent a signed-in user opening Account.
     root.hofPlatform = root.hofPlatform || {};
+    const request = { userId: user.id, epoch: root.__hofAccountProfileEpoch || 0 };
+    root.__hofBrokerageLoad = request;
+    const isCurrent = () => root.__hofBrokerageLoad === request &&
+      root.hofAuth?.session?.user?.id === request.userId &&
+      (root.__hofAccountProfileEpoch || 0) === request.epoch;
+    root.hofPlatform.brokerage = null;
+    root.hofPlatform.brokerageMembership = null;
+    root.hofPlatform.brokerageAgents = [];
+    root.hofPlatform.brokerageLoadError = '';
     try {
       const profileResult = await client
         .from('hof_profiles')
         .select('id,brokerage_id,is_brokerage_admin,role,team_name')
         .eq('id',user.id)
         .maybeSingle();
+      if (!isCurrent()) return null;
       if (profileResult.error) throw profileResult.error;
-      root.hofAuth.authoritativeProfile = profileResult.data || null;
       const brokerageId = profileResult.data?.brokerage_id;
       if (!brokerageId) {
-        root.hofPlatform.brokerage = null;
+        root.hofAuth.authoritativeProfile = profileResult.data || null;
         return null;
       }
       const [brokerageResult,membershipResult] = await Promise.all([
@@ -21719,12 +21738,17 @@ function routeAfterMagicLinkIfNeeded() {
           .select('role,status,created_at,updated_at')
           .eq('brokerage_id',brokerageId).eq('user_id',user.id).maybeSingle()
       ]);
+      if (!isCurrent()) return null;
       if (brokerageResult.error) throw brokerageResult.error;
       if (membershipResult.error) throw membershipResult.error;
+      root.hofAuth.authoritativeProfile = profileResult.data || null;
       root.hofPlatform.brokerage = brokerageResult.data || null;
       root.hofPlatform.brokerageMembership = membershipResult.data || null;
       return root.hofPlatform.brokerage;
     } catch(error) {
+      if (!isCurrent()) return null;
+      root.hofAuth.authoritativeProfile = null;
+      root.hofPlatform.brokerageLoadError = 'We couldn’t load your brokerage. Please try again.';
       console.warn('Brokerage membership load failed:', error);
       return null;
     }
@@ -22265,10 +22289,21 @@ function routeAfterMagicLinkIfNeeded() {
   root.renderBrokerageFoundationPanel = async function renderBrokerageFoundationPanel() {
     const el = document.getElementById('brokerageFoundationPanel');
     if (!el) return;
-    if (!root.hofPlatform?.brokerage) await root.loadBrokerageFoundation?.();
+    const request = { userId: root.hofAuth?.session?.user?.id, epoch: root.__hofAccountProfileEpoch || 0 };
+    root.__hofBrokerageRender = request;
+    const isCurrent = () => root.__hofBrokerageRender === request &&
+      root.hofAuth?.session?.user?.id === request.userId &&
+      (root.__hofAccountProfileEpoch || 0) === request.epoch;
+    if (!root.hofPlatform?.brokerage && !root.hofPlatform?.brokerageLoadError) await root.loadBrokerageFoundation?.();
+    if (!isCurrent()) return;
     const b = root.hofPlatform?.brokerage;
     const membership = root.hofPlatform?.brokerageMembership;
     const profile = root.hofAuth?.authoritativeProfile || {};
+    if (root.hofPlatform?.brokerageLoadError) {
+      el.innerHTML = '<div class="platform-card"><h4>Brokerage workspace</h4><p role="status">' +
+        safe(root.hofPlatform.brokerageLoadError) + '</p><button type="button" class="brokerage-access-button" onclick="retryBrokerageWorkspace()">Try again</button></div>';
+      return;
+    }
     if (!b) {
       el.innerHTML = '<div class="platform-card"><h4>Brokerage connection</h4>' +
         '<p>This account is not connected to a brokerage. OnDemand agents should enroll through the dedicated launch page.</p>' +
@@ -22303,6 +22338,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!isBroker) return;
     try {
       const data = await brokerSummary();
+      if (!isCurrent() || root.hofPlatform?.brokerage !== b) return;
       const m = data.metrics || {};
       const agents = data.agents || [];
       const teamCohorts = Array.isArray(data.teamCohorts) ? data.teamCohorts : [];
@@ -22446,9 +22482,21 @@ function routeAfterMagicLinkIfNeeded() {
         '</tbody></table>';
       root.renderBrokerageBrandPreview();
     } catch(error) {
-      document.getElementById('brokerSafeDashboard').innerHTML =
+      if (!isCurrent() || root.hofPlatform?.brokerage !== b) return;
+      const dashboard = document.getElementById('brokerSafeDashboard');
+      if (!dashboard) return;
+      dashboard.innerHTML =
         '<h4>Brokerage activity</h4><div class="platform-status err">' + safe(window.hofCustomerActionError?.(error, 'We couldn’t load the brokerage activity. Refresh and try again.') || 'We couldn’t load the brokerage activity. Refresh and try again.') + '</div>';
     }
+  };
+
+  root.retryBrokerageWorkspace = async function retryBrokerageWorkspace() {
+    const userId = root.hofAuth?.session?.user?.id;
+    const epoch = root.__hofAccountProfileEpoch || 0;
+    if (!userId) return;
+    await root.loadBrokerageFoundation?.();
+    if (root.hofAuth?.session?.user?.id !== userId || (root.__hofAccountProfileEpoch || 0) !== epoch) return;
+    await root.renderBrokerageFoundationPanel?.();
   };
 
   root.openBrokerageMembershipRequest = function openBrokerageMembershipRequest() {

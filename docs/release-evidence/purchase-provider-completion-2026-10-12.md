@@ -42,3 +42,13 @@
 
 - During canonical verification, opening the owner account and immediately selecting Admin initially showed Loading admin dashboard. When the startup/profile work settled, the visible panel was Dashboard while keyboard focus remained on Admin. Selecting Admin after initialization stayed active and allowed the read-only status check.
 - Record this startup/tab-selection race for the next bounded UX workstream. Do not count it as fixed by this API-only release, an access problem, or a reason to resend the QA packet.
+
+## Approved first-recipient finalization
+
+- The human explicitly answered `Yes—finalize this QA packet` to the scoped final electronic-disclosure question. Accepted `Agree & Finish` only on the existing test session, using the fictional QA Signer A signature already prepared.
+- Actual provider result: `Thanks for filling out your document.` The completion screen states that the final copy will be emailed once everyone completes it. This is recipient completion, not whole-document completion.
+- The owner document list now shows the exact same document `In Progress`; its recipient tooltip explicitly says `QA Signer B has not completed the document.` Manage Recipients shows the original two approved inboxes unchanged. Did not select, edit, replace, remind, resend or mark a document signed.
+- First-recipient completion screenshot: `/private/tmp/hof-provider-completion.bBz0N0/qa-signer-a-completed.jpg`. Owner status screenshot: `/private/tmp/hof-provider-completion.bBz0N0/qa-packet-first-signer-in-progress.jpg`.
+- The connected Gmail search found only the original Andrew invitation. The in-app Gmail account switcher offered only Andrew's current account; the open Chrome Gmail tab is also Andrew's inbox. No existing second-inbox session was available in these checked surfaces. Requested opening or completing the already sent invitation in `brewbqinfo@gmail.com`, not another approval or a duplicate send.
+- The first-recipient PDF link did not yield a registered new browser tab or an exact matching purchase-QA download in the bounded filesystem check. No completed provider PDF was acquired; do not substitute an unsigned local rendering or claim final visual QA.
+- Second-recipient completion and actual completed-PDF review remain outstanding. No new Vercel deployment is needed for this evidence-only checkpoint; production behavior remains unchanged.
