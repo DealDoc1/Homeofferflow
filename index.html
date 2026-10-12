@@ -4634,6 +4634,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     hofAuth.profileReady = false;
     hofAuth.profileLoadError = '';
     if (state.data) state.data.includeAgentIabs = false;
+    window.hofClearProfileEditDraft?.();
     document.getElementById('agentIabsProfileCard')?.remove();
     document.getElementById('agentIabsOfferOption')?.remove();
   }
@@ -25970,6 +25971,101 @@ function routeAfterMagicLinkIfNeeded() {
   new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', scan, { once: true }); else scan();
 })();
+</script>
+<script id="hof-profile-edit-draft-v1">
+(function(root){
+  const doc = root.document;
+  let draftScope = '', baseline = new Map(), edits = new Map(), editRevision = 0;
+  function scope(){
+    const id = root.hofAuth?.session?.user?.id;
+    return id ? `${id}:${root.hofAuth?.role === 'investor' ? 'investor' : 'agent'}:${root.__hofAccountProfileEpoch || 0}` : '';
+  }
+  function ensureScope(){
+    const next = scope();
+    if (next !== draftScope) {
+      draftScope = next; baseline.clear(); edits.clear(); editRevision += 1;
+    }
+    return next;
+  }
+  function controls(){
+    const container = doc.getElementById('accountProfileForm');
+    return Array.from(container?.querySelectorAll('input[id^="prof"], select[id^="prof"], textarea[id^="prof"]') || [])
+      .filter(e => !['hidden', 'password', 'file', 'button', 'submit'].includes(e.type)
+        && !/password|token|secret|apiKey/i.test(e.id));
+  }
+  const value = e => ['checkbox', 'radio'].includes(e.type) ? e.checked : e.value;
+  function snapshot(){ return new Map(controls().map(e => [e.id, value(e)])); }
+  function capture(){
+    if (!ensureScope()) return;
+    for (const e of controls()) {
+      if (!baseline.has(e.id)) continue;
+      const current = value(e);
+      if (current !== baseline.get(e.id)) {
+        if (!edits.has(e.id) || edits.get(e.id) !== current) editRevision += 1;
+        edits.set(e.id, current);
+      } else if (edits.delete(e.id)) editRevision += 1;
+    }
+  }
+  function notice(){
+    const container = doc.getElementById('accountProfileForm');
+    let message = doc.getElementById('profileEditDraftNotice');
+    if (!container || !edits.size) { message?.remove(); return; }
+    if (message) return;
+    message = doc.createElement('div'); message.id = 'profileEditDraftNotice';
+    message.className = 'notice sage'; message.setAttribute('role', 'status');
+    message.setAttribute('aria-live', 'polite');
+    const copy = doc.createElement('span'); copy.textContent = 'Your edits are kept on this screen. Save or discard them when ready. ';
+    const discard = doc.createElement('button'); discard.type = 'button';
+    discard.className = 'btn-secondary'; discard.textContent = 'Discard changes';
+    discard.addEventListener('click', () => {
+      clear(); root.renderAccountProfileForm?.();
+    });
+    message.appendChild(copy); message.appendChild(discard); container.prepend(message);
+  }
+  function clear(){
+    const current = ensureScope(); edits.clear(); editRevision += 1;
+    baseline = current ? snapshot() : new Map(); notice();
+  }
+  root.hofClearProfileEditDraft = clear;
+  const previousRender = root.renderAccountProfileForm;
+  root.renderAccountProfileForm = function(){
+    ensureScope(); capture();
+    const currentScope = draftScope, container = doc.getElementById('accountProfileForm');
+    const active = doc.activeElement, panel = doc.getElementById('accountPanelProfile');
+    const focused = (!panel || panel.classList.contains('active')) && container?.contains(active) && controls().includes(active)
+      ? {id: active.id, start: active.selectionStart, end: active.selectionEnd} : null;
+    const result = typeof previousRender === 'function' ? previousRender.apply(this, arguments) : undefined;
+    ensureScope(); baseline = snapshot();
+    if (currentScope && currentScope === draftScope) {
+      for (const e of controls()) {
+        if (!edits.has(e.id)) continue;
+        const saved = edits.get(e.id);
+        if (saved === baseline.get(e.id)) { edits.delete(e.id); continue; }
+        if (['checkbox', 'radio'].includes(e.type)) e.checked = saved;
+        else e.value = saved;
+      }
+      const nextFocus = focused && doc.getElementById(focused.id);
+      if (nextFocus && edits.has(focused.id)) {
+        nextFocus.focus({preventScroll: true});
+        try { if (Number.isInteger(focused.start)) nextFocus.setSelectionRange(focused.start, focused.end); } catch (_) {}
+      }
+    }
+    notice(); return result;
+  };
+  const previousSave = root.saveAccountProfile;
+  root.saveAccountProfile = async function(){
+    ensureScope(); capture(); const savingScope = draftScope, savingRevision = editRevision;
+    const result = typeof previousSave === 'function' ? await previousSave.apply(this, arguments) : null;
+    if (result && savingScope === scope() && savingRevision === editRevision
+        && !doc.getElementById('accountStatus')?.classList.contains('err')) clear();
+    return result;
+  };
+  for (const eventName of ['input', 'change']) doc.addEventListener(eventName, event => {
+    const container = doc.getElementById('accountProfileForm');
+    if (container?.contains(event.target)) { capture(); notice(); }
+  });
+  ensureScope(); baseline = snapshot();
+})(window);
 </script>
 </body>
 </html>
