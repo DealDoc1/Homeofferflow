@@ -620,6 +620,150 @@ async def _check_delivery_connections():
     return {"signwell": signwell, "resend": resend}
 
 
+def _purchase_qa_receipt(run):
+    """Only safe receipt fields reach the operator's browser."""
+    from lib.purchase_signing_qa import QA_REVISION
+    try:
+        receipt = json.loads(run.get("notes") or "{}")
+    except (TypeError, ValueError):
+        receipt = {}
+    if not isinstance(receipt, dict) or receipt.get("qa_revision") != QA_REVISION:
+        receipt = {}
+    return {"run_id": str(run.get("id") or ""),
+            "phase": receipt.get("phase") or "unconfirmed",
+            "document_id": receipt.get("document_id") or "",
+            "provider_status": receipt.get("provider_status") or "",
+            "test_mode": receipt.get("phase") == "created" and receipt.get("test_mode") is True,
+            "message": "A test attempt is recorded. Check its status; it will not be sent again."}
+
+
+async def _purchase_signing_qa(user, *, send=False):
+    """One fixed nonbinding test, reserved before any provider side effect.
+
+    The deployed credential never leaves this function. Request bodies cannot
+    choose recipients, fields, test mode, revision, or customer records.
+    A fixed unique QA run survives refreshes, releases, timeouts and retries.
+    """
+    from lib.purchase_signing_qa import (QA_OPERATOR_EMAILS, QA_REVISION,
+                                        QA_SCENARIO, QA_RECIPIENTS, REVIEWED_SOURCE_COMMIT,
+                                        build_packet, build_payload)
+    if not user or user.get("email") not in QA_OPERATOR_EMAILS or not await _is_platform_admin(user):
+        raise PermissionError("This signing test is available only to the approved owner account.")
+    if not SIGNWELL_ENABLED or not SIGNWELL_API_KEY:
+        raise ValueError("The signing connection is unavailable. Nothing was sent.")
+    scenarios = await _get(f"hof_qa_scenarios?scenario_key=eq.{QA_SCENARIO}&select=id&limit=1")
+    if not scenarios and send:
+        async with httpx.AsyncClient(timeout=12) as client:
+            response = await client.post(
+                f"{SUPABASE_URL}/rest/v1/hof_qa_scenarios?on_conflict=scenario_key",
+                headers={**_headers(), "Prefer": "resolution=ignore-duplicates,return=minimal"},
+                json={"scenario_key": QA_SCENARIO, "title": "Purchase provider placement",
+                      "category": "signing", "description": "Synthetic one/two-buyer execution and Unicode contact continuation; completed PDF visual review required.",
+                      "current_status": "partial", "priority": 900},
+            )
+        if response.status_code not in {200, 201, 204}:
+            raise ValueError("The test tracker could not be prepared. Nothing was sent.")
+        scenarios = await _get(f"hof_qa_scenarios?scenario_key=eq.{QA_SCENARIO}&select=id&limit=1")
+    if not scenarios:
+        return {"phase": "not_started", "message": "No purchase signing test has been sent."}
+    query = f"scenario_id=eq.{scenarios[0]['id']}&release_name=eq.{QA_REVISION}&environment=eq.production"
+    runs = await _get(f"hof_qa_runs?{query}&select=id,notes&limit=1")
+    if runs:
+        result = _purchase_qa_receipt(runs[0])
+        if send or not result["document_id"]:
+            return result
+        # Read only the exact recorded QA document. Never create/resend here.
+        async with httpx.AsyncClient(timeout=20) as client:
+            response = await client.get(
+                "https://www.signwell.com/api/v1/documents/" + urllib.parse.quote(result["document_id"], safe=""),
+                headers={"X-Api-Key": SIGNWELL_API_KEY},
+            )
+        if response.status_code != 200:
+            result["message"] = "The recorded test could not be checked. Nothing new was sent."
+            return result
+        document = response.json()
+        recipients = document.get("recipients") or []
+        if (document.get("id") != result["document_id"] or document.get("test_mode") is not True
+                or not str(document.get("name") or "").startswith("QA ONLY - purchase placement - ")
+                or (document.get("metadata") or {}).get("qa_revision") != QA_REVISION
+                or len(recipients) != 2
+                or {str(r.get("email") or "").lower() for r in recipients} != {r["email"] for r in QA_RECIPIENTS}):
+            result["message"] = "The provider response did not match the recorded signing test. Nothing new was sent."
+            return result
+        result["provider_status"] = str(document.get("status") or "")[:40]
+        result["message"] = ("The test is complete; its signed PDF still needs visual review."
+                             if result["provider_status"] == "completed"
+                             else "The test is awaiting completion in the two approved inboxes.")
+        return result
+    if not send:
+        return {"phase": "not_started", "message": "No purchase signing test has been sent."}
+    # Prebuilt CLI deployments do not guarantee Git system environment values.
+    # Pin the reviewed renderer tree separately from any available runtime SHA.
+    release_sha = os.environ.get("VERCEL_GIT_COMMIT_SHA", "")
+    if not re.fullmatch(r"[0-9a-f]{40}", release_sha):
+        release_sha = None
+    packet, fields, cases = build_packet()
+    payload = build_payload(packet, fields, REVIEWED_SOURCE_COMMIT)
+    now = datetime.now(timezone.utc).isoformat()
+    receipt = {"qa_revision": QA_REVISION, "phase": "started", "test_mode": True,
+               "reviewed_source_commit": REVIEWED_SOURCE_COMMIT,
+               "render_revision": "trec-20-19-2026-10-11-contacts-execution-v1",
+               "packet_sha256": hashlib.sha256(packet).hexdigest(),
+               "fields_sha256": hashlib.sha256(json.dumps(fields, sort_keys=True).encode()).hexdigest(),
+               "cases": [{k: c[k] for k in ("case", "source_pages", "output_pages", "field_count")} for c in cases]}
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.post(
+            f"{SUPABASE_URL}/rest/v1/hof_qa_runs",
+            headers={**_headers(), "Prefer": "return=representation"},
+            json={"scenario_id": scenarios[0]["id"], "release_name": QA_REVISION,
+                  "environment": "production", "status": "running", "git_commit": release_sha,
+                  "packet_name": payload["name"], "executed_by": user["id"], "started_at": now,
+                  "notes": json.dumps(receipt)},
+        )
+    if response.status_code == 409:
+        runs = await _get(f"hof_qa_runs?{query}&select=id,notes&limit=1")
+        if runs:
+            return _purchase_qa_receipt(runs[0])
+    if response.status_code != 201:
+        raise ValueError("The test attempt could not be reserved. Nothing was sent.")
+    claimed = response.json()
+    if not isinstance(claimed, list) or len(claimed) != 1 or not claimed[0].get("id"):
+        raise ValueError("The test reservation was not confirmed. Nothing was sent.")
+    run = claimed[0]
+    try:
+        async with httpx.AsyncClient(timeout=45) as client:
+            response = await client.post("https://www.signwell.com/api/v1/documents/",
+                                         headers={"X-Api-Key": SIGNWELL_API_KEY}, json=payload)
+        receipt["phase"] = "unconfirmed"
+        if response.status_code == 201:
+            document = response.json()
+            try:
+                document_id = str(uuid.UUID(str(document.get("id"))))
+            except (TypeError, ValueError, AttributeError):
+                document_id = ""
+            if document_id:
+                receipt["document_id"] = document_id
+                receipt["provider_status"] = str(document.get("status") or "")[:40]
+            if document_id and document.get("test_mode") is True:
+                receipt["phase"] = "created"
+        else:
+            receipt["http_status"] = response.status_code
+    except Exception as error:
+        # Never persist/log provider bodies, exception text, keys or signing URLs.
+        receipt.update(phase="unconfirmed", error_type=type(error).__name__)
+    try:
+        await _patch("hof_qa_runs", f"id=eq.{run['id']}", {"notes": json.dumps(receipt)})
+    except Exception:
+        result = _purchase_qa_receipt({"id": run["id"], "notes": json.dumps(receipt)})
+        result["message"] = "The test attempt is reserved, but the final receipt could not be saved. Inspect SignWell before taking any further action; do not resend."
+        return result
+    result = _purchase_qa_receipt({"id": run["id"], "notes": json.dumps(receipt)})
+    result["message"] = ("One nonbinding test was created for the two approved inboxes. Both recipients may sign independently."
+                         if receipt["phase"] == "created"
+                         else "The test outcome is unconfirmed. Check SignWell before taking any further action; it will not be sent again.")
+    return result
+
+
 async def _brokerage_admin_context(user):
     if not user:
         return None
@@ -7667,6 +7811,12 @@ class handler(BaseHTTPRequestHandler):
                     "ok": all(item["connected"] for item in results.values()),
                     "deliveryConnections": results,
                 })
+                return
+            if data.get("action") in {"send_purchase_signing_test", "check_purchase_signing_test"}:
+                if set(data) != {"action"}:
+                    raise ValueError("The signing test does not accept custom recipients or document settings.")
+                result = asyncio.run(_purchase_signing_qa(user, send=data["action"] == "send_purchase_signing_test"))
+                _json(self, 200, {"ok": True, "signingTest": result})
                 return
             if data.get("action") == "create_platform_partner_placement":
                 payload = _parse_partner_placement(data)
