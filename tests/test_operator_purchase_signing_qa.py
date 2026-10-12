@@ -140,6 +140,34 @@ class OperatorPurchaseSigningQATests(unittest.IsolatedAsyncioTestCase):
         self.assertNotEqual(result["provider_status"], "completed")
         self.assertIn("did not match", result["message"])
 
+    async def test_provider_status_casing_and_terminal_states_are_reported_correctly(self):
+        cases = [
+            ("Completed", "completed", "still needs visual review"),
+            (" completed ", "completed", "still needs visual review"),
+            ("Sent", "sent", "awaiting completion"),
+            ("Cancelled", "cancelled", "cancelled"),
+            ("Declined", "declined", "declined"),
+            ("Expired", "expired", "expired"),
+            ("https://example.test/PRIVATE_SIGNER_LINK", "unknown", "status is unavailable"),
+        ]
+        for raw, expected, message in cases:
+            with self.subTest(raw=raw):
+                MODULE._get.side_effect = [SCENARIO, [{"id": "run-one", "notes": json.dumps({
+                    "qa_revision": qa.QA_REVISION, "phase": "created", "document_id": DOCUMENT_ID,
+                    "test_mode": True,
+                })}]]
+                self.client.get.return_value = response(200, {
+                    "id": DOCUMENT_ID, "test_mode": True,
+                    "name": "QA ONLY - purchase placement - ee90d4d", "metadata": {"qa_revision": qa.QA_REVISION},
+                    "recipients": list(qa.QA_RECIPIENTS), "status": raw,
+                })
+                result = await MODULE._purchase_signing_qa(USER)
+                self.assertEqual(result["provider_status"], expected)
+                self.assertIn(message, result["message"])
+                self.assertNotIn("PRIVATE_SIGNER_LINK", str(result))
+                self.client.post.assert_not_called()
+                MODULE._patch.assert_not_called()
+
     def test_route_is_platform_admin_only_and_has_no_custom_input(self):
         source = (ROOT / "api/admin-dashboard.py").read_text()
         action = source.index('if data.get("action") in {"send_purchase_signing_test", "check_purchase_signing_test"}')
