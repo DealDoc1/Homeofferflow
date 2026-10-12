@@ -30,3 +30,9 @@
 - Full candidate regression: 2,519 tests in 84.461 seconds, OK (one skipped).
 - Local regression, independent CI and actual production receipt: record at their verified checkpoints below.
 - No test email or new provider document has been created at the implementation checkpoint. No signed client document has been changed.
+
+## Independent CI and pre-deploy correction
+
+- PR #1313 passed independent run `38197900775` (regression, golden rendering, standalone geometry, schema preflight) and merged as `c436aef4365a3d2381c98d7760ca617ebb6c93a0`.
+- Release run `38198137957` passed its regression but stopped at committed-range whitespace validation: one blank line at the end of the new test file. No Vercel build, deployment or provider send occurred.
+- Remove only that trailing blank line; no customer code, map, source, behavior or test assertion changes. Check whitespace against the actual release baseline before the retry. The local full-candidate regression remains applicable to the identical executable content.
