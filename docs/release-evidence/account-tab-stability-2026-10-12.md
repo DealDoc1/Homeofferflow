@@ -26,3 +26,12 @@
 - All 46 inline scripts parse; patch whitespace passes. Full regression and live outcome recorded at their completed checkpoints.
 - Full local candidate regression: 2,523 tests in 81.621 seconds, OK (one skipped).
 - The separate prepared nonbinding SignWell QA consent tab is not submitted or changed by this batch. No final signing/PDF pass is inferred from this UX fix.
+
+## Actual release and canonical outcome
+
+- PR #1317 passed exact-head independent CI `38274914215`. GitHub's initial GraphQL merge request returned a transient error; REST read-back proved the PR was still open, so the same reviewed SHA was merged through REST without duplicate mutation or bypass. Merge `2bdcd5b7cd06a55aa0249e45e70c0f76f8d5830a`.
+- Intentional release `38275834589` succeeded. Cloud regression 2,523 tests, OK (two environment-dependent skips); coordinated schema, spend safety, prebuilt deploy and canonical PWA/API/packet checks passed.
+- READY production `dpl_9vV2Y2BjG7x8bxeTdkmivyty8n4p`, exact source SHA and canonical aliases verified, shell v85. Pre-build snapshot 16:17:01 UTC: $0.03/$20 used, $19.97 unconsumed, $3 reserve. Not a future billing guarantee.
+- Authenticated canonical owner `andrewchri@gmail.com`: selected Profile while Dashboard startup `aria-busy` was true. Waited for startup to finish; `aria-busy` false, Profile active true, Dashboard active false, no workspace-recovery error. No profile field was edited or saved, and no offer/signing action was taken.
+- Screenshot `/private/tmp/hof-account-tab-qa.FCqjUd/profile-retained-after-startup.jpg` records the retained Profile with the correct existing professional profile, OnDemand firm license and title/escrow defaults. This is actual early-tab retention evidence, not an injected browser state.
+- Temporary account tab closed. Only the separate existing QA consent handoff remains, untouched by this release.
