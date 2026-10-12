@@ -28,3 +28,17 @@
 - 38 focused tests passed after the correction. Full regression and exact release evidence are recorded at their completed checkpoints below.
 - Full local candidate: 2,522 tests in 84.752 seconds, OK (one skipped). Patch whitespace passes.
 - Only the specific first-recipient QA consent tab is retained as a handoff. Its private signing URL is not persisted in repository evidence. The email/navigation tab was closed.
+
+## Actual released checkpoint
+
+- PR #1316 passed exact-head CI `38269673575` (regression, golden rendering, standalone geometry, schema preflight, whitespace) and merged as `b13dac13e410b9a615b4ec174a131790e9f1bc8a`.
+- Intentional release `38270426931` succeeded: cloud regression 2,522 tests, OK (two environment-dependent skips), coordinated schema check, spend guard, prebuilt build/deploy, canonical PWA/API/packet checks passed.
+- READY production `dpl_CCLtZoVEoqo5rdR6iRYC4P23CM67`, both canonical domains aliased, exact SHA confirmed. Pre-build snapshot 15:30:48 UTC: $0.03/$20 used, $19.97 unconsumed, $3 reserve. Not a future billing guarantee.
+- Authenticated canonical owner Admin > Check test status successfully checked the recorded QA identity and returned awaiting completion. No Send action, provider POST, DB mutation or resend occurred. Actual Completed-state handling is regression-verified, not claimed against a completed live test.
+- Error-level deployment log sample 15:31:10–15:39:24 UTC: no matching logs. No universal outage-free or final signed-PDF claim.
+- First recipient's broader disclosure remains unaccepted pending the specific human decision. Second-recipient completion and executed-PDF review remain outstanding; no signing-QA pass or provider completion was fabricated.
+
+## Next observed UX defect
+
+- During canonical verification, opening the owner account and immediately selecting Admin initially showed Loading admin dashboard. When the startup/profile work settled, the visible panel was Dashboard while keyboard focus remained on Admin. Selecting Admin after initialization stayed active and allowed the read-only status check.
+- Record this startup/tab-selection race for the next bounded UX workstream. Do not count it as fixed by this API-only release, an access problem, or a reason to resend the QA packet.
