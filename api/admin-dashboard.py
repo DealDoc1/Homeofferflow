@@ -620,6 +620,17 @@ async def _check_delivery_connections():
     return {"signwell": signwell, "resend": resend}
 
 
+def _purchase_qa_provider_status(value):
+    """Normalize provider enums without returning arbitrary provider text."""
+    status = str(value or "").strip().lower().replace(" ", "_")
+    if status == "canceled":
+        status = "cancelled"
+    known = {"created", "draft", "sent", "viewed", "pending", "in_progress",
+             "partially_signed", "partially_completed", "completed",
+             "cancelled", "declined", "expired"}
+    return status if status in known else "unknown"
+
+
 def _purchase_qa_receipt(run):
     """Only safe receipt fields reach the operator's browser."""
     from lib.purchase_signing_qa import QA_REVISION
@@ -632,7 +643,7 @@ def _purchase_qa_receipt(run):
     return {"run_id": str(run.get("id") or ""),
             "phase": receipt.get("phase") or "unconfirmed",
             "document_id": receipt.get("document_id") or "",
-            "provider_status": receipt.get("provider_status") or "",
+            "provider_status": _purchase_qa_provider_status(receipt.get("provider_status")),
             "test_mode": receipt.get("phase") == "created" and receipt.get("test_mode") is True,
             "message": "A test attempt is recorded. Check its status; it will not be sent again."}
 
@@ -690,10 +701,16 @@ async def _purchase_signing_qa(user, *, send=False):
                 or {str(r.get("email") or "").lower() for r in recipients} != {r["email"] for r in QA_RECIPIENTS}):
             result["message"] = "The provider response did not match the recorded signing test. Nothing new was sent."
             return result
-        result["provider_status"] = str(document.get("status") or "")[:40]
-        result["message"] = ("The test is complete; its signed PDF still needs visual review."
-                             if result["provider_status"] == "completed"
-                             else "The test is awaiting completion in the two approved inboxes.")
+        status = _purchase_qa_provider_status(document.get("status"))
+        result["provider_status"] = status
+        if status == "completed":
+            result["message"] = "The test is complete; its signed PDF still needs visual review."
+        elif status in {"cancelled", "declined", "expired"}:
+            result["message"] = f"The test is {status}. Its recorded attempt will not be sent again."
+        elif status in {"draft", "unknown"}:
+            result["message"] = "The test identity is verified, but its signing status is unavailable. Nothing new was sent."
+        else:
+            result["message"] = "The test is awaiting completion in the two approved inboxes."
         return result
     if not send:
         return {"phase": "not_started", "message": "No purchase signing test has been sent."}
@@ -743,7 +760,7 @@ async def _purchase_signing_qa(user, *, send=False):
                 document_id = ""
             if document_id:
                 receipt["document_id"] = document_id
-                receipt["provider_status"] = str(document.get("status") or "")[:40]
+                receipt["provider_status"] = _purchase_qa_provider_status(document.get("status"))
             if document_id and document.get("test_mode") is True:
                 receipt["phase"] = "created"
         else:
