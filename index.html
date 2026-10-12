@@ -5322,6 +5322,33 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     }
   }
 
+  async function runPurchaseSigningTest(send, button) {
+    const status = document.getElementById('adminPurchaseSigningTestStatus');
+    if (!status || !hofAuth.session) return;
+    const sendButton = document.getElementById('adminPurchaseSigningTestSend');
+    const originalLabel = button?.textContent;
+    if (button) { button.disabled = true; button.textContent = send ? 'Sending test…' : 'Checking…'; }
+    if (sendButton) sendButton.disabled = true;
+    status.textContent = send ? 'Preparing one nonbinding test for the two approved inboxes…' : 'Checking the recorded test without sending another…';
+    try {
+      const response = await fetch('/api/admin-dashboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hofAuth.session.access_token}` },
+        body: JSON.stringify({ action: send ? 'send_purchase_signing_test' : 'check_purchase_signing_test' })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'The test could not be checked. Use Check test status before trying anything else.');
+      const test = result.signingTest || {};
+      status.textContent = test.message || 'The test status is unavailable. Nothing else was sent.';
+      if (sendButton) sendButton.disabled = test.phase !== 'not_started';
+    } catch (error) {
+      status.textContent = 'The test result could not be confirmed. Use Check test status; do not send another test.';
+    } finally {
+      if (button && button !== sendButton) button.disabled = false;
+      if (button) button.textContent = originalLabel;
+    }
+  }
+
   async function loadAdminDashboard(force = false) {
     const target = document.getElementById('adminDashboardContent');
     if (!target) return;
@@ -5790,6 +5817,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="admin-muted" style="margin-bottom:.55rem;">Confirm that document signing and transactional email are ready. This read-only check does not create a document, consume a document allowance, or send an email.</div>
           <button type="button" class="admin-contact-action" onclick="checkAdminDeliveryConnections(this)">Check delivery connections</button>
           <div id="adminDeliveryConnectionStatus" class="admin-empty" role="status" aria-live="polite" style="margin-top:.55rem;">Run this check after a SignWell or Resend billing or credential change.</div>
+          ${['andrewchri@gmail.com', 'andrew@ondemanddfw.com'].includes(String(hofAuth.session?.user?.email || '').toLowerCase()) ? `<details style="margin-top:1rem;">
+            <summary>Purchase signing test</summary>
+            <p class="admin-muted">One nonbinding placement check for andrewchri@gmail.com and brewbqinfo@gmail.com only. Both recipients can sign independently. No client document is changed.</p>
+            <button id="adminPurchaseSigningTestSend" type="button" class="admin-contact-action" onclick="runPurchaseSigningTest(true, this)">Send one signing test</button>
+            <button type="button" class="admin-contact-action" onclick="runPurchaseSigningTest(false, this)">Check test status</button>
+            <div id="adminPurchaseSigningTestStatus" class="admin-empty" role="status" aria-live="polite">Check the status before sending. A recorded attempt cannot be sent again.</div>
+          </details>` : ''}
         </div>
 
         <div class="admin-section">

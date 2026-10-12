@@ -56,3 +56,12 @@ Window: preceding 24 hours, checked at 09:11 America/Chicago. The report follows
 - Latest live pre-build spending snapshot: $0.03 of $20 used, $19.97 unconsumed, $3 reserve. The profile-card correction needed a second intentional release, not a preview. Earlier QA-only PRs #1307-1309 caused no separate Vercel deployment.
 - No client offer was opened, changed, resent, or signed during these checks; no business email was sent. Benefits are fewer blank license fields and less repeated entry/rework; no measured revenue increase is claimed.
 - Continue with the existing amendment PDF/widget cleanup, guided-document handoff check, actual completed-provider signing review, and remaining brokerage/AI/signer-matrix roadmap work. The roadmap is not fully complete. No new owner/source approval is required for these technical fixes.
+
+## Amendment follow-up - 17:30 America/Chicago
+
+- PR #1312 fixes 51 orphan source Widgets in newly generated TREC 39-11 PDFs and a real source-load error contract that incorrectly treated failure as successful opening. Generated copies preserve original graphics, answers, links, and signer geometry; the existing guided retry now receives the failure.
+- 100 focused tests and the 2,506-test full local suite pass, with one skipped. Four source/continuation review pages are visually verified and pixel-identical before/after; warnings nine to zero. Independent CI and intentional release `38177868605` succeeded.
+- Exact production `ee90d4d627b6ffd85bff673a4c52ab2a501ee6c8`, READY `dpl_FwBNH37LDFErdd1HQ9StV5oWGUz7`; canonical aliases, amendment asset, installed shell v83, public pages, and packet health verified.
+- Live authenticated sample draft saved and persisted the correct parties, source revision, and closing date. Downloaded and visually checked its real unsigned production PDF: one page, zero source Widgets, no AcroForm, no render warnings. Sample remains draft with no provider document or send/sign dates; no signature request or email was sent.
+- Existing roadmap row additional-texas-forms now points to the verified release and leaves only actual completed-provider Buyer/Seller PDF review for this amendment scope. Its overall QA remains partial; other form/roadmap work is not declared done.
+- Latest pre-build spending snapshot stayed $0.03 used of $20; $3 reserve maintained. One production deployment for the batch. Original client packets and signed agreements were untouched.

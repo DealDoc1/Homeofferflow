@@ -5,10 +5,8 @@ before the provider call, and an ambiguous response is never retried here.
 Credentials stay in the protected runner and are never logged or exported.
 """
 import argparse
-import base64
-from contextlib import redirect_stdout
 import hashlib
-from io import BytesIO, StringIO
+from io import BytesIO
 import json
 import os
 from pathlib import Path
@@ -17,13 +15,13 @@ import subprocess
 
 import httpx
 import pdfplumber
-from pypdf import PdfReader, PdfWriter
+from pypdf import PdfReader
 from reportlab import rl_config
 
 from lib import production_adapter as adapter
+from lib.purchase_signing_qa import build_packet as runtime_packet, build_payload
 from scripts.check_production_schema_readiness import parse_env_file
-from scripts.qa.build_compact_signwell_geometry_test import QA_RECIPIENTS, qa_recipient
-from tests.test_controlled_launch import configure_local_forms, minimal_offer
+from tests.test_controlled_launch import configure_local_forms
 
 
 PRODUCT_FILES = (
@@ -44,83 +42,7 @@ def build_packet():
 
 
 def _build_packet():
-    common = dict(
-        buyer1="QA Buyer One", seller="QA Seller One", address="100 QA Example Lane",
-        city="Example City", county="Example County", zip="75001", userType="agent",
-        hasBuyerAgent="yes", agentName="QA Associate", agentBrokerage="QA Review Brokerage",
-        agentBrokerLicense="0000000", agentLicense="0000000", teamName="QA Team",
-        agentEmail="qa-agent@example.test", agentPhone="9725550100",
-        agentAddress="200 QA Office Lane, Example City, TX 75001",
-        buyerMailAddr="300 QA Mailing Lane, Example City, TX 75001",
-        buyerPhone="2145550100", buyerEmail="qa-buyer@example.test", closingDate="2026-12-01",
-    )
-    cases = {
-        "single_buyer": {},
-        "four_party_execution": dict(
-            buyer2="QA Buyer Two", buyer2Email="qa-buyer-two@example.test",
-            seller="QA Seller One and QA Seller Two", seller1Name="QA Seller One",
-            seller1Email="qa-seller-one@example.test", seller2Name="QA Seller Two",
-            seller2Email="qa-seller-two@example.test", possession="sellerTemporaryLease",
-            sellerTemporaryLease="yes", sellerTemporaryLeaseTerminationDate="2026-12-10",
-            sellerTemporaryLeaseRentPerDay="125", sellerTemporaryLeaseDeposit="1000",
-            sellerTemporaryLeaseHoldoverPerDay="300",
-        ),
-        "unicode_continuation": dict(
-            buyer2="QA Buyer Two", buyer2Email="qa-buyer-two@example.test",
-            agentName="Élodie Hernández " * 65, agentEmail="long" * 70 + "@example.test",
-        ),
-    }
-    writer, fields, manifest = PdfWriter(), [], []
-    for case, overrides in cases.items():
-        offer = minimal_offer(**{**common, **overrides})
-        with redirect_stdout(StringIO()):
-            packet = adapter.fill_and_merge_20_19(offer)
-            original_fields = adapter.build_signwell_fields_20_19(offer, packet)[0]
-        reader = PdfReader(BytesIO(packet))
-        # Main footer variants, notices, execution, contacts, and any contact
-        # overflow only. Unchanged temporary-lease pages are not added.
-        selected = [1, 8, 10, 11]
-        selected += sorted({f["page"] for f in original_fields
-                            if f["api_id"].startswith("contacts_continuation_")})
-        remap = {}
-        content_hashes = []
-        for source_page in selected:
-            remap[source_page] = len(writer.pages) + 1
-            page = reader.pages[source_page - 1]
-            # Never add another merged overlay: source graphics state can
-            # make that distort the page. Test mode supplies its own marking.
-            content_hashes.append(hashlib.sha256(page.get_contents().get_data()).hexdigest())
-            writer.add_page(page)
-        shifted = []
-        for field in original_fields:
-            if field["page"] in remap:
-                shifted.append({**field, "page": remap[field["page"]],
-                                "recipient_id": qa_recipient(field["recipient_id"]),
-                                "api_id": case + "_" + field["api_id"]})
-        fields.extend(shifted)
-        manifest.append({"case": case, "source_pages": selected,
-                         "output_pages": list(remap.values()), "field_count": len(shifted),
-                         "content_sha256": content_hashes})
-    writer.add_metadata({"/Title": "QA ONLY - purchase contract placement",
-                         "/Subject": "Nonbinding synthetic provider-rendering check"})
-    output = BytesIO()
-    writer.write(output)
-    return output.getvalue(), [fields], manifest
-
-
-def build_payload(packet, fields, release_sha):
-    if not re.fullmatch(r"[0-9a-f]{40}", release_sha):
-        raise ValueError("Choose the exact deployed release revision.")
-    return {
-        "test_mode": True, "draft": False, "apply_signing_order": False,
-        "with_signature_page": False, "reminders": False,
-        "name": "QA ONLY - purchase placement - " + release_sha[:12],
-        "subject": "TEST ONLY: corrected HomeOfferFlow purchase-contract placement",
-        "message": "Nonbinding placement check only, not a client agreement. Both test recipients may sign independently. Please complete the highlighted fields so the final PDF can be reviewed.",
-        "recipients": [dict(r) for r in QA_RECIPIENTS],
-        "files": [{"name": "QA_ONLY_purchase_placement.pdf", "file_base64": base64.b64encode(packet).decode("ascii")}],
-        "fields": fields, "metadata": {"qa_kind": "purchase-placement", "release_sha": release_sha},
-    }
+    return runtime_packet()
 
 
 def layout_fingerprint(packet, fields, cases):

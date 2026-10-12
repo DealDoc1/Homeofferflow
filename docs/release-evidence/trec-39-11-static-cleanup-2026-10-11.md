@@ -32,3 +32,16 @@
 - Final local regression: 2,506 tests in 84.873 seconds, OK with one skipped. Patch whitespace passes. No production database migration or configuration change is required.
 - Authenticated production verification after release will use one plainly labeled synthetic draft, inspect persisted values, and download only its unsigned preview. No client packet, provider document, email, or signature send is authorized by this QA step.
 - Rendered signed-PDF QA / completed signature visual QA for the new amendment workflow remains unverified. This structure-only cleanup and unchanged-map comparison do not claim completed-provider inspection.
+
+## Deployed and authenticated end-to-end verification
+
+- PR #1312 passed independent CI `38177585826` and merged as `ee90d4d627b6ffd85bff673a4c52ab2a501ee6c8`. Superseded CI `38177551791` was canceled after the documentation-only evidence label changed; it is not the final check.
+- Intentional release `38177868605` succeeded: 2,506-test regression, whitespace, release preflight, schema readiness, spend safety, prebuilt build/deploy, canonical, PWA, and packet-runtime checks passed.
+- READY production `dpl_FwBNH37LDFErdd1HQ9StV5oWGUz7`, `homeofferflow-jgc1qxbie-dealdoc1s-projects.vercel.app`, exact merge SHA above. Both canonical aliases point to it. Canonical amendment asset hash matches the released file; live worker is v83.
+- Live pre-build spending snapshot: $0.03 consumed, $19.97 unconsumed of the $20 infrastructure credit, $3 reserved. One actual Vercel deployment for this batch; no previews.
+- Authenticated owner followed Purchase > another purchase document > amendment on the released site. Google-enabled address input remained present. Created exactly one plainly labeled QA-only draft with one fictional Buyer, one fictional Seller, and a closing-date change to December 1, 2026.
+- Draft ID `b7a72cce-af2a-4bbc-b71c-101e735b6b9a`; persisted source revision 05-04-2026, closing date 12/01/2026, selected change closing_date, and intended QA parties match the UI. Status remains draft; provider document ID, sent_at, and signed_at remain null.
+- Review and send opened the prepared-document list. Only this draft's Preview was selected; Send for signature was never selected. Downloaded unsigned preview has one page, zero canonical fields, zero Widgets, no AcroForm, the correct QA marker and closing date, and the correct TREC 39-11 source footer. The actual production PDF was visually inspected and rendered without warnings.
+- Saved browser screenshot shows the live draft-ready state. The download helper took roughly 28 minutes despite its requested short timeout; this is not a measured API response delay. Future download checks should use the visible Download control plus bounded file verification rather than repeating that long helper wait.
+- Updated the existing additional-texas-forms roadmap record to this release and the actual remaining provider review. Its status stays in_progress and QA partial; no false completion is recorded. Read-back confirms the update.
+- No real client packet, source PDF, or signed agreement was edited, sent, or signed. No email, SignWell request, new credential, permission, or production migration was created.
