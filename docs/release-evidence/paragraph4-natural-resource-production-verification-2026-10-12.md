@@ -31,3 +31,12 @@
 - Full candidate regression: 2,521 tests in 83.440 seconds, OK (one skipped).
 - Canonical read-only health check: `ok: true`, no errors, six public pages HTTP 200, TREC 20-19 production runtime, live signing mode remains false for the test-mode flag. No packet was created by the health check.
 - Full regression, independent CI and precise roadmap update are recorded after their verified checkpoints. No full-brokerage launch claim is made from this one workflow check.
+
+## Completed checkpoint
+
+- PR #1315 passed exact-head independent CI `38244160644` (unit regression, golden packet rendering, standalone geometry, schema preflight and whitespace) and merged as `c9f6c5e51bac8ef7c1464d81bf85582910c7d167`.
+- No production release was dispatched: the four changed paths are tests and release evidence only. Actual customer production remains the verified `a9f636f` deployment above.
+- The SQL connector twice returned an expired-request-state error for the bounded roadmap update. Read-back confirmed no change, so further write retries stopped. No fresh permission request or new credential was requested.
+- Used the existing authenticated Supabase dashboard to edit only row `151509e1-c50d-4af7-899f-367f4cd5a67a`. Preserved source/history metadata and added the current verification receipt; removed `deployment_held_for_cost_control` only as a stale roadmap flag, not a deployment spend safeguard.
+- Independent SQL read-back confirms `status: production`, `qa_status: partial`, actual source/deployment reference, September wait removed, and stale hold flag false. Remaining safe end-to-end purchase pass and parent completed-provider review are stated explicitly; no full end-to-end/signature pass is invented.
+- Saved-row screenshot `/private/tmp/hof-natural-resource-qa.2WfRM9/roadmap-production-saved.jpg`. Temporary browser tabs closed; user tabs preserved. No customer or signing record was changed.
