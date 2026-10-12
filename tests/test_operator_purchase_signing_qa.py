@@ -155,4 +155,3 @@ class OperatorPurchaseSpecimenTests(unittest.TestCase):
                          "f9f006620d97dccce36b273f52544788d7c664e453b199d98e74e694d9cbaf34")
         self.assertNotIn("buyer@example.com", str(qa.qa_offer()))
         self.assertEqual(qa.qa_offer()["address"], "100 QA Example Lane")
-
