@@ -18,8 +18,8 @@
 
 ## Verification
 
-- 17 actual-source runtime cases passed: successful load; sign-out; account switch; same-user return; out-of-order requests; failed refresh; unconnected account; cached roster reset; late summary and error; partial-read error; obsolete error; retry wording; retry recovery; enrollment link; sign-out during retry; same-user profile refresh.
+- 18 actual-source runtime cases passed: successful load; sign-out; account switch; same-user return; out-of-order requests; failed refresh; unconnected account; cached roster reset; late summary and error; partial-read error; obsolete error; retry wording; retry recovery; enrollment link; sign-out during retry; same-user profile refresh; single failed-retry attempt.
 - Nine focused Python tests passed, including the runtime wrapper, optional platform bootstrap, existing access feedback, profile-default safety and branding propagation.
-- Full local release candidate: 2,526 tests in 88.003 seconds, OK (one environment-dependent skip). All 47 inline JavaScript blocks parse; patch whitespace passes. PWA shell advances to v87.
+- Full local release candidate: 2,526 tests in 88.003 seconds, OK (one environment-dependent skip), before the final one-line retry-read deduplication. The refined retry passes the focused actual-source tests; independent exact-head CI verifies the final tree. All 47 inline JavaScript blocks parse; patch whitespace passes. PWA shell advances to v87.
 - Full candidate regression, exact-head CI, spend guard, intentional release and canonical browser checks are recorded only when actually completed below.
 - Brokerage-admin branding/shared-default/roster/invitation/activation QA and the remaining completed SignWell PDF matrix remain separate roadmap work, not declared passed by these tests.

@@ -124,3 +124,9 @@ test('same-user profile refresh does not discard brokerage cache', () => {
   const h = harness(); h.c.hofPlatform.brokerage = { name: 'Current' };
   h.c.resetProfileForSessionChange({ user: { id: 'A' } }); assert.equal(h.c.hofPlatform.brokerage.name, 'Current');
 });
+test('a failed explicit retry makes only one load attempt', async () => {
+  const h = harness(), p = h.c.retryBrokerageWorkspace();
+  await profile(h, { error: new Error('timeout') }); await Promise.resolve(); await Promise.resolve();
+  const extra = h.queue.length; if (extra) await profile(h, { error: new Error('timeout') });
+  await p; assert.equal(extra, 0); assert.match(h.panel.innerHTML, /Try again/);
+});

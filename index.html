@@ -22294,7 +22294,7 @@ function routeAfterMagicLinkIfNeeded() {
     const isCurrent = () => root.__hofBrokerageRender === request &&
       root.hofAuth?.session?.user?.id === request.userId &&
       (root.__hofAccountProfileEpoch || 0) === request.epoch;
-    if (!root.hofPlatform?.brokerage) await root.loadBrokerageFoundation?.();
+    if (!root.hofPlatform?.brokerage && !root.hofPlatform?.brokerageLoadError) await root.loadBrokerageFoundation?.();
     if (!isCurrent()) return;
     const b = root.hofPlatform?.brokerage;
     const membership = root.hofPlatform?.brokerageMembership;
