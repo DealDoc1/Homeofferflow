@@ -6042,7 +6042,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     el.className = 'account-status show ' + (type === 'err' ? 'err' : 'ok');
   }
 
+  let accountTabSelectionRevision = 0;
+  let accountWorkspaceOpenRevision = 0;
   function showAccountTab(tab = 'dashboard') {
+    accountTabSelectionRevision += 1;
     document.querySelectorAll('[data-account-tab]').forEach(btn => btn.classList.toggle('active', btn.dataset.accountTab === tab));
     document.querySelectorAll('.account-panel').forEach(panel => panel.classList.remove('active'));
     const panel = document.getElementById('accountPanel' + tab.charAt(0).toUpperCase() + tab.slice(1));
@@ -6192,6 +6195,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     if (!hofAuth.client) await initSupabaseAuth();
     if (!hofAuth.session) return openAuthModal(state?.data?.userType || 'agent');
     const modal = document.getElementById('accountModal');
+    const openingRevision = ++accountWorkspaceOpenRevision;
+    const openingUserId = hofAuth.session?.user?.id;
+    const openingProfileEpoch = window.__hofAccountProfileEpoch || 0;
+    const isCurrentOpening = () => openingRevision === accountWorkspaceOpenRevision &&
+      hofAuth.session?.user?.id === openingUserId &&
+      (window.__hofAccountProfileEpoch || 0) === openingProfileEpoch &&
+      (!modal || modal.classList.contains('active'));
     if (modal) {
       modal.classList.add('active');
       modal.setAttribute('aria-hidden', 'false');
@@ -6210,17 +6220,26 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     // request made the account button look unresponsive and hid the recovery
     // path to brokerage setup and approved form-source tools.
     showAccountTab('dashboard');
+    const initialTabRevision = accountTabSelectionRevision;
     try {
       await loadAccountProfile();
+      if (!isCurrentOpening()) return;
       await loadOrCreateSubscription();
+      if (!isCurrentOpening()) return;
       await loadCurrentUsage();
+      if (!isCurrentOpening()) return;
       await loadMyOffers();
+      if (!isCurrentOpening()) return;
       renderAccountDashboard();
       renderAccountProfileForm();
       // New agents should see the first-offer value path immediately. The
       // activation card makes reusable defaults the clear secondary action,
       // while callers can still take an account directly to another tab.
-      showAccountTab(opts.tab || 'dashboard');
+      // A tab chosen while saved data was loading is newer intent than the
+      // original entry point. Do not send that person back to Dashboard.
+      if (accountTabSelectionRevision === initialTabRevision) {
+        showAccountTab(opts.tab || 'dashboard');
+      }
       try {
         if (sessionStorage.getItem('hof_subscription_checkout_cancelled') === '1') {
           sessionStorage.removeItem('hof_subscription_checkout_cancelled');
@@ -6229,6 +6248,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         }
       } catch (e) {}
     } catch (err) {
+      if (!isCurrentOpening()) return;
       console.error('Account workspace load failed:', err);
       const message = err?.message || 'We could not load every workspace detail. Refresh to retry; no account data was changed.';
       const safeMessage = String(message).replace(/[&<>\"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[char]));
@@ -6236,7 +6256,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         dashboard.innerHTML = '<div class="account-card"><h4>Workspace needs a refresh</h4><p style="color:var(--gray-light);line-height:1.6;">' + safeMessage + '</p><div class="account-actions-row"><button class="btn-primary" type="button" onclick="openAccountDashboard({tab:\'dashboard\'})">Try again</button><button class="btn-secondary" type="button" onclick="showAccountTab(\'brokerage\')">Open Brokerage Setup</button></div></div>';
       }
     } finally {
-      if (dashboard) {
+      if (dashboard && openingRevision === accountWorkspaceOpenRevision) {
         dashboard.setAttribute('aria-busy', 'false');
         dashboard.removeAttribute('aria-label');
       }
