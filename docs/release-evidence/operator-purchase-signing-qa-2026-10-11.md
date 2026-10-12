@@ -27,5 +27,6 @@
 
 - Focused checks: 44 tests passed (owner/admin boundary, fixed recipients/nonbinding settings, reservation before send, concurrent loser, timeout, failed persistence, redaction, read-only status, layout identity, existing helper and connection health).
 - All 46 inline page scripts parse successfully. Patch whitespace passes.
+- Full candidate regression: 2,519 tests in 84.461 seconds, OK (one skipped).
 - Local regression, independent CI and actual production receipt: record at their verified checkpoints below.
 - No test email or new provider document has been created at the implementation checkpoint. No signed client document has been changed.
