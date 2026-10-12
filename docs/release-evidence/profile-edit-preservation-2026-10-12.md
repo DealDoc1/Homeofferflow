@@ -26,3 +26,12 @@
 - 27 focused Python tests pass, including runtime/default-save safety and startup/PWA checks.
 - All 47 inline scripts parse; patch whitespace passes. Full regression, CI and actual production verification recorded at completed checkpoints below.
 - Full local candidate regression: 2,525 tests in 82.277 seconds, OK (one skipped).
+
+## Actual release and live check
+
+- PR #1318 passed exact-head CI `38281579258` and merged as `967cc0f069a199cdc6623839c205708633b2a382`.
+- Intentional release `38282045881` succeeded. Cloud regression 2,525 tests, OK (two environment-dependent skips), schema readiness, spend guard, prebuilt deploy and canonical PWA/API/packet checks passed.
+- READY production `dpl_ERYtzaSnfEW78Vyv7ohazaTPsPR1`, exact SHA/canonical aliases verified, shell v86. Pre-build snapshot 17:10:31 UTC: $0.03/$20 used, $19.97 unconsumed, $3 reserve; not a future billing guarantee.
+- Canonical authenticated owner Profile had no pre-existing edit notice and saved name Andrew Christian. Typed only `QA ONLY - UNSAVED PROFILE CHECK`, switched Dashboard/Profile, then closed/reopened the account to cause an actual profile reload. Marker and notice survived; Profile stayed active and startup completed normally.
+- Clicked only the marker's Discard changes control. Independent DOM check showed Andrew Christian restored and notice absent. No Save Profile, client, signing or payment action occurred during this controlled check. Temporary tab closed.
+- Screenshot `/private/tmp/hof-profile-edit-qa.XeF3Th/unsaved-edit-preserved.jpg` records the unsaved marker before deliberate discard. No claim that it was saved to the profile.
