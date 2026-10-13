@@ -11,8 +11,9 @@ function block(start, end) {
 function deferred() { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; }
 function harness() {
   const queue = [], panel = { innerHTML: '' }, dashboard = { innerHTML: '' };
+  const pane = { active: false, classList: { contains(name) { return name === 'active' && pane.active; } } };
   const context = vm.createContext({ console: { warn() {} }, state: { data: {} },
-    document: { getElementById: id => id === 'brokerageFoundationPanel' ? panel : id === 'brokerSafeDashboard' ? dashboard : null },
+    document: { getElementById: id => id === 'brokerageFoundationPanel' ? panel : id === 'brokerSafeDashboard' ? dashboard : id === 'accountPanelBrokerage' ? pane : null },
     safe: value => String(value || ''), brokerSummary: () => { const d = deferred(); queue.push({ table: 'summary', d }); return d.promise; } });
   context.root = context; context.window = context;
   context.hofAuth = { session: { user: { id: 'A' } } };
@@ -25,7 +26,7 @@ function harness() {
   vm.runInContext(block('  root.loadBrokerageFoundation = async function loadBrokerageFoundation()', '  async function brokerSummary()'), context);
   vm.runInContext(block('  function resetProfileForSessionChange(session)', '  function beginAccountProfileLoad()'), context);
   vm.runInContext(block('  root.renderBrokerageFoundationPanel = async function renderBrokerageFoundationPanel()', '  root.openBrokerageMembershipRequest ='), context);
-  return { c: context, queue, panel, dashboard };
+  return { c: context, queue, panel, dashboard, pane };
 }
 async function profile(h, result = { data: { id: 'A', brokerage_id: 'BA', role: 'agent' } }) {
   h.queue.shift().d.resolve(result); await Promise.resolve(); await Promise.resolve();
@@ -137,4 +138,21 @@ test('startup and tab rendering share the in-flight load without showing false d
   assert.equal(h.queue.length, 1);
   await profile(h); finish(h, 'OnDemand'); await Promise.all([startup, tab]);
   assert.match(h.panel.innerHTML, /OnDemand/); assert.equal(h.panel.innerHTML.includes('not connected'), false);
+});
+test('a later startup read refreshes the still-visible connection automatically', async () => {
+  const h = harness(); h.c.hofAuth.session = null; h.pane.active = true;
+  await h.c.renderBrokerageFoundationPanel();
+  h.c.hofAuth.session = { user: { id: 'A' } }; const p = h.c.loadBrokerageFoundation();
+  await profile(h); finish(h, 'OnDemand'); await p;
+  assert.match(h.panel.innerHTML, /OnDemand/); assert.equal(h.panel.innerHTML.includes('not connected'), false);
+});
+test('late startup does not touch an inactive Brokerage pane', async () => {
+  const h = harness(); h.panel.innerHTML = 'Hidden previous view';
+  const p = h.c.loadBrokerageFoundation(); await profile(h); finish(h, 'OnDemand'); await p;
+  assert.equal(h.panel.innerHTML, 'Hidden previous view');
+});
+test('late startup failure refreshes only the visible pane with a truthful retry', async () => {
+  const h = harness(); h.pane.active = true; h.panel.innerHTML = 'Stale connection';
+  const p = h.c.loadBrokerageFoundation(); await profile(h, { error: new Error('timeout') }); await p;
+  assert.match(h.panel.innerHTML, /Try again/); assert.equal(h.panel.innerHTML.includes('Stale connection'), false); assert.equal(h.queue.length, 0);
 });
