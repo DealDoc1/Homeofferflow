@@ -21760,6 +21760,12 @@ function routeAfterMagicLinkIfNeeded() {
       return null;
     } finally {
       request.pending = false;
+      // Startup may finish after the agent already opened Brokerage. Update
+      // only that still-visible pane; never navigate away from another tab.
+      if (isCurrent() && (root.hofPlatform.brokerage || root.hofPlatform.brokerageLoadError) &&
+          document.getElementById('accountPanelBrokerage')?.classList.contains('active')) {
+        void root.renderBrokerageFoundationPanel?.();
+      }
     }
     })();
     return request.promise;
