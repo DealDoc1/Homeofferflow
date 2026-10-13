@@ -5333,10 +5333,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     }
   }
 
-  async function runPurchaseSigningTest(send, button) {
-    const status = document.getElementById('adminPurchaseSigningTestStatus');
+  async function runPurchaseSigningTest(send, button, scope = 'purchase') {
+    const showing = scope === 'showing';
+    const status = document.getElementById(showing ? 'adminShowingSigningTestStatus' : 'adminPurchaseSigningTestStatus');
     if (!status || !hofAuth.session) return;
-    const sendButton = document.getElementById('adminPurchaseSigningTestSend');
+    const sendButton = document.getElementById(showing ? 'adminShowingSigningTestSend' : 'adminPurchaseSigningTestSend');
     const originalLabel = button?.textContent;
     if (button) { button.disabled = true; button.textContent = send ? 'Sending test…' : 'Checking…'; }
     if (sendButton) sendButton.disabled = true;
@@ -5345,7 +5346,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const response = await fetch('/api/admin-dashboard', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hofAuth.session.access_token}` },
-        body: JSON.stringify({ action: send ? 'send_purchase_signing_test' : 'check_purchase_signing_test' })
+        body: JSON.stringify({ action: showing
+          ? (send ? 'send_showing_signing_test' : 'check_showing_signing_test')
+          : (send ? 'send_purchase_signing_test' : 'check_purchase_signing_test') })
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || 'The test could not be checked. Use Check test status before trying anything else.');
@@ -5834,6 +5837,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <button id="adminPurchaseSigningTestSend" type="button" class="admin-contact-action" onclick="runPurchaseSigningTest(true, this)">Send one signing test</button>
             <button type="button" class="admin-contact-action" onclick="runPurchaseSigningTest(false, this)">Check test status</button>
             <div id="adminPurchaseSigningTestStatus" class="admin-empty" role="status" aria-live="polite">Check the status before sending. A recorded attempt cannot be sent again.</div>
+          </details><details style="margin-top:1rem;">
+            <summary>Showing-form signing test</summary>
+            <p class="admin-muted">One nonbinding TXR-1508 check for the same two test inboxes. Covers both customer rows, broker/associate acknowledgement and long names. Production signer rules and client documents are unchanged.</p>
+            <button id="adminShowingSigningTestSend" type="button" class="admin-contact-action" onclick="runPurchaseSigningTest(true, this, 'showing')">Send one showing-form test</button>
+            <button type="button" class="admin-contact-action" onclick="runPurchaseSigningTest(false, this, 'showing')">Check showing-form test</button>
+            <div id="adminShowingSigningTestStatus" class="admin-empty" role="status" aria-live="polite">Check first. This test can be sent once and has no automatic reminders.</div>
           </details>` : ''}
         </div>
 

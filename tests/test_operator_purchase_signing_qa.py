@@ -140,6 +140,28 @@ class OperatorPurchaseSigningQATests(unittest.IsolatedAsyncioTestCase):
         self.assertNotEqual(result["provider_status"], "completed")
         self.assertIn("did not match", result["message"])
 
+    async def test_verified_completed_placement_review_is_not_reported_as_pending(self):
+        MODULE._get.side_effect = [SCENARIO, [{"id": "run-one", "notes": json.dumps({
+            "qa_revision": qa.QA_REVISION, "phase": "created", "document_id": DOCUMENT_ID, "test_mode": True,
+            "reviewed_source_commit": qa.REVIEWED_SOURCE_COMMIT, "visual_review": "passed", "completed_pdf_sha256": "a" * 64,
+        })}]]
+        self.client.get.return_value = response(200, {"id": DOCUMENT_ID, "test_mode": True,
+            "name": "QA ONLY - purchase placement - ee90d4d", "metadata": {"qa_revision": qa.QA_REVISION},
+            "recipients": list(qa.QA_RECIPIENTS), "status": "Completed"})
+        result = await MODULE._purchase_signing_qa(USER)
+        self.assertTrue(result["visual_review_passed"]); self.assertIn("placement review passed", result["message"])
+        self.client.post.assert_not_called(); MODULE._patch.assert_not_called()
+
+    def test_incomplete_or_wrong_review_evidence_never_sets_pass_flag(self):
+        good = {"qa_revision": qa.QA_REVISION, "phase": "created", "test_mode": True,
+                "visual_review": "passed", "reviewed_source_commit": qa.REVIEWED_SOURCE_COMMIT, "completed_pdf_sha256": "a" * 64}
+        for change in [{"phase": "started"}, {"test_mode": False}, {"visual_review": "unknown"},
+                       {"completed_pdf_sha256": "SECRET_LINK"}, {"reviewed_source_commit": "other"}, {"qa_revision": "other"}]:
+            with self.subTest(change=change):
+                result = MODULE._purchase_qa_receipt({"id": "run", "notes": json.dumps({**good, **change})})
+                self.assertFalse(result["visual_review_passed"])
+                self.assertNotIn("SECRET_LINK", str(result))
+
     async def test_provider_status_casing_and_terminal_states_are_reported_correctly(self):
         cases = [
             ("Completed", "completed", "still needs visual review"),
