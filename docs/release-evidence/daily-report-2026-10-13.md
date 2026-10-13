@@ -1,0 +1,21 @@
+# HomeOfferFlow 24-hour report - October 13, 2026
+
+Window: October 12 08:04 through October 13 08:04 America/Chicago.
+
+- Deployed agent UX: startup retains the selected Account tab (#1317), unsaved profile edits survive reopening (#1318), and brokerage loading is isolated, deduplicated and refreshes the active view (#1319-#1321). The final canonical delayed-startup pass showed active OnDemand membership without reselecting the panel; earlier intermediate releases were not treated as full live passes.
+- Deployed guided-language cleanup and sentence-case correction (#1323/#1324). Entered user text and action handlers remain untouched. Canonical brokerage and guided-card wording visually checked.
+- Deployed OnDemand activation recovery (#1325): late sign-in and delayed access checks recover safely, stale identity results are ignored, and checkout returns offer read-only retry without duplicate enrollment. Local desktop/mobile edge-case coverage and canonical standard enrollment checked; actual new-agent Stripe activation and broker-admin rollout matrix remain outstanding.
+- Deployed current lease-answer precedence (#1326): an explicit No no longer resurrects historical lease flags, unwanted addenda or extra signers. Changed first pages visually reviewed; current selection and unchanged parent geometry covered by local/cloud tests. No real client packet modified or resent.
+- Completed the original purchase provider review: 13 synthetic completed pages, 26 fields, single-buyer/four-party/Unicode cases. Matching ledger, scenario and purchase roadmap independently verified passed. Protected status reporting and fixed showing QA controls deployed (#1316/#1322).
+- Recovered earlier completed synthetic evidence exposed TXR-1508 initial/date clearance defects. Corrected candidate published only to fixed owner QA (#1327), then sent exactly once to the two approved QA inboxes. Both fictional recipients now have fields prepared at final disclosure; customer map is not promoted and no corrected completed-provider pass is claimed.
+- Current canonical production independently verified READY at `49297cbf727df96160e36ec8450458bce60d5978`, deployment `dpl_FadWqGGEoc7Thz5T1M8QYhxrpszJ`. Latest release regression: 2,566 tests, OK, two environment-dependent skips. Short deployment-error samples were clean, not comprehensive uptime claims.
+- UX impact: fewer lost edits, false membership warnings, duplicate requests and unwanted forms/signers. No measured revenue or conversion increase is claimed.
+- Cost: intentional prebuilt releases, no routine previews. Latest recorded Vercel infrastructure snapshot 12:32:37 UTC: $0.03/$20 used and $19.97 unconsumed, with $3 reserve; separate from Codex usage and not a future billing guarantee.
+- Remaining: corrected showing test finalization/review/promotion, other conditional/addendum provider matrices, authenticated brokerage-admin/new-agent rollout checks, seller-workflow evidence reconciliation and five independent AI calibration reviews. PWA remains the current app-like experience; no native-app spending begun.
+- Factual operational limits: final SignWell electronic-disclosure decision remains pending for this exact corrected test. SQL connector update expired; readback proved no change, so obsolete third-inbox roadmap wording still needs reconciliation. Neither a new third inbox nor source-owner approval is needed for the current showing test. No verified quota or deployment blocker.
+
+Release: https://github.com/DealDoc1/Homeofferflow/actions/runs/38397626811
+Latest QA-only PR: https://github.com/DealDoc1/Homeofferflow/pull/1327
+Evidence: `txr1508-provider-clearance-2026-10-13.md`, `lease-selection-authority-2026-10-13.md`, `ondemand-activation-recovery-2026-10-13.md` and the corresponding account/profile/brokerage/purchase evidence files.
+
+Post-report checkpoint: the obsolete third-inbox roadmap wording was successfully reconciled through the existing authenticated SQL editor and independently read back. Showing QA remains partial, with this exact corrected test's final disclosure/completed-PDF review pending. The new Integrity First contact/description/logo update is separate later work, documented in `integrity-first-partner-details-2026-10-13.md`, not counted in the above 24-hour release window.

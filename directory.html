@@ -64,6 +64,8 @@
     </main>
     <footer>HomeOfferFlow does not provide legal, brokerage, lending, inspection, insurance, or home-service advice. Directory profiles are sponsored placements; they are not referrals, endorsements, or required selections. <a href="/partners" style="color:var(--gl)">Become a Founding Partner</a></footer>
   </div>
+  <script src="/assets/partner-profile.js"></script>
+  <style>.card img{width:100%;height:72px;float:none;margin:0 0 .8rem;padding:.3rem}.hof-partner-actions{display:flex;flex-wrap:wrap;gap:.7rem 1rem;margin-top:.8rem}.hof-partner-actions a{min-height:44px;display:inline-flex;align-items:center}</style>
   <script>
     (() => {
       const $ = id => document.getElementById(id);
@@ -161,11 +163,11 @@
         return `We could not load provider profiles right now. <button type="button" class="directory-retry" data-directory-retry>Retry provider profiles</button><p style="margin:.75rem 0 0">You may choose any qualified ${esc(categoryLabel)} provider independently. <a data-directory-consumer-cta data-consumer-path="buyer" href="${consumerPathUrl('/buyers', category)}" style="color:var(--gl);font-weight:800">Build a Texas buyer offer →</a> <span aria-hidden="true">·</span> <a data-directory-consumer-cta data-consumer-path="seller" href="${consumerPathUrl('/sellers', category)}" style="color:var(--gl);font-weight:800">Explore FSBO seller support →</a></p><details class="provider-join"><summary>Do you provide ${esc(categoryLabel)}?</summary><p><a data-directory-partner-details href="${detailsUrl}" style="color:var(--gl);font-weight:800">See founding partner placement options and launch pricing →</a></p></details>`;
       };
       const card = provider => {
-        const website = safeUrl(provider.website_url);
-        const cta = String(provider.cta_label || '').trim().slice(0, 80) || 'Visit site';
+        const description = String(provider.public_description || '').trim().slice(0, 600);
         const neutral = neutralProviderTypes.has(provider.partner_type);
-        const placement = neutral ? 'Sponsored profile' : `Sponsored · ${placementLabels[provider.placement_tier] || 'Partner'}`;
-        return `<article class="card">${provider.logo_url ? `<img src="${esc(provider.logo_url)}" alt="" loading="lazy" decoding="async">` : ''}<h2>${esc(provider.partner_name)}</h2><div class="meta">${esc(labels[provider.partner_type] || 'Local service')} · ${esc(provider.market_area || 'Texas')}</div><p>${esc(placement)}. Confirm fit, availability, and terms directly with the provider.</p>${website ? `<a href="${esc(website)}" data-partner-link data-partner-id="${esc(provider.id)}" data-partner-type="${esc(provider.partner_type)}" data-placement-tier="${esc(provider.placement_tier)}" target="_blank" rel="noopener noreferrer">${esc(cta)} ↗</a>` : ''}</article>`;
+        const placement = neutral ? 'Sponsored profile' : provider.partner_program === 'beta' ? 'Beta partner' : `Sponsored · ${placementLabels[provider.placement_tier] || 'Partner'}`;
+        const logo = window.hofPartnerProfile.websiteUrl(provider.logo_url);
+        return `<article class="card">${logo ? `<img src="${esc(logo)}" alt="${esc(provider.partner_name)} logo" loading="lazy" decoding="async">` : ''}<h2>${esc(provider.partner_name)}</h2><div class="meta">${esc(labels[provider.partner_type] || 'Local service')} · ${esc(provider.market_area || 'Texas')}</div>${description ? `<p>${esc(description)}</p>` : ''}<p>${esc(placement)}. Confirm fit, availability, and terms directly with the provider.</p>${window.hofPartnerProfile.actions(provider, esc, 'data-partner-link')}</article>`;
       };
       const sortDirectoryRows = rows => [...rows].sort((left, right) => {
         const leftNeutral = neutralProviderTypes.has(left?.partner_type);
