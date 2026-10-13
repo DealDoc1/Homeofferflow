@@ -36,8 +36,10 @@ class PartnerDirectoryImpressionTests(unittest.TestCase):
         self.assertIn("directorySource === 'pwa_shortcut' ? 'pwa_provider_directory' : 'public_directory'", PUBLIC_DIRECTORY)
         self.assertIn("directory_surface:directorySurface", PUBLIC_DIRECTORY)
         self.assertIn('/_vercel/insights/script.js', PUBLIC_DIRECTORY)
-        self.assertIn("const cta = String(provider.cta_label || '').trim().slice(0, 80) || 'Visit site';", PUBLIC_DIRECTORY)
-        self.assertIn('${esc(cta)} ↗', PUBLIC_DIRECTORY)
+        self.assertIn("hofPartnerProfile.actions(provider, esc, 'data-partner-link')", PUBLIC_DIRECTORY)
+        helper = (ROOT / 'assets/partner-profile.js').read_text()
+        self.assertIn("String(provider.cta_label || '').trim().slice(0, 80)", helper)
+        self.assertIn('${esc(websiteLabel(provider))} ↗', helper)
         self.assertIn("/texas-home-service-partner-guide?utm_source=provider_directory", PUBLIC_DIRECTORY)
 
     def test_public_directory_gives_non_regulated_paid_placements_visible_order_without_ranking_regulated_services(self):
@@ -47,7 +49,7 @@ class PartnerDirectoryImpressionTests(unittest.TestCase):
         self.assertIn('const rows = sortDirectoryRows(Array.isArray(data.partners) ? data.partners : []);', PUBLIC_DIRECTORY)
         self.assertIn('if (!leftNeutral && !rightNeutral)', PUBLIC_DIRECTORY)
         self.assertIn("placementLabels = {exclusive_market:'Premier Partner',premier:'Featured Partner',founding:'Core Partner'}", PUBLIC_DIRECTORY)
-        self.assertIn("const placement = neutral ? 'Sponsored profile' : `Sponsored · ${placementLabels[provider.placement_tier] || 'Partner'}`;", PUBLIC_DIRECTORY)
+        self.assertIn("const placement = neutral ? 'Sponsored profile' : provider.partner_program === 'beta' ? 'Beta partner' : `Sponsored · ${placementLabels[provider.placement_tier] || 'Partner'}`;", PUBLIC_DIRECTORY)
 
     def test_admin_metrics_can_report_aggregate_paid_directory_value(self):
         api = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")

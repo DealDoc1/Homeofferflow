@@ -1144,9 +1144,10 @@ def _create_partner_logo_upload(token, data):
 
 
 def _get_partner_onboarding(token):
+    from lib.partner_public_profile import PUBLIC_PROFILE_COLUMNS
     if not ONBOARDING_TOKEN_RE.match(token or ""):
         raise ValueError("This onboarding link is invalid.")
-    query = urlencode({"onboarding_token_hash": f"eq.{_onboarding_token_hash(token)}", "select": "id,company_name,contact_name,contact_email,partner_type,market_area,preferred_model,payment_status,partner_program,status,onboarding_token_expires_at,onboarding_website_url,onboarding_logo_url,onboarding_cta_label,onboarding_market_area,partner_agreement_status", "limit": "1"})
+    query = urlencode({"onboarding_token_hash": f"eq.{_onboarding_token_hash(token)}", "select": "id,company_name,contact_name,contact_email,partner_type,market_area,preferred_model,payment_status,partner_program,status,onboarding_token_expires_at,onboarding_website_url,onboarding_logo_url,onboarding_cta_label,onboarding_market_area,partner_agreement_status," + ",".join(PUBLIC_PROFILE_COLUMNS), "limit": "1"})
     headers = {"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}"}
     with httpx.Client(timeout=12) as client:
         response = client.get(f"{SUPABASE_URL}/rest/v1/hof_partner_leads?{query}", headers=headers)
@@ -1168,7 +1169,8 @@ def _get_partner_onboarding(token):
 
 
 def _public_partner_onboarding(lead):
-    return {key: lead.get(key) for key in ("company_name", "partner_type", "preferred_model", "onboarding_website_url", "onboarding_logo_url", "onboarding_cta_label", "onboarding_market_area", "market_area")}
+    from lib.partner_public_profile import PUBLIC_PROFILE_COLUMNS
+    return {key: lead.get(key) for key in ("company_name", "partner_type", "preferred_model", "onboarding_website_url", "onboarding_logo_url", "onboarding_cta_label", "onboarding_market_area", "market_area", *PUBLIC_PROFILE_COLUMNS)}
 
 
 def _dispatch_partner_agreement_after_onboarding(lead):
@@ -1226,6 +1228,7 @@ def _dispatch_partner_agreement_after_onboarding(lead):
 
 
 def _complete_partner_onboarding(token, data):
+    from lib.partner_public_profile import public_profile_update
     lead = _get_partner_onboarding(token)
     market = _text(data.get("market_area"), 300)
     if not market:
@@ -1234,6 +1237,7 @@ def _complete_partner_onboarding(token, data):
     logo_path = _text(data.get("logo_path"), 300)
     logo_url = _partner_branding_logo_url(lead.get("id"), logo_path) if logo_path else _secure_url(data.get("logo_url"), "Logo URL")
     payload = {"onboarding_website_url": _secure_url(data.get("website_url"), "Website"), "onboarding_logo_url": logo_url, "onboarding_cta_label": _text(data.get("cta_label"), 80), "onboarding_market_area": market, "onboarding_status": "complete", "onboarding_completed_at": now, "onboarding_token_hash": None, "onboarding_token_expires_at": None, "updated_at": now}
+    payload.update(public_profile_update(data, lead))
     headers = {"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}", "Content-Type": "application/json", "Prefer": "return=representation"}
     with httpx.Client(timeout=12) as client:
         response = client.patch(f"{SUPABASE_URL}/rest/v1/hof_partner_leads?id=eq.{lead['id']}&onboarding_token_hash=eq.{_onboarding_token_hash(token)}", headers=headers, json=payload)
@@ -1460,6 +1464,7 @@ def _create_partner_checkout(lead_id, headers, source=None):
 
 def _list_public_partner_placements(category=None, market=None):
     """Return public placement fields plus an approved public CTA, never lead data."""
+    from lib.partner_public_profile import PUBLIC_PROFILE_COLUMNS, approved_public_profile
     params = {
         # source_lead_id is used only in this server-side request to recover a
         # partner's approved onboarding CTA. It is stripped before the public
@@ -1496,9 +1501,10 @@ def _list_public_partner_placements(category=None, market=None):
         if isinstance(row, dict) and LEAD_ID_RE.fullmatch(str(row.get("source_lead_id") or "").strip())
     }
     ctas = {}
+    profiles = {}
     if lead_ids:
         lead_params = {
-            "select": "id,onboarding_cta_label",
+            "select": "id,partner_program,onboarding_cta_label," + ",".join(PUBLIC_PROFILE_COLUMNS),
             "id": f"in.({','.join(sorted(lead_ids))})",
         }
         with httpx.Client(timeout=12.0) as client:
@@ -1514,6 +1520,8 @@ def _list_public_partner_placements(category=None, market=None):
                 label = _text(lead.get("onboarding_cta_label"), 80)
                 if LEAD_ID_RE.fullmatch(lead_id) and label:
                     ctas[lead_id] = label
+                if lead_id in lead_ids:
+                    profiles[lead_id] = approved_public_profile(lead)
     public_rows = []
     for row in rows:
         if not isinstance(row, dict):
@@ -1521,6 +1529,8 @@ def _list_public_partner_placements(category=None, market=None):
         source_lead_id = str(row.pop("source_lead_id", "") or "").strip()
         if source_lead_id in ctas:
             row["cta_label"] = ctas[source_lead_id]
+        row = {key: value for key, value in row.items() if key in set(PUBLIC_PARTNER_FIELDS.split(",")) | {"cta_label"}}
+        row.update(profiles.get(source_lead_id, {}))
         public_rows.append(row)
     return public_rows
 

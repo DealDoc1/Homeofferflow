@@ -23,6 +23,29 @@ SPEC.loader.exec_module(MODULE)
 
 
 class ProductionSchemaReadinessTests(unittest.TestCase):
+    def test_readiness_probes_new_public_profile_columns_without_reading_rows(self):
+        import json
+        from contextlib import contextmanager
+        requests = []
+        @contextmanager
+        def open_fixture(request, timeout):
+            requests.append(request)
+            body = {"contract": MODULE.EXPECTED_CONTRACT, "ready": True, "missing": []} if len(requests) == 1 else []
+            yield io.StringIO(json.dumps(body))
+        with patch.object(MODULE, 'urlopen', side_effect=open_fixture):
+            result = MODULE.fetch_readiness('https://fixture.supabase.co', 'sb_secret_fixture')
+        self.assertTrue(result['ready'])
+        self.assertEqual(len(requests), 2)
+        self.assertEqual(requests[1].method, 'GET')
+        self.assertIn('onboarding_public_contact_phone', requests[1].full_url)
+        self.assertTrue(requests[1].full_url.endswith('&limit=0'))
+        self.assertNotIn('contact_email', requests[1].full_url)
+
+    def test_missing_public_profile_columns_cannot_be_silently_ignored(self):
+        from urllib.error import HTTPError
+        with patch.object(MODULE, 'urlopen', side_effect=HTTPError('fixture', 400, 'missing columns', {}, None)):
+            with self.assertRaises(HTTPError): MODULE.fetch_readiness('https://fixture.supabase.co', 'fixture')
+
     def test_workflow_secret_overrides_masked_pulled_legacy_value(self):
         values = {"SUPABASE_SERVICE_ROLE_KEY": "[SENSITIVE]"}
 

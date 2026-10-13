@@ -76,6 +76,14 @@ def fetch_readiness(url: str, service_key: str) -> dict:
         payload = json.load(response)
     if not isinstance(payload, dict):
         raise ValueError("readiness RPC returned a non-object response")
+    if payload.get("ready") is True:
+        # Probe columns without reading any application row or exposing contacts.
+        columns = "onboarding_public_contact_name,onboarding_public_contact_phone,onboarding_public_description"
+        probe = Request(f"{url.rstrip('/')}/rest/v1/hof_partner_leads?select={columns}&limit=0",
+                        headers=request_headers(service_key), method="GET")
+        with urlopen(probe, timeout=30) as response:
+            if json.load(response) != []:
+                raise ValueError("public partner schema probe did not return an empty list")
     return payload
 
 
