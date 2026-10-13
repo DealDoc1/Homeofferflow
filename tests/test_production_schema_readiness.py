@@ -42,9 +42,21 @@ class ProductionSchemaReadinessTests(unittest.TestCase):
         self.assertNotIn('contact_email', requests[1].full_url)
 
     def test_missing_public_profile_columns_cannot_be_silently_ignored(self):
+        import json
+        from contextlib import contextmanager
         from urllib.error import HTTPError
-        with patch.object(MODULE, 'urlopen', side_effect=HTTPError('fixture', 400, 'missing columns', {}, None)):
+        calls = []
+        @contextmanager
+        def open_fixture(request, timeout):
+            calls.append(request.full_url)
+            if len(calls) == 1:
+                yield io.StringIO(json.dumps({'contract':MODULE.EXPECTED_CONTRACT, 'ready':True, 'missing':[]}))
+            else:
+                raise HTTPError(request.full_url, 400, 'missing columns', {}, None)
+        with patch.object(MODULE, 'urlopen', side_effect=open_fixture):
             with self.assertRaises(HTTPError): MODULE.fetch_readiness('https://fixture.supabase.co', 'fixture')
+        self.assertEqual(len(calls), 2)
+        self.assertIn('onboarding_public_contact_phone', calls[1])
 
     def test_workflow_secret_overrides_masked_pulled_legacy_value(self):
         values = {"SUPABASE_SERVICE_ROLE_KEY": "[SENSITIVE]"}

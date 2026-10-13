@@ -92,4 +92,3 @@ class PartnerPublicProfileTests(unittest.TestCase):
             self.assertIn(field,html)
         self.assertIn('Leave blank to keep your contact number private.',html)
         self.assertIn('/assets/partner-profile.js',(ROOT/'service-worker.js').read_text())
-
