@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 from datetime import datetime, timedelta, timezone
 import json
+import math
 import os
 import subprocess
 import sys
@@ -45,40 +46,68 @@ NON_CREDIT_SERVICES = {
 }
 
 
+def _created_ms(deployment: dict) -> int | float:
+    if not isinstance(deployment, dict):
+        raise ValueError("Vercel deployment entry is not an object")
+    created = deployment.get("created", deployment.get("createdAt"))
+    if isinstance(created, bool) or not isinstance(created, (int, float)) or not math.isfinite(created) or created <= 0:
+        raise ValueError("Vercel deployment has no valid creation timestamp")
+    return created
+
+
 def _deployment_count(payload: dict, *, now_ms: int, window_ms: int) -> int:
     deployments = payload.get("deployments")
     if not isinstance(deployments, list):
         raise ValueError("Vercel response did not contain a deployments list")
     cutoff = now_ms - window_ms
-    return sum(
-        1
-        for deployment in deployments
-        if isinstance(deployment, dict)
-        and isinstance(deployment.get("created"), (int, float))
-        and deployment["created"] >= cutoff
-    )
+    return sum(cutoff <= _created_ms(deployment) <= now_ms for deployment in deployments)
 
 
 def fetch_deployment_count(
-    *, token: str, project_id: str, team_id: str, now_ms: int, window_seconds: int
+    *, token: str, project_id: str, team_id: str, now_ms: int, window_seconds: int,
+    stop_at: int = DEFAULT_LIMIT,
 ) -> int:
-    query = urlencode(
-        {
-            "projectId": project_id,
-            "teamId": team_id,
-            "from": now_ms - window_seconds * 1000,
-            "limit": 100,
-        }
-    )
-    request = Request(
-        f"https://api.vercel.com/v6/deployments?{query}",
-        headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
-    )
-    with urlopen(request, timeout=30) as response:  # noqa: S310 - fixed Vercel API URL
-        payload = json.load(response)
-    return _deployment_count(
-        payload, now_ms=now_ms, window_ms=window_seconds * 1000
-    )
+    if window_seconds <= 0 or now_ms <= 0 or stop_at <= 0:
+        raise ValueError("Deployment window and threshold must be positive")
+    cutoff = now_ms - window_seconds * 1000
+    # since/until are the current date filters. Deprecated from is a paging
+    # boundary in the observed API and returned older history, falsely counting 0.
+    upper = now_ms + 1
+    count, seen = 0, set()
+    for _ in range(50):
+        query = urlencode({"projectId": project_id, "teamId": team_id,
+                           "since": cutoff - 1, "until": upper, "limit": 100})
+        request = Request(f"https://api.vercel.com/v7/deployments?{query}",
+                          headers={"Authorization": f"Bearer {token}", "Accept": "application/json"})
+        with urlopen(request, timeout=30) as response:
+            payload = json.load(response)
+        page_count = _deployment_count(payload, now_ms=now_ms, window_ms=window_seconds * 1000)
+        rows = payload["deployments"]
+        for row in rows:
+            created = _created_ms(row)
+            if not cutoff - 1 <= created <= upper:
+                raise ValueError("Vercel response ignored the requested deployment window")
+            identity = row.get("uid") or row.get("id")
+            if not isinstance(identity, str) or not identity or identity in seen:
+                raise ValueError("Vercel deployment identity is missing or repeated")
+            seen.add(identity)
+        count += page_count
+        if count >= stop_at:
+            # A lower bound is sufficient to reject a release at its threshold.
+            return count
+        pagination = payload.get("pagination")
+        if not isinstance(pagination, dict):
+            raise ValueError("Vercel response has no pagination metadata")
+        page_size = pagination.get("count")
+        if isinstance(page_size, bool) or not isinstance(page_size, int) or page_size != len(rows):
+            raise ValueError("Vercel pagination count does not match the response")
+        next_cursor = pagination.get("next")
+        if next_cursor is None:
+            return count
+        if not rows or isinstance(next_cursor, bool) or not isinstance(next_cursor, (int, float)) or not math.isfinite(next_cursor) or not cutoff <= next_cursor < upper:
+            raise ValueError("Vercel pagination cursor is invalid or did not advance")
+        upper = next_cursor
+    raise ValueError("Deployment pagination exceeded the bounded safety check")
 
 
 def _shift_month(year: int, month: int, offset: int) -> tuple[int, int]:
@@ -197,6 +226,7 @@ def main() -> int:
             team_id=args.team_id,
             now_ms=now_ms,
             window_seconds=args.window_seconds,
+            stop_at=args.limit,
         )
     except Exception as exc:  # fail closed if the account state cannot be read
         print(f"Vercel capacity check blocked: {exc}", file=sys.stderr)
