@@ -47,8 +47,8 @@ class TxrSignwellMapReviewTests(unittest.TestCase):
     def test_txr1508_review_overlay_targets_the_three_acknowledgement_rows(self):
         fields = {field["api_id"]: field for field in review.review_field_sets()["TXR1508"]}
         self.assertEqual(fields["txr1508_agent_initials_p1"]["page"], 1)
-        self.assertEqual(fields["txr1508_client1_initials_p1"]["y"], 726)
-        self.assertEqual(fields["txr1508_client2_initials_p1"]["y"], 784)
+        self.assertEqual(fields["txr1508_client1_initials_p1"]["y"], 736)
+        self.assertEqual(fields["txr1508_client2_initials_p1"]["y"], 794)
 
     def test_txr1507_combined_review_uses_non_production_values_and_each_x_choice(self):
         data, brokerage, associate = review.txr1507_value_overlay_data()

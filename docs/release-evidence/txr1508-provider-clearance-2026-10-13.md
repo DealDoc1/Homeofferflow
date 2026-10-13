@@ -3,7 +3,7 @@
 ## Outcome and production scope
 
 - Keep completed showing-form initials above their acknowledgement rules and out of the following representation-agreement sentences. Keep date text above its rule rather than struck through.
-- Baseline production `5ed1e0ee05eb3fb14abf1ba034cde07164d7dd41`, READY `dpl_HMm1odaFBtjtyAq1jnf9841jG62M`. Scope: TXR-1508 main-page SignWell placement, render/candidate fingerprints, fixed owner-only nonbinding QA revision, regression and evidence. No real agreement replacement or resend.
+- Baseline production `5ed1e0ee05eb3fb14abf1ba034cde07164d7dd41`, READY `dpl_HMm1odaFBtjtyAq1jnf9841jG62M`. Phase-one scope: fixed owner-only nonbinding QA for a separate TXR-1508 clearance candidate, regression and evidence. The released customer map, render fingerprints and approved geometry baselines remain unchanged until the corrected completed-provider result is inspected. No real agreement replacement or resend.
 
 ## Authoritative recovered evidence
 
@@ -12,13 +12,13 @@
 - Reviewed hydrostatic page 21, lead page 22, all consumer-notice pages 23–28, showing page 29 and lease pages 31–32. Hydrostatic/lease four-party marks and consumer initials/signatures looked aligned in the inspected cases. Lead page is blank/unsigned and is not buyer/agent lead-signing proof. Lease pages are standalone components appended to a composite QA specimen, not proof of the production lease-package assembly path or overflow cases. Do not mark those entire roadmap rows passed here.
 - Showing page 29 exposes actual initials below the rule into the next sentence; date rules cross date text. Detail screenshot `/private/tmp/hof-signed-matrix-audit.f94JCo/showing-detail.png`. This supersedes an assumption that old showing placement was fully acceptable.
 
-## Measured correction and regression
+## Rendered signed-PDF QA, measured correction and regression
 
 - Observed provider bitmap transform from multiple initials/signature anchors is 0.7528125 points/pixel with one-pixel origin padding. Printed rule tops measured from the rendered completed form: professional 518.17pt, customer one 560.29pt, customer two 604.00pt.
 - Previous six main-page field envelopes ended at 523.9575, 566.8678 and 610.5309pt, respectively. New provider-envelope guard reproduced all six failures before the fix.
 - Raise the six main-page y values ten SignWell pixels: 669/667, 726/724, 784/782. New predicted envelope bottoms 516.4294, 559.3397 and 603.0028pt clear the measured rules. These are calibrated predictions, not a freshly completed corrected-provider visual pass.
 - Types, x, widths/heights, required state, automatic date format, role IDs, simultaneous sending, representation choices and continuation-page fields remain unchanged. Both broker and associate use the same physical acknowledgement rows.
-- Render and candidate fingerprints advance to provider-clearance v3. Fixed QA revision advances to provider-clearance v2 and uses reviewed field digest `fb9a303670525c6719bd88e6283c99530910bd40a3d0c1eae70cc82a114233d7`; old digest cannot be reused as corrected proof.
+- The QA candidate fingerprint is provider-clearance v3, while the customer map remains v2. Fixed QA revision advances to provider-clearance v2 and uses reviewed field digest `fb9a303670525c6719bd88e6283c99530910bd40a3d0c1eae70cc82a114233d7`; old digest cannot be reused as corrected proof.
 
 ## Approved source, authorization and signing plan
 
@@ -32,3 +32,5 @@
 - After protected CI and one spend-guarded prebuilt release, create exactly one new revision-specific nonbinding test through the existing owner-only control, then verify its provider identity/completed PDF. Final electronic-disclosure acceptance still requires packet-specific confirmation or user completion. No corrected completed-provider pass is claimed before actual inspection.
 - Corrected geometry tree is pinned as `7eeeadd4f4899308357aeabeeb306ab0e69a9570`. The new QA invitation subject explicitly says corrected initials and dates; its message explains that it supersedes the earlier test without changing the old attempt.
 - Focused checks so far: provider clearance/role tests 2, fixed QA tests 7, signer geometry 10, TXR-1508 renderer 4, signing request path 27 and map review 5 all pass. Full frozen regression, CI and release remain to be completed.
+- First full run exposed the two approved-map baselines, correctly rejecting an unverified production-coordinate change. Do not update those baselines just to pass. Publish only the fixed QA candidate first, then promote the exact corrected map after actual completed provider-PDF review. No local SignWell connection is configured; no API key is retrieved, pulled or requested.
+- Authenticated QA recovery used the connected owner Gmail; current source bytes and all four unsigned candidate pages were reviewed. Phase-one operator action remains authenticated owner-only and cannot accept arbitrary document, recipient or field-map input. No new credentials or access grants.

@@ -154,7 +154,7 @@ TXR_RENDER_REVISIONS = {
     "TXR-1501": "txr-1501-2026-09-18-continuation-pagination-v2",
     "TXR-1506": "txr-1506-2026-09-18-answer-continuation-v2",
     "TXR-1507": "txr-1507-2026-09-18-continuation-pagination-v3",
-    "TXR-1508": "txr-1508-2026-10-13-provider-clearance-v3",
+    "TXR-1508": "txr-1508-2026-09-18-answer-continuation-v2",
     "TXR-1905": "txr-1905-2026-09-18-neutral-source-v3",
     "TXR-1914": "txr-1914-2026-09-18-source-blanks-v2",
     "TXR-1917": "txr-1917-2026-09-18-source-blanks-v2",
@@ -179,7 +179,7 @@ TXR_SIGNING_MAP_REVISIONS = {
     # signature/date captions.  Drafts prepared with v1 must be rebuilt so a
     # sender cannot inadvertently reuse the older field geometry.
     TXR_1507_FORM_CODE: "txr-1507-2026-09-18-answer-continuation-candidate-v3",
-    TXR_1508_FORM_CODE: "txr-1508-2026-10-13-provider-clearance-candidate-v3",
+    TXR_1508_FORM_CODE: "txr-1508-2026-09-18-answer-continuation-candidate-v2",
     TXR_1953_FORM_CODE: "txr-1953-2026-09-18-continuation-candidate-v3",
     TXR_1954_FORM_CODE: "txr-1954-2026-09-18-continuation-candidate-v3",
     TREC_62_0_FORM_CODE: "trec-62-0-2026-09-22-seller-execution-v1",

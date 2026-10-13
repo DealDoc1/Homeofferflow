@@ -354,7 +354,7 @@ class TxrSignerGeometryTests(unittest.TestCase):
             for field in build_signwell_fields_txr1508(data, client_count=2)[0]
         }
         self.assertEqual(fields["txr1508_agent_initials_p1"]["x"], 347)
-        self.assertEqual(fields["txr1508_agent_initials_p1"]["y"], 669)
+        self.assertEqual(fields["txr1508_agent_initials_p1"]["y"], 679)
         self.assertLess(
             fields["txr1508_agent_initials_p1"]["x"] + fields["txr1508_agent_initials_p1"]["width"],
             445,
@@ -367,8 +367,8 @@ class TxrSignerGeometryTests(unittest.TestCase):
         for field_id in ("txr1508_agent_date_p1", "txr1508_client1_date_p1", "txr1508_client2_date_p1"):
             with self.subTest(field_id=field_id):
                 self.assertEqual((fields[field_id]["x"], fields[field_id]["width"]), (625, 121))
-        # Actual completed-provider ink must stay above each printed rule and
-        # clear the immediately following representation-agreement sentence.
+        # Keep the released baseline pinned while the separate clearance
+        # candidate is verified against completed-provider ink bounds.
         self.assertEqual(
             [fields[field_id]["y"] for field_id in (
                 "txr1508_agent_initials_p1",
@@ -378,7 +378,7 @@ class TxrSignerGeometryTests(unittest.TestCase):
                 "txr1508_client2_initials_p1",
                 "txr1508_client2_date_p1",
             )],
-            [669, 667, 726, 724, 784, 782],
+            [679, 677, 736, 734, 794, 792],
         )
 
     def test_every_supported_form_has_valid_non_overlapping_signer_widgets(self):

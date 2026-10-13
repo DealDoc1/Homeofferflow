@@ -6,7 +6,7 @@ import json
 import re
 
 from pypdf import PdfReader, PdfWriter
-from lib.txr_1508 import render_txr_1508, build_signwell_fields_txr1508
+from lib.txr_1508 import render_txr_1508, build_signwell_fields_txr1508_clearance_candidate
 from lib.purchase_signing_qa import QA_RECIPIENTS, QA_OPERATOR_EMAILS
 
 QA_REVISION = "txr-1508-2026-10-13-provider-clearance-v2"
@@ -45,7 +45,7 @@ def build_packet(source_bytes):
     for name, data in cases():
         rendered = render_txr_1508(source_bytes, data, brokerage, associate)
         reader = PdfReader(BytesIO(rendered))
-        original_fields = build_signwell_fields_txr1508(data, client_count=2, page_count=len(reader.pages))[0]
+        original_fields = build_signwell_fields_txr1508_clearance_candidate(data, client_count=2, page_count=len(reader.pages))[0]
         offset = len(writer.pages)
         hashes = []
         for page in reader.pages:
