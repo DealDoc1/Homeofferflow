@@ -20586,7 +20586,7 @@ function routeAfterMagicLinkIfNeeded() {
     el.insertAdjacentHTML('afterbegin', `
       <div class="broker-role-card" id="brokerageBrokerIntroV14">
         <h4>Brokerage / Team Lead Workspace</h4>
-        <p>Use this area for brokerage branding, agent access, secure invite links, shared defaults, and privacy-limited operational activity. Buyer names, addresses, offer terms, and documents are not exposed here.</p>
+        <p>Manage brokerage branding, agent access, secure invite links, shared defaults, and team activity. Buyer names, addresses, offer terms, and documents are not exposed here.</p>
         <div class="broker-role-grid">
           <div class="broker-role-chip"><strong>Defaults</strong><span>Brokerage, license, title, escrow, disclaimers.</span></div>
           <div class="broker-role-chip"><strong>Oversight</strong><span>Roster status and aggregate offer activity only.</span></div>
@@ -22258,7 +22258,7 @@ function routeAfterMagicLinkIfNeeded() {
     link.click();
     setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
     const summary = document.getElementById('brokerageAgentFilterSummary');
-    if (summary) summary.textContent = `Downloaded ${agents.length} privacy-limited agent record${agents.length === 1 ? '' : 's'}.`;
+    if (summary) summary.textContent = `Downloaded ${agents.length} agent roster record${agents.length === 1 ? '' : 's'}. Client and transaction details are not included.`;
   };
 
   root.renderBrokerageBrandPreview = function renderBrokerageBrandPreview() {
@@ -22351,16 +22351,16 @@ function routeAfterMagicLinkIfNeeded() {
     const membershipRecoveryCard = membership?.status === 'active'
       ? ''
       : '<div class="platform-card"><h4>Brokerage access needs activation</h4>' +
-        '<p>Your individual HomeOfferFlow workspace, saved offers, and shared-form drafts remain available. Brokerage-managed team features stay unavailable until your brokerage membership is activated.</p>' +
+        '<p>You can still use your individual workspace, saved offers, and shared forms. Brokerage team features become available when your membership is active.</p>' +
         '<button type="button" class="brokerage-access-button" onclick="openBrokerageMembershipRequest()">Request brokerage activation</button>' +
         '<p class="brokerage-invite-result">This sends a support request from your signed-in account. It does not change billing, roles, offers, or documents.</p></div>';
     el.innerHTML = '<div class="platform-card"><div class="ondemand-account-banner">' +
       '<h4>' + safe(name) + '</h4><p>Your HomeOfferFlow account is connected to this brokerage. ' +
       'Membership: <strong>' + safe(membership?.status || 'pending') + '</strong>.</p></div>' +
-      '<p>Brokerage identity and permissions are managed by HomeOfferFlow—not editable from the browser.</p></div>' +
+      '</div>' +
       membershipRecoveryCard +
       agentDefaultsCard +
-      (isBroker ? '<div class="platform-card" id="brokerSafeDashboard"><h4>Brokerage activity</h4><p>Loading privacy-limited agent activity…</p></div>' : '');
+      (isBroker ? '<div class="platform-card" id="brokerSafeDashboard"><h4>Brokerage activity</h4><p>Loading team activity…</p></div>' : '');
     if (!isBroker) return;
     try {
       const data = await brokerSummary();
@@ -22394,7 +22394,7 @@ function routeAfterMagicLinkIfNeeded() {
       const teamUsagePercent = teamPacketLimit > 0 ? Math.min(100, Math.round((teamPacketUsage / teamPacketLimit) * 100)) : null;
       const activeAccessMembershipPendingCount = Number(m.membersAwaitingActivationWithActiveAccess || 0);
       const activeAccessMembershipNotice = activeAccessMembershipPendingCount
-        ? '<div class="notice gold" style="margin-top:1rem"><strong>Membership activation needed:</strong> ' + activeAccessMembershipPendingCount + ' agent' + (activeAccessMembershipPendingCount === 1 ? ' has' : 's have') + ' active platform access but a pending brokerage seat. Use the Activate action in the roster to align access. This does not change billing, roles, offers, or documents.</div>'
+        ? '<div class="notice gold" style="margin-top:1rem"><strong>Membership activation needed:</strong> ' + activeAccessMembershipPendingCount + ' agent' + (activeAccessMembershipPendingCount === 1 ? ' can use their individual workspace but has a pending brokerage membership.' : 's can use their individual workspaces but have pending brokerage memberships.') + ' Activate their membership in the roster. Their ' + (activeAccessMembershipPendingCount === 1 ? 'plan' : 'plans') + ' and saved documents stay unchanged.</div>'
         : '';
       const seatMomentum = seatCap == null
         ? 'Invite agents as your brokerage workflow grows.'
@@ -22436,7 +22436,7 @@ function routeAfterMagicLinkIfNeeded() {
             : '<span style="color:var(--gray-light)">Source review pending</span>'));
       document.getElementById('brokerSafeDashboard').innerHTML =
         '<h4>Brokerage activity</h4>' +
-        '<p>Operational visibility only. Buyer names, property addresses, offer terms, and document contents are not included.</p>' +
+        '<p>Team activity only. Buyer names, property addresses, offer terms, and document contents are not included.</p>' +
         '<p class="brokerage-membership-note">Suspending an agent removes brokerage-managed access only. It does not cancel that agent\'s HomeOfferFlow subscription or delete their offers.</p>' +
         '<div class="platform-card" style="margin:1rem 0 0;padding:.8rem"><h4>Shared HomeOfferFlow forms</h4>' +
         '<p class="brokerage-membership-note">Every signed-in agent can use the available HomeOfferFlow shared-form library. No brokerage seat, team membership, broker action, or extra form-access step is required.</p></div>' +
@@ -22486,7 +22486,7 @@ function routeAfterMagicLinkIfNeeded() {
         '</div>' +
         '<div class="brokerage-seat-momentum"><strong>' + (seatPercent == null ? 'Team growth' : 'Seat utilization: ' + seatPercent + '%') + '</strong><span>' + safe(seatMomentum) + (teamUsagePercent == null ? '' : ' Team packet usage: ' + teamUsagePercent + '% this month.') + '</span><button type="button" class="brokerage-access-button" onclick="document.getElementById(\'brokerageInviteEmail\')?.focus()">Invite an agent</button></div>' +
         '<div class="brokerage-invite-form" style="margin-top:1rem"><label for="brokerageAgentFilter">Find an agent</label><input id="brokerageAgentFilter" type="search" placeholder="Name, email, team, status, or next action" aria-label="Find an agent" oninput="filterBrokerageAgents(this.value)"><label for="brokerageAgentAttentionFilter">Show</label><select id="brokerageAgentAttentionFilter" aria-label="Filter agents by attention" onchange="filterBrokerageAgents(document.getElementById(\'brokerageAgentFilter\')?.value || \'\')"><option value="all">All agents</option><option value="activation">Needs activation</option><option value="billing">Billing attention</option><option value="follow_up">Follow-up</option></select><button type="button" class="brokerage-access-button" onclick="exportBrokerageRoster()">Download roster CSV</button><span id="brokerageAgentFilterSummary" class="brokerage-invite-result">' + Number(agents.length) + ' agent' + (agents.length === 1 ? '' : 's') + ' shown.</span></div>' +
-        '<p id="brokerageTeamResult" class="brokerage-invite-result">Private team labels organize this roster only; they do not grant permissions or change billing, roles, offers, or documents.</p>' +
+        '<p id="brokerageTeamResult" class="brokerage-invite-result">Team labels are for your roster only. They do not change access, plans, offers, or documents.</p>' +
         '<table class="brokerage-safe-table"><thead><tr><th>Agent</th><th>Membership</th><th>Team</th><th>Plan / renewal</th><th>Usage</th><th>Last activity</th><th>Offers</th><th>Signed</th><th>Next action</th><th>Follow up</th><th>Brokerage access</th></tr></thead><tbody>' +
         (agents.length ? agents.map(agent =>
           '<tr data-brokerage-agent-row data-membership="' + safe(agent.membershipStatus || 'pending') + '" data-subscription="' + safe(agent.subscriptionStatus || '') + '" data-engagement="' + safe(agent.engagement || '') + '" data-search="' + safe([agent.name, agent.email, agent.teamName, agent.membershipStatus, agent.subscriptionStatus, agent.nextAction, agent.engagement].filter(Boolean).join(' ')) + '"><td><strong>' + safe(agent.name || agent.email || 'Agent') + '</strong><br><span>' + safe(agent.email || '') + '</span></td>' +
@@ -22561,7 +22561,7 @@ function routeAfterMagicLinkIfNeeded() {
     banner.className = 'ondemand-account-banner';
     banner.innerHTML = '<h4>' + safe(brokerage.dba_name || brokerage.name || 'Agent workspace') + '</h4>' +
       '<p>Your agent workspace is active. HomeOfferFlow forms are available whether or not you are associated with a brokerage' +
-      (root.hofAuth?.authoritativeProfile?.is_brokerage_admin ? '; the Brokerage tab also has privacy-limited team activity.' : '.') + '</p>';
+      (root.hofAuth?.authoritativeProfile?.is_brokerage_admin ? '; view team activity in the Brokerage tab.' : '.') + '</p>';
     panel.prepend(banner);
   };
 })();
@@ -25841,6 +25841,11 @@ function routeAfterMagicLinkIfNeeded() {
     root.querySelectorAll?.('.hof-agreement-dialog button[type="submit"]').forEach(button => {
       if (button.textContent?.trim() === 'Save private draft') button.textContent = 'Save for review';
     });
+    root.querySelectorAll?.('.hof-agreement-dialog option').forEach(option => {
+      if (option.value === '' && option.textContent?.trim() === 'Choose the printed plan…') {
+        option.textContent = 'Choose a payment plan…';
+      }
+    });
     root.querySelectorAll?.('.hof-agreement-card button, .hof-agreement-dialog button').forEach(button => {
       const original = button.textContent || '';
       const revised = original
@@ -25858,11 +25863,14 @@ function routeAfterMagicLinkIfNeeded() {
       const nodes = [];
       while (walker.nextNode()) nodes.push(walker.currentNode);
       nodes.forEach(node => {
+        if (node.parentElement?.closest('input, textarea, select, option, [contenteditable]')) return;
         const original = node.textContent || '';
         const revised = original
+        .replace(/Use the \d{2,4}-\d{2}-\d{2,4} TXR-\d{4} interview to /gi, 'Answer the questions to ')
         .replace(/This saves a private draft only\./gi, 'This prepares a document for your review before it is sent for signature.')
         .replace(/This is a private draft, not a /gi, 'This is a document for review, not a ')
         .replace(/Answer only the choices printed on the source\./gi, 'Answer the questions needed for this document.')
+        .replace(/Answer only the terms printed on the source\./gi, 'Answer the questions needed for this document.')
         .replace(/Choose only the source-form review rights requested\./gi, 'Choose the review rights requested.')
         .replace(/prepare a private draft/gi, 'prepare a document for review')
         .replace(/prepare an appraisal private draft/gi, 'prepare an appraisal document for review')
@@ -25884,6 +25892,7 @@ function routeAfterMagicLinkIfNeeded() {
       const nodes = [];
       while (walker.nextNode()) nodes.push(walker.currentNode);
       nodes.forEach(node => {
+        if (node.parentElement?.closest('button, input, textarea, select, option, [contenteditable]')) return;
         const original = node.textContent || '';
         const revised = original
           .replace(/Your private draft is ready\./gi, 'Your document is ready for review.')

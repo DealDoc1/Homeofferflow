@@ -194,7 +194,7 @@ class BrokerageFormSourceFoundationTests(unittest.TestCase):
         self.assertNotIn("_active_brokerage_member", dashboard[scope_start:scope_end])
 
     def test_pending_brokerage_membership_does_not_hide_shared_form_drafts(self):
-        self.assertIn("shared-form drafts remain available", HTML)
+        self.assertIn("You can still use your individual workspace, saved offers, and shared forms.", HTML)
         self.assertNotIn("private source-gated drafts stay unavailable until your brokerage membership is activated", HTML)
 
     def test_form_library_administration_is_hidden_from_daily_brokerage_workflow(self):

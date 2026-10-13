@@ -535,7 +535,8 @@ class BrokerageAuthorizationTests(unittest.TestCase):
 
         final_script = INDEX_HTML[INDEX_HTML.index('id="hof-ondemand-brokerage-launch-v1"'):]
         self.assertIn("setBrokerageMemberTeam", final_script)
-        self.assertIn("Private team labels organize this roster only", final_script)
+        self.assertIn("Team labels are for your roster only", final_script)
+        self.assertIn("They do not change access, plans, offers, or documents.", final_script)
         self.assertIn("Team activation cohorts", final_script)
         self.assertIn("teamCohorts", final_script)
         self.assertIn("Aggregate roster health only", final_script)

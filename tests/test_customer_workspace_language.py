@@ -44,5 +44,29 @@ class CustomerWorkspaceLanguageTests(unittest.TestCase):
         self.assertNotIn("restricted-form authorization status", HTML)
 
 
+class CustomerLanguagePolishTests(unittest.TestCase):
+    def test_brokerage_summary_is_clear_without_programming_explanation(self):
+        self.assertNotIn('not editable from the browser', HTML)
+        self.assertIn('Membership: <strong>', HTML)
+        self.assertIn('Loading team activity', HTML)
+
+    def test_membership_copy_does_not_imply_forms_need_a_brokerage_seat(self):
+        self.assertIn('You can still use your individual workspace, saved offers, and shared forms.', HTML)
+        self.assertIn('Brokerage team features become available when your membership is active.', HTML)
+        self.assertIn('Request brokerage activation', HTML)
+        self.assertIn('No brokerage seat, team membership, broker action, or extra form-access step is required.', HTML)
+
+    def test_privacy_and_team_label_limits_are_still_explicit(self):
+        self.assertIn('Buyer names, property addresses, offer terms, and document contents are not included.', HTML)
+        self.assertIn('Team labels are for your roster only.', HTML)
+        self.assertIn('They do not change access, plans, offers, or documents.', HTML)
+
+    def test_only_empty_plan_prompt_options_are_normalized(self):
+        self.assertIn("option.value === ''", HTML)
+        self.assertIn("option.textContent = 'Choose a payment plan…'", HTML)
+        self.assertIn("closest('input, textarea, select, option, [contenteditable]')", HTML)
+        self.assertIn("closest('button, input, textarea, select, option, [contenteditable]')", HTML)
+
+
 if __name__ == "__main__":
     unittest.main()
