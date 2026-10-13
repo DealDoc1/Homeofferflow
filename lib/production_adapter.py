@@ -80,16 +80,40 @@ def _normalized(value):
     return str(value or "").strip().lower().replace("_", " ").replace("-", " ")
 
 
+def _paragraph4_selection(offer):
+    """Current interview answers override historical aliases and hidden values."""
+    offer = offer or {}
+    parent = offer.get("leases")
+    if parent is not None and str(parent).strip().lower() in {"no", "n", "false", "0", "off", "none"}:
+        return False, False, False
+    leases = _normalized(parent)
+
+    def selected(key, aliases, labels):
+        answer = offer.get(key)
+        if answer is not None and str(answer).strip() != "":
+            return _truthy(answer)
+        return any(_truthy(offer.get(alias)) for alias in aliases) or leases in labels
+
+    return (
+        selected("leaseResidential", (), {"residential", "residential lease", "residentiallease"}),
+        selected("leaseFixture", ("fixtureLease",), {"fixture", "fixture lease", "fixturelease"}),
+        selected("leaseNaturalResource", ("naturalResourceLease",),
+                 {"natural resource", "natural resource lease", "naturalresource", "naturalresourcelease"}),
+    )
+
+
+def _paragraph4_verified_offer(offer):
+    """Give the unchanged source renderer the same choices as packet selection."""
+    residential, fixture, natural = _paragraph4_selection(offer)
+    return {**offer, "leases": "yes" if any((residential, fixture, natural)) else "no",
+            "leaseResidential": "yes" if residential else "no",
+            "leaseFixture": "yes" if fixture else "no", "fixtureLease": "yes" if fixture else "no",
+            "leaseNaturalResource": "yes" if natural else "no", "naturalResourceLease": "yes" if natural else "no"}
+
+
 def paragraph4_lease_kinds(offer):
     """Return the supported Paragraph 4 lease addenda selected by the interview."""
-    offer = offer or {}
-    leases = _normalized(offer.get("leases"))
-    residential = _truthy(offer.get("leaseResidential")) or leases in {
-        "residential", "residential lease", "residentiallease"
-    }
-    fixture = _truthy(offer.get("leaseFixture")) or _truthy(offer.get("fixtureLease")) or leases in {
-        "fixture", "fixture lease", "fixturelease"
-    }
+    residential, fixture, _ = _paragraph4_selection(offer)
     selected = []
     if residential:
         selected.append("TXR-1953")
@@ -100,11 +124,7 @@ def paragraph4_lease_kinds(offer):
 
 def natural_resource_lease_requested(offer):
     """Return whether Paragraph 4C natural-resource lease terms are selected."""
-    offer = offer or {}
-    leases = _normalized(offer.get("leases"))
-    return _truthy(offer.get("leaseNaturalResource")) or _truthy(offer.get("naturalResourceLease")) or leases in {
-        "natural resource", "natural resource lease", "naturalresource", "naturalresourcelease"
-    }
+    return _paragraph4_selection(offer)[2]
 
 
 def paragraph4_execution_parties(offer):
@@ -679,7 +699,7 @@ def fill_and_merge_20_19(offer):
     }
     offer["_signing_render_revisions"]["TREC-20-19"] = verified.trec_20_19_contacts.RENDER_REVISION
     with collect_source_hashes() as source_hashes:
-        packet = verified.fill_and_merge(offer)
+        packet = verified.fill_and_merge(_paragraph4_verified_offer(offer))
     if verified.appraisal_requested(offer):
         from lib.txr_1948 import RENDER_REVISION as APPRAISAL_RENDER_REVISION
         offer['_signing_render_revisions']['TXR-1948'] = APPRAISAL_RENDER_REVISION
@@ -734,7 +754,7 @@ def build_signwell_fields_20_19(offer, pdf_bytes):
     environmental_parties = environmental_execution_parties(offer)
     assumption_parties = assumption_execution_parties(offer)
     seller_financing_parties = seller_financing_execution_parties(offer)
-    fields = verified.build_signwell_fields(offer, pdf_bytes)
+    fields = verified.build_signwell_fields(_paragraph4_verified_offer(offer), pdf_bytes)
     if not fields:
         fields = [[]]
     fields_for_file = fields[0]
