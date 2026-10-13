@@ -55,7 +55,8 @@ test('same user returning after sign-out does not revive an earlier request', as
 });
 test('latest request wins when requests resolve out of order', async () => {
   const h = harness(), old = h.c.loadBrokerageFoundation(), olderProfile = h.queue.shift();
-  const fresh = h.c.loadBrokerageFoundation(); await profile(h); finish(h, 'Fresh firm'); await fresh;
+  h.c.hofAuth.session = { user: { id: 'B' } };
+  const fresh = h.c.loadBrokerageFoundation(); await profile(h, { data: { id: 'B', brokerage_id: 'BA' } }); finish(h, 'Fresh firm'); await fresh;
   olderProfile.d.resolve({ data: { brokerage_id: 'OLD' } });
   await Promise.resolve(); await Promise.resolve(); if (h.queue.length) finish(h, 'Old firm');
   assert.equal(await old, null); assert.equal(h.c.hofPlatform.brokerage.name, 'Fresh firm'); assert.equal(h.queue.length, 0);
@@ -97,7 +98,8 @@ test('brokerage or membership errors never publish a partial profile', async () 
 });
 test('obsolete failure cannot erase the newer successful result', async () => {
   const h = harness(), p = h.c.loadBrokerageFoundation(); const old = h.queue.shift();
-  const fresh = h.c.loadBrokerageFoundation(); await profile(h); finish(h, 'Fresh'); await fresh;
+  h.c.hofAuth.session = { user: { id: 'B' } };
+  const fresh = h.c.loadBrokerageFoundation(); await profile(h, { data: { id: 'B', brokerage_id: 'BA' } }); finish(h, 'Fresh'); await fresh;
   old.d.resolve({ error: new Error('old failure') }); await p;
   assert.equal(h.c.hofPlatform.brokerage.name, 'Fresh'); assert.equal(h.c.hofPlatform.brokerageLoadError, '');
 });
@@ -129,4 +131,10 @@ test('a failed explicit retry makes only one load attempt', async () => {
   await profile(h, { error: new Error('timeout') }); await Promise.resolve(); await Promise.resolve();
   const extra = h.queue.length; if (extra) await profile(h, { error: new Error('timeout') });
   await p; assert.equal(extra, 0); assert.match(h.panel.innerHTML, /Try again/);
+});
+test('startup and tab rendering share the in-flight load without showing false disconnection', async () => {
+  const h = harness(), startup = h.c.loadBrokerageFoundation(), tab = h.c.renderBrokerageFoundationPanel();
+  assert.equal(h.queue.length, 1);
+  await profile(h); finish(h, 'OnDemand'); await Promise.all([startup, tab]);
+  assert.match(h.panel.innerHTML, /OnDemand/); assert.equal(h.panel.innerHTML.includes('not connected'), false);
 });
