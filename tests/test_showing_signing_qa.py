@@ -69,4 +69,3 @@ class ShowingSigningQATests(unittest.TestCase):
     def test_runtime_fixture_has_no_test_suite_import_or_key_input(self):
         source = Path('lib/showing_signing_qa.py').read_text()
         self.assertNotIn('from tests', source); self.assertNotIn('getpass', source)
-
