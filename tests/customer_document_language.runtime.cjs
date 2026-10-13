@@ -57,3 +57,9 @@ test('next-step buttons and handlers survive normalization', () => {
   assert.equal(d.action.textContent, 'Review and send'); assert.equal(d.action.handler(), 'still works');
   assert.equal(d.submit.textContent, 'Save for review');
 });
+test('review instructions retain sentence case without capitalizing inline wording', () => {
+  const codeWithFixture = code.replace('  const run = () => normalize(document);', '  document.copy.textContent = "Review the draft. Review the completed draft, then review the draft again.";\n  const run = () => normalize(document);');
+  const document = new Document();
+  vm.runInNewContext(codeWithFixture, { document, window: {}, Element, Document, NodeFilter: { SHOW_TEXT: 4 }, MutationObserver: class { observe() {} } });
+  assert.equal(document.copy.textContent, 'Review the document. Review the completed document, then review the document again.');
+});
