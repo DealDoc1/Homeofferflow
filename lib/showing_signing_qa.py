@@ -11,7 +11,7 @@ from lib.purchase_signing_qa import QA_RECIPIENTS, QA_OPERATOR_EMAILS
 
 QA_REVISION = "txr-1508-2026-10-13-provider-clearance-v2"
 QA_SCENARIO = "txr1508-provider-placement-remaining"
-REVIEWED_SOURCE_COMMIT = "30cf21f132f80bb9563356e568f6d62df12844f6"
+REVIEWED_SOURCE_COMMIT = "7eeeadd4f4899308357aeabeeb306ab0e69a9570"
 SOURCE_SHA256 = "b0c9a058a1333b4ee46f9fbaab2a54d306f8b087bca6d7c9b417ee95e52ede40"
 FIELDS_SHA256 = "fb9a303670525c6719bd88e6283c99530910bd40a3d0c1eae70cc82a114233d7"
 DOCUMENT_PREFIX = "QA ONLY - TXR-1508 placement - "
@@ -78,8 +78,8 @@ def build_payload(packet, fields, release_sha):
     return {"test_mode": True, "draft": False, "apply_signing_order": False,
             "with_signature_page": False, "reminders": False,
             "name": DOCUMENT_PREFIX + release_sha[:12],
-            "subject": "TEST ONLY: two-customer showing-form placement",
-            "message": "Nonbinding TXR-1508 placement check only, not a client agreement. Both test recipients may complete their fictional initials and dates independently.",
+            "subject": "TEST ONLY: corrected showing-form initials and dates",
+            "message": "This corrected nonbinding TXR-1508 test supersedes the earlier showing-form placement test. It is not a client agreement. Both test recipients may complete only their fictional initials and dates independently.",
             "recipients": [dict(r) for r in QA_RECIPIENTS],
             "files": [{"name": "QA_ONLY_TXR1508_placement.pdf", "file_base64": base64.b64encode(packet).decode("ascii")}],
             "fields": fields, "metadata": {"qa_kind": "txr1508-placement", "release_sha": release_sha,

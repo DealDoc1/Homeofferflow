@@ -30,3 +30,5 @@
 
 - Earlier pending test `8f257940-a833-4f9e-a6e3-30359c212219` was sent with the superseded field map. Preserve it; do not finish or relabel it as corrected evidence, edit its sent fields, cancel it or resend it through its recorded attempt.
 - After protected CI and one spend-guarded prebuilt release, create exactly one new revision-specific nonbinding test through the existing owner-only control, then verify its provider identity/completed PDF. Final electronic-disclosure acceptance still requires packet-specific confirmation or user completion. No corrected completed-provider pass is claimed before actual inspection.
+- Corrected geometry tree is pinned as `7eeeadd4f4899308357aeabeeb306ab0e69a9570`. The new QA invitation subject explicitly says corrected initials and dates; its message explains that it supersedes the earlier test without changing the old attempt.
+- Focused checks so far: provider clearance/role tests 2, fixed QA tests 7, signer geometry 10, TXR-1508 renderer 4, signing request path 27 and map review 5 all pass. Full frozen regression, CI and release remain to be completed.
