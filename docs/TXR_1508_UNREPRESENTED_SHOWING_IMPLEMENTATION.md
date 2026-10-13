@@ -1,6 +1,29 @@
-# TXR-1508 Unrepresented Customer Showing Form - Draft Foundation
+# TXR-1508 Unrepresented Customer Showing Form
 
-## Scope of this release
+## Current released workflow
+
+The February 25, 2026 workflow is production-live in the shared agent library.
+Agents do not need a brokerage seat or a new source-owner approval to use the
+released form. Its licensed source remains private and is already published.
+
+The current one-customer completed-provider specimen was reviewed October 10.
+The two-customer unsigned preview was also reviewed; that is not a completed
+signing pass. A compact remaining test now covers the broker case, associate
+case with different representation answers, and long/Unicode continuation:
+four pages and 21 fields, all four unsigned pages visually reviewed.
+
+This explicitly fictional test uses the two approved inboxes: professional
+and customer 1 fields share QA A, and customer 2 uses QA B. Production roles
+and geometry remain unchanged. Its protected control reserves one attempt,
+forces nonbinding test mode and parallel invitations, disables reminders and
+added signature pages, and never retrieves a new API key. Provider creation,
+completion and final PDF review must be evidenced separately.
+
+The draft-foundation notes below are historical, not current access rules.
+Their source-owner and release-approval gates are superseded by the released
+shared-library workflow; do not report them as new user blockers.
+
+## Historical draft-foundation scope
 
 This release creates a private, source-gated **draft intake** for the Texas
 REALTORS(R) Unrepresented Customer Showing Form (TXR-1508, revision 02-25-26
