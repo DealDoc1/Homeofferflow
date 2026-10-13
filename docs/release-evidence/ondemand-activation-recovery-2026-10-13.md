@@ -21,3 +21,13 @@
 - Desktop and 390x844 phone ready-state layout visually reviewed. Screenshot `/private/tmp/hof-ondemand-activation-ready-mobile.png`; temporary viewport reset. The local fixture is not evidence that live Stripe checkout or an actual new agent activation was completed.
 - Full frozen candidate, independent CI, guarded release, canonical page and deployment error scan are recorded after completion. The remaining branding/admin/invitation and actual new-agent checkout matrix stays partial.
 - Full local candidate ran 2,551 tests in 84.822 seconds: one historical source assertion expected unverified success-URL-based controls. Updated it to require checkout return plus confirmed ready access, without modifying the runtime candidate. Focused funnel checks re-run; independent protected CI/release regression remains required.
+
+## Released checkpoint
+
+- PR #1325: https://github.com/DealDoc1/Homeofferflow/pull/1325. Product `4c6b63db7096cb1a69117bafaabbbf2a9f303880`; exact-head CI `38357473996` passed, including rendering, signer geometry and schema preflight. App attachment failed at its existing 100-item limit; direct PR intact.
+- Protected merge `9e23a6c3c8b6f749d5723137200bdfe1bc34da80`; one guarded release `38357863488` succeeded. Full cloud candidate: 2,551 tests in 124.137 seconds, OK (two environment-dependent skips). Coordinated schema, spend, prebuilt build/deploy, canonical site/PWA/API/packet checks all passed.
+- READY deployment `dpl_A93wp6sREXkqzhUuqDKtRj6wLkxP`, `homeofferflow-1xqrjawmw-dealdoc1s-projects.vercel.app`; authenticated inspection confirmed exact merge SHA and canonical www/non-www aliases.
+- Pre-build spending snapshot 2026-10-13 06:41:36 UTC: $0.03 used, $19.97 unconsumed, $3 reserve. Not a future billing guarantee. No routine preview or duplicate production dispatch.
+- Actual canonical `/ondemand` reload preserved the existing signed-in agent, unchecked acknowledgment, disabled checkout and unchanged terms. Served page independently contained retry control, ready-state authority and auth-revision guard. Screenshot `/private/tmp/hof-ondemand-activation-canonical.png`. No checkout click, legal acknowledgment, paid enrollment or invitations.
+- Deployment-scoped error scan 06:42:00–06:43:33 UTC returned no error records; short scoped window only. Local visual-QA server stopped; temporary verification tab closed; viewport restored. Separate pending fictional SignWell test retained without final disclosure acceptance.
+- This onboarding recovery batch is deployed. Simulated edge cases are locally verified; actual new-agent Stripe activation and authenticated broker-admin branding/defaults/roster/invitation QA remain separate outstanding requirements. Overall roadmap stays active.
