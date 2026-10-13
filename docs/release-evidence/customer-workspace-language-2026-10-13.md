@@ -20,3 +20,10 @@
 - Thirteen focused Python tests passed, including all preserved historical customer-language tests, brokerage-load isolation and membership recovery. No pre-existing test cases were removed.
 - PWA shell advances to v91. Full regression, exact-head CI, spend-guarded release and canonical brokerage/guided-form visual checks are recorded after actual completion below. This is not a claim that all four intake paths or all broker-admin operations were newly tested.
 - Final focused set: 90 Python tests passed. The first full run found two old exact-copy expectations; updated their wording while preserving all authorization/privacy/availability checks, without changing runtime behavior. Frozen final full candidate: 2,550 tests in 81.952 seconds, OK (one environment-dependent skip). All 47 inline scripts parse; staged patch whitespace passes.
+
+## Released checkpoint and actual UI boundary
+
+- PR #1323 exact-head CI `38352812886` passed; merged as `e8e71164f8d6113a2a179763b8d17539e52b63be`. App attachment failed at its existing 100-item limit; direct PR still available.
+- Intentional release `38353191823` succeeded: 2,550 cloud tests in 137.690 seconds, OK (two environment-dependent skips), schema/spend guard, prebuilt deploy and canonical PWA/API/packet checks. READY `dpl_21BcEvz68q7KGQLEMPrkp64kGjta`. Pre-build snapshot 05:50:32 UTC: $0.03/$20 used, $19.97 unconsumed, $3 reserve; not a future billing guarantee.
+- Actual canonical agent Brokerage now shows just OnDemand Realty and active membership, without the redundant browser/programming paragraph. Screenshot `/private/tmp/hof-customer-brokerage-copy.jpg`. Guided Forms cards now use Answer the questions wording and retain the appropriate credit/value/professional-review cautions.
+- This live check also found the older normalization lowering Review at the start of a sentence in two lease-card descriptions. It is corrected separately in `document-review-sentence-case-2026-10-13.md`; no full guided-copy pass is claimed before that check is finished.
