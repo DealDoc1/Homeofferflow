@@ -23,3 +23,10 @@
 - Full local release candidate: 2,526 tests in 88.003 seconds, OK (one environment-dependent skip), before the final one-line retry-read deduplication. The refined retry passes the focused actual-source tests; independent exact-head CI verifies the final tree. All 47 inline JavaScript blocks parse; patch whitespace passes. PWA shell advances to v87.
 - Full candidate regression, exact-head CI, spend guard, intentional release and canonical browser checks are recorded only when actually completed below.
 - Brokerage-admin branding/shared-default/roster/invitation/activation QA and the remaining completed SignWell PDF matrix remain separate roadmap work, not declared passed by these tests.
+
+## Released result and corrective boundary
+
+- PR #1319 final-head CI `38285134148` passed and merged as `6838c1da42a3778ca9f3a4bc1ea47edeb41fb953`. Superseded candidate CI `38284850055` was canceled intentionally, not treated as a product failure.
+- Intentional release `38285566043` passed 2,526 cloud tests (two environment-dependent skips), schema/spend preflight, prebuilt deploy and canonical PWA/API/packet checks.
+- READY production `dpl_HLwSNuF7sB4RiGT95JZvNy6jx2JE`; exact SHA and canonical domain aliases verified. Spend snapshot 17:41:12 UTC: $0.03/$20 used, $19.97 unconsumed, $3 reserve. Not a future billing guarantee. Error-level deployment sample 17:41:20-17:45:02 UTC had no matching logs.
+- Actual canonical Brokerage selection while startup was loading then incorrectly showed not connected for Andrew Gmail. Database membership remained active; no role or data change was used to hide this failure. The overlapping same-session read is addressed and verified separately in `brokerage-shared-startup-load-2026-10-12.md`. This first release alone is not a completed live brokerage pass.

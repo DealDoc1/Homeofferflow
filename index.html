@@ -21708,7 +21708,13 @@ function routeAfterMagicLinkIfNeeded() {
     // platform enhancement initializes this namespace. Brokerage access must
     // remain optional and must never prevent a signed-in user opening Account.
     root.hofPlatform = root.hofPlatform || {};
+    // Account startup and tab selection must await the same pending read.
+    // Otherwise an obsolete response can render "not connected" too early.
+    const pending = root.__hofBrokerageLoad;
+    if (pending?.pending && pending.userId === user.id &&
+        pending.epoch === (root.__hofAccountProfileEpoch || 0)) return pending.promise;
     const request = { userId: user.id, epoch: root.__hofAccountProfileEpoch || 0 };
+    request.pending = true;
     root.__hofBrokerageLoad = request;
     const isCurrent = () => root.__hofBrokerageLoad === request &&
       root.hofAuth?.session?.user?.id === request.userId &&
@@ -21717,6 +21723,7 @@ function routeAfterMagicLinkIfNeeded() {
     root.hofPlatform.brokerageMembership = null;
     root.hofPlatform.brokerageAgents = [];
     root.hofPlatform.brokerageLoadError = '';
+    request.promise = (async () => {
     try {
       const profileResult = await client
         .from('hof_profiles')
@@ -21751,7 +21758,11 @@ function routeAfterMagicLinkIfNeeded() {
       root.hofPlatform.brokerageLoadError = 'We couldn’t load your brokerage. Please try again.';
       console.warn('Brokerage membership load failed:', error);
       return null;
+    } finally {
+      request.pending = false;
     }
+    })();
+    return request.promise;
   };
 
   async function brokerSummary() {
