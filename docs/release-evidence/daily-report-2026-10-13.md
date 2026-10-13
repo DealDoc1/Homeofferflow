@@ -17,3 +17,5 @@ Window: October 12 08:04 through October 13 08:04 America/Chicago.
 Release: https://github.com/DealDoc1/Homeofferflow/actions/runs/38397626811
 Latest QA-only PR: https://github.com/DealDoc1/Homeofferflow/pull/1327
 Evidence: `txr1508-provider-clearance-2026-10-13.md`, `lease-selection-authority-2026-10-13.md`, `ondemand-activation-recovery-2026-10-13.md` and the corresponding account/profile/brokerage/purchase evidence files.
+
+Post-report checkpoint: the obsolete third-inbox roadmap wording was successfully reconciled through the existing authenticated SQL editor and independently read back. Showing QA remains partial, with this exact corrected test's final disclosure/completed-PDF review pending. The new Integrity First contact/description/logo update is separate later work, documented in `integrity-first-partner-details-2026-10-13.md`, not counted in the above 24-hour release window.
