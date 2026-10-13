@@ -81,21 +81,19 @@ def build_signwell_fields_txr1508(data, *, client_count=1, page_count=1):
         # ``Initials:`` label at x=347.  The exact vertical placement is
         # calibrated against a completed provider PDF rather than inferred
         # from the generic widget bounds.
-        # SignWell paints initials and dates at the upper edge of a widget.
-        # A completed provider PDF showed the former boxes (659/657 and
-        # 716/714) leaving each value visibly above its printed rule.  Move
-        # the boxes down 20 SignWell pixels so the painted values sit on the
-        # acknowledgement rules while preserving clear space before the next
-        # customer row.
-        {"api_id": "txr1508_agent_initials_p1", "type": "initials", "page": 1, "x": 347, "y": 679, "recipient_id": "associate" if signer_plan == "associate_and_clients" else "broker", "required": True, "width": 95, "height": 18},
-        {"api_id": "txr1508_agent_date_p1", "type": "date", "page": 1, "x": 625, "y": 677, "recipient_id": "associate" if signer_plan == "associate_and_clients" else "broker", "required": True, "width": 121, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
-        {"api_id": "txr1508_client1_initials_p1", "type": "initials", "page": 1, "x": 518, "y": 736, "recipient_id": "1", "required": True, "width": 61, "height": 18},
-        {"api_id": "txr1508_client1_date_p1", "type": "date", "page": 1, "x": 625, "y": 734, "recipient_id": "1", "required": True, "width": 121, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        # Recovered completed QA showed initials crossing the next sentence
+        # and date text struck by its rule. Raise every main-page widget ten
+        # pixels; observed provider image padding then leaves the whole ink
+        # envelope above the measured rule. Continuation placements stay put.
+        {"api_id": "txr1508_agent_initials_p1", "type": "initials", "page": 1, "x": 347, "y": 669, "recipient_id": "associate" if signer_plan == "associate_and_clients" else "broker", "required": True, "width": 95, "height": 18},
+        {"api_id": "txr1508_agent_date_p1", "type": "date", "page": 1, "x": 625, "y": 667, "recipient_id": "associate" if signer_plan == "associate_and_clients" else "broker", "required": True, "width": 121, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+        {"api_id": "txr1508_client1_initials_p1", "type": "initials", "page": 1, "x": 518, "y": 726, "recipient_id": "1", "required": True, "width": 61, "height": 18},
+        {"api_id": "txr1508_client1_date_p1", "type": "date", "page": 1, "x": 625, "y": 724, "recipient_id": "1", "required": True, "width": 121, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
     ]
     if client_count == 2:
         fields.extend([
-            {"api_id": "txr1508_client2_initials_p1", "type": "initials", "page": 1, "x": 518, "y": 794, "recipient_id": "2", "required": True, "width": 61, "height": 18},
-            {"api_id": "txr1508_client2_date_p1", "type": "date", "page": 1, "x": 625, "y": 792, "recipient_id": "2", "required": True, "width": 121, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
+            {"api_id": "txr1508_client2_initials_p1", "type": "initials", "page": 1, "x": 518, "y": 784, "recipient_id": "2", "required": True, "width": 61, "height": 18},
+            {"api_id": "txr1508_client2_date_p1", "type": "date", "page": 1, "x": 625, "y": 782, "recipient_id": "2", "required": True, "width": 121, "height": 20, "date_format": "MM/DD/YYYY", "lock_sign_date": True},
         ])
     fields.extend(continuation_fields(data, client_count, page_count))
     return [fields]

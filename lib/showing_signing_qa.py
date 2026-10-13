@@ -9,16 +9,16 @@ from pypdf import PdfReader, PdfWriter
 from lib.txr_1508 import render_txr_1508, build_signwell_fields_txr1508
 from lib.purchase_signing_qa import QA_RECIPIENTS, QA_OPERATOR_EMAILS
 
-QA_REVISION = "txr-1508-2026-10-12-two-customer-v1"
+QA_REVISION = "txr-1508-2026-10-13-provider-clearance-v2"
 QA_SCENARIO = "txr1508-provider-placement-remaining"
 REVIEWED_SOURCE_COMMIT = "30cf21f132f80bb9563356e568f6d62df12844f6"
 SOURCE_SHA256 = "b0c9a058a1333b4ee46f9fbaab2a54d306f8b087bca6d7c9b417ee95e52ede40"
-FIELDS_SHA256 = "ecdca46053742c57022595ccc7723737ca02c54571ce6f934cb40ec31e927e60"
+FIELDS_SHA256 = "fb9a303670525c6719bd88e6283c99530910bd40a3d0c1eae70cc82a114233d7"
 DOCUMENT_PREFIX = "QA ONLY - TXR-1508 placement - "
 QA_TITLE = "TXR-1508 remaining provider placement"
 TEST_LABEL = "showing-form signing"
 QA_DESCRIPTION = "Synthetic two-customer broker/associate acknowledgements and Unicode continuation; completed PDF visual review required."
-RENDER_REVISION = "txr-1508-2026-09-18-answer-continuation-v2"
+RENDER_REVISION = "txr-1508-2026-10-13-provider-clearance-v3"
 
 
 def cases():
