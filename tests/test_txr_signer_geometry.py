@@ -367,10 +367,8 @@ class TxrSignerGeometryTests(unittest.TestCase):
         for field_id in ("txr1508_agent_date_p1", "txr1508_client1_date_p1", "txr1508_client2_date_p1"):
             with self.subTest(field_id=field_id):
                 self.assertEqual((fields[field_id]["x"], fields[field_id]["width"]), (625, 121))
-        # SignWell paints typed values near the upper edge of each widget.
-        # These calibrated values come from a completed provider PDF in which
-        # the former rows were visibly above their printed rules.  Keep the
-        # completion widgets twenty pixels lower, in source-row order.
+        # Keep the released baseline pinned while the separate clearance
+        # candidate is verified against completed-provider ink bounds.
         self.assertEqual(
             [fields[field_id]["y"] for field_id in (
                 "txr1508_agent_initials_p1",

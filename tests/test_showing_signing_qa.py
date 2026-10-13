@@ -8,7 +8,7 @@ from unittest.mock import patch
 from pypdf import PdfReader
 from reportlab.pdfgen.canvas import Canvas
 from lib import showing_signing_qa as qa
-from lib.txr_1508 import build_signwell_fields_txr1508
+from lib.txr_1508 import build_signwell_fields_txr1508_clearance_candidate
 
 
 class ShowingSigningQATests(unittest.TestCase):
@@ -19,14 +19,14 @@ class ShowingSigningQATests(unittest.TestCase):
         patched = patch.object(qa, 'SOURCE_SHA256', hashlib.sha256(self.source).hexdigest())
         patched.start(); self.addCleanup(patched.stop)
 
-    def test_three_fixed_cases_use_only_two_inboxes_without_changing_geometry(self):
+    def test_three_fixed_cases_use_two_inboxes_and_preserve_candidate_geometry(self):
         packet, fields, cases = qa.build_packet(self.source)
         self.assertEqual(len(PdfReader(BytesIO(packet)).pages), 4)
         self.assertEqual(len(fields[0]), 21)
         self.assertEqual({f['recipient_id'] for f in fields[0]}, {'qa_a', 'qa_b'})
         self.assertEqual(len({f['api_id'] for f in fields[0]}), 21)
         for (name, data), manifest in zip(qa.cases(), cases):
-            original = build_signwell_fields_txr1508(data, client_count=2, page_count=len(manifest['source_pages']))[0]
+            original = build_signwell_fields_txr1508_clearance_candidate(data, client_count=2, page_count=len(manifest['source_pages']))[0]
             output_fields = [f for f in fields[0] if f['api_id'].startswith(name + '_')]
             for a, b in zip(original, output_fields):
                 self.assertEqual({k: v for k, v in a.items() if k not in {'api_id', 'recipient_id', 'page'}},
@@ -69,3 +69,8 @@ class ShowingSigningQATests(unittest.TestCase):
     def test_runtime_fixture_has_no_test_suite_import_or_key_input(self):
         source = Path('lib/showing_signing_qa.py').read_text()
         self.assertNotIn('from tests', source); self.assertNotIn('getpass', source)
+
+    def test_corrected_revision_cannot_reuse_the_superseded_provider_map(self):
+        self.assertEqual(qa.QA_REVISION, 'txr-1508-2026-10-13-provider-clearance-v2')
+        self.assertEqual(qa.RENDER_REVISION, 'txr-1508-2026-10-13-provider-clearance-v3')
+        self.assertNotEqual(qa.FIELDS_SHA256, 'ecdca46053742c57022595ccc7723737ca02c54571ce6f934cb40ec31e927e60')
