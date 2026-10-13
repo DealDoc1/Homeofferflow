@@ -265,12 +265,13 @@
           <div id="activationNote" class="activation-note" role="status" aria-live="polite">
             <strong>Confirming your workspace.</strong> Your checkout is complete. We are confirming your agent access now; this usually takes a moment.
           </div>
+          <button id="activationRetryButton" class="secondary" type="button" hidden>Check my workspace access</button>
           <div id="installHint" class="install-hint" role="status" aria-live="polite" aria-atomic="true">
             <strong>Keep your workspace one tap away.</strong>
             <span id="installHintCopy"></span>
             <button id="installAppButton" type="button" hidden>Install HomeOfferFlow</button>
           </div>
-          <label class="consent" for="terms">
+          <label id="enrollmentConsent" class="consent" for="terms">
             <input id="terms" type="checkbox" />
             <span>
               I understand my card is required today but will not be charged for 60 days.
@@ -355,6 +356,9 @@
       const initialParams = new URLSearchParams(window.location.search);
       const state = {
         session: null,
+        sessionEpoch: 0,
+        activationStatus: "idle",
+        activationRequest: null,
         config: null,
         inviteToken: initialParams.get("invite") || "",
         inviteStatus: initialParams.get("invite") ? "pending" : "none"
@@ -567,15 +571,23 @@
         // enrollment terms. Preserve their visible choice for the same account;
         // reset it only when the signed-in identity actually changes.
         if (identityChanged) {
+          state.sessionEpoch = (state.sessionEpoch || 0) + 1;
+          state.activationStatus = "idle";
+          state.activationRequest = null;
+          $("activationNote").style.display = "none";
+          $("activationRetryButton").hidden = true;
           $("terms").checked = false;
           $("checkoutButton").disabled = true;
         }
         const checkoutComplete = signedIn && new URLSearchParams(window.location.search).get("checkout") === "success";
         const checkoutCancelled = signedIn && new URLSearchParams(window.location.search).get("checkout") === "cancelled";
-        $("workspaceButton").style.display = checkoutComplete ? "block" : "none";
-        $("firstOfferButton").style.display = checkoutComplete ? "block" : "none";
+        const workspaceReady = checkoutComplete && state.activationStatus === "ready";
+        $("enrollmentConsent").style.display = checkoutComplete ? "none" : "flex";
+        $("checkoutButton").style.display = checkoutComplete ? "none" : "block";
+        $("workspaceButton").style.display = workspaceReady ? "block" : "none";
+        $("firstOfferButton").style.display = workspaceReady ? "block" : "none";
         $("checkoutRecovery").style.display = checkoutCancelled ? "block" : "none";
-        renderInstallHint(checkoutComplete);
+        renderInstallHint(workspaceReady);
       }
 
       async function acceptBrokerageInvite(session) {
@@ -682,32 +694,55 @@
 
       async function confirmActivatedWorkspace() {
         if (!state.session?.access_token) return false;
+        if (state.activationStatus === "ready") return true;
+        if (state.activationRequest) return state.activationRequest;
+        const userId = state.session.user.id;
+        const sessionEpoch = state.sessionEpoch;
+        const isCurrent = () => state.sessionEpoch === sessionEpoch && state.session?.user?.id === userId;
         const note = $("activationNote");
         const workspaceButton = $("workspaceButton");
         const firstOfferButton = $("firstOfferButton");
+        const retryButton = $("activationRetryButton");
+        state.activationStatus = "checking";
+        retryButton.hidden = true;
+        retryButton.disabled = true;
         note.style.display = "block";
+        note.innerHTML = "<strong>Confirming your workspace.</strong> We are checking your agent access now; this usually takes a moment.";
         workspaceButton.style.display = "none";
         firstOfferButton.style.display = "none";
-        for (let attempt = 0; attempt < 6; attempt += 1) {
-          try {
-            const response = await fetch("/api/create-subscription-checkout?launch=ondemand&status=access", {
-              headers: { "Authorization": `Bearer ${state.session.access_token}` }
-            });
-            const data = await response.json().catch(() => ({}));
-            if (response.ok && data.access === true) {
-              note.innerHTML = "<strong>Your workspace is ready.</strong> Start a transaction or open your workspace when you are ready.";
-              workspaceButton.style.display = "block";
-              firstOfferButton.style.display = "block";
-              renderInstallHint(true);
-              return true;
+        renderInstallHint(false);
+        const request = (async () => {
+          for (let attempt = 0; attempt < 6; attempt += 1) {
+            if (!isCurrent()) return false;
+            try {
+              const response = await fetch("/api/create-subscription-checkout?launch=ondemand&status=access", {
+                headers: { "Authorization": `Bearer ${state.session.access_token}` }
+              });
+              const data = await response.json().catch(() => ({}));
+              if (!isCurrent()) return false;
+              if (response.ok && data.access === true) {
+                state.activationStatus = "ready";
+                note.innerHTML = "<strong>Your workspace is ready.</strong> Start a transaction or open your workspace when you are ready.";
+                workspaceButton.style.display = "block";
+                firstOfferButton.style.display = "block";
+                renderInstallHint(true);
+                return true;
+              }
+            } catch (_) {
+              // A temporary connection issue should not imply activated access.
             }
-          } catch (_) {
-            // A temporary connection issue should not imply activated access.
+            if (attempt < 5) await new Promise((resolve) => setTimeout(resolve, 1000));
           }
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-        }
-        note.innerHTML = "<strong>Your checkout is complete.</strong> Access is taking a little longer than usual. Refresh this page in a moment, or open your workspace after the confirmation email arrives.";
-        return false;
+          if (!isCurrent()) return false;
+          state.activationStatus = "waiting";
+          note.innerHTML = "<strong>Your workspace access is not confirmed yet.</strong> It may take a moment after checkout. Check again below; you do not need to repeat checkout.";
+          retryButton.hidden = false;
+          retryButton.disabled = false;
+          return false;
+        })();
+        state.activationRequest = request;
+        try { return await request; }
+        finally { if (isCurrent() && state.activationRequest === request) state.activationRequest = null; }
       }
 
       async function init() {
@@ -739,18 +774,34 @@
         // Attach the listener before reading the saved session. If the initial
         // browser read fails, a later auth recovery can still render the agent
         // and continue invite acceptance without requiring another page load.
+        let authRevision = 0;
+        let savedSessionReadFailed = false;
         client.auth.onAuthStateChange((_event, session) => {
+          authRevision += 1;
+          if (session?.user?.id && savedSessionReadFailed) {
+            savedSessionReadFailed = false;
+            showStatus("");
+          }
           renderSession(session);
-          void acceptBrokerageInvite(session);
+          void acceptBrokerageInvite(session).then(() => {
+            if (session?.user?.id && state.session?.user?.id === session.user.id && params.get("checkout") === "success") {
+              void confirmActivatedWorkspace();
+            }
+          });
         });
+        const initialReadRevision = authRevision;
         let initialSession = null;
         try {
           const { data, error } = await client.auth.getSession();
           if (error) throw error;
-          initialSession = data?.session || null;
-          renderSession(initialSession);
+          // A newer auth event wins over a delayed saved-session result.
+          if (authRevision === initialReadRevision) {
+            initialSession = data?.session || null;
+            renderSession(initialSession);
+          }
         } catch (error) {
           if (!state.session?.user?.id) {
+            savedSessionReadFailed = true;
             showStatus(customerErrorMessage(error, "We couldn’t confirm your saved sign-in. You can still request a new secure link or refresh this page."), "note");
           }
         }
@@ -782,6 +833,7 @@
         if ($("terms").checked) recordAggregateLandingEvent("ondemand_trial_terms_accepted");
       });
       $("checkoutButton").addEventListener("click", startCheckout);
+      $("activationRetryButton").addEventListener("click", () => confirmActivatedWorkspace());
       $("workspaceButton").addEventListener("click", () => {
         window.location.assign("/?pwa_action=workspace");
       });
@@ -792,7 +844,7 @@
       window.addEventListener("beforeinstallprompt", (event) => {
         event.preventDefault();
         deferredInstallPrompt = event;
-        renderInstallHint(new URLSearchParams(window.location.search).get("checkout") === "success" && Boolean(state.session?.user?.email));
+        renderInstallHint(state.activationStatus === "ready" && Boolean(state.session?.user?.email));
       });
       $("installAppButton").addEventListener("click", async () => {
         if (!deferredInstallPrompt) return;

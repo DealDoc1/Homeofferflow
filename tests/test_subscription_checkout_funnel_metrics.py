@@ -90,7 +90,8 @@ class SubscriptionCheckoutFunnelMetricTests(unittest.TestCase):
         self.assertIn('get("checkout") === "success"', source)
         self.assertIn('window.location.assign("/?pwa_action=workspace")', source)
         self.assertIn('window.location.assign("/?pwa_action=transaction_start")', source)
-        self.assertIn('$("firstOfferButton").style.display = checkoutComplete ? "block" : "none"', source)
+        self.assertIn('const workspaceReady = checkoutComplete && state.activationStatus === "ready";', source)
+        self.assertIn('$("firstOfferButton").style.display = workspaceReady ? "block" : "none"', source)
 
     def test_ondemand_success_return_confirms_webhook_access_before_opening_workspace(self):
         source = (ROOT / "ondemand.html").read_text(encoding="utf-8")

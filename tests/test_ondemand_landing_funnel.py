@@ -249,7 +249,7 @@ const end = html.indexOf('async function acceptBrokerageInvite', start);
 if (start < 0 || end < 0) throw new Error('renderSession not found');
 const state = {session: null};
 const elements = {};
-for (const id of ['signedOut', 'signedIn', 'signedInEmail', 'terms', 'checkoutButton', 'workspaceButton', 'firstOfferButton', 'checkoutRecovery', 'enrollmentDetails']) {
+for (const id of ['signedOut', 'signedIn', 'signedInEmail', 'terms', 'checkoutButton', 'workspaceButton', 'firstOfferButton', 'checkoutRecovery', 'enrollmentDetails', 'activationNote', 'activationRetryButton', 'enrollmentConsent']) {
   elements[id] = {style: {}, textContent: '', checked: false, disabled: true};
 }
 const $ = id => elements[id];
