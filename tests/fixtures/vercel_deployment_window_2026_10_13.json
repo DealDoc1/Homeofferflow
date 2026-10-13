@@ -1,0 +1,56 @@
+{
+  "observed_at": "2026-10-13T20:44:26Z",
+  "now_ms": 1791924266000,
+  "window_seconds": 86400,
+  "deployments": [
+    {
+      "id": "dpl_FiQvp354oPnUfwoCtMw6DuCAkp8x",
+      "created": 1791923992877,
+      "state": "READY"
+    },
+    {
+      "id": "dpl_FadWqGGEoc7Thz5T1M8QYhxrpszJ",
+      "created": 1791894767698,
+      "state": "READY"
+    },
+    {
+      "id": "dpl_HMm1odaFBtjtyAq1jnf9841jG62M",
+      "created": 1791890094324,
+      "state": "READY"
+    },
+    {
+      "id": "dpl_A93wp6sREXkqzhUuqDKtRj6wLkxP",
+      "created": 1791873707691,
+      "state": "READY"
+    },
+    {
+      "id": "dpl_FHFpH89QWFbBuv9LsGkJjMHxxpTY",
+      "created": 1791872272402,
+      "state": "READY"
+    },
+    {
+      "id": "dpl_21BcEvz68q7KGQLEMPrkp64kGjta",
+      "created": 1791870644485,
+      "state": "READY"
+    },
+    {
+      "id": "dpl_Dk5V2o3JC8iE57jPjTAiKgzNU8cy",
+      "created": 1791867844101,
+      "state": "READY"
+    },
+    {
+      "id": "dpl_H1DPfRjcM6wpjmnjAYSkckRobRD8",
+      "created": 1791855536544,
+      "state": "READY"
+    },
+    {
+      "id": "dpl_DGAyEvvH8GCeaNjVkX5fppjx2fwV",
+      "created": 1791854496863,
+      "state": "READY"
+    }
+  ],
+  "pagination": {
+    "count": 9,
+    "prev": 1791923992877
+  }
+}
