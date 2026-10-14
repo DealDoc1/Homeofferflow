@@ -17,7 +17,8 @@ class NowWhatPartnerJourneyTests(unittest.TestCase):
         self.assertIn('renderNowWhatPartnerJourney();', self.html)
 
     def test_directory_uses_public_platform_endpoint(self):
-        self.assertIn("/api/fsbo-lead?partner_directory=1", self.html)
+        self.assertIn('renderNowWhatDirectory(await window.hofPartnerProfile.load());', self.html)
+        self.assertIn("/api/fsbo-lead?partner_directory=1", (HTML_PATH.parent/'assets/partner-profile.js').read_text())
         self.assertIn("No active HomeOfferFlow provider profiles are available here yet.", self.html)
         self.assertIn("You are free to choose any provider or none.", self.html)
 

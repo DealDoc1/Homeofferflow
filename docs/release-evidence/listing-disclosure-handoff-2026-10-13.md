@@ -30,3 +30,14 @@
 
 - Owner asked for Integrity First launch status/screenshots before this batch was released. Runtime is locally implemented/tested; no PR, merge or Vercel release is claimed yet. Keep the full roadmap goal active.
 - Live Integrity First readback remains qualified / beta / onboarding in_progress / agreement not_started, with no placement rows. Canonical roofing API independently returns ok true and partners empty. A saved logo is not publication.
+
+## Completed application release
+
+- PR #1330 https://github.com/DealDoc1/Homeofferflow/pull/1330. Exact head 8501e1ec74c621e510dd5f194a8210b811b5bfb5; independent CI 38488497027 passed, including 2,588 tests in 160.354 seconds (two environment skips), approved rendering, signer geometry, schema preflight and whitespace.
+- Protected merge 83241c3fb51c01ec84d970d893a0d40d3aed8c5f. Exactly one intentional production release 38488908253 succeeded, with 2,588 merged tests in 128.168 seconds (two environment skips), coordinated schema, spend, prebuilt artifact and canonical PWA/API checks.
+- Independently inspected canonical deployment READY dpl_G73wFGdW4brmkiAQ5HftCseJBpmY, homeofferflow-9jvjun0ir-dealdoc1s-projects.vercel.app, exact merge revision and www/root aliases. Actual canonical HTML matches the reviewed source byte-for-byte, SHA256 8ecada887f0007530b111640a925a06c9ef10bc05b08d68ab25adccd12d801dc. This proves served code, not a freshly completed customer or provider transaction.
+- At 2026-10-14 00:16:36 UTC the real release guard counted nine preceding-24-hour deployments (limit 100), $0.03 infrastructure credit used, $19.97 unconsumed and unchanged $3 reserve for September 22-October 21. Snapshot, not a future cost guarantee or total invoice.
+- Bounded error/fatal sample 00:17:02-00:18:24 UTC found no records. No extra deployment, real packet, email, charge, signing acceptance or new permission was created.
+- Prepared one-row roadmap reconciliation and two focused tests. The connector write returned Invalid or expired requestState; independent readback proves the roadmap record is unchanged. Do not claim that metadata correction was applied. The local SQL remains prepared for an authenticated operational path.
+- Final interactive in-page choice completion remains unverified because obsolete native-confirm preview tab 29 blocks browser clicks. A concise nonblocking owner request to dismiss/close it was issued; do not treat a goal continuation as proof it was dismissed. Preview server PID 46214 was identified and stopped with TERM, exit 143 confirmed. New preview tab 33 should be closed when finishing; exact pre-existing fictional SignWell tabs 24/25 remain handoffs, not newly sent requests.
+- Owner explicitly selected completing and publishing all three Integrity First placements as the next workstream. Overall roadmap goal remains active.

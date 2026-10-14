@@ -27,6 +27,8 @@
   <meta name="twitter:image:alt" content="HomeOfferFlow Texas offer workflow" />
   <title>Write a Texas Real Estate Offer | HomeOfferFlow</title>
   <script src="/assets/partner-profile.js"></script>
+  <link rel="stylesheet" href="/assets/inspection-partners.css">
+  <script src="/assets/inspection-partners.js" defer></script>
   <script id="hof-agent-route-primer-v1">
   // Keep only the four declared agent-route labels during this page load.
   // This contains no customer, property, account, or campaign information.
@@ -1217,7 +1219,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 .now-what-partner { flex-wrap:wrap; }
 .now-what-partner .hof-partner-actions { display:flex; flex-wrap:wrap; gap:.65rem; }
 .now-what-partner .hof-partner-actions a { display:inline-flex; align-items:center; min-height:44px; }
-.now-what-partner-logo { width:130px; max-width:100%; height:48px; object-fit:contain; background:#fff; border-radius:6px; padding:3px; margin-bottom:.4rem; }
+.now-what-partner-logo { width:220px; max-width:100%; height:90px; object-fit:contain; background:#fff; border-radius:6px; padding:6px; margin-bottom:.4rem; }
 .now-what-partner-description { color:var(--gray); font-size:.72rem; margin:.4rem 0; }
 .now-what-empty { margin-top:.55rem; padding:.62rem .68rem; color:var(--gray-light); border:1px dashed rgba(255,255,255,.16); border-radius:10px; font-size:.73rem; line-height:1.4; }
 .now-what-note { padding:.85rem 1rem 1rem; border-top:1px solid rgba(255,255,255,.08); }
@@ -4129,6 +4131,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         </div>
         <div id="repairsField" style="display:none; margin-top:0.75rem;"><div class="field"><label>Specific Repairs or Treatments Required</label><textarea id="repairsText" rows="3" placeholder="List the agreed repair or treatment details"></textarea><small class="field-note">For demolition or another material seller obligation, use attorney-approved contract language rather than relying on a short repair description.</small></div></div>
       </div>
+      <section id="hofInspectionPartners" aria-label="Optional roofing support" hidden></section>
     </div>
 
     <div class="wizard-step" id="step7">
@@ -11391,12 +11394,14 @@ function routeAfterMagicLinkIfNeeded() {
       const text = [partner.partner_name, partner.market_area, partner.partner_type].filter(Boolean).join(' ').toLowerCase();
       return (!search || text.includes(search)) && (!category || partner.partner_type === category);
     });
-    target.innerHTML = NOW_WHAT_GROUPS.map(group => {
+    const groupsToShow = NOW_WHAT_GROUPS.filter(group => visiblePartners.some(partner => group.types.includes(partner.partner_type)));
+    target.innerHTML = groupsToShow.length ? groupsToShow.map(group => {
       const matches = visiblePartners.filter(partner => group.types.includes(partner.partner_type)).sort(nowWhatPartnerSort);
       const cards = matches.length ? matches.map(partner => {
         const regulated = NOW_WHAT_REGULATED_TYPES.has(partner.partner_type);
         const logo = window.hofPartnerProfile.websiteUrl(partner.logo_url);
-        const description = String(partner.public_description || '').trim().slice(0, 600);
+        const fullDescription = String(partner.public_description || '').trim().slice(0, 600);
+        const description = fullDescription.length > 260 ? fullDescription.split(/(?<=[.!?])\s+/).slice(0, 2).join(' ') : fullDescription;
         const tierLabel = partner.partner_program === 'beta' ? 'Beta partner' : partner.placement_tier === 'exclusive_market' ? 'Sponsored · Premier Partner' : partner.placement_tier === 'premier' ? 'Sponsored · Featured Partner' : 'Sponsored · Core Partner';
         return `<div class="now-what-partner">
           <div>${logo ? `<img class="now-what-partner-logo" src="${nowWhatEscape(logo)}" alt="${nowWhatEscape(partner.partner_name)} logo" loading="lazy" decoding="async">` : ''}<div class="now-what-partner-name">${nowWhatEscape(partner.partner_name || 'Local provider')}</div><div class="now-what-partner-meta">${nowWhatEscape(NOW_WHAT_PARTNER_LABELS[partner.partner_type] || 'Local service')} · ${nowWhatEscape(partner.market_area || 'Local market')}</div>${description ? `<p class="now-what-partner-description">${nowWhatEscape(description)}</p>` : ''}${regulated ? '' : `<span class="now-what-badge">${tierLabel}</span>`}</div>
@@ -11404,7 +11409,7 @@ function routeAfterMagicLinkIfNeeded() {
         </div>`;
       }).join('') : `<div class="now-what-empty">No active HomeOfferFlow provider profiles are available here yet. You may choose any qualified provider independently.</div>`;
       return `<section class="now-what-category"><div class="now-what-category-head"><div><h5>${nowWhatEscape(group.title)}</h5><p>${nowWhatEscape(group.detail)}</p></div>${group.neutral ? '<span class="now-what-neutral">Neutral directory</span>' : ''}</div><div class="now-what-partners">${cards}</div></section>`;
-    }).join('');
+    }).join('') : '<div class="now-what-empty">No active HomeOfferFlow provider profiles are available here yet. You may choose any qualified provider independently.</div>';
     bindOfferCompletionPartnerClicks(target);
     trackPartnerDirectoryImpressions(visiblePartners);
   }
@@ -11424,10 +11429,7 @@ function routeAfterMagicLinkIfNeeded() {
     }
     try { trackEvent('Now What Partner Journey Viewed', { userType: data.userType || 'homebuyer' }); } catch (e) {}
     try {
-      const response = await fetch('/api/fsbo-lead?partner_directory=1');
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok || !result.ok) throw new Error(result.error || 'Directory unavailable');
-      renderNowWhatDirectory(Array.isArray(result.partners) ? result.partners : []);
+      renderNowWhatDirectory(await window.hofPartnerProfile.load());
     } catch (error) {
       const directory = document.getElementById('nowWhatPartnerDirectory');
       if (directory) directory.innerHTML = '<div class="now-what-empty">Local provider profiles are not available right now. You may choose any qualified provider independently.</div>';
@@ -15948,6 +15950,9 @@ function routeAfterMagicLinkIfNeeded() {
         </div>
         <div class="platform-actions"><button type="button" onclick="createPartnerBetaInvitation()">Send no-charge beta setup invite</button></div>
         <div id="partnerBetaInviteStatus" class="platform-status" role="status" aria-live="polite"></div>
+        <h4 style="margin-top:1rem;">Publish a free beta profile</h4>
+        <p>Uses the saved logo, website and public contact details. No charge or automatic paid conversion.</p>
+        <div id="partnerBetaPublicationList" class="platform-list"></div>
       </div>
       <div class="partner-create-card">
         <h4 style="color:var(--gold-light); font-size:0.86rem; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.75rem;">Create Partner Placement</h4>
@@ -16163,6 +16168,23 @@ function routeAfterMagicLinkIfNeeded() {
       const result = await response.json().catch(() => ({}));
       if (!response.ok || result.error) throw new Error(result.error || 'Could not load platform placements.');
       hofPlatform.partners = result.partnerPlacements || [];
+      const betaPublicationList = document.getElementById('partnerBetaPublicationList');
+      if (betaPublicationList) {
+        const activeLeadIds = new Set(hofPlatform.partners.filter(p => p.is_active).map(p => String(p.source_lead_id)));
+        betaPublicationList.innerHTML = (result.partnerLeads || []).filter(lead => lead.partner_program === 'beta' && lead.status === 'qualified' && !activeLeadIds.has(String(lead.id)) && /^[0-9a-f-]{36}$/i.test(String(lead.id))).map(lead => `<div class="platform-list-item"><strong>${escapeAttr(lead.company_name)}</strong><button type="button" class="btn-secondary" data-free-beta-lead="${escapeAttr(lead.id)}">Publish free beta profile</button></div>`).join('') || '<p>No unpublished beta profiles.</p>';
+        betaPublicationList.querySelectorAll('[data-free-beta-lead]').forEach(button => button.addEventListener('click', async () => {
+          if (!isCurrentAdmin() || button.disabled) return;
+          button.disabled = true;
+          try {
+            const response = await fetch('/api/admin-dashboard', {method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${hofAuth?.session?.access_token}`},body:JSON.stringify({action:'publish_free_beta_partner',partner_lead_id:button.dataset.freeBetaLead})});
+            const saved = await response.json();
+            if (!response.ok || !saved.ok) throw new Error('Publication did not complete.');
+            platformStatus('partnerFoundationStatus','Free beta profile published. No charge or paid conversion.','ok');
+            await loadPartnerPlacementsFoundation();
+          } catch (_) { platformStatus('partnerFoundationStatus','We couldn’t publish that profile. Check its saved public details and try again.','err'); }
+          finally { button.disabled = false; }
+        }));
+      }
       populatePaidPartnerPlacementLeads(result.partnerLeads || []);
       const lifecycleRows = hofPlatform.partners.map(partnerPlacementLifecycle);
       const launchCount = lifecycleRows.filter(item => item.label.startsWith('Launch period')).length;

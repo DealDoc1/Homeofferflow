@@ -82,6 +82,8 @@ class PartnerDirectoryImpressionTests(unittest.TestCase):
         self.assertIn('"placement_tier": f"eq.{placement_tier}"', api)
         self.assertIn('That partner placement is unavailable.', api)
         self.assertIn('"offer_completion"', api)
+        self.assertIn('"inspection_interview"', api)
+        self.assertIn('"founding"', api[api.index('PARTNER_DIRECTORY_TIERS'):api.index('PARTNER_DIRECTORY_SURFACES')])
 
     def test_public_directory_records_category_demand_without_market_text(self):
         self.assertIn('trackSearchDemand', PUBLIC_DIRECTORY)

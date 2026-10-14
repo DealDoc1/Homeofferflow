@@ -54,3 +54,10 @@ test('actual offer-follow-up renderer never uses private contacts or unsafe webs
   const markup=completionMarkup({id:'fixture',partner_type:'roofing',contact_phone:'+19728376378',contact_name:'Private',website_url:'javascript:evil'});
   assert.doesNotMatch(markup,/tel:|javascript:|Private/);
 });
+test('offer follow-up uses the concise approved service summary rather than repeating the whole company biography',()=>{
+  const markup=completionMarkup({...provider,partner_name:'QA Roofing',partner_program:'beta',public_description:
+    'We serve DFW homeowners. We handle roof inspections, replacements and storm damage. '+ 'Our mission is careful, dependable service. '.repeat(8)});
+  assert.match(markup,/We serve DFW homeowners/);
+  assert.match(markup,/storm damage/);
+  assert.doesNotMatch(markup,/Our mission/);
+});
