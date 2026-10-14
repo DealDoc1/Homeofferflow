@@ -23,3 +23,14 @@
 - Independent exact-head CI, merge and intentional app deployment.
 - Actual scoped beta publication and independent readback: one active placement, monthly fee zero, no brokerage owner, unchanged payment/agreement status, correct public fields and logo.
 - Canonical served-code/API checks and final desktop/phone screenshots of each placement. Local previews are not final live screenshots.
+
+## Completed production checkpoint — 2026-10-14 02:04 UTC
+
+- PR #1331 exact-head CI 38497728585 succeeded on cd1260e139b9c563f3e4f005b87f271dd4658a50. Normal protected merge produced 71093380e8bb9225d8007d0bd3a3cb83000f1cce.
+- Scoped publication run 38498488938 succeeded once on that merge. Independent SQL readback confirms exactly one active platform-wide placement 09bb0a57-b5f1-4921-94e3-b5a7da05480a, fee 0, brokerage null, program beta, onboarding complete, payment not_started, agreement not_started, and both agreement timestamps null. Public contact is Tedd Hansen / +19728376378. No agreement execution is asserted.
+- Intentional production release 38498490192 succeeded, including the merged full regression suite, fresh database readiness, spend safety, prebuilt artifact, canonical site, PWA shell and API/packet-runtime checks. Spend snapshot at 02:01:21 UTC: $0.03 infrastructure used, $19.97 unconsumed, $3 reserved; this is a snapshot, not a future-usage guarantee.
+- Canonical root and www aliases resolve to READY dpl_WpBit7LGTPTPNoFobLWY2pKBtwHQ / homeofferflow-4sjjtxsi1-dealdoc1s-projects.vercel.app, source 71093380e8bb9225d8007d0bd3a3cb83000f1cce.
+- Canonical index, partner-profile.js, inspection-partners.js and inspection-partners.css returned HTTP 200 and are byte-identical to the reviewed merge. Index SHA-256 15fcd4d5b37e035a90f1ce2689d3bebdbcd7968c2392de9cce795253a06bc383. Public directory API returns the genuine placement, original logo, supplied description, website and direct-call link; private email/message/payment fields are absent.
+- Actual canonical directory rendered and was captured on desktop and phone. Inspection and follow-up were visually captured in an explicitly labeled local read-only display using the genuine published API profile and byte-identical deployed components. These are not screenshots from a newly fulfilled customer transaction; no customer packet, charge, signature or binding acknowledgement was created to obtain them. Phone display checks are 390px wide without horizontal overflow.
+- Error/fatal runtime sample for this deployment from 02:01:35 through 02:03:37 UTC contained no matching logs. This is a bounded sample, not a claim of complete production-flow or form-signing QA.
+- All three requested placements are implemented and deployed; broader roadmap remains active. No partner email or automatic paid conversion was initiated.
