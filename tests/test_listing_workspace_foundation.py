@@ -110,7 +110,7 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
 
     def test_seller_disclosure_review_remains_available_from_the_relevant_task_choice(self):
         self.assertNotIn('id="sellerDisclosureQuickStart"', INDEX)
-        self.assertIn('root.openSellerDisclosureDraftWorkspace = function openSellerDisclosureDraftWorkspace()', INDEX)
+        self.assertIn("root.openSellerDisclosureDraftWorkspace = async function openSellerDisclosureDraftWorkspace(workspaceId = '')", INDEX)
         self.assertIn('document.getElementById(\'hofSellerAddress\')?.focus({ preventScroll: true })', INDEX)
         self.assertIn("Create seller disclosures", INDEX)
         self.assertIn("Answer the property and seller questions, then review the completed disclosure.", INDEX)
@@ -128,7 +128,7 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("insert(payload).select('id').single()", save)
         self.assertIn("listingLaunchWorkspace", save)
         self.assertIn("listingOfferWorkspace", save)
-        self.assertIn("listingLaunchChecklistCard", save)
+        self.assertIn("renderListingWorkspaceNextStep({ id: createdWorkspaceId, ...payload })", save)
         self.assertIn("loadListingWorkspaceOffersFoundation()", save)
         self.assertIn("default to an older property", save)
 

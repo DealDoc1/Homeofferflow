@@ -6,6 +6,11 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
 class SellerDisclosureAgentUiTests(unittest.TestCase):
+    def test_linked_listing_labels_and_fields_fit_the_mobile_grid(self):
+        html = (ROOT / "index.html").read_text()
+        self.assertIn('.hof-seller-disclosure-card .hof-seller-grid>label{min-width:0}', html)
+        self.assertIn('.hof-seller-disclosure-card .hof-seller-grid input,.hof-seller-disclosure-card .hof-seller-grid select{width:100%;min-width:0;max-width:100%;box-sizing:border-box}', html)
+
     def test_agent_draft_card_has_source_gate_save_and_private_preview(self):
         html = (ROOT / "index.html").read_text()
         self.assertIn('hof-seller-disclosure-draft-ui-v1', html)
