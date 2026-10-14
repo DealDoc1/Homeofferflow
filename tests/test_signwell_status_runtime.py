@@ -139,6 +139,12 @@ class SignwellStatusRuntimeTests(unittest.TestCase):
             offer_data:{signwell:{response:{status:'completed'}}}};
           assert.equal(bucketForOffer(offer),'signing');
           assert.equal(signingLabel(offer),'Partially signed');
+          for (const status of ['signed', 'document_signed']) {
+            const rawOffer={status:'Signed',signwell_status:status,signwell_document_id:'provider-doc'};
+            assert.equal(getOfferSigningBucket(rawOffer),'partial');
+            assert.equal(bucketForOffer(rawOffer),'signing');
+          }
+          assert.equal(getOfferSigningBucket({status:'Signed'}),'signed');
         ''')
 
     def test_missing_signer_status_and_cc_only_cannot_unlock_completed_pdf(self):

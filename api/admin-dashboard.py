@@ -22,6 +22,9 @@ from lib import seller_checkout
 from lib import seller_financing
 from lib import signwell_delivery
 from lib import beta_partner_publication
+from lib.offer_reporting import offer_status_bucket as _offer_status_bucket
+from lib.offer_reporting import reporting_bucket as _offer_reporting_bucket
+from lib.offer_reporting import signing_summary as _offer_signing_summary
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_SERVICE_ROLE") or os.environ.get("SUPABASE_SERVICE_KEY") or ""
@@ -878,21 +881,6 @@ async def _brokerage_admin_context(user):
     return {"profile": profile, "brokerage": brokerages[0]}
 
 
-def _offer_status_bucket(status):
-    status = str(status or "").lower()
-    if "signed" in status:
-        return "signed"
-    if "partial" in status:
-        return "partial"
-    if "view" in status:
-        return "viewed"
-    if "await" in status or "sent" in status or "created" in status:
-        return "awaiting"
-    if "draft" in status:
-        return "draft"
-    return "other"
-
-
 async def _brokerage_dashboard_payload(context):
     brokerage = context["brokerage"]
     brokerage_id = str(brokerage["id"])
@@ -1076,10 +1064,10 @@ async def _brokerage_dashboard_payload(context):
             },
         )
         activity["offerCount"] += 1
-        bucket = _offer_status_bucket(row.get("signwell_status") or row.get("status"))
+        bucket = _offer_reporting_bucket(row)
         if bucket == "signed":
             activity["signedCount"] += 1
-        elif bucket == "awaiting":
+        elif bucket in {"awaiting", "viewed", "partial"}:
             activity["awaitingCount"] += 1
         elif bucket == "draft":
             activity["draftCount"] += 1
@@ -1285,13 +1273,7 @@ async def _brokerage_dashboard_payload(context):
             "agentsNeedingBilling": len([
                 agent for agent in safe_agents if agent.get("engagement") == "needs_billing"
             ]),
-            "signedCount": len(
-                [
-                    row
-                    for row in offers
-                    if _offer_status_bucket(row.get("signwell_status") or row.get("status")) == "signed"
-                ]
-            ),
+            **_offer_signing_summary(offers),
             "agentsNeedingActivation": activation_count,
             "membersAwaitingActivationWithActiveAccess": active_access_membership_pending_count,
             "agentsNeedingFollowUp": len([
@@ -5722,14 +5704,6 @@ class handler(BaseHTTPRequestHandler):
                     review_mode = "rules_fallback"
                 ai_review_output_mode_counts[review_mode] += 1
             total_volume = sum(float(o.get("offer_price") or 0) for o in offers)
-            def bucket(s):
-                s = str(s or "").lower()
-                if "buyer signatures complete" in s or "buyer signed" in s or "signed" in s: return "signed"
-                if "partial" in s: return "partial"
-                if "view" in s: return "viewed"
-                if "await" in s or "sent" in s or "created" in s: return "awaiting"
-                return "other"
-
             def _agent_profile_complete(profile):
                 return all(
                     str(profile.get(field) or "").strip()
@@ -7092,8 +7066,7 @@ class handler(BaseHTTPRequestHandler):
                 ) * 100) if agent_offer_counts else 0,
                 "agentUpdatedDraftCount": agent_updated_draft_count,
                 "investorOfferCount": len([o for o in offers if o.get("role") == "investor"]),
-                "signedCount": len([o for o in offers if bucket(o.get("signwell_status") or o.get("status")) == "signed"]),
-                "awaitingCount": len([o for o in offers if bucket(o.get("signwell_status") or o.get("status")) == "awaiting"]),
+                **_offer_signing_summary(offers),
                 "buyerSigningReminderCopiedCount": buyer_signing_reminder_copied_count,
                 "prioritySigningSyncSelectedCount": priority_signing_sync_selected_count,
                 "signwellWebhookVerificationConfigured": SIGNWELL_WEBHOOK_VERIFICATION_CONFIGURED,
