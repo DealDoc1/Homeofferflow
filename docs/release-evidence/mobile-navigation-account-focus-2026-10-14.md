@@ -60,3 +60,32 @@ The release workflow repeats the spend check immediately before deployment.
 
 Promote the prior known-good production deployment dpl_DgRB6xjr8xD4FHB4uyr9jRMu643Y
 if canonical navigation or account display fails, then correct on a new branch.
+
+## Release checkpoint — 5:29 PM America/Chicago
+
+- PR #1338 exact head a71abb467d18d3f00c8fc98a43746253b229f411 passed CI
+  38646553036: 2,629 tests in 178.279s, two skipped; golden rendering, TXR
+  geometry, schema preflight and whitespace passed. Normal merge:
+  0b9bd2fb98171282fcb8ab10f5b9baf3269060f0.
+- One intentional production run 38647063313 succeeded: merged-code suite
+  2,629 tests in 173.215s, two skipped; project/schema/spend/build/readiness,
+  canonical response, PWA and API/packet-runtime checks passed. Deployment-time
+  credit remained $0.04 used/$19.96 unconsumed/$3 reserved.
+- Vercel independently reports READY production deployment
+  dpl_6nWbwsMspQsaH58hNnxZnaCm85py for the exact merge SHA, with both canonical
+  domains assigned. Canonical/local byte identity:
+  homepage 09bc57cab558b633227b8cd717753c4f217789082ed123baddb8cd8103c1ff7f;
+  worker 7e440cd079abaca8852a3b5851f9ded1d0d7aae8d9ada9c44160f39a74da813c.
+- Live 390px DOM initially confirmed Account, compact Start, page width 390,
+  no horizontal overflow and no trial invitation. The existing saved offer
+  then restored its Step 1 acknowledgement dialog as designed. No acknowledgement,
+  New Offer action or signing acceptance was performed. The temporary tab's
+  exit click and subsequent observations timed out; fresh live Agent/Explore
+  interaction and a final live screenshot remain unverified, not passed.
+- Local four-path visual/DOM checks above are valid but are not substituted for
+  that incomplete live interaction. No error/fatal runtime entries appeared in
+  the bounded 22:25:18–22:28:53 UTC query; this is not universal health proof.
+- Temporary local preview and server were closed; live temporary-tab cleanup
+  and viewport reset were attempted but unconfirmed because browser control
+  was unresponsive. Original offer tab and two pending signing tabs were marked
+  for preservation before the interruption.
