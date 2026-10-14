@@ -10022,10 +10022,13 @@ function routeAfterMagicLinkIfNeeded() {
     const selectedType = selectedLandingAudience();
     const signedInRole = String(hofAuth?.role || '').toLowerCase();
     const signedInAgent = Boolean(hofAuth?.session) && (signedInRole === 'agent' || signedInRole === 'broker');
+    const isHomepageCta = ['landing_nav_cta', 'landing_hero_cta', 'landing_bottom_cta'].includes(entrySurface);
+    const savedDraft = isHomepageCta ? resumableLocalOfferDraft() : null;
+    const canResumeBuyer = savedDraft && (savedDraft.userType || 'homebuyer') === 'homebuyer';
     // The public homebuyer pill is the visual default. Do not let that
     // default silently strip an authenticated agent of the agent workflow.
     // An explicit Homebuyer selection always remains available.
-    if (selectedType === 'homebuyer' && signedInAgent && !window.__hofLandingAudienceUserSelected) {
+    if (selectedType === 'homebuyer' && signedInAgent && !window.__hofLandingAudienceUserSelected && !canResumeBuyer) {
       window.location.assign('/agents?utm_source=homeofferflow&utm_medium=authenticated_account&utm_campaign=agent_workspace');
       return;
     }
@@ -10047,9 +10050,7 @@ function routeAfterMagicLinkIfNeeded() {
     }
     // These are the same homepage controls relabeled by refreshResumeOfferCtas.
     // Keep their action aligned with that promise instead of clearing the draft.
-    const isHomepageCta = ['landing_nav_cta', 'landing_hero_cta', 'landing_bottom_cta'].includes(entrySurface);
-    const savedDraft = isHomepageCta ? resumableLocalOfferDraft() : null;
-    if (savedDraft && (savedDraft.userType || 'homebuyer') === 'homebuyer') {
+    if (canResumeBuyer) {
       return resumeLocalOfferDraft(entrySurface);
     }
     rememberHomebuyerCheckoutChannel();
@@ -20978,11 +20979,32 @@ function routeAfterMagicLinkIfNeeded() {
   };
 
   const oldUpdateAuthUI = root.updateAuthUI;
+  function syncAccountLandingAudience() {
+    // Account restoration must not change an interview or a chosen public
+    // path. Only personalize the untouched homepage after the profile and
+    // local-draft restoration have actually settled.
+    if (!root.__hofDraftRestoreAuthReady || !root.hofAuth?.session?.user ||
+        !root.hofAuth.profileReady || root.__hofLandingAudienceUserSelected ||
+        root.__hofAutomaticDraftRestoreSettled) return;
+    if (document.getElementById('wizardOverlay')?.classList.contains('active') ||
+        document.getElementById('fsboSellerModal')?.classList.contains('active')) return;
+    const route = new URLSearchParams(root.location.search);
+    if (['buyer', 'seller', 'agent', 'investor', 'partner', 'workflow', 'workspace', 'action', 'partner_onboarding']
+      .some(key => route.has(key))) return;
+    const audience = document.querySelector('.pill[role="radio"][aria-checked="true"]')?.dataset.audience;
+    if (audience !== 'homebuyer' || root.resumableLocalOfferDraft?.()) return;
+    const accountRole = root.hofAuth.authoritativeRole;
+    const accountAudience = ['agent', 'broker', 'brokerage_admin'].includes(accountRole)
+      ? 'agent' : (accountRole === 'investor' ? 'investor' : '');
+    if (accountAudience) root.setAudience(accountAudience, { presentationOnly: true });
+  }
   root.updateAuthUI = function updateAuthUI(){
     if (typeof oldUpdateAuthUI === 'function') oldUpdateAuthUI();
     const account = document.getElementById('accountCta');
     if (account && !root.hofAuth?.session) account.textContent = 'Sign In';
+    syncAccountLandingAudience();
   };
+  root.addEventListener('hof-auth-ready', syncAccountLandingAudience);
 
   document.addEventListener('DOMContentLoaded', function(){
     addLandingPathStrip();
