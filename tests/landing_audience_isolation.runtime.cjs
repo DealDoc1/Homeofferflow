@@ -359,3 +359,84 @@ for (const accountRole of ['agent', 'broker']) for (const search of ['', '?audie
     assert.notEqual(x.c.__hofLandingAudienceUserSelected, true);
   });
 }
+
+for (const accountRole of ['agent', 'broker', 'investor']) for (const surface of ['landing_nav_cta', 'landing_hero_cta', 'landing_bottom_cta']) {
+  test(`${accountRole} ${surface} honors the visible saved buyer offer`, () => {
+    const x = setup({ draft: { userType: 'homebuyer', step: 3, fields: { propAddress: 'Fictional property' } } });
+    x.c.hofAuth.role = accountRole;
+    x.c.refreshResumeOfferCtas();
+    assert.match(x.node('heroCta').textContent, /Resume/);
+    const before = JSON.stringify(x.c.state), original = x.c.state.data;
+    x.c.beginOfferFrom(surface);
+    untouched(x, before, original);
+    assert.deepEqual(x.calls.filter(row => row[0] === 'resume'), [['resume', surface]]);
+    assert.equal(x.calls.some(row => row[0] === 'route' || row[0] === 'startBuyer'), false);
+  });
+}
+
+function runAccountLandingSync(x) {
+  vm.runInContext(source('  function syncAccountLandingAudience()', '  root.updateAuthUI = function updateAuthUI(){'), x.c);
+  x.c.syncAccountLandingAudience();
+}
+for (const [role, audience] of [['agent', 'agent'], ['broker', 'agent'], ['brokerage_admin', 'agent'], ['investor', 'investor']]) {
+  test(`settled ${role} account personalizes only homepage presentation`, () => {
+    const x = setup();
+    Object.assign(x.c.hofAuth, { role, authoritativeRole: role, profileReady: true });
+    x.c.__hofDraftRestoreAuthReady = true;
+    const before = JSON.stringify(x.c.state), original = x.c.state.data;
+    runAccountLandingSync(x);
+    untouched(x, before, original);
+    assert.equal(x.c.selectedLandingAudience(), audience);
+    assert.equal(x.node('heroCta').textContent, labels[audience]);
+    x.c.syncAccountLandingAudience();
+    untouched(x, before, original);
+  });
+}
+for (const reason of ['signed-out', 'auth-pending', 'profile-pending', 'unverified-role', 'explicit-choice', 'restored-draft', 'wizard-open', 'seller-open', 'saved-draft', 'buyer-route', 'seller-route', 'agent-route', 'investor-route', 'partner-route', 'workflow-route', 'workspace-route', 'action-route', 'partner_onboarding-route']) {
+  test(`homepage personalization preserves ${reason}`, () => {
+    const x = setup({ active: reason === 'wizard-open', draft: reason === 'saved-draft' ? {userType:'homebuyer',step:3} : null });
+    Object.assign(x.c.hofAuth, { authoritativeRole: 'agent', profileReady: true });
+    x.c.__hofDraftRestoreAuthReady = true;
+    if (reason === 'signed-out') x.c.hofAuth.session = null;
+    if (reason === 'auth-pending') x.c.__hofDraftRestoreAuthReady = false;
+    if (reason === 'profile-pending') x.c.hofAuth.profileReady = false;
+    if (reason === 'unverified-role') delete x.c.hofAuth.authoritativeRole;
+    if (reason === 'explicit-choice') x.c.__hofLandingAudienceUserSelected = true;
+    if (reason === 'restored-draft') x.c.__hofAutomaticDraftRestoreSettled = true;
+    if (reason === 'seller-open') x.node('fsboSellerModal').classList.add('active');
+    if (reason.endsWith('-route')) x.c.location.search = `?${reason.replace('-route', '')}=1`;
+    const before = JSON.stringify(x.c.state), original = x.c.state.data;
+    runAccountLandingSync(x);
+    untouched(x, before, original);
+    assert.equal(x.c.selectedLandingAudience(), 'homebuyer');
+  });
+}
+for (const audience of ['agent', 'investor', 'fsbo']) test(`account loading leaves a selected ${audience} presentation alone`, () => {
+  const x = setup();
+  x.c.setAudience(audience, {presentationOnly:true});
+  Object.assign(x.c.hofAuth, {authoritativeRole:'agent',profileReady:true});
+  x.c.__hofDraftRestoreAuthReady = true;
+  const before = JSON.stringify(x.c.state), original = x.c.state.data;
+  runAccountLandingSync(x);
+  untouched(x, before, original);
+  assert.equal(x.c.selectedLandingAudience(), audience);
+});
+
+test('the actual auth-ready listener and UI refresh share the protected presentation helper', () => {
+  const x = setup(), listeners = new Map();
+  x.c.oldUpdateAuthUI = () => x.calls.push(['auth-refresh']);
+  x.c.addEventListener = (name, callback) => listeners.set(name, callback);
+  Object.assign(x.c.hofAuth, {authoritativeRole:'agent',profileReady:true});
+  vm.runInContext(source('  function syncAccountLandingAudience()', "  document.addEventListener('DOMContentLoaded', function(){\n    addLandingPathStrip();"), x.c);
+  x.c.updateAuthUI();
+  assert.equal(x.c.selectedLandingAudience(), 'homebuyer');
+  const before = JSON.stringify(x.c.state), original = x.c.state.data;
+  x.c.__hofDraftRestoreAuthReady = true;
+  listeners.get('hof-auth-ready')();
+  untouched(x, before, original);
+  assert.equal(x.c.selectedLandingAudience(), 'agent');
+  x.pills[0].click(); // Explicit Homebuyer wins even over later token refreshes.
+  x.c.updateAuthUI();
+  untouched(x, before, original);
+  assert.equal(x.c.selectedLandingAudience(), 'homebuyer');
+});
