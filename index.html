@@ -15338,7 +15338,7 @@ function routeAfterMagicLinkIfNeeded() {
       document.getElementById('listingWorkspaceSellerNames').value = '';
       document.getElementById('listingWorkspaceNotes').value = '';
       document.querySelectorAll('input[name="listingWorkflow"]').forEach(input => { input.checked = false; });
-      platformStatus('listingWorkspaceStatus', 'Listing workspace created. Next: use the kickoff checklist or consultation brief for this property. It has not created a form or signature request.', 'ok');
+      platformStatus('listingWorkspaceStatus', 'Listing saved. Choose your next step below. It has not created a form or signature request.', 'ok');
       await loadListingWorkspacesFoundation();
       const createdWorkspaceId = String(createdWorkspace?.id || '');
       if (createdWorkspaceId) {
@@ -15350,10 +15350,7 @@ function routeAfterMagicLinkIfNeeded() {
           if (select && Array.from(select.options).some(option => option.value === createdWorkspaceId)) select.value = createdWorkspaceId;
         });
         await loadListingWorkspaceOffersFoundation();
-        openListingWorkspaceSection('listingWorkspaceTools');
-        const kickoff = document.getElementById('listingLaunchChecklistCard');
-        kickoff?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        kickoff?.querySelector('button')?.focus({ preventScroll: true });
+        renderListingWorkspaceNextStep({ id: createdWorkspaceId, ...payload });
       }
       delete window.__hofListingWorkspaceSetupDraft;
     } catch (err) {
@@ -15363,6 +15360,41 @@ function routeAfterMagicLinkIfNeeded() {
       if (createButton) { createButton.disabled = false; createButton.setAttribute('aria-busy', 'false'); createButton.textContent = 'Save Listing Workspace'; }
     }
   }
+
+  function renderListingWorkspaceNextStep(workspace) {
+    document.getElementById('listingWorkspaceNextStep')?.remove();
+    const start = document.getElementById('listingWorkspaceStartCard');
+    if (!start || !workspace?.id) return;
+    const isLease = workspace.listing_kind === 'lease';
+    const card = document.createElement('div');
+    card.id = 'listingWorkspaceNextStep';
+    card.className = 'platform-card';
+    card.innerHTML = `<div class="eyebrow" style="margin-bottom:.35rem;">Question 3</div><h4>What would you like to do next?</h4><p>${escapeAttr(workspace.property_address || '')}</p><div class="platform-actions">${isLease ? '' : '<button type="button" data-listing-disclosure>Prepare seller disclosure</button>'}<button type="button" class="btn-secondary" data-listing-planning>${isLease ? 'Open lease-listing checklist' : 'Continue with listing planning'}</button></div><p>${isLease ? 'Your landlord and property details are saved for this lease listing.' : 'Your property address and seller names carry into the disclosure. You can also continue without it.'}</p>`;
+    start.insertAdjacentElement('afterend', card);
+    card.querySelector('[data-listing-disclosure]')?.addEventListener('click', () => window.startListingSellerDisclosure(workspace.id));
+    card.querySelector('[data-listing-planning]')?.addEventListener('click', () => {
+      openListingWorkspaceSection('listingWorkspaceTools');
+      const kickoff = document.getElementById('listingLaunchChecklistCard');
+      kickoff?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      kickoff?.querySelector('button')?.focus({ preventScroll: true });
+    });
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    card.querySelector('button')?.focus({ preventScroll: true });
+  }
+
+  window.startListingSellerDisclosure = async function startListingSellerDisclosure(workspaceId) {
+    const button = document.getElementById('listingWorkspaceNextStep')?.querySelector('[data-listing-disclosure]');
+    if (button?.disabled) return;
+    if (button) { button.disabled = true; button.setAttribute('aria-busy', 'true'); }
+    try {
+      if (typeof window.openSellerDisclosureDraftWorkspace !== 'function') throw new Error('Disclosure interview is still loading.');
+      await window.openSellerDisclosureDraftWorkspace(String(workspaceId || ''));
+    } catch (error) {
+      platformStatus('listingWorkspaceStatus', 'We couldn’t open the disclosure. Your listing is saved—please try again.', 'err');
+    } finally {
+      if (button) { button.disabled = false; button.setAttribute('aria-busy', 'false'); }
+    }
+  };
 
   function listingWorkspaceLabel(value) {
     return String(value || '').replace(/_/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
@@ -15833,7 +15865,7 @@ function routeAfterMagicLinkIfNeeded() {
           ? workspace.requested_workflows.map(listingWorkspaceLabel).join(' · ') : 'No workflow selected yet';
         const workspaceId = String(workspace.id || '');
         const statusControls = /^[0-9a-f-]{20,80}$/i.test(workspaceId)
-          ? `<div class="seller-lead-actions"><select id="listingWorkspaceStatus-${escapeAttr(workspaceId)}" aria-label="Listing workspace status">${listingWorkspaceStatusOptions(workspace.status || 'intake')}</select><button type="button" class="brokerage-access-button" id="listingWorkspaceStatusButton-${escapeAttr(workspaceId)}" onclick="updateListingWorkspaceStatus('${escapeAttr(workspaceId)}')">Save status</button></div>`
+          ? `<div class="seller-lead-actions"><select id="listingWorkspaceStatus-${escapeAttr(workspaceId)}" aria-label="Listing workspace status">${listingWorkspaceStatusOptions(workspace.status || 'intake')}</select><button type="button" class="brokerage-access-button" id="listingWorkspaceStatusButton-${escapeAttr(workspaceId)}" onclick="updateListingWorkspaceStatus('${escapeAttr(workspaceId)}')">Save status</button>${workspace.listing_kind === 'sale' ? `<button type="button" class="brokerage-access-button" onclick="startListingSellerDisclosure('${escapeAttr(workspaceId)}')">Prepare seller disclosure</button>` : ''}</div>`
           : '';
         return `<div class="platform-list-item"><strong>${escapeAttr(workspace.property_address || 'Listing workspace')}</strong><span class="platform-pill">${escapeAttr(listingWorkspaceLabel(workspace.listing_kind))}</span><span class="platform-pill">${escapeAttr(listingWorkspaceLabel(workspace.status))}</span><br>${escapeAttr((workspace.seller_names || []).join(' · '))}<br><small>${escapeAttr(workflows)}</small>${statusControls}</div>`;
       }).join('') : '<div class="platform-list-item">No listing workspaces yet.</div>';
@@ -24269,6 +24301,8 @@ function routeAfterMagicLinkIfNeeded() {
 
 <style id="hof-seller-disclosure-draft-ui-v1">
 .hof-seller-disclosure-card .hof-seller-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.hof-seller-disclosure-card .hof-seller-grid>label{min-width:0}
+.hof-seller-disclosure-card .hof-seller-grid input,.hof-seller-disclosure-card .hof-seller-grid select{width:100%;min-width:0;max-width:100%;box-sizing:border-box}
 .hof-seller-disclosure-card label{display:flex;flex-direction:column;gap:5px}
 .hof-seller-disclosure-card input,.hof-seller-disclosure-card select{padding:9px;border:1px solid #cbd5e1;border-radius:8px}
 .hof-seller-disclosure-card details{margin-top:14px;border-top:1px solid #e2e8f0;padding-top:10px}
@@ -24427,7 +24461,40 @@ function routeAfterMagicLinkIfNeeded() {
       card.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
-  root.openSellerDisclosureDraftWorkspace = function openSellerDisclosureDraftWorkspace() {
+  let listingDisclosureHandoffRevision = 0;
+  let pendingListingDisclosureChoice = null;
+  function confirmListingDisclosureReplacement() {
+    pendingListingDisclosureChoice?.(false);
+    return new Promise(resolve => {
+      const trigger = document.activeElement;
+      const modal = document.createElement('div');
+      modal.id = 'hofListingDisclosureChoice';
+      modal.className = 'hof-agreement-modal';
+      modal.innerHTML = '<div class="hof-agreement-dialog" role="dialog" aria-modal="true" aria-labelledby="hofListingDisclosureChoiceTitle"><h3 id="hofListingDisclosureChoiceTitle">Start another disclosure?</h3><p>Your saved disclosures will remain available. Starting a new disclosure clears unsaved edits in the current one.</p><div class="hof-seller-actions"><button type="button" class="btn-secondary" data-listing-keep>Keep current disclosure</button><button type="button" class="btn-primary" data-listing-replace>Start new disclosure</button></div></div>';
+      const finish = replace => {
+        if (pendingListingDisclosureChoice !== finish) return;
+        pendingListingDisclosureChoice = null;
+        modal.remove();
+        if (!replace) trigger?.focus({preventScroll:true});
+        resolve(replace);
+      };
+      pendingListingDisclosureChoice = finish;
+      modal.querySelector('[data-listing-keep]').addEventListener('click', () => finish(false));
+      modal.querySelector('[data-listing-replace]').addEventListener('click', () => finish(true));
+      modal.addEventListener('click', event => { if (event.target === modal) finish(false); });
+      modal.addEventListener('keydown', event => {
+        if (event.key === 'Escape') { event.preventDefault(); finish(false); }
+        if (event.key !== 'Tab') return;
+        const first = modal.querySelector('[data-listing-keep]');
+        const last = modal.querySelector('[data-listing-replace]');
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      });
+      document.body.appendChild(modal);
+      modal.querySelector('[data-listing-keep]').focus();
+    });
+  }
+  root.openSellerDisclosureDraftWorkspace = async function openSellerDisclosureDraftWorkspace(workspaceId = '') {
     const open = () => {
       const card = document.getElementById('hofSellerDisclosureCard');
       if (!card) return false;
@@ -24437,7 +24504,58 @@ function routeAfterMagicLinkIfNeeded() {
       window.setTimeout(() => document.getElementById('hofSellerAddress')?.focus({ preventScroll: true }), 150);
       return true;
     };
-    if (open()) return;
+    if (workspaceId) {
+      const revision = ++listingDisclosureHandoffRevision;
+      const userId = root.hofAuth?.session?.user?.id;
+      const client = root.getSupabaseClient?.();
+      if (!userId || !client || !active()) throw new Error('Sign in to open this listing.');
+      if (!document.getElementById('hofSellerDisclosureCard')) await renderCard();
+      const card = document.getElementById('hofSellerDisclosureCard');
+      if (!card) throw new Error('Disclosure interview is still loading.');
+      const {data, error} = await client.from('hof_listing_workspaces')
+        .select('id,agent_user_id,listing_kind,property_address,seller_names')
+        .eq('id', String(workspaceId)).eq('agent_user_id', userId).limit(1);
+      // The result belongs to the identity that initiated this read, not a
+      // different account or a newer listing selection made while it loaded.
+      if (revision !== listingDisclosureHandoffRevision || root.hofAuth?.session?.user?.id !== userId || document.getElementById('hofSellerDisclosureCard') !== card) return false;
+      if (error) throw error;
+      const listing = data?.[0];
+      if (!listing || String(listing.id) !== String(workspaceId) || listing.agent_user_id !== userId) throw new Error('Listing is unavailable for this account.');
+      const status = document.getElementById('hofSellerDraftStatus');
+      const report = message => { if (status) status.textContent = message; open(); return false; };
+      if (listing.listing_kind !== 'sale') return report('This is a lease listing. Your lease-listing tools remain available.');
+      const sellers = listing.seller_names;
+      if (!Array.isArray(sellers) || !sellers.length || sellers.length > 2 || sellers.some(name => typeof name !== 'string' || !name.trim() || name.length > 180) || !String(listing.property_address || '').trim()) {
+        return report('Review the listing’s property and seller names first. This disclosure supports one or two sellers.');
+      }
+      if (document.getElementById('hofSaveSellerDraft')?.disabled) return report('Your disclosure is saving. Please wait before opening another listing.');
+      const fieldIds = ['hofSellerAddress', 'hofSeller1', 'hofSeller2', 'hofSellerEmail', 'hofSeller2Email', 'hofBuyer1', 'hofBuyer2', 'hofWaterSource'];
+      const responses = Array.from(card.querySelectorAll('[data-seller-response], [data-water-response]'));
+      const hasWork = Boolean(card.dataset.loadedDraftId || card.dataset.sellerDraftId || fieldIds.some(id => document.getElementById(id)?.value) || responses.some(field => field.value));
+      if (hasWork && !await confirmListingDisclosureReplacement()) return false;
+      if (revision !== listingDisclosureHandoffRevision || root.hofAuth?.session?.user?.id !== userId || document.getElementById('hofSellerDisclosureCard') !== card) return false;
+      if (document.getElementById('hofSaveSellerDraft')?.disabled) return report('Your disclosure is saving. Please wait before opening another listing.');
+      fieldIds.forEach(id => { const field = document.getElementById(id); if (field) field.value = ''; });
+      responses.forEach(field => { field.value = ''; });
+      delete card.dataset.loadedDraftId;
+      delete card.dataset.sellerDraftId;
+      const select = document.getElementById('hofSellerWorkspace');
+      if (!Array.from(select.options).some(option => option.value === String(listing.id))) {
+        const option = document.createElement('option');
+        option.value = String(listing.id);
+        option.textContent = listing.property_address;
+        select.appendChild(option);
+      }
+      select.value = String(listing.id);
+      document.getElementById('hofSellerAddress').value = listing.property_address;
+      document.getElementById('hofSeller1').value = sellers[0];
+      document.getElementById('hofSeller2').value = sellers[1] || '';
+      document.getElementById('hofSendSellerReview').disabled = true;
+      syncWaterRightsVisibility();
+      if (status) status.textContent = 'Listing details added. Answer the property questions, then review with the seller.';
+      return open();
+    }
+    if (open()) return true;
     window.setTimeout(open, 250);
     window.setTimeout(open, 900);
   };
