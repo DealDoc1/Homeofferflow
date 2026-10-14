@@ -5357,9 +5357,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
   async function runPurchaseSigningTest(send, button, scope = 'purchase') {
     const showing = scope === 'showing';
-    const status = document.getElementById(showing ? 'adminShowingSigningTestStatus' : 'adminPurchaseSigningTestStatus');
+    const amendment = scope === 'amendment';
+    const status = document.getElementById(amendment ? 'adminAmendmentSigningTestStatus' : showing ? 'adminShowingSigningTestStatus' : 'adminPurchaseSigningTestStatus');
     if (!status || !hofAuth.session) return;
-    const sendButton = document.getElementById(showing ? 'adminShowingSigningTestSend' : 'adminPurchaseSigningTestSend');
+    const sendButton = document.getElementById(amendment ? 'adminAmendmentSigningTestSend' : showing ? 'adminShowingSigningTestSend' : 'adminPurchaseSigningTestSend');
     const originalLabel = button?.textContent;
     if (button) { button.disabled = true; button.textContent = send ? 'Sending test…' : 'Checking…'; }
     if (sendButton) sendButton.disabled = true;
@@ -5368,7 +5369,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const response = await fetch('/api/admin-dashboard', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hofAuth.session.access_token}` },
-        body: JSON.stringify({ action: showing
+        body: JSON.stringify({ action: amendment
+          ? (send ? 'send_amendment_signing_test' : 'check_amendment_signing_test')
+          : showing
           ? (send ? 'send_showing_signing_test' : 'check_showing_signing_test')
           : (send ? 'send_purchase_signing_test' : 'check_purchase_signing_test') })
       });
@@ -5865,6 +5868,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <button id="adminShowingSigningTestSend" type="button" class="admin-contact-action" onclick="runPurchaseSigningTest(true, this, 'showing')">Send one showing-form test</button>
             <button type="button" class="admin-contact-action" onclick="runPurchaseSigningTest(false, this, 'showing')">Check showing-form test</button>
             <div id="adminShowingSigningTestStatus" class="admin-empty" role="status" aria-live="polite">Check first. This test can be sent once and has no automatic reminders.</div>
+          </details><details style="margin-top:1rem;">
+            <summary>Amendment signing test</summary>
+            <p class="admin-muted">One nonbinding TREC-39-11 packet for the same two test inboxes. Covers all Buyer/Seller counts, option choices and long-answer continuations. Client documents are unchanged.</p>
+            <button id="adminAmendmentSigningTestSend" type="button" class="admin-contact-action" onclick="runPurchaseSigningTest(true, this, 'amendment')">Send one amendment test</button>
+            <button type="button" class="admin-contact-action" onclick="runPurchaseSigningTest(false, this, 'amendment')">Check amendment test</button>
+            <div id="adminAmendmentSigningTestStatus" class="admin-empty" role="status" aria-live="polite">Check first. A recorded attempt cannot be sent again.</div>
           </details>` : ''}
         </div>
 
