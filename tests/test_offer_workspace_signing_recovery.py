@@ -61,7 +61,7 @@ process.stdout.write(JSON.stringify(results));
 
     def test_pending_signwell_documents_are_treated_as_in_progress(self):
         status = HTML[HTML.index("function getOfferBestStatus"):HTML.index("function getOfferSigningBucket")]
-        self.assertIn("if (compact === 'pending') return 'Partially Signed';", status)
+        self.assertIn("if (compact === 'pending' || (signwellStatus && ['signed', 'document signed'].includes(compact))) return 'Partially Signed';", status)
         self.assertIn("if (compact === 'pending') return 'Partially Signed';", HTML)
         api = (Path(__file__).resolve().parents[1] / "api" / "signwell-status.js").read_text(encoding="utf-8")
         self.assertIn("['signed', 'pending', 'in progress', 'partial', 'partially signed']", api)

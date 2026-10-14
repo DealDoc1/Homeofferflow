@@ -9,8 +9,12 @@ const start = html.indexOf('<script id="hof-agent-landing-route-recovery-v1">');
 const end = html.indexOf('</script>', start);
 assert.ok(start >= 0 && end > start, 'Agent landing route recovery must be present');
 const source = html.slice(html.indexOf('\n', start) + 1, end);
+const directStart = html.indexOf("    if (params().get('agent') === '1')");
+const directEnd = html.indexOf("    if (params().get('investor') === '1')", directStart);
+assert.ok(directStart >= 0 && directEnd > directStart);
+const directSource = html.slice(directStart, directEnd);
 
-function setup({session, workflow = 'purchase', ready = true, openDashboard} = {}) {
+function setup({session, workflow = 'purchase', ready = true, openDashboard, workspaceOpen = false, direct = false} = {}) {
   const calls = [];
   const storage = new Map([['hof_agent_route_pending_v1', JSON.stringify({workflow, workspace:''})]]);
   const location = {
@@ -41,11 +45,12 @@ function setup({session, workflow = 'purchase', ready = true, openDashboard} = {
   };
   const context = vm.createContext({
     window, URLSearchParams, URL,
-    document: {readyState:'complete', title:'HomeOfferFlow', getElementById:id => id === 'authTitle' ? authTitle : (id === 'authSubtitle' ? authSubtitle : (id === 'authRoleRow' ? authRoleRow : (id === 'authNote' ? authNote : null)))},
+    document: {readyState:'complete', title:'HomeOfferFlow', getElementById:id => id === 'accountModal' ? {classList:{contains:()=>workspaceOpen}} : (id === 'authTitle' ? authTitle : (id === 'authSubtitle' ? authSubtitle : (id === 'authRoleRow' ? authRoleRow : (id === 'authNote' ? authNote : null))))},
+    params:()=>new URLSearchParams(location.search), setTimeout: callback=>callback(), continueAfterAuthResolution: callback=>callback(),
     sessionStorage: {getItem:key => storage.get(key) || null, setItem:(key, value) => storage.set(key, value), removeItem:key => storage.delete(key)},
     localStorage: {getItem:key => storage.get(key) || null, setItem:(key, value) => storage.set(key, value), removeItem:key => storage.delete(key)},
   });
-  vm.runInContext(source, context);
+  vm.runInContext(direct ? directSource : source, context);
   return {calls, storage, window, authTitle, authSubtitle, authRoleRow, authNote};
 }
 
@@ -103,3 +108,24 @@ test('a route already handled by the DOM-ready path does not open another destin
   vm.runInContext(source, context);
   assert.deepEqual(page.calls, []);
 });
+
+for (const direct of [false, true]) {
+  test(`${direct ? 'direct' : 'recovery'} generic route preserves an already open account selection`, () => {
+    const page = setup({session:true, workflow:'', workspaceOpen:true, direct});
+    assert.equal(page.calls.some(call=>['dashboard','picker','transaction'].includes(call[0])), false);
+    assert.equal(page.calls.some(call=>call[0]==='event'), false);
+    assert.equal(page.window.__hofAgentLandingRouteProcessed,true);
+    assert.equal(page.window.__hofAccountRouteAuthPending,false);
+    assert.equal(page.storage.has('hof_agent_route_pending_v1'),false);
+  });
+  test(`${direct ? 'direct' : 'recovery'} generic route opens a closed account normally`, () => {
+    const page=setup({session:true,workflow:'',workspaceOpen:false,direct});
+    assert.equal(page.calls.filter(call=>call[0]==='dashboard').length,1);
+    assert.equal(page.calls.filter(call=>call[0]==='picker').length,1);
+  });
+  test(`${direct ? 'direct' : 'recovery'} explicit transaction still proceeds when an account is open`, () => {
+    const page=setup({session:true,workflow:'purchase',workspaceOpen:true,direct});
+    assert.equal(page.calls.filter(call=>call[0]==='dashboard').length,1);
+    assert.equal(page.calls.filter(call=>call[0]==='transaction').length,1);
+  });
+}

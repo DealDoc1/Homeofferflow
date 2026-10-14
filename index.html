@@ -8689,7 +8689,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const baseStatus = signwellStatus || offer.status || 'Draft';
     const compact = String(baseStatus || '').toLowerCase().replace(/[_\s-]+/g, ' ');
 
-    if (compact === 'pending') return 'Partially Signed';
+    if (compact === 'pending' || (signwellStatus && ['signed', 'document signed'].includes(compact))) return 'Partially Signed';
     if (signwellDocumentId && ['sent', 'shared', 'sent for signature'].includes(compact)) {
       return 'Awaiting Buyer Signature';
     }
@@ -18859,6 +18859,11 @@ function routeAfterMagicLinkIfNeeded() {
       window.setAudience?.('agent', { presentationOnly: true });
       if (window.hofAuth?.session) {
         window.__hofAccountRouteAuthPending = false;
+        // A generic return may resolve after the user already opened their
+        // account and selected Brokerage/Profile. Keep that newer choice;
+        // explicit transaction and workspace links still follow their route.
+        if (!agentLandingWorkflow && !agentLandingWorkspace &&
+            document.getElementById('accountModal')?.classList.contains('active')) return;
         if (agentLandingWorkflow) {
           const accountDashboard = window.openAccountDashboard?.({ tab: 'dashboard' });
           const continueToSelectedTransaction = () => window.setTimeout(() => {
@@ -19022,6 +19027,7 @@ function routeAfterMagicLinkIfNeeded() {
 
     if (window.hofAuth?.session) {
       window.__hofAccountRouteAuthPending = false;
+      if (!workflow && !workspace && document.getElementById('accountModal')?.classList.contains('active')) return;
       const accountDashboard = window.openAccountDashboard?.({ tab: workspace === 'seller' ? 'seller' : (workspace === 'relationship' ? 'relationships' : 'dashboard') });
       if (workflow) {
         const continueToSelectedTransaction = () => window.setTimeout(() => {
@@ -22471,7 +22477,7 @@ function routeAfterMagicLinkIfNeeded() {
         { label: 'Add shared title defaults', done: Boolean(b.default_title_company || b.default_title_contact), target: 'brokerageDefaultTitleCompany' },
         { label: 'Invite or connect an agent', done: agents.length > 0 || pendingInvites.length > 0, target: 'brokerageInviteEmail' },
         { label: 'Create the first offer', done: Number(m.offerCount || 0) > 0, target: 'start_offer' },
-        { label: 'Send the first packet for signing', done: Number(m.signedCount || 0) > 0, target: 'offers' }
+        { label: 'Send the first offer for signing', done: Number(m.signingStartedCount || 0) > 0, target: 'offers' }
       ];
       const activationComplete = activationSteps.filter(step => step.done).length;
       const nextActivationStep = activationSteps.find(step => !step.done) || null;
