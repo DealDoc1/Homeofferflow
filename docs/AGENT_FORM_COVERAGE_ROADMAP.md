@@ -4,6 +4,21 @@ Future batches follow the [lean development protocol](LEAN_DEVELOPMENT_PROTOCOL.
 to reduce model context, repeated regression runs and Vercel usage without
 reducing verification standards.
 
+## Current launch tracking - October 14, 2026
+
+The live tracker now records the deployed listing-to-disclosure handoff
+(PR #1330) and accurate brokerage signing progress/stable account navigation
+(PR #1333). Both broader scopes remain **in progress / QA partial**. Remaining
+work is integrated disclosure signing QA, source-specific sale/lease listing
+agreement implementation, and authenticated broker-admin onboarding and
+propagation QA. The shared source catalog currently has no TXR-1101/1102
+entry; this is not a brokerage-seat or per-agent authorization requirement.
+
+The dated sections below are historical checkpoints, not a current undeployed
+change list. Current deployment and QA conclusions must use the live tracker
+and completed release evidence, rather than an earlier "not deployed" note.
+See [launch-tracker reconciliation](release-evidence/launch-progress-reconciliation-2026-10-14.md).
+
 The current purchase-packet candidate now includes blank TREC Form 56-0 when
 the home's year is pre-1978 or unknown, without requiring an uploaded completed
 seller disclosure; an uploaded completed form replaces the blank once. Seller
