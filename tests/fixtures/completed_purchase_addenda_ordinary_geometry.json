@@ -1,0 +1,29 @@
+{
+  "completed_sha256":"d5dd3d701b06cff87934235680dbee1d40e56fe99d827b34f260849208c95f28",
+  "provider_document_id":"13f7fe33-3620-4b61-b66e-4c96b5792c1f",
+  "provider_scale":0.7528125,
+  "case":"ordinary_two_buyers_two_sellers",
+  "all_form_cases_passed":false,
+  "combined_packet_assembly_verified":false,
+  "visual_review":{"date":"2026-10-14","pages_reviewed":3,"signatures":"passed","scope":"ordinary components only; no continuations or full assembly"},
+  "components":{
+    "TREC-48-1":{"composite_page":21,"source_sha256":"3eb6e7ced0723ceaab6bef2645fcd7868ee3c2cd2734a6a5f03dbe049bd5df6a","marks":[
+      {"page":1,"x0":31.866553,"top":458.244497,"width":90.3375,"height":18.0675},
+      {"page":1,"x0":320.826103,"top":458.244497,"width":90.3375,"height":18.0675},
+      {"page":1,"x0":31.866553,"top":546.594572,"width":90.3375,"height":18.0675},
+      {"page":1,"x0":321.345544,"top":546.594572,"width":90.3375,"height":18.0675}
+    ]},
+    "TXR-1953":{"composite_page":31,"source_sha256":"00075ab42b6d7f234c5e70197f02fadb736b2ff3ee02a0dc1f5499535b045fc3","marks":[
+      {"page":1,"x0":53.449688,"top":603.002812,"width":97.865625,"height":19.573125},
+      {"page":1,"x0":331.990313,"top":603.002812,"width":97.865625,"height":19.573125},
+      {"page":1,"x0":53.449688,"top":657.958125,"width":97.865625,"height":19.573125},
+      {"page":1,"x0":331.990313,"top":657.958125,"width":97.865625,"height":19.573125}
+    ]},
+    "TXR-1954":{"composite_page":32,"source_sha256":"e96fe7d35245aee60920ba264ef870542199fa201e49382a6eac27718fabdc28","marks":[
+      {"page":1,"x0":48.932813,"top":581.924062,"width":97.865625,"height":19.573125},
+      {"page":1,"x0":315.428438,"top":581.924062,"width":97.865625,"height":19.573125},
+      {"page":1,"x0":48.932813,"top":658.710937,"width":97.865625,"height":19.573125},
+      {"page":1,"x0":315.428438,"top":658.710937,"width":97.865625,"height":19.573125}
+    ]}
+  }
+}
