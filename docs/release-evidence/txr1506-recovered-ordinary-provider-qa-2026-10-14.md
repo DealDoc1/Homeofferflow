@@ -29,3 +29,9 @@
 
 - Final focused recheck passed 16 tests in 0.304 seconds. The real-file auditor was executed successfully against the exact original source and completed PDF, without modifications. Customer signing geometry baseline passes unchanged.
 - The reviewed operational SQL updated exactly c136e9af-3340-403c-b178-c97fc4c74921 / txr-1506-general-information-notice once at 2026-10-14 12:58:12.368573 UTC, recording the covered ordinary case and the remaining broker/continuation work. Independent readback confirms both corrected notes, the complete new case snapshot, unchanged in_progress/partial states, original release identity and original form/pages/revision/source metadata. This case record is live and verified, not just prepared SQL. No source policy or customer document was changed.
+
+## Completed repository and owner-dashboard verification
+
+- PR #1335 candidate 43c9d20d664347030ea75e11f66d6b6a7528e812 passed independent exact-head CI 38568565767: 2,622 tests in 109.708 seconds with two environment skips, plus approved golden rendering, standalone signer geometry, database preflight and whitespace. Normal protected merge produced 89978e71946a4e832748af7d6a77b3a81cd6dbdb. No administrative merge bypass or Vercel release was used.
+- The first owner-dashboard observation showed the old cached note; a short observation timeout was not treated as a missing/failed data update. Selected the existing Refresh Admin Data control once. Settled canonical DOM read confirms the new 10-initial/3-signature/3-date case note, remaining broker/long-continuation note, no old note and no loading state. This verifies live database -> authenticated API -> owner dashboard without inspecting customer documents.
+- Customer source/map/renderer bytes remain unchanged; this read-only audit and additive case record require no new application build. The whole form matrix and overall roadmap remain active and incomplete.
