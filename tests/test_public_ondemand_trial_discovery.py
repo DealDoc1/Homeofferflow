@@ -19,7 +19,7 @@ class PublicOnDemandTrialDiscoveryTests(unittest.TestCase):
 
     def test_agent_path_surfaces_a_dedicated_trial_cta_without_showing_it_to_other_audiences(self):
         self.assertIn("function syncOnDemandHeroTrialCta(type)", INDEX)
-        self.assertIn("if (type !== 'agent')", INDEX)
+        self.assertIn("if (type !== 'agent' || root.hofAuth?.session?.user)", INDEX)
         self.assertIn("onDemandHeroTrialCta", INDEX)
         self.assertIn("OnDemand agent? Start 60 days free", INDEX)
         self.assertIn("agent_hero_secondary_cta", INDEX)
