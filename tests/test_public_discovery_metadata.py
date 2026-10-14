@@ -566,7 +566,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
 
     def test_public_directory_uses_only_the_existing_safe_directory_endpoint(self):
         self.assertIn('href="https://www.homeofferflow.com/directory"', DIRECTORY)
-        self.assertIn("fetch('/api/fsbo-lead?'+query)", DIRECTORY)
+        self.assertIn("fetch('/api/fsbo-lead?'+query, {signal:controller.signal})", DIRECTORY)
         self.assertIn("partner_directory:'1'", DIRECTORY)
         self.assertIn('restoreFiltersFromUrl', DIRECTORY)
         self.assertIn('syncFiltersToUrl', DIRECTORY)
@@ -581,9 +581,9 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('Own a service business? Explore a founding placement', DIRECTORY)
         self.assertIn("query.set('partner_category', category)", DIRECTORY)
         self.assertIn('List your ${esc(categoryLabel)} business with HomeOfferFlow', DIRECTORY)
-        self.assertIn('href="/partners"', DIRECTORY)
+        self.assertIn('data-directory-partner-cta href="/partners?utm_source=provider_directory', DIRECTORY)
         self.assertIn('"@type":"FAQPage"', DIRECTORY)
-        self.assertIn('Directory questions', DIRECTORY)
+        self.assertIn('<summary id="directory-questions">About this directory</summary>', DIRECTORY)
         self.assertIn('provider_directory', DIRECTORY)
         self.assertIn('partner_acquisition', DIRECTORY)
         self.assertIn("Provider Directory Partner CTA Selected", DIRECTORY)
