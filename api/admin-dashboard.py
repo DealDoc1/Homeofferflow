@@ -21,6 +21,7 @@ from lib import seller_review_access
 from lib import seller_checkout
 from lib import seller_financing
 from lib import signwell_delivery
+from lib import beta_partner_publication
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_SERVICE_ROLE") or os.environ.get("SUPABASE_SERVICE_KEY") or ""
@@ -7900,6 +7901,10 @@ class handler(BaseHTTPRequestHandler):
                 payload = _parse_partner_placement(data)
                 row = asyncio.run(_create_platform_partner_placement(payload))
                 _json(self, 200, {"ok": True, "partnerPlacement": row})
+                return
+            if data.get("action") == "publish_free_beta_partner":
+                result = asyncio.run(beta_partner_publication.publish(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, data.get("partner_lead_id"), 'Platform admin ' + str(user.get('id') or '')))
+                _json(self, 200, {"ok": True, "betaPublication": result})
                 return
             if data.get("action") == "create_partner_beta_invitation":
                 result = asyncio.run(_create_partner_beta_invitation(data))

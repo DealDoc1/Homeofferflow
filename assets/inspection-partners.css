@@ -1,0 +1,13 @@
+#hofInspectionPartners[hidden]{display:none!important}
+#hofInspectionPartners{margin-top:1.25rem;padding:1rem;border:1px solid rgba(212,168,75,.3);border-radius:12px;background:rgba(212,168,75,.04)}
+.hof-inspection-partner{display:grid;grid-template-columns:170px minmax(0,1fr);gap:1rem;align-items:center}
+.hof-inspection-partner-logo{display:block;background:#fff;border-radius:8px;padding:8px}
+.hof-inspection-partner-logo img{display:block;width:100%;height:auto;max-height:85px;object-fit:contain}
+.hof-inspection-partner-copy{min-width:0}
+.hof-inspection-partner-copy strong{display:block;font-size:.95rem;color:var(--white,#fff)}
+.hof-inspection-partner-copy p{font-size:.8rem;line-height:1.5;margin:.4rem 0;color:var(--gray-light)}
+.hof-inspection-label{font-size:.7rem;letter-spacing:.07em;text-transform:uppercase;color:var(--gold-light);margin-bottom:.4rem}
+.hof-inspection-partner-copy .hof-partner-actions{display:flex;gap:1rem;flex-wrap:wrap;margin-top:.6rem}
+.hof-inspection-partner-copy a{color:var(--gold-light)}
+.hof-inspection-choice{font-size:.72rem;color:var(--gray-light);margin:.6rem 0 0}
+@media(max-width:600px){.hof-inspection-partner{grid-template-columns:minmax(0,1fr)}.hof-inspection-partner-logo{max-width:260px}.hof-inspection-partner-logo img{max-height:95px}}

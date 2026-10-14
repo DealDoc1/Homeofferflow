@@ -164,8 +164,8 @@ MONTHLY_PRICE_ENV_BY_TIER = {
     "market_exclusive": "STRIPE_FOUNDING_PARTNER_PREMIER_MONTHLY_PRICE_ID",
 }
 PARTNER_DIRECTORY_EVENT_TYPES = {"partner_directory_impression": "shown", "partner_directory_outbound_click": "clicked"}
-PARTNER_DIRECTORY_TIERS = {"core", "featured", "premier", "exclusive_market"}
-PARTNER_DIRECTORY_SURFACES = {"public_directory", "fsbo_seller_plan", "pwa_provider_directory", "offer_completion"}
+PARTNER_DIRECTORY_TIERS = {"core", "featured", "founding", "premier", "exclusive_market"}
+PARTNER_DIRECTORY_SURFACES = {"public_directory", "fsbo_seller_plan", "pwa_provider_directory", "offer_completion", "inspection_interview"}
 FSBO_LANDING_EVENT_TYPES = {
     "fsbo_landing_viewed": "viewed",
     "fsbo_landing_cta_selected": "selected",
