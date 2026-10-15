@@ -6,6 +6,13 @@ reducing verification standards.
 
 ## Current launch tracking - October 14, 2026
 
+October 15 continuation: a real TREC-55-1 response defect is corrected locally.
+Seventeen feature answers previously treated nonempty N/U as affirmative
+checkmarks; the candidate now preserves Y/N/U and centers each letter on its
+source response line. Signature/date widgets are unchanged. This is not
+deployed or a completed-provider pass. See
+[response-correction evidence](release-evidence/seller-disclosure-response-correction-2026-10-15.md).
+
 Offer exit is now one click (PR #1340 / e15c5db, production release
 38674908583): unchanged guarded autosave retains answers, releases the modal
 and updates Resume; destructive new-offer confirmation stays. Actual-source

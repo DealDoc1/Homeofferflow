@@ -68,12 +68,12 @@ class TrecSellerDisclosureMapTests(unittest.TestCase):
 
     def test_trec_55_water_utility_fields_are_explicit(self):
         expected = {
-            "water_heater_gas": {"page": 1, "x": 172, "y": 185},
-            "water_heater_electric": {"page": 1, "x": 292, "y": 185},
-            "water_supply_city": {"page": 1, "x": 172, "y": 166},
-            "water_supply_well": {"page": 1, "x": 292, "y": 166},
-            "water_supply_mud": {"page": 1, "x": 404, "y": 166},
-            "water_supply_coop": {"page": 1, "x": 512, "y": 166},
+            "water_heater_gas": {"page": 1, "x": 182, "y": 184.5},
+            "water_heater_electric": {"page": 1, "x": 301, "y": 184.5},
+            "water_supply_city": {"page": 1, "x": 183, "y": 166},
+            "water_supply_well": {"page": 1, "x": 301, "y": 166.8},
+            "water_supply_mud": {"page": 1, "x": 415, "y": 165.6},
+            "water_supply_coop": {"page": 1, "x": 522, "y": 165.9},
         }
         for key, anchor in expected.items():
             self.assertEqual(MODULE.TREC_55_1_MAP[key], anchor)
@@ -254,16 +254,16 @@ if __name__ == "__main__":
 
 def test_trec_55_1_page1_gas_and_garage_anchors():
     mapping = source_contract("TREC-55-1")["field_map"]
-    assert mapping["liquid_propane_lp_community"] == {"page": 1, "x": 172, "y": 249}
-    assert mapping["liquid_propane_on_property"] == {"page": 1, "x": 314, "y": 249}
-    assert mapping["fuel_gas_black_iron"] == {"page": 1, "x": 185, "y": 231}
-    assert mapping["fuel_gas_corrugated_stainless"] == {"page": 1, "x": 315, "y": 231}
-    assert mapping["fuel_gas_copper"] == {"page": 1, "x": 450, "y": 231}
-    assert mapping["garage_attached"] == {"page": 1, "x": 110, "y": 214}
-    assert mapping["garage_not_attached"] == {"page": 1, "x": 230, "y": 214}
-    assert mapping["garage_carport"] == {"page": 1, "x": 370, "y": 214}
-    assert mapping["garage_door_electronic"] == {"page": 1, "x": 190, "y": 198}
-    assert mapping["garage_door_controls"] == {"page": 1, "x": 310, "y": 198}
+    assert mapping["liquid_propane_lp_community"] == {"page": 1, "x": 189, "y": 257.5}
+    assert mapping["liquid_propane_on_property"] == {"page": 1, "x": 323, "y": 257.5}
+    assert mapping["fuel_gas_black_iron"] == {"page": 1, "x": 171, "y": 239}
+    assert mapping["fuel_gas_corrugated_stainless"] == {"page": 1, "x": 265, "y": 239}
+    assert mapping["fuel_gas_copper"] == {"page": 1, "x": 436, "y": 238.5}
+    assert mapping["garage_attached"] == {"page": 1, "x": 111, "y": 222}
+    assert mapping["garage_not_attached"] == {"page": 1, "x": 227, "y": 221}
+    assert mapping["garage_carport"] == {"page": 1, "x": 352, "y": 221}
+    assert mapping["garage_door_electronic"] == {"page": 1, "x": 182, "y": 203.2}
+    assert mapping["garage_door_controls"] == {"page": 1, "x": 301, "y": 203.2}
 
 
 def test_trec_55_1_page1_safety_item_anchors():
@@ -276,13 +276,13 @@ def test_trec_55_1_page1_safety_item_anchors():
 
 def test_trec_55_1_canonical_item_aliases():
     mapping = source_contract("TREC-55-1")["field_map"]
-    assert mapping["lp_community"] == {"page": 1, "x": 172, "y": 249}
-    assert mapping["lp_on_property"] == {"page": 1, "x": 314, "y": 249}
-    assert mapping["fuel_gas_corrugated_steel"] == {"page": 1, "x": 315, "y": 231}
-    assert mapping["carport"] == {"page": 1, "x": 370, "y": 214}
-    assert mapping["garage_opener_electronic"] == {"page": 1, "x": 190, "y": 198}
-    assert mapping["garage_opener_controls"] == {"page": 1, "x": 310, "y": 198}
-    assert mapping["hot_tub"] == {"page": 1, "x": 470, "y": 336}
+    assert mapping["lp_community"] == {"page": 1, "x": 189, "y": 257.5}
+    assert mapping["lp_on_property"] == {"page": 1, "x": 323, "y": 257.5}
+    assert mapping["fuel_gas_corrugated_steel"] == {"page": 1, "x": 265, "y": 239}
+    assert mapping["carport"] == {"page": 1, "x": 352, "y": 221}
+    assert mapping["garage_opener_electronic"] == {"page": 1, "x": 182, "y": 203.2}
+    assert mapping["garage_opener_controls"] == {"page": 1, "x": 301, "y": 203.2}
+    assert mapping["hot_tub"] == {"page": 1, "x": 488, "y": 335}
 
 
 def test_trec_55_1_flood_response_anchors():

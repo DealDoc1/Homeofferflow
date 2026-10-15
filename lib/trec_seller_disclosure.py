@@ -32,30 +32,30 @@ TREC_55_1_MAP = {
     "item_responses_page_1": {"page": 1, "y_start": 570, "row_height": 18},
     "roof_type": {"page": 1, "x": 120, "y": 140, "width": 230},
     "roof_age": {"page": 1, "x": 380, "y": 140, "width": 120},
-    "water_heater_gas": {"page": 1, "x": 172, "y": 185},
-    "water_heater_electric": {"page": 1, "x": 292, "y": 185},
-    "water_supply_city": {"page": 1, "x": 172, "y": 166},
-    "water_supply_well": {"page": 1, "x": 292, "y": 166},
-    "water_supply_mud": {"page": 1, "x": 404, "y": 166},
-    "water_supply_coop": {"page": 1, "x": 512, "y": 166},
-    "liquid_propane_lp_community": {"page": 1, "x": 172, "y": 249},
-    "liquid_propane_on_property": {"page": 1, "x": 314, "y": 249},
-    "fuel_gas_black_iron": {"page": 1, "x": 185, "y": 231},
-    "fuel_gas_corrugated_stainless": {"page": 1, "x": 315, "y": 231},
-    "fuel_gas_copper": {"page": 1, "x": 450, "y": 231},
-    "garage_attached": {"page": 1, "x": 110, "y": 214},
-    "garage_not_attached": {"page": 1, "x": 230, "y": 214},
-    "garage_carport": {"page": 1, "x": 370, "y": 214},
-    "garage_door_electronic": {"page": 1, "x": 190, "y": 198},
-    "garage_door_controls": {"page": 1, "x": 310, "y": 198},
+    "water_heater_gas": {"page": 1, "x": 182, "y": 184.5},
+    "water_heater_electric": {"page": 1, "x": 301, "y": 184.5},
+    "water_supply_city": {"page": 1, "x": 183, "y": 166},
+    "water_supply_well": {"page": 1, "x": 301, "y": 166.8},
+    "water_supply_mud": {"page": 1, "x": 415, "y": 165.6},
+    "water_supply_coop": {"page": 1, "x": 522, "y": 165.9},
+    "liquid_propane_lp_community": {"page": 1, "x": 189, "y": 257.5},
+    "liquid_propane_on_property": {"page": 1, "x": 323, "y": 257.5},
+    "fuel_gas_black_iron": {"page": 1, "x": 171, "y": 239},
+    "fuel_gas_corrugated_stainless": {"page": 1, "x": 265, "y": 239},
+    "fuel_gas_copper": {"page": 1, "x": 436, "y": 238.5},
+    "garage_attached": {"page": 1, "x": 111, "y": 222},
+    "garage_not_attached": {"page": 1, "x": 227, "y": 221},
+    "garage_carport": {"page": 1, "x": 352, "y": 221},
+    "garage_door_electronic": {"page": 1, "x": 182, "y": 203.2},
+    "garage_door_controls": {"page": 1, "x": 301, "y": 203.2},
     # Canonical schema names retained alongside earlier QA aliases.
-    "lp_community": {"page": 1, "x": 172, "y": 249},
-    "lp_on_property": {"page": 1, "x": 314, "y": 249},
-    "fuel_gas_corrugated_steel": {"page": 1, "x": 315, "y": 231},
-    "carport": {"page": 1, "x": 370, "y": 214},
-    "garage_opener_electronic": {"page": 1, "x": 190, "y": 198},
-    "garage_opener_controls": {"page": 1, "x": 310, "y": 198},
-    "hot_tub": {"page": 1, "x": 470, "y": 336},
+    "lp_community": {"page": 1, "x": 189, "y": 257.5},
+    "lp_on_property": {"page": 1, "x": 323, "y": 257.5},
+    "fuel_gas_corrugated_steel": {"page": 1, "x": 265, "y": 239},
+    "carport": {"page": 1, "x": 352, "y": 221},
+    "garage_opener_electronic": {"page": 1, "x": 182, "y": 203.2},
+    "garage_opener_controls": {"page": 1, "x": 301, "y": 203.2},
+    "hot_tub": {"page": 1, "x": 488, "y": 335},
     "repair_awareness_yes": {"page": 1, "x": 133, "y": 103},
     "repair_awareness_no": {"page": 1, "x": 167, "y": 103},
     "smoke_detectors_yes": {"page": 2, "x": 219, "y": 728},
@@ -226,6 +226,25 @@ TREC_55_1_ITEM_ROWS = (
     ("gas_fixtures", 391, 277),
 )
 
+# These are response lines under the same "Write Yes (Y), No (N), or
+# Unknown (U)" instruction as the item rows, not affirmative-only checkboxes.
+TREC_55_1_FEATURE_RESPONSES = (
+    "water_heater_gas", "water_heater_electric",
+    "water_supply_city", "water_supply_well", "water_supply_mud", "water_supply_coop",
+    "lp_community", "lp_on_property", "fuel_gas_black_iron",
+    "fuel_gas_corrugated_steel", "fuel_gas_copper", "garage_attached",
+    "garage_not_attached", "carport", "garage_opener_electronic",
+    "garage_opener_controls", "hot_tub",
+)
+TREC_55_1_FEATURE_ALIASES = {
+    "lp_community": "liquid_propane_lp_community",
+    "lp_on_property": "liquid_propane_on_property",
+    "fuel_gas_corrugated_steel": "fuel_gas_corrugated_stainless",
+    "carport": "garage_carport",
+    "garage_opener_electronic": "garage_door_electronic",
+    "garage_opener_controls": "garage_door_controls",
+}
+
 def source_contract(form_code: str) -> dict[str, Any]:
     if form_code == "TREC-55-1":
         return {"form_code": form_code, "page_count": TREC_55_1_PAGE_COUNT, "field_map": TREC_55_1_MAP, "source_sha256": TREC_55_1_SOURCE_SHA256, "activation_status": "pending_visual_qa"}
@@ -325,7 +344,9 @@ def _draw(c: Canvas, value: Any, x: float, y: float, *, size: float = 8) -> None
         c.drawString(x, y, value)
 
 def _response(c: Canvas, value: Any, x: float, y: float) -> None:
-    value = _clean(value).upper()
+    # Earlier drafts may carry real booleans. Do not mistake False for blank
+    # or a nonempty "N"/"U" response for an affirmative selection.
+    value = "Y" if value is True else "N" if value is False else _clean(value).upper()
     if value in {"Y", "N", "U"}:
         _draw(c, value, x, y, size=8)
 
@@ -356,19 +377,9 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
             _draw(canvas, values.get("seller_occupancy_duration"), 492, 596, size=8)
             _draw(canvas, values.get("roof_type"), 120, 140, size=8)
             _draw(canvas, values.get("roof_age"), 380, 140, size=8)
-            for key in (
-                "water_heater_gas", "water_heater_electric",
-                "water_supply_city", "water_supply_well",
-                "water_supply_mud", "water_supply_coop",
-                "liquid_propane_lp_community", "liquid_propane_on_property",
-                "fuel_gas_black_iron", "fuel_gas_corrugated_stainless", "fuel_gas_copper",
-                "garage_attached", "garage_not_attached", "garage_carport",
-                "garage_door_electronic", "garage_door_controls",
-                "lp_community", "lp_on_property", "fuel_gas_corrugated_steel",
-                "carport", "garage_opener_electronic", "garage_opener_controls", "hot_tub",
-            ):
-                if values.get(key):
-                    _check(canvas, field_map[key]["x"], field_map[key]["y"])
+            for key in TREC_55_1_FEATURE_RESPONSES:
+                value = values.get(key) if key in values else values.get(TREC_55_1_FEATURE_ALIASES.get(key))
+                _response(canvas, value, field_map[key]["x"], field_map[key]["y"])
             for key, x, y in TREC_55_1_ITEM_ROWS:
                 _response(canvas, values.get(key), x, y)
         if form_code == "TREC-55-1" and page_number == 3:
