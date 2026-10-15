@@ -11,6 +11,7 @@ import json
 import uuid
 
 from lib.trec_seller_disclosure_schema import validate_response_keys
+from lib.seller_disclosure_explanations import validate_explanations
 
 
 MAX_ADDRESS = 400
@@ -66,6 +67,8 @@ def parse_seller_disclosure_draft(data: dict) -> dict:
     ).encode("utf-8")
     if len(encoded_response) > MAX_RESPONSE_BYTES:
         raise ValueError("Disclosure responses are too large.")
+    validate_explanations("TREC-55-1", response_data)
+    validate_explanations("TREC-61-0", water_rights_data)
 
     seller_names = _names(data.get("sellerNames"), "seller names", required=True)
     buyer_names = _names(data.get("buyerNames") or [], "buyer names", required=False)

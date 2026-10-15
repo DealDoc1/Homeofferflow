@@ -98,11 +98,12 @@ class SellerDisclosureSigningBoundaryTests(unittest.TestCase):
                         self.assertEqual([r["id"] for r in payload["recipients"]],
                                          [str(i + 1) for i in range(sellers + buyers)])
                         signing_data = {k: record[k] for k in ("seller_names", "buyer_names")}
-                        expected_fields = build_signwell_fields(MODULE.TREC_55_1_FORM_CODE, signing_data)
+                        expected_fields = build_signwell_fields(MODULE.TREC_55_1_FORM_CODE, signing_data)[0]
                         if water:
                             expected_fields += build_signwell_fields(
-                                MODULE.TREC_61_0_FORM_CODE, signing_data, page_offset=4)
-                        self.assertEqual(payload["fields"], expected_fields)
+                                MODULE.TREC_61_0_FORM_CODE, signing_data, page_offset=4)[0]
+                        self.assertEqual(len(payload["fields"]), len(payload["files"]))
+                        self.assertEqual(payload["fields"], [expected_fields])
                         self.assertEqual(context["owner_id"], USER["id"])
                         self.assertEqual(context["draft_id"], DRAFT_ID)
                         self.assertEqual(context["response_data"], record["response_data"])

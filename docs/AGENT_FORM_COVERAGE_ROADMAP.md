@@ -6,6 +6,14 @@ reducing verification standards.
 
 ## Current launch tracking - October 14, 2026
 
+October 15 explanation continuation: the private disclosure interview now
+preserves written details locally through save/reopen and source-PDF rendering,
+with automatic overflow pages and corrected one-file signing-field assembly.
+88 focused tests and isolated 390/1280px checks passed. Not deployed. Full-source
+review found additional existing answer anchors, scalar coverage and stale
+seller-review evidence that need correction before integrated provider QA.
+See [explanation checkpoint](release-evidence/seller-disclosure-explanations-2026-10-15.md).
+
 October 15 continuation: a real TREC-55-1 response defect is corrected locally.
 Seventeen feature answers previously treated nonempty N/U as affirmative
 checkmarks; the candidate now preserves Y/N/U and centers each letter on its

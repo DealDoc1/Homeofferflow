@@ -355,7 +355,8 @@ def _check(c: Canvas, x: float, y: float) -> None:
     c.line(x, y, x + 6, y + 6)
     c.line(x + 6, y + 6, x + 13, y - 4)
 
-def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dict[str, Any], *, qa_mode: bool = False) -> bytes:
+def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dict[str, Any], *, qa_mode: bool = False,
+                            continuation_sink=None, parties=None) -> bytes:
     """Render a local unsigned preview only; never creates a sendable packet."""
     if not qa_mode:
         raise ValueError("Unsigned seller-disclosure preview requires explicit qa_mode=True.")
@@ -365,10 +366,13 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
     if len(source.pages) != contract["page_count"]:
         raise ValueError(f"{form_code} source must contain exactly {contract['page_count']} pages.")
     field_map = contract["field_map"]
+    from lib.seller_disclosure_explanations import draw_explanations, append_explanations
+    overflow = []
     overlays = []
     for page_number in range(1, contract["page_count"] + 1):
         overlay_stream = BytesIO()
         canvas = Canvas(overlay_stream, pagesize=(PAGE_WIDTH, PAGE_HEIGHT))
+        draw_explanations(canvas, form_code, values, page_number, overflow)
         if form_code == "TREC-55-1" and page_number == 1:
             _draw(canvas, values.get("propertyAddress"), 185, 674, size=8)
             for key in ("seller_occupancy_yes", "seller_occupancy_no"):
@@ -388,7 +392,10 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
                 _check(canvas, field_map["repair_condition_yes"]["x"], field_map["repair_condition_yes"]["y"])
             if repair_response == "N" or values.get("repair_condition_no"):
                 _check(canvas, field_map["repair_condition_no"]["x"], field_map["repair_condition_no"]["y"])
-            _draw(canvas, values.get("repairDescription"), 330, 717, size=7)
+            # Older local QA used this alias; never overprint a new answer.
+            if values.get("repairDescription") and not values.get("repair_explanation"):
+                draw_explanations(canvas, form_code,
+                                  {"repair_explanation": values["repairDescription"]}, page_number, overflow)
             for key, x, y in TREC_55_1_FLOOD_ROWS:
                 _response(canvas, values.get(key), x, y)
         if form_code == "TREC-55-1" and page_number == 2:
@@ -504,4 +511,9 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
         writer.pages[index].merge_page(overlays[index])
     output = BytesIO()
     writer.write(output)
-    return output.getvalue()
+    if continuation_sink is not None:
+        continuation_sink.extend(overflow)
+        return output.getvalue()
+    return append_explanations(output.getvalue(), overflow,
+                               property_address=str(values.get("propertyAddress") or ""),
+                               parties=parties)[0]

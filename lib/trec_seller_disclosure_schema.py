@@ -104,8 +104,10 @@ def schema_for(form_code: str) -> dict:
     raise ValueError("Unsupported seller disclosure form.")
 
 def validate_response_keys(form_code: str, response: dict) -> None:
+    from lib.seller_disclosure_explanations import DETAILS
     schema = schema_for(form_code)
     allowed = {"property_address", "notes"}
+    allowed.update(entry[0] for entry in DETAILS[form_code])
     for section in schema["sections"]:
         allowed.update(section.get("fields", []))
         if section.get("notes_field"):

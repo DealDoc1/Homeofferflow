@@ -4083,7 +4083,7 @@ async def _attest_seller_review(session_token, data):
     return {"ok": True, "attestedAt": now, "attestedName": seller_name, "allSellersAttested": all_sellers_attested, "workflowActivated": False}
 
 
-async def _render_seller_disclosure_draft_preview(user, draft_id, review_context=None, *, fingerprint_context=None):
+async def _render_seller_disclosure_draft_preview(user, draft_id, review_context=None, *, fingerprint_context=None, layout_context=None):
     """Render an agent-owned or email-verified seller draft as an unsigned preview."""
     try:
         draft_uuid = str(uuid.UUID(str(draft_id)))
@@ -4107,7 +4107,7 @@ async def _render_seller_disclosure_draft_preview(user, draft_id, review_context
     drafts = await _get(
         draft_query +
         "&select=id,brokerage_id,property_address,response_data,water_rights_data,"
-        "disclosure_source_id,water_source_id,disclosure_source_revision,water_source_revision"
+        "disclosure_source_id,water_source_id,disclosure_source_revision,water_source_revision,seller_names,buyer_names"
         "&limit=1"
     )
     if not drafts:
@@ -4158,7 +4158,11 @@ async def _render_seller_disclosure_draft_preview(user, draft_id, review_context
     )
 
     from lib.trec_seller_disclosure import render_unsigned_preview
+    from lib.seller_disclosure_explanations import append_explanations, RENDER_REVISION
 
+    explanations = []
+    if fingerprint_context is not None:
+        fingerprint_context["render_revision"] = RENDER_REVISION
     response_values = dict(draft.get("response_data") or {})
     response_values.pop(signwell_delivery.JOURNAL_KEY, None)
     response_values["propertyAddress"] = draft.get("property_address") or ""
@@ -4167,6 +4171,7 @@ async def _render_seller_disclosure_draft_preview(user, draft_id, review_context
         TREC_55_1_FORM_CODE,
         response_values,
         qa_mode=True,
+        continuation_sink=explanations,
     )
     if water_source:
         water_values = dict(draft.get("water_rights_data") or {})
@@ -4176,6 +4181,7 @@ async def _render_seller_disclosure_draft_preview(user, draft_id, review_context
             TREC_61_0_FORM_CODE,
             water_values,
             qa_mode=True,
+            continuation_sink=explanations,
         )
         writer = PdfWriter()
         for payload in (preview, water_preview):
@@ -4185,6 +4191,12 @@ async def _render_seller_disclosure_draft_preview(user, draft_id, review_context
         merged = BytesIO()
         writer.write(merged)
         preview = merged.getvalue()
+    preview, continuation_pages = append_explanations(
+        preview, explanations, property_address=str(draft.get("property_address") or ""),
+        parties={"seller_names": draft.get("seller_names") or [], "buyer_names": draft.get("buyer_names") or []},
+    )
+    if layout_context is not None:
+        layout_context["continuation_pages"] = continuation_pages
     return preview
 
 
@@ -4232,14 +4244,20 @@ async def _send_seller_disclosure_for_signature(user, data):
     if draft.get("signwell_document_id") and not _tracked_signature_journal(draft, "response_data"):
         raise PermissionError("This signature request already exists. Refresh its status before sending again.")
     recipients = _seller_disclosure_signing_recipients(draft, data.get("signerEmails"))
-    render_context = {}
-    rendered = await _render_seller_disclosure_draft_preview(user, draft_uuid, fingerprint_context=render_context)
+    render_context, layout_context = {}, {}
+    rendered = await _render_seller_disclosure_draft_preview(
+        user, draft_uuid, fingerprint_context=render_context, layout_context=layout_context)
     from lib.trec_seller_disclosure import build_signwell_fields
+    from lib.seller_disclosure_explanations import continuation_fields
 
     signing_data = {"seller_names": draft.get("seller_names") or [], "buyer_names": draft.get("buyer_names") or []}
-    fields = build_signwell_fields(TREC_55_1_FORM_CODE, signing_data)
+    # One merged PDF requires one field array, including the water form and
+    # any overflow pages. A second field array would refer to a nonexistent
+    # second file rather than the water pages of this file.
+    fields = build_signwell_fields(TREC_55_1_FORM_CODE, signing_data)[0]
     if draft.get("water_source_id"):
-        fields.extend(build_signwell_fields(TREC_61_0_FORM_CODE, signing_data, page_offset=4))
+        fields.extend(build_signwell_fields(TREC_61_0_FORM_CODE, signing_data, page_offset=4)[0])
+    fields.extend(continuation_fields(signing_data, layout_context.get("continuation_pages", [])))
     payload = {
         "test_mode": SIGNWELL_TEST_MODE,
         # Keep this private until SignWell confirms it retained the exact
@@ -4259,7 +4277,7 @@ async def _send_seller_disclosure_for_signature(user, data):
         ),
         "recipients": recipients,
         "files": [{"name": "HomeOfferFlow_Seller_Disclosure.pdf", "file_base64": base64.b64encode(rendered).decode("ascii")}],
-        "fields": fields,
+        "fields": [fields],
         "metadata": {
             "source": "HomeOfferFlow",
             "seller_disclosure_draft_id": draft_uuid,
