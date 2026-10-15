@@ -10168,8 +10168,8 @@ function routeAfterMagicLinkIfNeeded() {
     const hasProgress = state.step > 0 || Object.keys(state.data || {}).length > 1;
 
     if (hasProgress) {
-      const ok = confirm('Return to the homepage? Your current offer progress will stay saved on this device.');
-      if (!ok) return;
+      // Exiting only hides the interview; it does not discard the draft.
+      // Keep this one click and retain the existing guarded autosave.
       try { scheduleDraftSave?.(); } catch (e) {}
     }
 
