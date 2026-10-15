@@ -75,3 +75,27 @@ signed PDF as evidence for this disclosure.
 The audit also identified unimplemented narrative/explanation coverage in
 the disclosure experience. That needs its own complete interview-to-PDF
 implementation; a correct feature-letter page is not the entire seller suite.
+
+## Independent candidate and live-note checkpoint
+
+- Draft PR #1341 exact head f36852970fb5c746bd72998c55db828ef9480017 passed
+  CI 38766371392: 2,655 tests in 191.397s, two environment skips; approved
+  golden rendering, standalone geometry, schema preflight and whitespace.
+  It remains unmerged and undeployed. The application attachment helper hit
+  its existing 100-item limit; no unrelated attachments were removed.
+- The operational note update has two additional focused guard tests. It
+  targets only seller-workflow 56d51351-422f-4d27-88f7-54cd8ba3734c with exact
+  release/status/QA and metadata/issue/next-action digest guards, and raises
+  unless exactly one row matches. Changes are additive evidence metadata,
+  factual notes and timestamp only; no status, release, source, grant,
+  subscription, role or customer mutation is permitted.
+- Current Supabase documentation search confirmed filtered updates. The
+  skill's changelog-index URL returned 404; no schema/SDK feature is being
+  introduced. The successful exact-row read and existing update pattern
+  supplied the operational contract. No credential was read or exported.
+- Executed the reviewed note SQL once at 16:13:06 UTC. Independent fresh
+  readback verifies the exact key, PR/candidate, not-deployed/pending flags,
+  narrative-coverage finding and revised next action. Removing the one new
+  metadata key reproduces original digest 4760c0a6cdc81e69ee80db0ec6847380;
+  in_progress/partial and the existing PR #1330 release remain unchanged.
+  Only this operational note is live; the response renderer is not released.
