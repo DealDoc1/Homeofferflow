@@ -23,6 +23,20 @@ Then, from the repository root:
 HOF_PG_QA_MODULES="$PWD/scripts/qa/postgres-runtime/node_modules" node scripts/qa/check_packet_usage_concurrency.cjs
 ```
 
+Seller-disclosure review/save races use the same pinned runtime:
+
+```sh
+HOF_PG_QA_MODULES="$PWD/scripts/qa/postgres-runtime/node_modules" node scripts/qa/check_seller_review_revision_concurrency.cjs
+```
+
+This separate runner applies the actual disclosure-review revision migration
+to minimal synthetic tables. It verifies content version rotation, complete
+multi-seller evidence, private function grants, forged approval rejection,
+unchanged delivery journaling, historical evidence retention, and both actual
+row-lock orderings of simultaneous answer saves and review completion. It uses
+a fresh private Unix-socket cluster with no TCP listener and stops it in
+`finally`. It is not production-schema or live PostgREST/provider evidence.
+
 Alternatively install these locked dependencies in a temporary directory and
 point `HOF_PG_QA_MODULES` to its `node_modules`, as used in release verification.
 On a restricted execution host, PostgreSQL may need permission to create its

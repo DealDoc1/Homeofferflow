@@ -9,6 +9,7 @@ import importlib.util
 from pathlib import Path
 import unittest
 from unittest.mock import AsyncMock, patch
+from lib.seller_disclosure_explanations import RENDER_REVISION
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location(
@@ -25,6 +26,10 @@ PDF_STUB = b"fictional test bytes; not a source or signed PDF"
 def draft_record(sellers=1, buyers=0, water=False):
     return {
         "id": DRAFT_ID,
+        "brokerage_id": "33333333-3333-4333-8333-333333333333",
+        "agent_user_id": USER["id"],
+        "review_content_revision": "44444444-4444-4444-8444-444444444444",
+        "seller_review_render_revision": RENDER_REVISION,
         "seller_names": [f"QA Seller {i + 1}" for i in range(sellers)],
         "buyer_names": [f"QA Buyer {i + 1}" for i in range(buyers)],
         "property_address": "100 Fictional QA Lane",
@@ -54,6 +59,7 @@ class SellerDisclosureSigningBoundaryTests(unittest.TestCase):
                             SIGNWELL_ENABLED=True, SIGNWELL_API_KEY="fictional-test-key",
                             SIGNWELL_TEST_MODE=True), \
              patch.object(MODULE, "_get", get), \
+             patch.object(MODULE, "_seller_reviews_complete_for_draft", AsyncMock(return_value=True)), \
              patch.object(MODULE, "_render_seller_disclosure_draft_preview", render), \
              patch.object(MODULE, "_deliver_tracked_signwell_request", deliver):
             try:

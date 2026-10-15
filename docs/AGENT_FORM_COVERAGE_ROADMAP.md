@@ -6,6 +6,16 @@ reducing verification standards.
 
 ## Current launch tracking - October 14, 2026
 
+October 15 review-integrity continuation: old Seller reviews can no longer
+authorize changed draft content in the local candidate. Review links bind to a
+database-generated content version and render revision; concurrent saves and
+reviews are serialized, prior evidence retained, and signing rechecks each
+Seller. Focused checks and 40 actual local PostgreSQL assertions passed,
+including preservation of an already tracked signing request on stale saves.
+Code plus the new migration require one coordinated release; neither is live.
+Remaining source placement/scalar coverage and provider QA are still incomplete.
+See [review-version evidence](release-evidence/seller-review-version-binding-2026-10-15.md).
+
 October 15 explanation continuation: the private disclosure interview now
 preserves written details locally through save/reopen and source-PDF rendering,
 with automatic overflow pages and corrected one-file signing-field assembly.

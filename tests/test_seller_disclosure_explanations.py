@@ -124,6 +124,9 @@ class SellerDisclosureExplanationTests(unittest.TestCase):
 
     def test_actual_send_keeps_water_on_pages_five_six_and_one_field_group(self):
         record = {"id": DRAFT_ID, "brokerage_id": "fictional-library", "property_address": "100 Fictional QA Lane",
+                  "agent_user_id": USER["id"],
+                  "review_content_revision": "44444444-4444-4444-8444-444444444444",
+                  "seller_review_render_revision": details.RENDER_REVISION,
                   "seller_names": ["QA Seller One", "QA Seller Two"], "buyer_names": ["QA Buyer"],
                   "disclosure_source_id": "main-source", "water_source_id": "water-source",
                   "disclosure_source_revision": "qa-revision", "water_source_revision": "qa-revision",
@@ -132,6 +135,12 @@ class SellerDisclosureExplanationTests(unittest.TestCase):
         async def get(path):
             if path.startswith("hof_seller_disclosure_drafts?"):
                 return [record]
+            if path.startswith("hof_seller_disclosure_review_links?"):
+                return [{"seller_index": i, "seller_name": name, "seller_attested_name": name,
+                         "seller_attested_at": "2026-10-15T10:00:00Z",
+                         "review_content_revision": record["review_content_revision"],
+                         "review_render_revision": details.RENDER_REVISION}
+                        for i, name in enumerate(record["seller_names"], 1)]
             water = "TREC-61-0" in path
             return [{"id": "water-source" if water else "main-source", "source_revision": "qa-revision",
                      "storage_bucket": "fictional", "storage_path": "water" if water else "main"}]
