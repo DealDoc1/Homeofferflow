@@ -6,6 +6,13 @@ reducing verification standards.
 
 ## Current launch tracking - October 14, 2026
 
+Offer exit is now one click (PR #1340 / e15c5db, production release
+38674908583): unchanged guarded autosave retains answers, releases the modal
+and updates Resume; destructive new-offer confirmation stays. Actual-source
+tests, isolated desktop/phone interaction, full suites and canonical source
+identity passed. This does not complete outstanding provider-signing cases.
+See [one-click exit evidence](release-evidence/one-click-offer-exit-2026-10-14.md).
+
 The live tracker now records the deployed listing-to-disclosure handoff
 (PR #1330) and accurate brokerage signing progress/stable account navigation
 (PR #1333). Both broader scopes remain **in progress / QA partial**. Remaining
