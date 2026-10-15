@@ -83,3 +83,62 @@ Rollback: prior READY production dpl_6nWbwsMspQsaH58hNnxZnaCm85py.
 - Fresh read-only Vercel capacity run 38649919436 passed at 22:47:09 UTC:
   six deployments in 24 hours, $0.04 used/$19.96 unconsumed/$3 reserved. The
   production workflow repeats its own check immediately before upload.
+
+## Deployed and controlled-test checkpoint
+
+- PR #1339 exact head 8923ae5d72c92be17ed480d769a413f5580f49ed passed CI
+  38650182690: 2,641 tests in 215.961s, two skips; golden rendering, signer
+  geometry, schema preflight and whitespace passed. Normal merge:
+  32ab11f9c02f015de30e7fe936efa19782ca3f23. The app attachment helper hit the
+  existing 100-item limit; no unrelated attachments were removed.
+- One intentional release 38650749782 passed: merged suite 2,641 tests in
+  180.342s, two skips; schema/project/spend/build/readiness/canonical/PWA and
+  API/packet runtime passed. READY dpl_C9CAxDShcosKDjYov6LoqYpjpF64, exact
+  merge SHA and canonical root/www aliases independently confirmed.
+- Canonical/local byte identity: homepage
+  73de637b39ff1306fdf03e10e18095a85cabdeddd1b9e0100893f1e925fd6e32;
+  worker e090a91c85493b6ac313b9052b3eae4b249ad8652aa5e4f32131f991affd75d3.
+  Last pre-build infrastructure snapshot: $0.04 used/$19.96 unconsumed/$3
+  reserved. No new plan, credential export, preview or second release.
+- Canonical owner Admin opened the new amendment panel. Check first returned
+  not_started and enabled the single-send control. Sent once through the
+  reviewed protected action; the send control then remained disabled. A fresh
+  read-only check independently matched provider test mode, exact document,
+  QA revision and both approved recipients, and reported awaiting completion.
+- Persistent run 8d192fb8-76fd-4236-9040-d3f21f1bbf24, provider document
+  521119a1-e2d8-41eb-86c9-c200d0096622. Actual runtime packet SHA
+  82af16e4f7542474c723eab9aa7dbb795bd76a38fdb8603b7a1bf80b6f4078f3;
+  field digest exactly matches the reviewed 24-field map. Five case/page/count
+  entries match. Metadata serialization timestamps differ from the local PDF;
+  no customer renderer or source changed.
+- Andrew's exact test invitation arrived at 23:03:51 UTC, Gmail thread
+  1a13ca8674626f12; the provider header document ID matches the persisted
+  receipt. The second inbox's actual email arrival was not independently read.
+- Opened the exact received invitation. SignWell explicitly identified it as
+  not legally binding/test mode. Prepared only fictional QA Signer A signatures
+  and QSA initials; all 13 first-signer fields are ready. Final Agree & Finish
+  also accepts the provider electronic-signature disclosure, so it remains
+  untouched awaiting action-specific owner confirmation. The second signer,
+  completed provider PDF, and physical bitmap review are not complete.
+- Live operational tracker update was exact-UUID/state/release/metadata/next-
+  action guarded and verified independently. It adds only the new QA metadata
+  and factual notes; in_progress/partial and the customer form release remain
+  unchanged. Removing the added key reproduces the original metadata digest
+  5dde48676de4c4f7f2779a2b517e2816. The instruction now points to the existing
+  test and says do not resend. SQL:
+  supabase/homeofferflow_amendment_provider_qa_2026_10_14.sql.
+- No error/fatal logs appeared in the bounded post-release 22:58:39–23:04:49
+  UTC query; not universal health proof. Temporary owner tab closed. First
+  amendment test, original offer and both existing showing-QA tabs preserved.
+  Live controls screenshot: /private/tmp/hof-amendment-qa-controls-live-2026-10-14.png.
+  Disclosure-step screenshot: /private/tmp/hof-amendment-qa-disclosure-2026-10-14.png.
+
+## Observed navigation follow-up
+
+The application consumes the `agent=1` query after restoring the account.
+Reloading that now-root URL restores the existing saved offer, not the admin
+panel. Returned to the explicit agent route without accepting, editing,
+clearing or closing the original offer. `returnHomeFromWizard` contains a
+native confirmation dialog; its relationship to the earlier browser-control
+stall is only a source-based hypothesis, not a proven defect or implemented
+fix. Review the unnecessary exit confirmation as a separate bounded UX task.

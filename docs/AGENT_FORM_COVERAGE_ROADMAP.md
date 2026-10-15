@@ -19,6 +19,15 @@ change list. Current deployment and QA conclusions must use the live tracker
 and completed release evidence, rather than an earlier "not deployed" note.
 See [launch-tracker reconciliation](release-evidence/launch-progress-reconciliation-2026-10-14.md).
 
+TREC-39-11 now has a deployed protected QA controller (PR #1339), using the
+existing production connection and one fixed seven-page test for both approved
+inboxes. Five cases cover all Buyer/Seller counts, option choices and Unicode
+continuations. First-signer fields are prepared; electronic-disclosure
+acceptance, the second signer and completed-PDF review remain pending. The
+existing live tracker is still QA partial. Do not resend this recorded test or
+interpret unsigned/local checks as a completed-provider pass. See
+[amendment QA evidence](release-evidence/amendment-controlled-provider-qa-2026-10-14.md).
+
 The current purchase-packet candidate now includes blank TREC Form 56-0 when
 the home's year is pre-1978 or unknown, without requiring an uploaded completed
 seller disclosure; an uploaded completed form replaces the blank once. Seller
