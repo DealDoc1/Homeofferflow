@@ -6,6 +6,15 @@ reducing verification standards.
 
 ## Current launch tracking - October 16, 2026
 
+October 16 completed-provider disclosure check: both QA signers completed the
+single reserved 13-page/71-field v3 test. Its actual PDF exposed date wrapping
+and date/signature crowding despite exact field readback. The v4 local map now
+uses separated signature/date regions and 18px signing-date fields. Forty
+focused tests and ordinary/single-Seller rectangle checks passed. This is not
+a corrected provider pass or deployment; repeat the v4 execution check before
+claiming placement success. See
+[provider date-fit evidence](release-evidence/seller-disclosure-provider-date-fit-2026-10-16.md).
+
 October 16 conditional interview: empty follow-up fields now appear only for
 relevant main/water answers. Previously entered facts remain visible after a
 parent answer changes until explicitly cleared; zero and Unicode survive

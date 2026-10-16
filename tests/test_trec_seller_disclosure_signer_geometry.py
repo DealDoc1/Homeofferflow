@@ -21,10 +21,18 @@ class TrecSellerDisclosureSignerGeometryTests(unittest.TestCase):
                         signature = fields[f"{prefix}_{party}{index}_signature_p{page}"]
                         date = fields[f"{prefix}_{party}{index}_date_p{page}"]
                         self.assertEqual(signature["y"], row_y)
-                        self.assertEqual(date["y"], row_y)
+                        self.assertEqual(date["y"], row_y + 8)
                         self.assertEqual(signature["y"] + signature["height"], row_bottom)
                         self.assertEqual(date["y"] + date["height"], row_bottom)
                         self.assertGreater(date["x"], signature["x"])
+                        self.assertGreaterEqual(date['x'] - (signature['x'] + signature['width']), 12)
+                        self.assertEqual(date['height'], 18)
+                        self.assertEqual(date['date_format'], 'MM/DD/YYYY')
+                        self.assertTrue(date['lock_sign_date'])
+                        self.assertGreaterEqual(date['width'], 80)
+                        self.assertLessEqual(date['x'] + date['width'], 780)
+                        if index == 1:
+                            self.assertLessEqual(date['x'] + date['width'], 420)
                         self.assertEqual(signature["recipient_id"], date["recipient_id"])
                         # Source horizontal rules, independently measured.
                         rule = (208.31 if party == 'seller' else 112.46) if form_code == 'TREC-55-1' else (171.55 if party == 'seller' else 124.24)

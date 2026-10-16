@@ -11,7 +11,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from lib.pdf_text import display_text, draw_text, paragraph_markup, text_width
 
 MAX_EXPLANATION = 3000
-RENDER_REVISION = "seller-disclosure-unknown-preservation-2026-10-16-v3"
+RENDER_REVISION = "seller-disclosure-date-fit-2026-10-16-v4"
 REFERENCE = "See attached explanation."
 COUNT_KEYS = {"water_well_count_total", "water_well_count_in_use", "water_well_count_capped"}
 # Form, saved key, human label, source page, measured source blank rows.

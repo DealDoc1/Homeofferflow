@@ -272,8 +272,8 @@ def build_signwell_fields(
     if form_code == "TREC-55-1":
         page = 4 + page_offset
         seller_y, buyer_y = 749, 877
-        left_x, right_x, signature_width = 80, 432, 250
-        left_date_x, right_date_x, date_width = 350, 720, 60
+        left_x, right_x, signature_width = 80, 432, 216
+        left_date_x, right_date_x, date_width = 320, 660, 96
         prefix = "trec551"
     else:
         page = 2 + page_offset
@@ -281,8 +281,8 @@ def build_signwell_fields(
         # older draft map. Keep the widgets immediately above those rules,
         # clear of the notice text above and the Seller/Buyer captions below.
         seller_y, buyer_y = 799, 862
-        left_x, right_x, signature_width = 80, 432, 253
-        left_date_x, right_date_x, date_width = 360, 720, 36
+        left_x, right_x, signature_width = 80, 432, 216
+        left_date_x, right_date_x, date_width = 320, 660, 80
         prefix = "trec610"
 
     fields: list[dict[str, Any]] = []
@@ -313,11 +313,16 @@ def build_signwell_fields(
                     "type": "date",
                     "page": page,
                     "x": date_x,
-                    "y": row_y,
+                    # Provider date text scales with field height. Completed
+                    # QA c560d5f0 exposed ~14pt dates in the former 26px boxes.
+                    # An 18px date keeps the same bottom above the source rule.
+                    "y": row_y + 8,
                     "recipient_id": recipient_id,
                     "required": True,
                     "width": date_width,
-                    "height": 26,
+                    "height": 18,
+                    "date_format": "MM/DD/YYYY",
+                    "lock_sign_date": True,
                 },
             ))
     if form_code == "TREC-61-0":
