@@ -50,6 +50,17 @@ class FakeClient:
 
 
 class PartnerLeadTests(unittest.TestCase):
+    def test_insurance_planning_events_use_active_placement_and_only_aggregate_metadata(self):
+        data = {'event_type': 'partner_directory_impression', 'partner_id': '22222222-2222-4222-8222-222222222222',
+                'partner_type': 'insurance', 'placement_tier': 'founding', 'directory_surface': 'insurance_planning',
+                'email': 'not-retained@example.test', 'propertyAddress': 'Do not retain'}
+        with patch.object(fsbo_lead.httpx, 'Client', FakeClient), patch.object(fsbo_lead, '_record_partner_checkout_event') as record:
+            fsbo_lead._record_partner_directory_event(data)
+        self.assertIn('is_active=eq.true', FakeClient.last_request['url'])
+        metadata = record.call_args.args[3]
+        self.assertEqual(metadata['directorySurface'], 'insurance_planning')
+        self.assertEqual(set(metadata), {'partnerId', 'partnerType', 'placementTier', 'directorySurface'})
+
     @staticmethod
     def _constraint_categories(sql, marker):
         match = re.search(

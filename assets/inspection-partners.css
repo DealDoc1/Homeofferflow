@@ -1,5 +1,5 @@
-#hofInspectionPartners[hidden]{display:none!important}
-#hofInspectionPartners{margin-top:1.25rem;padding:1rem;border:1px solid rgba(212,168,75,.3);border-radius:12px;background:rgba(212,168,75,.04)}
+#hofInspectionPartners[hidden],#hofInsurancePartners[hidden]{display:none!important}
+#hofInspectionPartners,#hofInsurancePartners{margin-top:1.25rem;padding:1rem;border:1px solid rgba(212,168,75,.3);border-radius:12px;background:rgba(212,168,75,.04)}
 .hof-inspection-partner{display:grid;grid-template-columns:170px minmax(0,1fr);gap:1rem;align-items:center}
 .hof-inspection-partner-logo{display:block;background:#fff;border-radius:8px;padding:8px}
 .hof-inspection-partner-logo img{display:block;width:100%;height:auto;max-height:85px;object-fit:contain}
