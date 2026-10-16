@@ -6,6 +6,16 @@ reducing verification standards.
 
 ## Current launch tracking - October 14, 2026
 
+October 16 checkpoint of October 15 source-layout work: measured item, defect,
+flood and additional-disclosure rows, checkbox bounds, main/water execution
+widgets and repeated addresses are corrected locally. Roof/occupancy/well
+details survive save/reopen, including zero counts. Final 76 focused and 2,677
+full-suite tests passed, plus fictional source-page and 390/1280px checks.
+Not deployed or completed-provider verified. Unknown answers on Yes/No-only
+source questions and conditional-question handling remain unfinished.
+See [source-layout evidence](release-evidence/seller-disclosure-source-layout-2026-10-15.md)
+and the [October 16 report](daily-reports/2026-10-16.md).
+
 October 15 review-integrity continuation: old Seller reviews can no longer
 authorize changed draft content in the local candidate. Review links bind to a
 database-generated content version and render revision; concurrent saves and

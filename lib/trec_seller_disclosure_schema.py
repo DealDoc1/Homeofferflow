@@ -107,6 +107,11 @@ def validate_response_keys(form_code: str, response: dict) -> None:
     from lib.seller_disclosure_explanations import DETAILS
     schema = schema_for(form_code)
     allowed = {"property_address", "notes"}
+    if form_code == "TREC-55-1":
+        allowed.update({"fuel_gas_piping", "property_items_condition_issue"})
+        allowed.update(key + "_extent" for key in ("in_100_year_floodplain", "in_500_year_floodplain", "in_floodway", "in_flood_pool", "in_reservoir"))
+    else:
+        allowed.add("well_ownership")
     allowed.update(entry[0] for entry in DETAILS[form_code])
     for section in schema["sections"]:
         allowed.update(section.get("fields", []))

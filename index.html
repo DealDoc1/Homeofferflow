@@ -24403,7 +24403,7 @@ function routeAfterMagicLinkIfNeeded() {
 .hof-seller-response-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;margin-top:10px}
 .hof-seller-response-row{display:grid;grid-template-columns:1fr 95px;align-items:center;gap:8px}
 .hof-seller-explanation{display:block;margin-top:12px;min-width:0}
-.hof-seller-explanation textarea,.hof-seller-explanation input{display:block;width:100%;min-width:0;max-width:100%;box-sizing:border-box;margin-top:6px;padding:10px;border-radius:8px;resize:vertical;font:inherit}
+.hof-seller-explanation textarea,.hof-seller-explanation input,.hof-seller-explanation select{display:block;width:100%;min-width:0;max-width:100%;box-sizing:border-box;margin-top:6px;padding:10px;border-radius:8px;resize:vertical;font:inherit}
 .hof-seller-disclosure-card .hof-seller-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 @media(max-width:700px){.hof-seller-disclosure-card .hof-seller-grid,.hof-seller-response-grid{grid-template-columns:1fr}}
 </style>
@@ -24418,6 +24418,7 @@ function routeAfterMagicLinkIfNeeded() {
       ['agent', 'broker', 'brokerage_admin', 'broker_admin', 'owner', 'team_lead'].includes(role);
   };
   const responseGroups = [
+    ['Occupancy and roof', [['seller_occupancy','Is the seller currently occupying the property?']]],
     ['Systems and features', [
       ['range','Range'],['oven','Oven'],['microwave','Microwave'],['dishwasher','Dishwasher'],['trash_compactor','Trash Compactor'],['disposal','Disposal'],
       ['washer_dryer_hookups','Washer/Dryer Hookups'],['window_screens','Window Screens'],['rain_gutters','Rain Gutters'],['security_system','Security System'],
@@ -24433,7 +24434,8 @@ function routeAfterMagicLinkIfNeeded() {
       ['fuel_gas_copper','Fuel Gas: Copper'],['garage_attached','Garage Attached'],['garage_not_attached','Garage Not Attached'],['carport','Carport'],
       ['garage_opener_electronic','Garage Door Opener Electronic'],['garage_opener_controls','Garage Door Opener Control(s)'],['water_heater_gas','Water Heater Gas'],
       ['water_heater_electric','Water Heater Electric'],['water_supply_city','Water Supply City'],['water_supply_well','Water Supply Well'],['water_supply_mud','Water Supply MUD'],
-      ['water_supply_coop','Water Supply Co-op']
+      ['water_supply_coop','Water Supply Co-op'],['liquid_propane_gas','Liquid propane gas'],['fuel_gas_piping','Fuel gas piping'],
+      ['property_items_condition_issue','Are any listed items not working, defective, or in need of repair?']
     ]],
     ['Known defects', [
       ['defect_interior_walls','Interior walls'],['defect_ceilings','Ceilings'],['defect_floors','Floors'],['defect_exterior_walls','Exterior walls'],
@@ -24474,8 +24476,11 @@ function routeAfterMagicLinkIfNeeded() {
   ]]];
   const draftCache = new Map();
   const explanationGroups = {
+    'Occupancy and roof': [['seller_occupancy_duration','If unoccupied, how long since the seller occupied the property?'],
+      ['roof_type','Roof type'],['roof_age','Approximate roof age']],
     'Systems and features': [['property_item_condition_description','Describe any listed items that are not working or need repair.']],
-    'Known defects': [['known_defects_explanation','Explain any known defects or malfunctions.']],
+    'Known defects': [['other_structural_description','Identify any other structural components.'],
+      ['known_defects_explanation','Explain any known defects or malfunctions.']],
     'Conditions': [['conditions_explanation','Explain any conditions the seller identified.']],
     'Flood and repairs': [
       ['smoke_detector_explanation','Explain a No or Unknown answer about working smoke detectors.'],
@@ -24492,6 +24497,8 @@ function routeAfterMagicLinkIfNeeded() {
   };
   const waterExplanationGroups = [
     ['District and well details', [
+      ['water_well_count_total','Total known wells'],['water_well_count_in_use','Wells currently in use'],
+      ['water_well_count_capped','Wells capped, covered, plugged, or abandoned'],
       ['groundwater_district_name','Groundwater district name'],['groundwater_district_website','District website'],
       ['water_well_permits','Well registrations or permit numbers'],['well_description','Identify the well'],
       ['well_owners_operators','Well owners or operators'],['well_beneficiary','Well beneficiary'],
@@ -24512,7 +24519,8 @@ function routeAfterMagicLinkIfNeeded() {
   const renderExplanationFields = (kind, fields) => fields.map(([key,label]) => {
     const id = 'hofDisclosure_' + kind + '_' + escape(key);
     const attributes = ' id="' + id + '" data-' + kind + '-response="' + escape(key) + '" maxlength="3000"';
-    const shortAnswer = ['groundwater_district_name','groundwater_district_website','surface_water_right_number'].includes(key);
+    const shortAnswer = ['groundwater_district_name','groundwater_district_website','surface_water_right_number',
+      'seller_occupancy_duration','roof_type','roof_age','water_well_count_total','water_well_count_in_use','water_well_count_capped'].includes(key);
     return '<label class="hof-seller-explanation" for="' + id + '">' + escape(label) +
       (shortAnswer ? '<input type="text"' + attributes + '>' : '<textarea' + attributes + ' rows="3"></textarea>') + '</label>';
   }).join('');
@@ -24528,17 +24536,24 @@ function routeAfterMagicLinkIfNeeded() {
     return responses;
   }
   const responsePrompt = '<p class="hof-seller-step-hint">Use Yes, No, or Unknown only for items the seller can answer now. Leave a category blank when it does not apply.</p>';
+  const renderExtentFields = () => '<div class="hof-seller-response-grid">' + [
+    ['in_100_year_floodplain','100-year floodplain'],['in_500_year_floodplain','500-year floodplain'],
+    ['in_floodway','Floodway'],['in_flood_pool','Flood pool'],['in_reservoir','Reservoir']
+  ].map(([key,label]) => '<label class="hof-seller-response-row"><span>' + label + ' extent, if Yes</span>' +
+    '<select data-seller-response="' + key + '_extent"><option value="">—</option><option value="wholly">Wholly</option><option value="partly">Partly</option></select></label>').join('') + '</div>';
   const renderWaterResponses = () => waterGroups.map(([title, fields]) =>
     '<details><summary>' + escape(title) + '</summary><div class="hof-seller-response-grid">' +
     fields.map(([key,label]) => '<label class="hof-seller-response-row"><span>' + escape(label) + '</span><select data-water-response="' + escape(key) + '"><option value="">—</option><option value="Y">Yes (Y)</option><option value="N">No (N)</option><option value="U">Unknown (U)</option></select></label>').join('') +
     '</div></details>'
   ).join('') + waterExplanationGroups.map(([title, fields]) =>
-    '<details><summary>' + escape(title) + '</summary>' + renderExplanationFields('water', fields) + '</details>'
+    '<details><summary>' + escape(title) + '</summary>' +
+    (title === 'District and well details' ? '<label class="hof-seller-explanation">Water-well ownership<select data-water-response="well_ownership"><option value="">—</option><option value="seller_only">All wells are owned or operated solely by the seller for this property</option><option value="other">Other owners, beneficiaries, or agreements</option></select></label>' : '') +
+    renderExplanationFields('water', fields) + '</details>'
   ).join('');
   const renderResponses = () => responsePrompt + responseGroups.map(([title, fields]) =>
     '<details><summary>' + escape(title) + '</summary><div class="hof-seller-response-grid">' +
-    fields.map(([key,label]) => '<label class="hof-seller-response-row"><span>' + escape(label) + '</span><select data-seller-response="' + escape(key) + '"><option value="">—</option><option value="Y">Yes (Y)</option><option value="N">No (N)</option><option value="U">Unknown (U)</option></select></label>').join('') +
-    '</div>' + renderExplanationFields('seller', explanationGroups[title] || []) + '</details>'
+    fields.map(([key,label]) => '<label class="hof-seller-response-row"><span>' + escape(label) + '</span><select data-seller-response="' + escape(key) + '"><option value="">—</option><option value="Y">Yes (Y)</option><option value="N">No (N)</option>' + (key === 'seller_occupancy' ? '' : '<option value="U">Unknown (U)</option>') + '</select></label>').join('') +
+    '</div>' + (title === 'Flood and repairs' ? renderExtentFields() : '') + renderExplanationFields('seller', explanationGroups[title] || []) + '</details>'
   ).join('');
   async function approvedSources() {
     return root.hofLoadApprovedFormCatalog();

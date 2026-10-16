@@ -47,9 +47,20 @@ test('saved explanations reopen with literal Unicode, markup and paragraph break
  assert.equal(x.c.qa.collectDisclosureResponses(x.card,'water',draft.water_rights_data).well_agreement,text);
 });
 test('explicitly clearing a field removes it but preserves older unrepresented answers',()=>{
- const x=setup();const previous={notes_legacy:'Keep this older saved note',roof_type:'Metal',
+ const x=setup();const previous={notes_legacy:'Keep this older saved note',question_legacy:'Keep an older answer',
   conditions_explanation:'Replace this',_hof_signature_delivery:{private:'not client input'}};
  const result=x.c.qa.collectDisclosureResponses(x.card,'seller',previous);
- assert.equal(result.notes_legacy,previous.notes_legacy);assert.equal(result.roof_type,'Metal');
+ assert.equal(result.notes_legacy,previous.notes_legacy);assert.equal(result.question_legacy,previous.question_legacy);
  assert.equal(result.conditions_explanation,undefined);assert.equal(result._hof_signature_delivery,undefined);
+});
+test('new scalar and finite-choice controls roundtrip without losing zero',()=>{
+ const x=setup(),draft={id:'qa-layout',seller_names:['QA Seller'],buyer_names:[],
+  response_data:{seller_occupancy:'N',seller_occupancy_duration:'2 years',roof_type:'Metal',roof_age:'8 years',
+   in_100_year_floodplain_extent:'partly',property_items_condition_issue:'U'},
+  water_rights_data:{water_well_count_total:3,water_well_count_in_use:'2',water_well_count_capped:0,well_ownership:'other'}};
+ x.c.qa.cache.set(draft.id,draft);x.root.loadSellerDisclosureDraft(draft.id);
+ for(const [kind,values] of [['seller',draft.response_data],['water',draft.water_rights_data]]){
+  const result=x.c.qa.collectDisclosureResponses(x.card,kind,values);
+  for(const [key,value] of Object.entries(values))assert.equal(String(result[key]),String(value));
+ }
 });

@@ -48,7 +48,7 @@ class SellerDisclosureExplanationTests(unittest.TestCase):
         for code, entries in details.DETAILS.items():
             for index, (key, _, _, _) in enumerate(entries):
                 with self.subTest(form=code, key=key):
-                    value = f"Fictional explanation {index}: review the documented issue."
+                    value = str(index) if key in details.COUNT_KEYS else f"Fictional explanation {index}: review the documented issue."
                     reader = PdfReader(BytesIO(self.render(code, {key: value})))
                     self.assertIn(value, normalized(" ".join(page.extract_text() for page in reader.pages)))
 
@@ -171,7 +171,7 @@ class SellerDisclosureExplanationTests(unittest.TestCase):
         self.assertEqual(len(payload["fields"]), len(payload["files"]))
         fields = payload["fields"][0]
         self.assertEqual({f["page"] for f in fields if f["api_id"].startswith("trec551")}, {4})
-        self.assertEqual({f["page"] for f in fields if f["api_id"].startswith("trec610")}, {6})
+        self.assertEqual({f["page"] for f in fields if f["api_id"].startswith("trec610")}, {5, 6})
         for page in range(7, len(reader.pages) + 1):
             self.assertEqual({f["recipient_id"] for f in fields if f["page"] == page}, {"1", "2", "3"})
         self.assertFalse(payload["apply_signing_order"])

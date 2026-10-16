@@ -11,18 +11,24 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from lib.pdf_text import display_text, draw_text, paragraph_markup, text_width
 
 MAX_EXPLANATION = 3000
-RENDER_REVISION = "seller-disclosure-explanations-2026-10-15-v1"
+RENDER_REVISION = "seller-disclosure-source-layout-2026-10-15-v2"
 REFERENCE = "See attached explanation."
+COUNT_KEYS = {"water_well_count_total", "water_well_count_in_use", "water_well_count_capped"}
 # Form, saved key, human label, source page, measured source blank rows.
 # A row is (left, baseline, width); baselines are above the printed rules.
 DETAILS = {
     "TREC-55-1": (
+        ("seller_occupancy_duration", "Occupancy - Time since the Seller occupied the property", 1, ((515, 606, 61),)),
+        ("roof_type", "Section 1 - Roof type", 1, ((112, 140, 236),)),
+        ("roof_age", "Section 1 - Approximate roof age", 1, ((375, 140, 117),)),
         ("property_item_condition_description", "Section 1 - Property items", 1,
          ((67, 85, 507), (67, 67, 507), (67, 49, 507))),
         ("smoke_detector_explanation", "Section 2 - Smoke detectors", 2,
          ((220, 715, 354), (58, 697, 516), (58, 679, 516), (58, 661, 516))),
         ("known_defects_explanation", "Section 3 - Known defects", 2,
          ((58, 337, 516), (58, 319, 516))),
+        ("other_structural_description", "Section 3 - Other structural components", 2,
+         ((257, 409, 317), (86, 391, 488), (86, 373, 488))),
         ("conditions_explanation", "Section 4 - Known conditions", 2,
          ((58, 58, 516), (58, 40, 516))),
         ("repair_explanation", "Section 5 - Repairs", 3,
@@ -40,6 +46,9 @@ DETAILS = {
         ("repairs_flood_explanation", "Sections 5-8 - Additional repairs and flood information", 3, ()),
     ),
     "TREC-61-0": (
+        ("water_well_count_total", "Section 2B(1) - Total known wells", 1, ((346, 232, 42),)),
+        ("water_well_count_in_use", "Section 2B(2) - Wells in use", 1, ((446, 221.5, 50),)),
+        ("water_well_count_capped", "Section 2B(3) - Capped, covered, plugged or abandoned wells", 1, ((264, 201, 35),)),
         ("groundwater_district_name", "Section 2A - Groundwater district", 1,
          ((284, 278.5, 286),)),
         ("groundwater_district_website", "Section 2A - District website", 1,
@@ -71,10 +80,20 @@ def validate_explanations(form_code, values):
     keys.update(key for key in values if key == "notes" or key.startswith("notes_"))
     for key in keys & values.keys():
         value = values[key]
+        if key in COUNT_KEYS:
+            if (isinstance(value, int) and not isinstance(value, bool) and 0 <= value <= 9999):
+                continue
+            if not isinstance(value, str) or (value and (not value.isascii() or not value.isdigit() or len(value) > 4)):
+                raise ValueError("Enter a whole number from 0 to 9,999 for each well count, or leave it blank.")
         if not isinstance(value, str) or len(value) > MAX_EXPLANATION:
             raise ValueError(f"Each disclosure explanation must be text of at most {MAX_EXPLANATION:,} characters.")
         if any(ord(char) < 32 and char not in "\t\r\n" for char in value):
             raise ValueError("Disclosure explanations contain an unsupported control character.")
+    for key in ("in_100_year_floodplain", "in_500_year_floodplain", "in_floodway", "in_flood_pool", "in_reservoir"):
+        if key + "_extent" in values and (not isinstance(values[key + "_extent"], str) or values[key + "_extent"] not in {"", "wholly", "partly"}):
+            raise ValueError("Choose Wholly or Partly for the flood-area extent.")
+    if "well_ownership" in values and (not isinstance(values["well_ownership"], str) or values["well_ownership"] not in {"", "seller_only", "other"}):
+        raise ValueError("Choose the water-well ownership arrangement.")
 
 
 def inline_lines(text, blanks):
@@ -106,17 +125,18 @@ def draw_explanations(canvas, form_code, values, page, overflow):
     definitions += [(key, "Additional seller information", 1, ()) for key in sorted(values)
                     if key == "notes" or key.startswith("notes_")]
     for key, label, source_page, blanks in definitions:
-        if source_page != page or not values.get(key, "").strip():
+        if source_page != page or key not in values or not str(values[key]).strip():
             continue
-        text = values[key]
+        text = str(values[key])
         lines = inline_lines(text, blanks) if blanks else None
         if lines is None:
             overflow.append({"form": form_code, "label": label, "text": text})
             if blanks:
                 x, y, width = blanks[0]
-                if text_width(REFERENCE, "Helvetica", 8) > width:
+                reference = REFERENCE if text_width(REFERENCE, "Helvetica", 8) <= width else "See attached."
+                if text_width(reference, "Helvetica", 8) > width:
                     raise ValueError("The disclosure continuation reference does not fit.")
-                draw_text(canvas, REFERENCE, x, y, 8)
+                draw_text(canvas, reference, x, y, 8)
         else:
             for line, (x, y, _) in zip(lines, blanks):
                 draw_text(canvas, line, x, y, 8)

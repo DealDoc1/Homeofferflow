@@ -95,12 +95,13 @@ class SellerDisclosureResponseSemanticsTests(unittest.TestCase):
                 self.assertGreaterEqual(anchor["y"] - rule_y, 2)
                 self.assertLessEqual(anchor["y"] - rule_y, 3)
 
-    def test_all_execution_widgets_match_the_deployed_baseline(self):
-        cases = [{"form": code, "sellers": sellers, "buyers": buyers,
-                  "fields": disclosure.build_signwell_fields(code, {
-                      "seller_names": ["QA"] * sellers, "buyer_names": ["QA"] * buyers})}
-                 for code in ("TREC-55-1", "TREC-61-0")
-                 for sellers in (1, 2) for buyers in (0, 1, 2)]
-        digest = hashlib.sha256(json.dumps(cases, sort_keys=True).encode()).hexdigest()
-        # Captured from e15c5db before changing response handling/positions.
-        self.assertEqual(digest, "4b9bcc58cfecdfaacbdc8c6ef9a1e69727d6d7daa6f94cc25be84f44a4815610")
+    def test_new_execution_maps_preserve_unique_roles_for_all_party_counts(self):
+        # Layout changes now have source-rule bounds tests; an old hash of
+        # unverified geometry must not require preserving misplaced widgets.
+        for code in ('TREC-55-1','TREC-61-0'):
+            for sellers in (1,2):
+                for buyers in (0,1,2):
+                    fields=disclosure.build_signwell_fields(code,{'seller_names':['QA']*sellers,'buyer_names':['QA']*buyers})[0]
+                    self.assertEqual(len({f['api_id'] for f in fields}),len(fields))
+                    self.assertEqual({f['recipient_id'] for f in fields},{str(i+1) for i in range(sellers+buyers)})
+                    self.assertTrue(all(f['required'] for f in fields))
