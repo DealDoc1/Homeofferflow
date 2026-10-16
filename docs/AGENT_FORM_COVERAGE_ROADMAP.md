@@ -6,13 +6,22 @@ reducing verification standards.
 
 ## Current launch tracking - October 16, 2026
 
+October 16 conditional interview: empty follow-up fields now appear only for
+relevant main/water answers. Previously entered facts remain visible after a
+parent answer changes until explicitly cleared; zero and Unicode survive
+save/reopen. Ten actual-source runtime cases, 22 focused Python tests and
+isolated 390/1280px browser checks passed. Not deployed; the integrated Seller
+review/signing/completed-PDF pass remains unfinished. See
+[conditional interview evidence](release-evidence/seller-disclosure-conditional-interview-2026-10-16.md).
+
 October 16 Unknown-answer continuation: all 68 Yes/No-only main/water answers
 now retain Unknown in labeled attached details, leaving the printed Yes/No
 answer blank. Real source Unknown options remain selected normally. No answer
 is inferred and no user step is added. 93 affected tests and changed-page visual
 review passed; ordinary/Unicode/single-Seller text and field arrays are unchanged.
-Not deployed or completed-provider verified. Conditional-question cleanup and
-the integrated review/signing/completed-PDF pass remain unfinished.
+Not deployed or completed-provider verified. The subsequent conditional-question
+checkpoint above resolves that UI work; the integrated review/signing/completed-PDF
+pass remains unfinished.
 See [Unknown preservation evidence](release-evidence/seller-disclosure-unknown-preservation-2026-10-16.md).
 
 October 16 checkpoint of October 15 source-layout work: measured item, defect,

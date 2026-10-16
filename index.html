@@ -24404,6 +24404,8 @@ function routeAfterMagicLinkIfNeeded() {
 .hof-seller-response-row{display:grid;grid-template-columns:1fr 95px;align-items:center;gap:8px}
 .hof-seller-explanation{display:block;margin-top:12px;min-width:0}
 .hof-seller-explanation textarea,.hof-seller-explanation input,.hof-seller-explanation select{display:block;width:100%;min-width:0;max-width:100%;box-sizing:border-box;margin-top:6px;padding:10px;border-radius:8px;resize:vertical;font:inherit}
+.hof-seller-disclosure-card .hof-seller-conditional[hidden],.hof-seller-saved-detail[hidden]{display:none!important}
+.hof-seller-saved-detail{display:block;margin-top:5px;color:var(--gold-light);font-size:.8rem;line-height:1.4}
 .hof-seller-disclosure-card .hof-seller-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 @media(max-width:700px){.hof-seller-disclosure-card .hof-seller-grid,.hof-seller-response-grid{grid-template-columns:1fr}}
 </style>
@@ -24535,6 +24537,69 @@ function routeAfterMagicLinkIfNeeded() {
     });
     return responses;
   }
+  function disclosureDetailRelevant(kind, key, seller, water) {
+    const yes = value => value === 'Y';
+    const groupYes = title => (responseGroups.find(group => group[0] === title)?.[1] || [])
+      .some(([field]) => yes(seller[field]));
+    if (kind === 'seller') {
+      if (key.endsWith('_extent')) return yes(seller[key.slice(0, -7)]);
+      if (key === 'seller_occupancy_duration') return seller.seller_occupancy === 'N';
+      if (key === 'property_item_condition_description') return yes(seller.property_items_condition_issue);
+      if (key === 'other_structural_description') return yes(seller.defect_other_structural_components);
+      if (key === 'known_defects_explanation') return groupYes('Known defects');
+      if (key === 'conditions_explanation') return groupYes('Conditions');
+      if (key === 'smoke_detector_explanation') return ['N', 'U'].includes(seller.working_smoke_detectors);
+      if (key === 'repair_explanation') return yes(seller.property_needs_repair);
+      if (key === 'flood_history_explanation') return ['present_flood_insurance', 'previous_reservoir_release_flooding',
+        'previous_natural_flood_water_penetration', 'in_100_year_floodplain', 'in_500_year_floodplain',
+        'in_floodway', 'in_flood_pool', 'in_reservoir'].some(field => yes(seller[field]));
+      if (key === 'flood_claim_explanation') return yes(seller.filed_flood_claim);
+      if (key === 'fema_assistance_explanation') return yes(seller.received_fema_or_sba_assistance);
+      if (key === 'additional_disclosures_explanation') return groupYes('Additional disclosures');
+      if (key === 'repairs_flood_explanation') return false; // Retain older combined notes only when populated.
+    } else {
+      if (['groundwater_district_name', 'groundwater_district_website'].includes(key)) return yes(water.in_groundwater_district);
+      if (['water_well_count_total', 'water_well_count_in_use', 'water_well_count_capped',
+        'water_well_permits', 'well_ownership'].includes(key)) return yes(water.water_wells_known);
+      if (['well_description', 'well_owners_operators', 'well_beneficiary', 'well_agreement'].includes(key))
+        return yes(water.water_wells_known) && water.well_ownership === 'other';
+      if (key === 'other_property_well_explanation') return yes(water.water_well_on_another_property);
+      if (key === 'outside_groundwater_explanation') return yes(water.water_well_relies_on_outside_rights);
+      if (key === 'severed_groundwater_explanation') return yes(water.groundwater_rights_severed_sold_leased);
+      if (['surface_water_right_number', 'surface_water_ownership'].includes(key)) return yes(water.surface_water_right);
+      if (key === 'other_water_well_rights_explanation') return false;
+    }
+    return null; // Ordinary questions and optional additional notes stay available.
+  }
+  function syncDisclosureDetails(card) {
+    if (!card) return;
+    const controls = kind => Array.from(card.querySelectorAll('[data-' + kind + '-response]'));
+    const sellerFields = controls('seller'), waterFields = controls('water');
+    const values = (fields, kind) => Object.fromEntries(fields.map(field => [
+      kind === 'seller' ? field.dataset.sellerResponse : field.dataset.waterResponse, field.value]));
+    const seller = values(sellerFields, 'seller'), water = values(waterFields, 'water');
+    for (const [kind, fields] of [['seller', sellerFields], ['water', waterFields]]) {
+      fields.forEach(field => {
+        const key = kind === 'seller' ? field.dataset.sellerResponse : field.dataset.waterResponse;
+        const relevant = disclosureDetailRelevant(kind, key, seller, water);
+        if (relevant === null) return;
+        const label = field.closest('label');
+        if (!label) return;
+        const hasValue = String(field.value ?? '').trim() !== '';
+        const retained = !relevant && hasValue;
+        label.classList.add('hof-seller-conditional');
+        label.hidden = !relevant && !hasValue;
+        let hint = label.querySelector('.hof-seller-saved-detail');
+        if (retained && !hint) {
+          hint = document.createElement('small');
+          hint.className = 'hof-seller-saved-detail';
+          hint.textContent = 'Saved details are kept. Review or clear them if they no longer apply.';
+          label.appendChild(hint);
+        }
+        if (hint) hint.hidden = !retained;
+      });
+    }
+  }
   const responsePrompt = '<p class="hof-seller-step-hint">Answer from the seller’s own knowledge. Choose Unknown if the seller is not sure. Where the form only offers Yes or No, an Unknown answer appears in the attached details without selecting either answer.</p>';
   const renderExtentFields = () => '<div class="hof-seller-response-grid">' + [
     ['in_100_year_floodplain','100-year floodplain'],['in_500_year_floodplain','500-year floodplain'],
@@ -24588,6 +24653,7 @@ function routeAfterMagicLinkIfNeeded() {
     const responses = document.getElementById('hofSellerWaterResponses');
     if (!source || !responses) return;
     responses.hidden = !source.value;
+    syncDisclosureDetails(document.getElementById('hofSellerDisclosureCard'));
   }
   root.loadSellerDisclosureDraft = function loadSellerDisclosureDraft(draftId) {
     const draft = draftCache.get(String(draftId || ''));
@@ -24610,6 +24676,7 @@ function routeAfterMagicLinkIfNeeded() {
     document.querySelectorAll('[data-water-response]').forEach(select => { select.value = savedResponseValue(draft.water_rights_data?.[select.dataset.waterResponse]); });
     const card = document.getElementById('hofSellerDisclosureCard');
     if (card) {
+      syncDisclosureDetails(card);
       const workspace = document.getElementById('hofSellerDisclosureWorkspace');
       if (workspace) workspace.open = true;
       card.dataset.loadedDraftId = draft.id || '';
@@ -24887,6 +24954,9 @@ function routeAfterMagicLinkIfNeeded() {
       '<details class="hof-seller-step"><summary><span class="hof-seller-step-number">3</span><span class="hof-seller-step-copy"><strong>Water rights, if they apply</strong><small>Add this only when the property needs a water-rights disclosure.</small></span></summary><label>Water-rights disclosure (optional)<select id="hofWaterSource"><option value="">Do not include</option></select></label><div id="hofSellerWaterResponses" hidden>' + renderWaterResponses() + '</div></details>' +
       '<div class="hof-seller-actions"><button class="btn-primary" type="button" id="hofSaveSellerDraft">Save and preview</button><button class="btn-secondary" type="button" id="hofSendSellerReview" disabled>Send seller review email</button><span id="hofSellerDraftStatus" class="hof-iabs-status" role="status" aria-live="polite" aria-atomic="true"></span></div><h5>Saved seller disclosures</h5><div class="hof-seller-actions"><input id="hofSellerDraftFilter" type="search" placeholder="Search address or seller" aria-label="Search saved seller disclosures" oninput="filterSellerDisclosureDrafts(this.value)"><span id="hofSellerDraftSummary" class="hof-iabs-status"></span></div><ul id="hofSellerDraftList" class="hof-private-form-drafts-list"><li>Loading…</li></ul></div></details>';
     panel.appendChild(card);
+    card.addEventListener('change', () => syncDisclosureDetails(card));
+    card.addEventListener('input', () => syncDisclosureDetails(card));
+    syncDisclosureDetails(card);
     try {
       const sources = await approvedSources();
       const seller = sources.find(s => s.form_code === 'TREC-55-1');
