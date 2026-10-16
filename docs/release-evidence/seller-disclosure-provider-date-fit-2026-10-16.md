@@ -96,3 +96,34 @@ cannot accidentally reuse the failed v3 attempt.
 Not deployed. Corrected v4 completed-provider review and coordinated release /
 authenticated canonical verification remain unfinished. The first provider
 attempt is completed evidence of a defect, not permission to ship that defect.
+
+## Continuation after partner release — October 16
+
+- Independent b9abbcd CI 38918983559 passed. Today's separate insurance-partner
+  release is now production 6c418195898cafcae06e43e2bf4bb7621722f34b. It was
+  merged into this pending disclosure branch without conflicts. The current
+  candidate retains insurance planning, roofing, directory and follow-up.
+- Owned QA-runner send-route correction and its exact-endpoint test are
+  checkpointed in da9d836; ten focused runner tests passed. This is a test-tool
+  route normalization, not evidence that customer delivery is broken.
+- Shell advances to v104 rather than reusing production v103. Focused PWA
+  checks (69), existing companion checks (7) and insurance checks (2) passed.
+  Integrated frozen local regression: 2,696 tests in 93.054 seconds, OK with
+  one environment skip. Log /private/tmp/hof-disclosure-integrated-full-20261016.log.
+  The later Invalid fixture PDF line is an expected negative-case diagnostic.
+- Exact existing corrected v4 document b4ea4029-7e80-460c-880c-9e7275cee423 is
+  confirmed Sent in the normal authenticated SignWell UI. Both approved
+  inboxes received its 09:52 AM invitation. No duplicate document, resend,
+  reminder, credential export or new provider request was needed.
+- First signer has 37 prepared fields and second has 34. Both fictional
+  signatures/initials are prepared in the nonbinding v4 packet. Each is at
+  Agree & Finish, which also accepts the electronic-communications disclosure.
+  The prior approval belonged to the already finished v3 packet, so final
+  acceptance for this replacement v4 packet was requested specifically and
+  is still pending. Neither replacement signer has been finalized.
+- Screenshot checkpoint: disclosure-provider-2026-10-16/ in chat output,
+  corrected-v4-qa-a-awaiting-consent.jpg and corrected-v4-qa-b-awaiting-consent.jpg.
+  This is prepared-field evidence, not completed-provider PDF placement QA.
+- No production migration or disclosure deployment. After the final consent,
+  complete the same test, inspect its actual completed PDF, then coordinate
+  the existing migration/API release and authenticated canonical verification.
