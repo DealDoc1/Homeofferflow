@@ -24535,7 +24535,7 @@ function routeAfterMagicLinkIfNeeded() {
     });
     return responses;
   }
-  const responsePrompt = '<p class="hof-seller-step-hint">Use Yes, No, or Unknown only for items the seller can answer now. Leave a category blank when it does not apply.</p>';
+  const responsePrompt = '<p class="hof-seller-step-hint">Answer from the seller’s own knowledge. Choose Unknown if the seller is not sure. Where the form only offers Yes or No, an Unknown answer appears in the attached details without selecting either answer.</p>';
   const renderExtentFields = () => '<div class="hof-seller-response-grid">' + [
     ['in_100_year_floodplain','100-year floodplain'],['in_500_year_floodplain','500-year floodplain'],
     ['in_floodway','Floodway'],['in_flood_pool','Flood pool'],['in_reservoir','Reservoir']

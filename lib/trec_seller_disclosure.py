@@ -201,6 +201,46 @@ TREC_55_1_FEATURE_ALIASES = {
     "garage_opener_controls": "garage_door_controls",
 }
 
+# These source sections expressly offer Yes/No, unlike the property-item
+# rows and the three actual Unknown checkboxes. Keep older Unknown answers
+# in a labeled continuation rather than inventing a mark or dropping them.
+YES_NO_ONLY_RESPONSES = {
+    "TREC-55-1": {
+        "seller_occupancy": "Occupancy - Seller occupying the property",
+        **{key: "Section 3 - Known defects: " + key.removeprefix("defect_").replace("_", " ")
+           for key, _, _ in TREC_55_1_CONDITION_ROWS},
+        **{key: "Section 4 - Known conditions: " + key.replace("_", " ")
+           for key, _, _ in TREC_55_1_CONDITION4_ROWS},
+        "property_needs_repair": "Section 5 - Awareness of items needing repair",
+        **{key: "Section 6 - Flood information: " + key.replace("_", " ")
+           for key, _, _ in TREC_55_1_FLOOD_ROWS},
+        "filed_flood_claim": "Section 7 - Flood insurance claims",
+        "received_fema_or_sba_assistance": "Section 8 - FEMA or SBA flood assistance",
+        **{key: "Section 9 - Additional disclosures: " + key.replace("_", " ")
+           for key, _, _ in TREC_55_1_ADDITIONAL_ROWS},
+    },
+    "TREC-61-0": {
+        "water_wells_known": "Section 2B - Awareness of water wells on the property",
+        "water_well_on_another_property": "Section 2D - Water from a well on another property",
+        "water_well_relies_on_outside_rights": "Section 2E - Groundwater rights outside the property",
+        "groundwater_rights_severed_sold_leased": "Section 2F - Groundwater rights severed, sold or leased",
+        "surface_water_right": "Section 3A - Ownership of a surface-water right",
+        "pond_lake_or_water_tank": "Section 3B - Pond, lake or water tank on the property",
+    },
+}
+
+
+def _retain_unknown_answers(form_code, values, overflow):
+    """Preserve the saved answer without changing a source Yes/No question."""
+    result = dict(values)
+    for key, label in YES_NO_ONLY_RESPONSES[form_code].items():
+        if _answer(values.get(key)) in {"U", "UNKNOWN"}:
+            result[key] = ""  # Canonical blank still overrides stale aliases.
+            overflow.append({"form": form_code, "label": label,
+                             "text": "Seller's answer: Unknown. The Yes/No answer on the form is blank."})
+    return result
+
+
 def source_contract(form_code: str) -> dict[str, Any]:
     if form_code == "TREC-55-1":
         return {"form_code": form_code, "page_count": TREC_55_1_PAGE_COUNT, "field_map": TREC_55_1_MAP, "source_sha256": TREC_55_1_SOURCE_SHA256, "activation_status": "pending_visual_qa"}
@@ -363,6 +403,7 @@ def render_unsigned_preview(source_pdf_bytes: bytes, form_code: str, values: dic
     field_map = contract["field_map"]
     from lib.seller_disclosure_explanations import draw_explanations, append_explanations
     overflow = []
+    values = _retain_unknown_answers(form_code, values, overflow)
     overlays = []
     for page_number in range(1, contract["page_count"] + 1):
         overlay_stream = BytesIO()

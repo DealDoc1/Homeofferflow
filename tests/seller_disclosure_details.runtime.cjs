@@ -1,6 +1,9 @@
 const fs=require('node:fs'), path=require('node:path'), vm=require('node:vm');
 const assert=require('node:assert/strict'), {test}=require('node:test');
 const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
+test('Unknown answers are explained without source-incompatible automatic choices',()=>{
+ assert.ok(html.includes('Where the form only offers Yes or No, an Unknown answer appears in the attached details without selecting either answer.'));
+});
 function code(start,end){const a=html.indexOf(start), b=html.indexOf(end,a);assert.ok(a>=0&&b>a);return html.slice(a,b);}
 function setup(){
  const fields=new Map(), root={};

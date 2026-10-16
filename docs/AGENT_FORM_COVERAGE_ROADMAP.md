@@ -4,7 +4,16 @@ Future batches follow the [lean development protocol](LEAN_DEVELOPMENT_PROTOCOL.
 to reduce model context, repeated regression runs and Vercel usage without
 reducing verification standards.
 
-## Current launch tracking - October 14, 2026
+## Current launch tracking - October 16, 2026
+
+October 16 Unknown-answer continuation: all 68 Yes/No-only main/water answers
+now retain Unknown in labeled attached details, leaving the printed Yes/No
+answer blank. Real source Unknown options remain selected normally. No answer
+is inferred and no user step is added. 93 affected tests and changed-page visual
+review passed; ordinary/Unicode/single-Seller text and field arrays are unchanged.
+Not deployed or completed-provider verified. Conditional-question cleanup and
+the integrated review/signing/completed-PDF pass remain unfinished.
+See [Unknown preservation evidence](release-evidence/seller-disclosure-unknown-preservation-2026-10-16.md).
 
 October 16 checkpoint of October 15 source-layout work: measured item, defect,
 flood and additional-disclosure rows, checkbox bounds, main/water execution

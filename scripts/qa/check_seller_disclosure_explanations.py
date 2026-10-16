@@ -39,6 +39,7 @@ def main():
     for name, seller_count, buyer_count, water, long in (
         ("one-seller", 1, 0, False, False), ("two-sellers-water", 2, 2, True, False),
         ("unicode-overflow", 2, 2, True, True),
+        ("unknown-responses", 2, 2, True, False),
     ):
         parties = {"seller_names": [f"QA Seller {i + 1}" for i in range(seller_count)],
                    "buyer_names": [f"QA Buyer {i + 1}" for i in range(buyer_count)]}
@@ -66,6 +67,16 @@ def main():
             water_values.update({"in_groundwater_district":"U","well_ownership":"seller_only"})
             main_values["conditions_explanation"] = ("QA only - Élodie reviewed the façade; 张伟 noted <paint> & trim. " * 35).strip()
             water_values["well_agreement"] = ("QA only - José reviewed the shared well agreement with Zoë. " * 35).strip()
+        if name == "unknown-responses":
+            # Only changed pages and the new continuation need visual review;
+            # ordinary/single-Seller/Unicode cases remain in the compact set.
+            for key in ("defect_roof", "active_termites", "property_needs_repair",
+                        "in_100_year_floodplain", "filed_flood_claim", "hoa_assessments"):
+                main_values[key] = "U"
+            for key in ("water_wells_known", "surface_water_right"):
+                water_values[key] = "U"
+            main_values["working_smoke_detectors"] = "U"
+            water_values["in_groundwater_district"] = "U"
         address = "QA ONLY - 100 Fictional Example Lane"
         notes, writer = [], PdfWriter()
         for code, values in [("TREC-55-1", main_values)] + ([("TREC-61-0", water_values)] if water else []):
