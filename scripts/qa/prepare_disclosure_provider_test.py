@@ -187,7 +187,7 @@ def send_once(output, packet, fields, cases, key_path):
                 receipt['phase'] = 'field_readback_mismatch'; return receipt
             receipt['fields_verified'] = True
             receipt['phase'] = 'send_requested'; persist(receipt_path, receipt)
-            sent = client.post(exact_url + 'send/', json=send_options(payload))
+            sent = client.post(exact_url + 'send', json=send_options(payload))
             receipt['send_http_status'] = sent.status_code
             receipt['phase'] = 'sent' if sent.status_code in {200, 201, 202} else 'send_unconfirmed'
             if receipt['phase'] != 'sent':

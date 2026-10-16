@@ -99,6 +99,26 @@ class DisclosureProviderQARunnerTests(unittest.TestCase):
             self.assertEqual(result['document_id'], 'fictional-doc')
             self.assertFalse(key.exists())
 
+    def test_initial_send_uses_documented_route_after_exact_field_readback(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); key = root / 'existing-key'; key.write_text('fictional')
+            payload = qa.payload_for(b'fictional', [[]])
+            document = {'id': 'fictional-doc', 'test_mode': True, 'status': 'Created',
+                        'name': payload['name'], 'metadata': payload['metadata'],
+                        'fields': payload['fields'], 'recipients': payload['recipients']}
+            with patch.object(qa.httpx, 'Client') as client:
+                active = client.return_value.__enter__.return_value
+                active.post.return_value.status_code = 201
+                active.post.return_value.json.return_value = document
+                active.get.return_value.status_code = 200
+                active.get.return_value.json.return_value = document
+                result = qa.send_once(root, b'fictional', [[]], [], key)
+                self.assertEqual(active.post.call_count, 2)
+                self.assertEqual(active.post.call_args.args[0], qa.BASE_URL + 'fictional-doc/send')
+                self.assertTrue(active.post.call_args.kwargs['json']['test_mode'])
+            self.assertTrue(result['fields_verified']); self.assertEqual(result['phase'], 'sent')
+            self.assertFalse(key.exists())
+
     def test_recovery_refuses_a_document_that_is_already_sent(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory); key = root / 'existing-key'; key.write_text('fictional')
