@@ -19,6 +19,7 @@ const SHELL_ASSETS = [
   '/assets/partner-landing-focus.js',
   '/assets/partner-profile.js',
   '/assets/inspection-partners.js',
+  '/assets/insurance-partners.js',
   '/assets/inspection-partners.css',
   '/assets/homeofferflow-app-icon.svg',
   '/assets/homeofferflow-app-icon-192.png',
