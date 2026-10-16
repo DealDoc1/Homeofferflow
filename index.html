@@ -29,6 +29,7 @@
   <script src="/assets/partner-profile.js"></script>
   <link rel="stylesheet" href="/assets/inspection-partners.css">
   <script src="/assets/inspection-partners.js" defer></script>
+  <script src="/assets/insurance-partners.js" defer></script>
   <script id="hof-agent-route-primer-v1">
   // Keep only the four declared agent-route labels during this page load.
   // This contains no customer, property, account, or campaign information.
@@ -3874,6 +3875,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="calc-disclaimer">
             <strong>Estimate only.</strong> Monthly payment figures are based on general Texas averages and the information entered above. Actual loan terms, taxes, insurance premiums, HOA dues, PMI, and closing costs may vary significantly. HomeOfferFlow is not a lender, insurance provider, or tax authority. Buyers should obtain official loan estimates from a licensed mortgage professional, insurance quotes from a licensed insurance agent, and verify property taxes directly with the applicable county appraisal district or tax authority.
           </div>
+          <aside id="hofInsurancePartners" aria-label="Optional home insurance providers" hidden></aside>
         </details>
 
         <div style="margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.07);">
