@@ -64,3 +64,42 @@ renderer, form source or signature placement is changed by this release.
 
 After release, record the deployment identity, canonical byte comparison,
 unauthenticated admin response and fresh read-only beta-terms verification.
+
+## Deployed and production checked
+
+- Fix commit: `fdb47f2eba6effc8ff885c339dc49441bd1019c2`.
+- PR 1343 merged after CI run `38998992469` succeeded. Production merge:
+  `d8d2f1ae9fed3612594b4285690c65bb5132357c`.
+- One intentional release, run `38999201516`, completed successfully on
+  October 17 at 03:36:41 UTC (October 16, America/Chicago).
+- Vercel READY production deployment: `dpl_BMWKohegQPEsznmKhtSCS4vgSZ2F`,
+  `homeofferflow-1ywx9wy5d-dealdoc1s-projects.vercel.app`.
+  Provider metadata identifies the exact merge SHA and both canonical aliases.
+- Fresh pre-build spend check: $0.04 infrastructure credit used for September
+  22–October 21, $19.96 unconsumed, $3 reserved. This is the check's snapshot,
+  not a guarantee about later traffic or spend.
+- Hosted full regression, release preflight, coordinated-schema readiness,
+  PWA smoke and production API/runtime smoke all passed. Public legal pages,
+  root and `/ondemand` returned 200; runtime reported production TREC 20-19
+  and SignWell test mode false. No signing packet was sent.
+- Both root and www domains returned index and service-worker bytes identical
+  to the tested tree. Index SHA-256:
+  `c92754248e068ac424119a10356cc099b58e883603b940a4eb833fdb5ad5e5cc`;
+  worker SHA-256:
+  `d8556daa59b3fe0d1e442a96ebe2a756179f1804a89c2c3d817821ed0b525fc2`.
+- Evaluated the downloaded canonical lifecycle function: beta zero-fee yielded
+  “Complimentary beta”; unknown zero-fee yielded “No-charge placement”;
+  commercial paid retained its launch-period label.
+- Production admin endpoint without credentials returned 401.
+- Post-release read-only database verification found both existing partner
+  applications still beta / payment not started, with active zero-fee placements.
+  This workstream made no database or commercial-term writes.
+
+Remaining verification gap: a fresh authenticated visual admin check still
+requires an unlocked browser session. Source-runtime checks and handler-fixture
+checks are not represented as authenticated live UI verification. Disclosure
+PR 1341 remains separate and undeployed; its future offline-shell version must
+advance beyond this release's v104.
+
+This post-release evidence is a documentation-only checkpoint, not another
+deployment request.
