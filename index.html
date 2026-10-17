@@ -14846,7 +14846,7 @@ function routeAfterMagicLinkIfNeeded() {
         </div>
         <div class="field" style="margin-top:0.8rem;"><label>Brokerage Disclaimer</label><textarea id="brandDisclaimer" rows="3" placeholder="Optional brokerage/team disclaimer shown in branded experiences.">${escapeAttr(b.disclaimer || '')}</textarea></div>
         <div class="notice gold" style="margin-top:0.8rem;"><strong>Logo upload:</strong> Save the brokerage profile first, then use the secure direct-upload control in Brokerage Administration below. External logo URLs are intentionally not accepted.</div>
-        <div class="platform-actions"><button type="button" onclick="saveBrokerageFoundation()">Save Brokerage Profile</button><button type="button" onclick="loadBrokerageFoundation().then(renderBrokerageFoundationPanel)">Reload</button></div>
+        <div class="platform-actions"><button type="button" id="saveBrokerageFoundationButton" onclick="saveBrokerageFoundation()">Save Brokerage Profile</button><button type="button" onclick="loadBrokerageFoundation().then(renderBrokerageFoundationPanel)">Reload</button></div>
         <div id="brokerageFoundationStatus" class="platform-status"></div>
       </div>
       <div class="platform-card">
@@ -14864,6 +14864,13 @@ function routeAfterMagicLinkIfNeeded() {
     const client = getSupabaseClient();
     const user = platformUser();
     if (!client || !user) return platformStatus('brokerageFoundationStatus', 'Sign in before saving brokerage branding.', 'err');
+    const saveButton = document.getElementById('saveBrokerageFoundationButton');
+    if (saveButton?.disabled) return null;
+    const brokerageId = hofPlatform.brokerage?.id || null;
+    const savingEpoch = window.__hofAccountProfileEpoch || 0;
+    const isCurrent = () => platformUser()?.id === user.id &&
+      (window.__hofAccountProfileEpoch || 0) === savingEpoch &&
+      (hofPlatform.brokerage?.id || null) === brokerageId;
     const now = new Date().toISOString();
     const payload = {
       name: getVal('brandBrokerageName') || 'My Brokerage',
@@ -14885,26 +14892,49 @@ function routeAfterMagicLinkIfNeeded() {
       created_by: user.id,
       updated_at: now
     };
+    if (saveButton) {
+      saveButton.disabled = true;
+      saveButton.setAttribute('aria-busy', 'true');
+      saveButton.textContent = 'Saving brokerage…';
+    }
+    let savedBrokerage = null;
     try {
       let result;
       const writeBrokerage = async (writePayload) => {
-        if (hofPlatform.brokerage?.id) return await client.from('hof_brokerages').update(writePayload).eq('id', hofPlatform.brokerage.id).select('*').single();
+        if (brokerageId) return await client.from('hof_brokerages').update(writePayload).eq('id', brokerageId).select('*').single();
         return await client.from('hof_brokerages').insert(writePayload).select('*').single();
       };
       result = await writeBrokerage(payload);
+      if (!isCurrent()) return null;
       if (result.error && String(result.error.message || '').toLowerCase().includes('column')) {
         // Compatibility fallback may omit newer branding-only columns while
         // preserving the shared form library independently of profile setup.
         const { org_type, slug, office_address, office_city, office_state, office_zip, ...legacyPayload } = payload;
         result = await writeBrokerage(legacyPayload);
+        if (!isCurrent()) return null;
       }
       if (result.error) throw result.error;
-      hofPlatform.brokerage = result.data;
-      await client.from('hof_profiles').update({ brokerage_id: result.data.id, is_brokerage_admin: true, team_name: payload.dba_name || payload.name, updated_at: now }).eq('id', user.id);
-      platformStatus('brokerageFoundationStatus', 'Brokerage profile saved. This account can now manage the brokerage workspace.', 'ok');
+      if (!result.data?.id) throw new Error('Brokerage details were not returned.');
+      savedBrokerage = result.data;
+      const linked = await client.from('hof_profiles').update({ brokerage_id: savedBrokerage.id, is_brokerage_admin: true, team_name: payload.dba_name || payload.name, updated_at: now }).eq('id', user.id).select('id,brokerage_id').single();
+      if (!isCurrent()) return null;
+      if (linked.error) throw linked.error;
+      if (linked.data?.id !== user.id || linked.data?.brokerage_id !== savedBrokerage.id) throw new Error('The brokerage connection was not confirmed.');
+      hofPlatform.brokerage = savedBrokerage;
+      platformStatus('brokerageFoundationStatus', 'Brokerage profile saved.', 'ok');
     } catch (err) {
+      if (!isCurrent()) return null;
+      // Keep the saved record for a same-account retry, rather than inserting
+      // another brokerage when only the account-link step failed.
+      if (savedBrokerage) hofPlatform.brokerage = savedBrokerage;
       console.error('Save brokerage failed:', err);
-      platformStatus('brokerageFoundationStatus', platformCustomerError(err, 'We couldn’t save the brokerage details. Please try again.'), 'err');
+      platformStatus('brokerageFoundationStatus', platformCustomerError(err, savedBrokerage ? 'Brokerage details were saved, but we couldn’t connect your account. Please try saving again.' : 'We couldn’t save the brokerage details. Please try again.'), 'err');
+    } finally {
+      if (saveButton) {
+        saveButton.disabled = false;
+        saveButton.setAttribute('aria-busy', 'false');
+        saveButton.textContent = 'Save Brokerage Profile';
+      }
     }
   }
 
@@ -22163,6 +22193,10 @@ function routeAfterMagicLinkIfNeeded() {
   root.saveBrokerageSharedDefaults = async function saveBrokerageSharedDefaults() {
     const session = root.hofAuth?.session;
     const brokerage = root.hofPlatform?.brokerage;
+    const savingUserId = session?.user?.id;
+    const savingEpoch = root.__hofAccountProfileEpoch || 0;
+    const isCurrent = () => !!savingUserId && root.hofAuth?.session?.user?.id === savingUserId &&
+      (root.__hofAccountProfileEpoch || 0) === savingEpoch && root.hofPlatform?.brokerage?.id === brokerage?.id;
     const result = document.getElementById('brokerageDefaultsResult');
     const saveButton = document.getElementById('saveBrokerageSharedDefaultsButton');
     if (saveButton?.disabled) return null;
@@ -22201,15 +22235,18 @@ function routeAfterMagicLinkIfNeeded() {
         })
       });
       const data = await response.json().catch(() => ({}));
+      if (!isCurrent()) { restoreSaveButton(); return null; }
       if (!response.ok || !data.defaults) throw new Error(data.error || 'Could not save brokerage defaults.');
       root.hofPlatform.brokerage = Object.assign({}, brokerage, {
         default_title_company: data.defaults.defaultTitleCompany || null,
         default_title_contact: data.defaults.defaultTitleContact || null
       });
       if (result) result.textContent = 'Shared title defaults saved. Agents choose whether to copy them into their own profile.';
+      restoreSaveButton();
       await root.renderBrokerageFoundationPanel();
     } catch (error) {
       restoreSaveButton();
+      if (!isCurrent()) return null;
       console.error('Brokerage defaults save failed:', error);
       if (result) result.textContent = window.hofCustomerActionError?.(error, 'We couldn’t save the brokerage defaults. Please try again.') || 'We couldn’t save the brokerage defaults. Please try again.';
     }
