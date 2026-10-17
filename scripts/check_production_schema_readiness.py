@@ -12,7 +12,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 
-EXPECTED_CONTRACT = "homeofferflow-release-schema-v1"
+EXPECTED_CONTRACT = "homeofferflow-release-schema-v2"
 URL_KEYS = ("SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL", "VITE_SUPABASE_URL")
 SERVICE_KEY_KEYS = (
     "SUPABASE_SERVICE_ROLE_KEY",

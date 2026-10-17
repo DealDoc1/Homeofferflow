@@ -4,6 +4,33 @@ Future batches follow the [lean development protocol](LEAN_DEVELOPMENT_PROTOCOL.
 to reduce model context, repeated regression runs and Vercel usage without
 reducing verification standards.
 
+## Listing-agreement implementation checkpoint - October 17, 2026
+
+TXR-1101 now has a locally tested answer contract, exact-source overlay,
+one-/two-seller broker-or-associate signer map and private create/edit/preview/
+recipient-review/signing API adapters. The latest focused run passes 132 checks,
+including the actual private source through the API with simulated delivery.
+The mobile interview and same-draft queue handoff now also have local desktop/
+phone verification, including safe retry/account isolation and retained age/
+HOA answers. A final affected-workflow run passes 260 Python checks, including
+the actual source and JavaScript runtime wrappers. Source registration, applied
+schema migration, complete related-packet orchestration, independent-office
+notice-contact collection and completed SignWell QA remain unfinished;
+**this is not a released
+listing-agreement workflow**. See [renderer evidence](release-evidence/txr1101-sale-listing-local-2026-10-17.md)
+and [API/schema evidence](release-evidence/txr1101-private-api-local-2026-10-17.md),
+plus the [current mobile interview checkpoint and recovery notes](release-evidence/txr1101-mobile-interview-local-2026-10-17.md).
+
+### Retrieved source PDFs
+
+The current English TXR-1101 (June 15, 2026) and TXR-1102 (January 5, 2026)
+source PDFs have now been downloaded from the authenticated official library
+and checked for revision, page count and integrity. No owner sign-in/source-file
+action remains for these two forms. Interview, overlay, signer-map and completed
+signing QA remain implementation work; source retrieval is not a deployed
+listing workflow. No brokerage-seat or per-agent approval requirement was
+added. See the [source inventory and next implementation evidence](release-evidence/listing-agreement-source-checkpoint-2026-10-17.md).
+
 ## Current launch tracking - October 14, 2026
 
 The live tracker now records the deployed listing-to-disclosure handoff

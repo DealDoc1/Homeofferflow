@@ -40,7 +40,10 @@ class AgentLibraryFeedbackTests(unittest.TestCase):
         """Avoid both popup blocking and a cluttered tab bar for draft review."""
         self.assertNotIn("window.open('', '_blank')", INDEX)
         self.assertIn("root.hofShowPdfPreview = function hofShowPdfPreview", INDEX)
-        self.assertEqual(INDEX.count("root.hofShowPdfPreview(await response.blob()"), 2)
+        self.assertEqual(INDEX.count("root.hofShowPdfPreview(await response.blob()"), 1)
+        preview = INDEX.split('  async function previewAgreementPdf(agreement, button) {', 1)[1].split('  async function renderCard()', 1)[0]
+        self.assertLess(preview.index('const blob = await response.blob();'), preview.index('if (!viewerIsCurrent(actor)) return;'))
+        self.assertLess(preview.index('if (!viewerIsCurrent(actor)) return;'), preview.index('root.hofShowPdfPreview(blob, agreement.form_code);'))
         self.assertIn("root.hofShowPdfPreview(blob, draft?.form_code);", INDEX)
         self.assertIn("URL.revokeObjectURL(blobUrl)", INDEX)
 

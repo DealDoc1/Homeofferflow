@@ -87,7 +87,8 @@ class PlatformFormSourceUploadTests(unittest.TestCase):
         try:
             module.TXR_SIGNING_ENABLED = True
             self.assertTrue(module._workflow_activation_status("TXR-1507"))
-            self.assertFalse(module._workflow_activation_status("TXR-1101"))
+            self.assertTrue(module._workflow_activation_status("TXR-1101"))
+            self.assertFalse(module._workflow_activation_status("TXR-1102"))
         finally:
             module.TXR_SIGNING_ENABLED = previous
         self.assertIn("Platform-admin access is required", source)

@@ -13,6 +13,8 @@ const SHELL_ASSETS = [
   '/assets/trec-62-followup.js',
   '/assets/trec-38-8-followup.js',
   '/assets/trec-39-11-amendment.js',
+  '/assets/txr1101-interview.js',
+  '/assets/txr1101-interview.css',
   '/assets/agent-landing-focus.css',
   '/assets/agent-landing-focus.js',
   '/assets/partner-landing-focus.css',

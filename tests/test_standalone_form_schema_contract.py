@@ -41,9 +41,12 @@ class StandaloneFormSchemaContractTests(unittest.TestCase):
         self.assertLessEqual(implemented_form_codes(), allowed)
 
     def test_live_readiness_checks_the_same_implemented_document_codes(self):
-        migrations = sorted((ROOT / 'supabase/migrations').glob('*enable_trec_standalone_drafts.sql'))
-        self.assertEqual(len(migrations), 1)
-        sql = migrations[0].read_text(encoding='utf-8')
+        definitions = [path.read_text(encoding='utf-8')
+                       for path in sorted((ROOT / 'supabase/migrations').glob('*.sql'))
+                       if 'create or replace function public.hof_release_schema_readiness()'
+                       in path.read_text(encoding='utf-8').lower()]
+        self.assertTrue(definitions)
+        sql = definitions[-1]
         match = re.search(r'foreach supported_form_code in array array\[(.*?)\]', sql, re.DOTALL)
         self.assertIsNotNone(match, 'Release readiness must check actual draft form capabilities.')
         checked = set(re.findall(r"'([^']+)'", match.group(1)))
