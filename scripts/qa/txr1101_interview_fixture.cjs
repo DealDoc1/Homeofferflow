@@ -8,7 +8,8 @@ if(!queue)throw new Error('Prepared-document queue was not found');
 const styles=[...html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/g)].map(match=>match[1]).join('\n');
 const model=require(path.join(root,'assets/txr1101-interview.js'));
 const seedValues={seller_one:'José 李 QA Seller',seller_two:'Zoë QA Seller',property_address:'100 Fictional Lane, Plano, TX',term_start:'2026-10-17',term_end:'2027-04-17',listing_price:'350000',
- fee_basis:'flat',fee_amount:'0',additional_fee_basis:'none',mls_filing:'none',hoa:'yes',disclose_buyer_expenses:'no',keybox:'no',intermediary:'not_authorized',foreign_person:'unanswered',signer_plan:'clients_and_associate',built_before_1978:'yes',request_hoa_information:'yes'};
+ fee_basis:'flat',fee_amount:'0',additional_fee_basis:'none',mls_filing:'none',hoa:'yes',disclose_buyer_expenses:'no',keybox:'no',intermediary:'not_authorized',foreign_person:'unanswered',signer_plan:'clients_and_associate',built_before_1978:'yes',request_hoa_information:'yes',
+ broker_notice_address:'42 Saved Notice Lane',broker_notice_city_state_zip:'Plano, TX 75024',broker_notice_phone:'214-555-0123',broker_notice_email:'saved-notices@example.test'};
 const seeded=model.collect({get:key=>seedValues[key]||'',getAll:()=>[]});
 const seedRecord={id:'cccccccc-cccc-4ccc-8ccc-cccccccccccc',form_code:'TXR-1101',form_source_id:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',client_names:seeded.clientNames,agreement_data:seeded.agreementData,status:'draft',updated_at:'2026-10-17T15:00:00Z'};
 fs.mkdirSync(path.join(out,'assets'),{recursive:true});
@@ -22,6 +23,8 @@ let record=new URLSearchParams(location.search).get('seed')==='1'?${JSON.stringi
 if(record)document.getElementById('edit').hidden=false;
 window.fetch=async(url,options={})=>{
  if(!url.startsWith('/api/admin-dashboard'))throw new Error('External calls are blocked');
+ if(url.includes('scope=txr1101_context'))return mode==='office-down'?{ok:false,status:503,json:async()=>({error:'Synthetic optional defaults failure'})}
+   :{ok:true,status:200,json:async()=>({brokerage:{name:'Independent QA Realty',license_number:'9000001'},noticeContacts:{address:'10 Current Office Lane',city_state_zip:'Dallas, TX 75201',phone:'214-555-0100',email:'current-office@example.test',email_2:''}})};
  if(url.includes('scope=standalone_agreements'))return {ok:true,status:200,json:async()=>({agreements:record?[record]:[],signingEnabled:false,signingFormCodes:['TXR-1101']})};
  if(!options.method)return {ok:!!record,status:record?200:404,json:async()=>({agreement:record})};
  const body=JSON.parse(options.body);count++;

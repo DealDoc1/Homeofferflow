@@ -22,9 +22,10 @@ from lib.txr1501_answers import render_continuation, continuation_fields
 
 SOURCE_SHA256 = 'eeec91ef481059834262cf7f842afc045bf17c09b5be9e79fe2508112310b068'
 SOURCE_PAGES = 10
-REVISION = 'txr-1101-2026-06-15-overlay-v1'
+REVISION = 'txr-1101-2026-06-15-overlay-v2'
 FINANCING = ('conventional', 'va', 'fha', 'cash', 'texas_veterans', 'owner', 'other')
 INTERVIEW_CHOICES = ('built_before_1978', 'request_hoa_information')
+NOTICE_CONTACT_LIMITS = {'address':300, 'city_state_zip':180, 'phone':80, 'email':180, 'email_2':180}
 TEXT_LIMITS = {
     'client_address': 300, 'client_city_state_zip': 180, 'client_phone': 80,
     'client_email': 180, 'client_email_2': 180, 'property_address': 400,
@@ -75,7 +76,7 @@ def validate_answers(data):
     allowed = set(TEXT_LIMITS) | set(CHOICES) | set(INTERVIEW_CHOICES) | {
         'client_names', 'term_start', 'term_end', 'listing_price', 'fee_amount',
         'additional_fee_amount', 'protection_days', 'mls_delay_days',
-        'financing', 'addenda', '_for_signing',
+        'financing', 'addenda', '_for_signing', 'broker_notice_contacts',
     }
     if set(data) - allowed:
         raise ValueError('Some listing answers are not supported.')
@@ -90,6 +91,19 @@ def validate_answers(data):
         if not isinstance(value, str) or len(value) > limit:
             raise ValueError('Check ' + key.replace('_', ' ') + '.')
         result[key] = clean(value)
+    if 'broker_notice_contacts' in data:
+        contacts = data['broker_notice_contacts']
+        if not isinstance(contacts, dict) or set(contacts) - set(NOTICE_CONTACT_LIMITS):
+            raise ValueError('Check the brokerage contact details.')
+        result['broker_notice_contacts'] = {}
+        for key, limit in NOTICE_CONTACT_LIMITS.items():
+            value = contacts.get(key, '')
+            if not isinstance(value, str) or len(value) > limit:
+                raise ValueError('Check the brokerage contact details.')
+            value = clean(value)
+            if key.startswith('email') and value and not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', value):
+                raise ValueError('Enter a valid brokerage contact email address.')
+            result['broker_notice_contacts'][key] = value
     if not result['property_address']:
         raise ValueError('Enter the property address.')
     for key in ('client_email', 'client_email_2'):
@@ -226,9 +240,12 @@ def answer_layout(data, brokerage, associate):
         put(page, value, key.replace('_', ' ').title(), blanks)
     put(1, ', '.join(data['client_names']), 'Paragraph 1 - Sellers', [(92, 632, 482), (92, 619, 482)])
     put(1, broker, 'Paragraph 1 - Broker', [(95, 556, 479)])
+    # An explicit document snapshot, including blanks, must not silently pick
+    # up a different office's notices when a profile/default changes later.
+    notice_contacts = data.get('broker_notice_contacts', brokerage)
     for key, x, y, width in [('address',120,543,454), ('city_state_zip',152,530,422),
                              ('phone',112,518,462), ('email',129,505,196), ('email_2',384,505,190)]:
-        put(1, brokerage.get(key), 'Broker '+key.replace('_',' '), [(x,y,width)])
+        put(1, notice_contacts.get(key), 'Broker '+key.replace('_',' '), [(x,y,width)])
     for prefix, row, x_percent, x_flat, w_percent, w_flat in (
             ('fee', 580, 91, 322, 51, 72), ('additional_fee', 557, 158, 394, 56, 72)):
         basis = data[prefix+'_basis']

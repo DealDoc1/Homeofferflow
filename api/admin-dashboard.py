@@ -159,7 +159,7 @@ TXR_SIGNING_FORM_CODES = {
 # source form needs a placement correction.  Older provider documents simply
 # have no map revision and are therefore never mistaken for current-map QA.
 TXR_RENDER_REVISIONS = {
-    "TXR-1101": "txr-1101-2026-06-15-overlay-v1",
+    "TXR-1101": "txr-1101-2026-06-15-overlay-v2",
     "TXR-1501": "txr-1501-2026-09-18-continuation-pagination-v2",
     "TXR-1506": "txr-1506-2026-09-18-answer-continuation-v2",
     "TXR-1507": "txr-1507-2026-09-18-continuation-pagination-v3",
@@ -4497,8 +4497,25 @@ async def _representation_professional_context(user, *, include_listing_contacts
     # Library-source drafts are intentionally available to every signed-in
     # agent; an optional organization only supplies that agent's own details.
     user_id = urllib.parse.quote(str(user["id"]), safe="")
+    profile_user_id = user_id
+    if include_listing_contacts:
+        # Existing administrator-approved aliases share only the professional
+        # profile. Keep account, membership and draft ownership on the actual
+        # authenticated actor. Older form delivery fingerprints stay unchanged.
+        aliases = await _get(
+            f"hof_agent_profile_aliases?login_user_id=eq.{user_id}"
+            "&select=login_user_id,canonical_user_id&limit=1"
+        )
+        if aliases:
+            alias = aliases[0]
+            if str(alias.get("login_user_id") or "") != str(user["id"]):
+                raise PermissionError("Your saved professional profile could not be confirmed.")
+            try:
+                profile_user_id = str(uuid.UUID(str(alias.get("canonical_user_id") or "")))
+            except (TypeError, ValueError, AttributeError) as exc:
+                raise PermissionError("Your saved professional profile could not be confirmed.") from exc
     profiles = await _get(
-        f"hof_agent_profiles?user_id=eq.{user_id}"
+        f"hof_agent_profiles?user_id=eq.{profile_user_id}"
         "&select=agent_name,license_number,agent_email,brokerage_name,brokerage_license&limit=1"
     )
     profile = profiles[0] if profiles else {}
@@ -4533,6 +4550,22 @@ async def _representation_professional_context(user, *, include_listing_contacts
                                  "phone": brokerage.get("contact_phone") or "",
                                  "email": brokerage.get("contact_email") or ""}
     return {"brokerage": brokerage, "profile": profile}
+
+
+async def _txr1101_notice_context(user):
+    """Only this verified agent's professional identity/office defaults.
+
+    Source-host contacts, billing, membership rosters and private profile
+    fields are never returned. These defaults do not grant any authority.
+    """
+    from lib.brokerage_defaults import broker_license
+    from lib.txr_1101 import NOTICE_CONTACT_LIMITS
+    context = await _representation_professional_context(user, include_listing_contacts=True)
+    brokerage = context.get("brokerage") or {}
+    name = brokerage.get("legal_name") or brokerage.get("name") or brokerage.get("dba_name") or ""
+    return {"brokerage": {"name": name,
+            "license_number": broker_license(name, brokerage.get("license_number"))},
+            "noticeContacts": {key: str(brokerage.get(key) or "") for key in NOTICE_CONTACT_LIMITS}}
 
 
 async def _render_owned_representation_agreement(user, agreement, *, for_signing=False, fingerprint_context=None, professional_context=None):
@@ -4590,6 +4623,8 @@ async def _render_owned_representation_agreement(user, agreement, *, for_signing
     if agreement.get("form_code") == TXR_1101_FORM_CODE:
         render_data = _txr1101_stored_answers(agreement_data, agreement.get("client_names") or [])
         render_data["_for_signing"] = bool(for_signing)
+        if "broker_notice_contacts" in render_data:
+            brokerage = {**brokerage, **render_data["broker_notice_contacts"]}
     if fingerprint_context is not None:
         # Broker contact is already bound through the resolved brokerage and
         # recipients. Exclude its persisted duplicate from overlay answers so
@@ -5206,6 +5241,9 @@ class handler(BaseHTTPRequestHandler):
                 _pdf_response(self, pdf, "standalone-agreement-private-draft-preview.pdf")
                 return
             scope = str((query.get("scope") or [""])[0]).strip().lower()
+            if scope == "txr1101_context":
+                _json(self, 200, asyncio.run(_txr1101_notice_context(user)))
+                return
             if scope == "txr1101_draft":
                 try:
                     agreement_id = str(uuid.UUID(str((query.get("agreement_id") or [""])[0])))

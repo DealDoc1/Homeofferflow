@@ -13,13 +13,16 @@ including the actual private source through the API with simulated delivery.
 The mobile interview and same-draft queue handoff now also have local desktop/
 phone verification, including safe retry/account isolation and retained age/
 HOA answers. A final affected-workflow run passes 260 Python checks, including
-the actual source and JavaScript runtime wrappers. Source registration, applied
-schema migration, complete related-packet orchestration, independent-office
-notice-contact collection and completed SignWell QA remain unfinished;
+the actual source and JavaScript runtime wrappers. Independent-office notice
+contacts, saved contact snapshots and approved shared-profile reuse now also
+pass focused checks (67 Python and 46 JavaScript cases) and desktop/phone/PDF
+visual review. Source registration, applied schema migration, complete
+related-packet orchestration and completed SignWell QA remain unfinished;
 **this is not a released
 listing-agreement workflow**. See [renderer evidence](release-evidence/txr1101-sale-listing-local-2026-10-17.md)
 and [API/schema evidence](release-evidence/txr1101-private-api-local-2026-10-17.md),
-plus the [current mobile interview checkpoint and recovery notes](release-evidence/txr1101-mobile-interview-local-2026-10-17.md).
+plus the [mobile interview checkpoint and recovery notes](release-evidence/txr1101-mobile-interview-local-2026-10-17.md)
+and [current notice-contact checkpoint](release-evidence/txr1101-notice-contacts-local-2026-10-17.md).
 
 ### Retrieved source PDFs
 

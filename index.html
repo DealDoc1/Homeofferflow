@@ -13526,6 +13526,8 @@ function routeAfterMagicLinkIfNeeded() {
       propAddress: fillAddressFields,
       buyerMailAddr: fillBuyerMailAddressField,
       clientAddress: fillClientMailingAddressFields,
+      client_address: fillListingSellerNoticeAddressFields,
+      broker_notice_address: fillListingBrokerNoticeAddressFields,
       fsboPropertyAddress: fillFsboAddressFields,
       brandOfficeAddress: fillBrandOfficeAddressFields
     };
@@ -13639,6 +13641,11 @@ function routeAfterMagicLinkIfNeeded() {
     const fields = ids.map(id => document.getElementById(id)).filter(Boolean);
     if (input.id === 'clientAddress' || input.name === 'clientAddress') {
       const companion = document.querySelector('#txr1501AgreementForm [name="clientCityStateZip"]');
+      if (companion) fields.push(companion);
+    }
+    const listingCompanion = {client_address:'client_city_state_zip',broker_notice_address:'broker_notice_city_state_zip'}[input.name];
+    if (listingCompanion) {
+      const companion = document.querySelector(`#txr1101InterviewForm [name="${listingCompanion}"]`);
       if (companion) fields.push(companion);
     }
     return fields;
@@ -14020,6 +14027,18 @@ function routeAfterMagicLinkIfNeeded() {
     const companion = document.querySelector('#txr1501AgreementForm [name="clientCityStateZip"]');
     _setGoogleAddressFields([[companion, cityStateZip]]);
   }
+
+  function fillListingNoticeAddressFields(components, party) {
+    const { street, city, state, zip } = _googleAddressParts(components);
+    const names = party === 'broker' ? ['broker_notice_address','broker_notice_city_state_zip'] : ['client_address','client_city_state_zip'];
+    const address = document.querySelector(`#txr1101InterviewForm [name="${names[0]}"]`);
+    const location = document.querySelector(`#txr1101InterviewForm [name="${names[1]}"]`);
+    const updates = [[location,[city,[state,zip].filter(Boolean).join(' ')].filter(Boolean).join(', ')]];
+    if (street) updates.unshift([address,street]);
+    _setGoogleAddressFields(updates);
+  }
+  function fillListingSellerNoticeAddressFields(components) { fillListingNoticeAddressFields(components,'seller'); }
+  function fillListingBrokerNoticeAddressFields(components) { fillListingNoticeAddressFields(components,'broker'); }
 
   function fillAddressFields(components) {
     const { street, city, county, state, zip } = _googleAddressParts(components);

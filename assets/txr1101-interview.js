@@ -1,6 +1,7 @@
 (function (root) {
   'use strict';
   const FORM_CODE = 'TXR-1101';
+  const noticeLimits = {address:300,city_state_zip:180,phone:80,email:180,email_2:180};
   const textLimits = {
     client_address:300, client_city_state_zip:180, client_phone:80, client_email:180, client_email_2:180,
     property_address:400, lot:150, block:150, subdivision:600, city:180, county:120,
@@ -54,6 +55,7 @@
     answers.addenda = values.getAll('addenda');
     answers.built_before_1978 = get('built_before_1978') || 'unanswered';
     answers.request_hoa_information = get('request_hoa_information') || 'unanswered';
+    answers.broker_notice_contacts = Object.fromEntries(Object.keys(noticeLimits).map(key => [key,get('broker_notice_'+key)]));
     // Do not mark a document based on unknown age, an unchecked box, or an inferred seller answer.
     if (get('built_before_1978') === 'yes' && !answers.addenda.includes('C')) answers.addenda.push('C');
     if (answers.hoa === 'yes' && get('request_hoa_information') === 'yes' && !answers.addenda.includes('G')) answers.addenda.push('G');
@@ -61,10 +63,12 @@
     return {clientNames:[get('seller_one'),get('seller_two')].filter(Boolean), agreementData:answers};
   }
 
-  function prefill(workspace, saved) {
-    if (saved) return {...saved.agreement_data, seller_one:saved.client_names?.[0] || '', seller_two:saved.client_names?.[1] || ''};
-    return {property_address:workspace?.property_address || '', seller_one:workspace?.seller_names?.[0] || '',
-      seller_two:workspace?.seller_names?.[1] || ''};
+  function prefill(workspace, saved, context) {
+    const initial = saved ? {...saved.agreement_data, seller_one:saved.client_names?.[0] || '', seller_two:saved.client_names?.[1] || ''}
+      : {property_address:workspace?.property_address || '', seller_one:workspace?.seller_names?.[0] || '', seller_two:workspace?.seller_names?.[1] || ''};
+    const contacts = saved?.agreement_data?.broker_notice_contacts ?? context?.noticeContacts;
+    if (contacts) Object.keys(noticeLimits).forEach(key => { initial['broker_notice_'+key] = String(contacts[key] || ''); });
+    return initial;
   }
 
   function validateTerms(payload) {
@@ -85,7 +89,7 @@
   }
 
   // Pure answer mapping is shared with isolated runtime tests, not a browser data store.
-  if (typeof module !== 'undefined' && module.exports) module.exports = {collect,prefill,validateTerms,choices,textLimits,documentChoices};
+  if (typeof module !== 'undefined' && module.exports) module.exports = {collect,prefill,validateTerms,choices,textLimits,noticeLimits,documentChoices};
   const document = root.document;
   if (!document) return;
   let opening = false;
@@ -94,13 +98,26 @@
   const select = (name,label) => `<label class="hof-agreement-wide">${label}<select name="${name}" aria-label="${escape(label)}" required><option value="">Choose one</option>${choices[name].map(([value,title]) => `<option value="${value}">${title}</option>`).join('')}</select></label>`;
   const yesNo = (name,label) => `<label class="hof-agreement-wide">${label}<select name="${name}" aria-label="${escape(label)}"><option value="unanswered">Not yet confirmed</option><option value="yes">Yes</option><option value="no">No</option></select></label>`;
 
+  async function loadOfficeContext() {
+    try {
+      const response = await root.fetch('/api/admin-dashboard?scope=txr1101_context',{headers:{Authorization:`Bearer ${root.hofAuth.session.access_token}`},cache:'no-store'});
+      if (response.status === 401) { const error = new Error('Sign in again to prepare the listing agreement.'); error.requiresSignIn = true; throw error; }
+      if (!response.ok) throw new Error('Saved office details are temporarily unavailable.');
+      return await response.json();
+    } catch (error) {
+      if (error.requiresSignIn) throw error;
+      // Optional defaults are not a membership or a workflow prerequisite.
+      return {brokerage:{},noticeContacts:{},unavailable:true};
+    }
+  }
+
   async function openInterview(options={}) {
     if (opening) return;
     if (!activeAgent()) throw new Error('Sign in to your agent account to prepare a listing agreement.');
     const actor = capture();
     if (document.getElementById('txr1101Interview')) return;
     opening = true;
-    let saved = null, approved;
+    let saved = null, approved, officeContext;
     try {
       if (options.agreementId) {
         const response = await root.fetch(`/api/admin-dashboard?scope=txr1101_draft&agreement_id=${encodeURIComponent(options.agreementId)}`, {headers:{Authorization:`Bearer ${root.hofAuth.session.access_token}`},cache:'no-store'});
@@ -109,11 +126,13 @@
         if (!response.ok) throw new Error(result.error || 'We couldn’t open that saved listing agreement.');
         saved = result.agreement;
       }
-      approved = await root.hofLoadApprovedBrokerageSource?.(FORM_CODE);
+      [approved,officeContext] = await Promise.all([root.hofLoadApprovedBrokerageSource?.(FORM_CODE),loadOfficeContext()]);
       if (!current(actor)) return;
       if (!approved?.id) throw new Error('We couldn’t open the listing agreement. Please try again.');
     } finally { opening = false; }
-    const initial = prefill(options.workspace, saved);
+    const initial = prefill(options.workspace, saved, officeContext);
+    const officeIdentity = [officeContext?.brokerage?.name,officeContext?.brokerage?.license_number ? 'License '+officeContext.brokerage.license_number : ''].filter(Boolean).join(' · ');
+    const hasNoticeDetails = Object.keys(noticeLimits).some(key => initial['broker_notice_'+key]);
     const modal = document.createElement('div');
     modal.id = 'txr1101Interview'; modal.className = 'hof-agreement-modal';
     modal.setAttribute('role','dialog'); modal.setAttribute('aria-modal','true'); modal.setAttribute('aria-labelledby','txr1101Title');
@@ -128,6 +147,17 @@
           ${field('client_address','Seller mailing address')}${field('client_city_state_zip','Seller city, state and ZIP')}${field('client_phone','Seller phone')}
           ${field('lot','Lot')}${field('block','Block')}${field('subdivision','Subdivision')}${field('city','City')}${field('county','County')}
         </div></details>
+        <details class="hof-agreement-wide" ${hasNoticeDetails ? '' : 'open'}><summary>Brokerage contact details</summary>
+          <p>${escape(officeIdentity || 'Check the brokerage name and license in your account profile.')}</p>
+          <p class="hof-listing-note">${officeContext?.unavailable ? 'Saved office details could not be loaded. You can enter the details for this agreement here.' : 'Review the brokerage’s notice details. Changes here apply only to this agreement.'}</p>
+          <div class="hof-agreement-grid">
+            ${field('broker_notice_address','Brokerage mailing address',{max:noticeLimits.address,wide:true})}
+            ${field('broker_notice_city_state_zip','Brokerage city, state and ZIP',{max:noticeLimits.city_state_zip})}
+            ${field('broker_notice_phone','Brokerage phone',{max:noticeLimits.phone,type:'tel'})}
+            ${field('broker_notice_email','Brokerage notice email',{max:noticeLimits.email,type:'email'})}
+            ${field('broker_notice_email_2','Additional brokerage notice email (optional)',{max:noticeLimits.email_2,type:'email'})}
+          </div>${officeContext?.unavailable ? '' : '<button type="button" class="btn-secondary" data-current-office>Use current office details</button>'}
+        </details>
       </div></section>
       <section data-step="1"><h4>What are the agreed listing terms?</h4><div class="hof-agreement-grid">
         ${field('listing_price','Listing price ($)',{required:true,money:true})}${field('term_start','Listing starts',{required:true,type:'date'})}${field('term_end','Listing ends',{required:true,type:'date'})}
@@ -181,6 +211,10 @@
       else if (form.elements.namedItem(name)) form.elements.namedItem(name).value = value;
     }
     const validActor = () => { if (current(actor) && activeAgent()) return true; modal.remove(); return false; };
+    form.querySelector('[data-current-office]')?.addEventListener('click',() => {
+      if (!validActor() || busy || uncertain) return;
+      Object.keys(noticeLimits).forEach(key => { form.elements.namedItem('broker_notice_'+key).value = String(officeContext.noticeContacts?.[key] || ''); });
+    });
     const get = name => form.elements.namedItem(name)?.value || '';
     const sync = () => {
       const conditions = {fee:get('fee_basis') && get('fee_basis') !== 'none', additional_fee:get('additional_fee_basis') && get('additional_fee_basis') !== 'none',
@@ -228,8 +262,11 @@
         ['Keybox',label('keybox')],['Buyer expense disclosure',label('disclose_buyer_expenses')],
         ['Financing',a.financing.map(value => financing.find(item => item[0] === value)?.[1]).join(' · ') || 'None selected'],
         ['Intermediary',label('intermediary')],['Seller tax status',label('foreign_person')]];
+      rows.push(['Brokerage',officeIdentity || 'Check in the completed PDF'],
+        ['Brokerage notice address',[a.broker_notice_contacts.address,a.broker_notice_contacts.city_state_zip].filter(Boolean).join(', ')],
+        ['Brokerage notice contacts',[a.broker_notice_contacts.phone,a.broker_notice_contacts.email,a.broker_notice_contacts.email_2].filter(Boolean).join(' · ')]);
       const list = collect(new root.FormData(form)).agreementData.addenda.map(code => documentChoices.find(([value]) => value === code)?.[1]).filter(Boolean);
-      form.querySelector('#txr1101Review').innerHTML = `<dl>${rows.map(([key,value]) => `<div><dt>${key}</dt><dd>${escape(value || 'Not provided')}</dd></div>`).join('')}</dl><p><strong>Related-document checklist:</strong> ${escape(list.join(' · ') || 'None selected')}</p><p class="hof-listing-note">Your account supplies the brokerage and agent details. Check those details and all optional blanks in the completed PDF.</p>`;
+      form.querySelector('#txr1101Review').innerHTML = `<dl>${rows.map(([key,value]) => `<div><dt>${key}</dt><dd>${escape(value || 'Not provided')}</dd></div>`).join('')}</dl><p><strong>Related-document checklist:</strong> ${escape(list.join(' · ') || 'None selected')}</p><p class="hof-listing-note">Your account supplies the brokerage and agent identity. The notice contacts above are saved with this agreement. Check the completed PDF before sending.</p>`;
     }
     const leave = () => { if (!busy) modal.remove(); };
     const reviewSaved = async () => {

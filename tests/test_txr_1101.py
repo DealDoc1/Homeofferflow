@@ -73,6 +73,39 @@ def qa_cases():
 
 
 class Txr1101AnswerTests(unittest.TestCase):
+    def test_document_notice_snapshot_is_strict_and_does_not_mutate_the_input(self):
+        data=sample_answers(broker_notice_contacts={'address':'42 QA Lane','email':''})
+        before=deepcopy(data);result=form.validate_answers(data)
+        self.assertEqual(data,before)
+        self.assertEqual(result['broker_notice_contacts'],{'address':'42 QA Lane','city_state_zip':'','phone':'','email':'','email_2':''})
+        for invalid in [None,[],{'name':'Another broker'},{'license_number':'9000001'},
+                        {'address':'x'*301},{'email':'not-an-email'},{'phone':False}]:
+            with self.subTest(invalid=invalid),self.assertRaises(ValueError):
+                form.validate_answers(sample_answers(broker_notice_contacts=invalid))
+
+    def test_document_contacts_override_only_notice_blanks_not_the_broker_identity(self):
+        data=sample_answers(broker_notice_contacts={'address':'42 Saved Notice Lane','email':'saved@example.test'})
+        pages,overflow=form.answer_layout(data,BROKER,ASSOCIATE)
+        first=' '.join(entry[2] for entry in pages[1]);execution=' '.join(entry[2] for entry in pages[10])
+        self.assertIn('42 Saved Notice Lane',first);self.assertIn('saved@example.test',first)
+        self.assertNotIn(BROKER['address'],first);self.assertNotIn(BROKER['email'],first)
+        self.assertIn(BROKER['legal_name'],first);self.assertIn(BROKER['legal_name'],execution)
+        self.assertIn(BROKER['license_number'],execution);self.assertEqual(overflow,{})
+
+    def test_explicit_empty_snapshot_does_not_fall_back_to_the_current_office_contacts(self):
+        pages,_=form.answer_layout(sample_answers(broker_notice_contacts={}),BROKER,ASSOCIATE)
+        first=' '.join(entry[2] for entry in pages[1])
+        for key in form.NOTICE_CONTACT_LIMITS:
+            if BROKER.get(key):self.assertNotIn(BROKER[key],first)
+        legacy,_=form.answer_layout(sample_answers(),BROKER,ASSOCIATE)
+        self.assertIn(BROKER['address'],' '.join(entry[2] for entry in legacy[1]))
+
+    def test_long_unicode_notice_contact_is_kept_losslessly_in_the_continuation(self):
+        address=('QA Büro 李 ' * 28).strip()
+        pages,overflow=form.answer_layout(sample_answers(broker_notice_contacts={'address':address}),BROKER,ASSOCIATE)
+        self.assertEqual(overflow['Broker address'],address)
+        self.assertIn('See exhibit',' '.join(entry[2] for entry in pages[1]))
+
     def test_all_interview_branches_validate_without_mutating_answers(self):
         for label,data in qa_cases().items():
             with self.subTest(label=label):

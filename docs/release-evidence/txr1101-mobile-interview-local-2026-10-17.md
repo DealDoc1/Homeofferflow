@@ -126,8 +126,8 @@ dependency version was changed to work around that local runtime issue.
 
 ## Remaining work before a listing release
 
-1. Collect/review missing independent-office notice contacts without requiring
-   a brokerage seat; linked office defaults are already source-context scoped.
+1. Independent-office notice contacts are now locally implemented and checked;
+   see the [subsequent notice-contact evidence](txr1101-notice-contacts-local-2026-10-17.md).
 2. Complete related-document package orchestration rather than treating the
    Paragraph 19 checklist as attachment evidence. Preserve unfinished seller
    disclosures as pending, not a stop to the listing workflow.

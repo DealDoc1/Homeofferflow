@@ -13,7 +13,11 @@ function setup(){
   function field(id,value='old value',name=''){const el={id,name,value,isConnected:true,dataset:{},style:{},setAttribute(){},
     dispatchEvent(e){events.push({id,type:e.type,values:Object.fromEntries([...elements].map(([key,node])=>[key,node.value]))});},focus(){}};elements.set(id,el);return el;}
   for(const id of ['propAddress','propCity','propCounty','propState','propZip','buyerMailAddr','clientCityStateZip','brandOfficeCity','brandOfficeState','brandOfficeZip','fsboPropertyAddress','fsboPropertyCity','fsboPropertyCounty','fsboPropertyState','fsboPropertyZip','fsboSellerEmail'])field(id);
-  const document={getElementById:id=>elements.get(id)||null,querySelector:selector=>selector.includes('clientCityStateZip')?elements.get('clientCityStateZip'):null,querySelectorAll:()=>[...elements.values()]};
+  const document={getElementById:id=>elements.get(id)||null,querySelector:selector=>{
+    const listing=selector.match(/#txr1101InterviewForm \[name="([^"]+)"\]/);
+    if(listing)return [...elements.values()].find(input=>input.name===listing[1])||null;
+    return selector.includes('clientCityStateZip')?elements.get('clientCityStateZip'):null;
+  },querySelectorAll:()=>[...elements.values()]};
   class LegacyAutocomplete {
     constructor(input){this.input=input;this.listeners={};this.place={};legacy.push(this);}
     addListener(name,fn){this.listeners[name]=fn;}
@@ -102,6 +106,22 @@ test('legacy events from removed controls cannot fill a newly rendered form',()=
 test('new selection companion discovery uses name when an input also has another id',()=>{
   const x=setup(),input=x.field('dynamic-mailing','','clientAddress');
   assert.equal(x.c._googleAddressCompanions(input)[0],x.elements.get('clientCityStateZip'));
+});
+test('listing broker address completion fills only that notice address and city/state/ZIP',()=>{
+  const x=setup(),address=x.field('listing-broker-address','','broker_notice_address'),location=x.field('listing-broker-location','','broker_notice_city_state_zip');
+  const seller=x.field('listing-seller-address','Seller address','client_address'),sellerLocation=x.field('listing-seller-location','Seller city','client_city_state_zip');
+  x.c.fillListingBrokerNoticeAddressFields(complete);
+  assert.equal(address.value,'42 Example Road');assert.equal(location.value,'Austin, TX 78701');
+  assert.equal(seller.value,'Seller address');assert.equal(sellerLocation.value,'Seller city');
+  assert.equal(x.c._googleAddressCompanions(address)[0],location);
+  assert.equal(x.c.addressAutocompleteInputs().find(([input])=>input===address)[1],x.c.fillListingBrokerNoticeAddressFields);
+});
+test('listing seller completion retains units and clears an absent city instead of reusing old location data',()=>{
+  const x=setup(),address=x.field('listing-seller-address','Old street','client_address'),location=x.field('listing-seller-location','Old city','client_city_state_zip');
+  x.c.fillListingSellerNoticeAddressFields([...complete,component('subpremise','5B')]);
+  assert.equal(address.value,'42 Example Road #5B');assert.equal(location.value,'Austin, TX 78701');
+  x.c.fillListingSellerNoticeAddressFields([component('street_number','12'),component('route','New Road')]);
+  assert.equal(address.value,'12 New Road');assert.equal(location.value,'');
 });
 function collect(x,step){
   Object.assign(x.c,{state:{data:{county:'Previous County'},step:0},getCurrentSteps:()=>[step],

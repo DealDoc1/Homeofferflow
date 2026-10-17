@@ -35,3 +35,7 @@ class Txr1101InterviewRuntimeTests(unittest.TestCase):
                                 cwd=ROOT, capture_output=True, text=True, check=True)
         import json
         self.assertEqual(json.loads(result.stdout), TEXT_LIMITS)
+        from lib.txr_1101 import NOTICE_CONTACT_LIMITS
+        result = subprocess.run(['node', '-e', 'console.log(JSON.stringify(require("./assets/txr1101-interview.js").noticeLimits))'],
+                                cwd=ROOT, capture_output=True, text=True, check=True)
+        self.assertEqual(json.loads(result.stdout), NOTICE_CONTACT_LIMITS)

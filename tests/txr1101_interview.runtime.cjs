@@ -43,6 +43,18 @@ test('editing rehydrates saved answers rather than a different selected workspac
   assert.deepEqual(model.prefill({property_address:'Wrong house'},{client_names:['Saved Seller'],agreement_data:{property_address:'Saved house',fee_amount:'0'}}),
     {property_address:'Saved house',fee_amount:'0',seller_one:'Saved Seller',seller_two:''});
 });
+test('new agreements reuse office defaults but a saved snapshot, including blanks, always wins',()=>{
+  const context={noticeContacts:{address:'10 Current Office',email:'current@example.test'}};
+  assert.equal(model.prefill(null,null,context).broker_notice_address,'10 Current Office');
+  const saved={client_names:['Seller'],agreement_data:{broker_notice_contacts:{address:'42 Saved Office',email:''}}};
+  const edit=model.prefill(null,saved,context);
+  assert.equal(edit.broker_notice_address,'42 Saved Office');assert.equal(edit.broker_notice_email,'');
+});
+test('brokerage notice contacts are bounded legal answers, not a broker signer or an account update',()=>{
+  const a=model.collect(values({broker_notice_address:'42 QA Lane',broker_notice_email:'notices@example.test',broker_notice_name:'Untrusted name'})).agreementData;
+  assert.equal(a.broker_notice_contacts.address,'42 QA Lane');assert.equal(a.broker_notice_contacts.email,'notices@example.test');
+  assert.ok(!('name' in a.broker_notice_contacts));assert.ok(!('broker_signer' in a));assert.ok(!('broker_notice_name' in a));
+});
 test('validates chronology, explicit compensation and delayed MLS purpose',()=>{
   assert.equal(model.validateTerms(model.collect(values())), '');
   assert.match(model.validateTerms(model.collect(values({term_end:'2026-01-01'}))),/end date/);
@@ -52,13 +64,15 @@ test('validates chronology, explicit compensation and delayed MLS purpose',()=>{
   assert.match(model.validateTerms(model.collect(values({mls_filing:'delayed',mls_delay_days:'0'}))),/delay/);
 });
 function deferred(){let resolve,reject;const promise=new Promise((y,n)=>{resolve=y;reject=n;});return {resolve,reject,promise};}
-function openingSetup(){
-  const sourceRead=deferred(),requests=[];
+function openingSetup(holdOffice=false){
+  const sourceRead=deferred(),officeRead=deferred(),requests=[],officeRequests=[];
   const root={hofAuth:{role:'agent',session:{user:{id:'agent-a'},access_token:'qa-token'}},
     document:{getElementById:()=>null,createElement:()=>{throw new Error('No stale modal should be created');}},
     hofLoadApprovedBrokerageSource:()=>sourceRead.promise,
-    fetch:(url,options)=>{const result=deferred();requests.push({url,options,...result});return result.promise;}};
-  vm.runInNewContext(source,{window:root});return {root,requests,sourceRead};
+    fetch:(url,options)=>{
+      if(url.includes('scope=txr1101_context')){officeRequests.push({url,options});return holdOffice?officeRead.promise:Promise.resolve({ok:true,status:200,json:async()=>({brokerage:{},noticeContacts:{}})});}
+      const result=deferred();requests.push({url,options,...result});return result.promise;}};
+  vm.runInNewContext(source,{window:root});return {root,requests,sourceRead,officeRead,officeRequests};
 }
 test('source load rejection remains visible to the existing guided handoff',async()=>{
   const x=openingSetup(),pending=x.root.hofOpenTxr1101Draft();x.sourceRead.reject(new Error('QA outage'));
@@ -71,6 +85,18 @@ test('a cross-account source response cannot open the old seller interview',asyn
 test('same-user new session epoch also invalidates an old source response',async()=>{
   const x=openingSetup(),pending=x.root.hofOpenTxr1101Draft();x.root.__hofAccountProfileEpoch=1;
   x.sourceRead.resolve({id:'qa-source'});await pending;
+});
+test('late office defaults cannot open an interview after the account changes',async()=>{
+  const x=openingSetup(true),pending=x.root.hofOpenTxr1101Draft();x.sourceRead.resolve({id:'source'});
+  x.root.hofAuth.session.user.id='agent-b';x.officeRead.resolve({ok:true,json:async()=>({noticeContacts:{address:'Old office'}})});await pending;
+  assert.equal(x.officeRequests[0].options.cache,'no-store');assert.equal(x.officeRequests[0].options.headers.Authorization,'Bearer qa-token');
+});
+test('the optional office-default loader falls back to manual entry but preserves an expired-session error',async()=>{
+  const start=source.indexOf('  async function loadOfficeContext()'),end=source.indexOf('  async function openInterview(',start);
+  const root={hofAuth:{session:{access_token:'qa-token'}},fetch:async()=>{throw new Error('Synthetic optional defaults outage');}};
+  const c=vm.createContext({root});vm.runInContext(source.slice(start,end)+'this.load=loadOfficeContext;',c);
+  const fallback=await c.load();assert.equal(fallback.unavailable,true);
+  root.fetch=async()=>({ok:false,status:401});await assert.rejects(c.load(),error=>error.requiresSignIn===true);
 });
 test('double open while loading uses one source lookup',async()=>{
   const x=openingSetup();let count=0;x.root.hofLoadApprovedBrokerageSource=()=>{count++;return x.sourceRead.promise;};

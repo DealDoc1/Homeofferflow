@@ -19,6 +19,7 @@ from lib.txr_1101 import render_txr_1101 as ACTUAL_RENDER
 
 REAL_CLIENT=httpx.AsyncClient
 USER={'id':'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','email':'agent@example.test'}
+SHARED_PROFILE_ID='dddddddd-dddd-4ddd-8ddd-dddddddddddd'
 SOURCE_ID='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
 AGREEMENT_ID='cccccccc-cccc-4ccc-8ccc-cccccccccccc'
 
@@ -50,6 +51,7 @@ class Store:
         self.profile={'agent_name':'QA Agent','license_number':'000001',
                       'brokerage_name':'Independent QA Realty','brokerage_license':'9000001'}
         self.office=None;self.empty_create=False;self.wrong_owner_create=False
+        self.alias=None;self.shared_profile=None;self.alias_wrong_row=False
         self.bad_provider_fields=False
         self.fail_inspect_once=False
         self.storage_bytes=b'%PDF-private-source-fixture'
@@ -69,8 +71,13 @@ class Store:
             if request.method=='GET':
                 if path.endswith('/hof_brokerage_form_sources'):row=self.source
                 elif path.endswith('/hof_standalone_agreements'):row=self.record
-                elif path.endswith('/hof_agent_profiles'):return httpx.Response(200,json=[self.profile])
-                elif path.endswith('/hof_profiles'):return httpx.Response(200,json=[{'brokerage_id':self.office['id']}] if self.office else [])
+                elif path.endswith('/hof_agent_profile_aliases'):
+                    row=self.alias
+                    return httpx.Response(200,json=[deepcopy(row)] if row and (self.alias_wrong_row or matches(row,params)) else [])
+                elif path.endswith('/hof_agent_profiles'):
+                    profile=self.profile if params.get('user_id')=='eq.'+USER['id'] else self.shared_profile if params.get('user_id')=='eq.'+SHARED_PROFILE_ID else None
+                    return httpx.Response(200,json=[deepcopy(profile)] if profile else [])
+                elif path.endswith('/hof_profiles'):return httpx.Response(200,json=[{'brokerage_id':self.office['id']}] if self.office and params.get('id')=='eq.'+USER['id'] else [])
                 elif path.endswith('/hof_brokerage_members'):return httpx.Response(200,json=[{'id':'active-member'}] if self.office else [])
                 elif path.endswith('/hof_brokerages'):row=self.office
                 else:raise AssertionError('Unexpected fixture read '+path)
@@ -178,6 +185,82 @@ class Txr1101ApiTests(unittest.TestCase):
     def test_saved_listing_answer_read_rejects_invalid_ids_and_missing_auth(self):
         self.assertEqual(self.get('/api/admin-dashboard?scope=txr1101_draft&agreement_id=bad')[0],400)
         self.assertEqual(self.get('/api/admin-dashboard?scope=txr1101_draft&agreement_id='+AGREEMENT_ID,token='bad')[0],401)
+
+    def test_independent_office_context_has_no_seat_requirement_or_source_host_data(self):
+        status,result=self.get('/api/admin-dashboard?scope=txr1101_context')
+        self.assertEqual(status,200,result)
+        self.assertEqual(result['brokerage']['name'],'Independent QA Realty')
+        self.assertEqual(result['noticeContacts'],dict.fromkeys(['address','city_state_zip','phone','email','email_2'],''))
+        self.assertNotIn('profile',result);self.assertNotIn('brokerage_id',result)
+        self.assertFalse(any('hof_brokerage_members' in r.url.path or 'hof_brokerage_form_sources' in r.url.path for r in self.store.requests))
+
+    def test_linked_office_context_supplies_only_the_current_agents_own_saved_business_defaults(self):
+        self.store.office={'id':'active-office','name':'OnDemand Realty','license_number':'',
+            'office_address':'10 Fictional Plaza','office_city':'Dallas','office_state':'TX','office_zip':'75201',
+            'contact_phone':'214-555-0100','contact_email':'notices@example.test','is_active':True,
+            'billing_secret':'must not escape'}
+        status,result=self.get('/api/admin-dashboard?scope=txr1101_context')
+        self.assertEqual(status,200,result)
+        self.assertEqual(result['brokerage'],{'name':'OnDemand Realty','license_number':'9010832'})
+        self.assertEqual(result['noticeContacts']['city_state_zip'],'Dallas, TX 75201')
+        self.assertEqual(result['noticeContacts']['email'],'notices@example.test')
+        self.assertNotIn('billing_secret',json.dumps(result))
+        status,other=self.get('/api/admin-dashboard?scope=txr1101_context',token='other-token')
+        self.assertEqual(status,200,other);self.assertEqual(other['brokerage']['name'],'')
+        self.assertEqual(other['noticeContacts']['address'],'')
+        self.assertEqual(self.get('/api/admin-dashboard?scope=txr1101_context',token='bad')[0],401)
+
+    def test_notice_snapshot_is_saved_and_reopened_but_never_changes_the_signing_recipient(self):
+        contacts={'address':'42 Fictional Road','city_state_zip':'Plano, TX 75024',
+                  'phone':'214-555-0123','email':'notices@example.test','email_2':''}
+        self.create(broker_notice_contacts=contacts)
+        status,result=self.get('/api/admin-dashboard?scope=txr1101_draft&agreement_id='+AGREEMENT_ID)
+        self.assertEqual(status,200,result);self.assertEqual(result['agreement']['agreement_data']['broker_notice_contacts'],contacts)
+        status,result=self.post(self.send_body());self.assertEqual(status,200,result)
+        self.assertNotIn('notices@example.test',[r['email'] for r in self.store.provider['recipients']])
+        args=self.render.call_args.args
+        self.assertEqual(args[2]['address'],'42 Fictional Road')
+        self.assertEqual(args[2]['name'],'Independent QA Realty')
+        self.assertEqual(args[3]['agent_name'],'QA Agent')
+
+    def test_listing_uses_approved_shared_profile_without_transferring_actor_ownership(self):
+        self.store.alias={'login_user_id':USER['id'],'canonical_user_id':SHARED_PROFILE_ID}
+        self.store.shared_profile={**self.store.profile,'agent_name':'Shared QA Agent',
+            'brokerage_name':'Shared QA Realty','license_number':'000002'}
+        body={**payload(),'canonical_user_id':'untrusted-client-selector'}
+        status,result=self.post(body);self.assertEqual(status,201,result)
+        self.assertEqual(self.store.record['agent_user_id'],USER['id'])
+        status,result=self.post(self.send_body());self.assertEqual(status,200,result)
+        self.assertEqual(self.render.call_args.args[3]['agent_name'],'Shared QA Agent')
+        self.assertEqual(self.render.call_args.args[2]['name'],'Shared QA Realty')
+        account_reads=[r for r in self.store.requests if r.url.path.endswith('/hof_profiles')]
+        self.assertTrue(account_reads)
+        self.assertTrue(all(r.url.params.get('id')=='eq.'+USER['id'] for r in account_reads))
+        status,other=self.get('/api/admin-dashboard?scope=txr1101_context',token='other-token')
+        self.assertEqual(status,200,other);self.assertEqual(other['brokerage']['name'],'')
+
+    def test_shared_profile_never_supplies_the_canonical_owners_organization_membership(self):
+        self.store.alias={'login_user_id':USER['id'],'canonical_user_id':SHARED_PROFILE_ID}
+        self.store.shared_profile={**self.store.profile,'brokerage_name':'Shared QA Realty'}
+        self.store.office={'id':'actor-office','name':'Actor QA Realty','is_active':True}
+        status,result=self.get('/api/admin-dashboard?scope=txr1101_context')
+        self.assertEqual(status,200,result);self.assertEqual(result['brokerage']['name'],'Actor QA Realty')
+        memberships=[r for r in self.store.requests if r.url.path.endswith('/hof_brokerage_members')]
+        self.assertTrue(memberships)
+        self.assertTrue(all(r.url.params.get('user_id')=='eq.'+USER['id'] for r in memberships))
+
+    def test_bad_alias_readback_fails_closed_and_older_form_context_is_unchanged(self):
+        self.store.alias={'login_user_id':USER['id'],'canonical_user_id':'malformed'}
+        with self.assertRaises(PermissionError):
+            asyncio.run(api._representation_professional_context(USER,include_listing_contacts=True))
+        self.store.alias={'login_user_id':SHARED_PROFILE_ID,'canonical_user_id':SHARED_PROFILE_ID}
+        self.store.alias_wrong_row=True
+        with self.assertRaises(PermissionError):
+            asyncio.run(api._representation_professional_context(USER,include_listing_contacts=True))
+        self.store.requests=[]
+        legacy=asyncio.run(api._representation_professional_context(USER))
+        self.assertEqual(legacy['profile'],self.store.profile)
+        self.assertFalse(any('hof_agent_profile_aliases' in r.url.path for r in self.store.requests))
 
     def send_body(self):
         preview=asyncio.run(api._standalone_signing_recipient_preview(USER,AGREEMENT_ID))
