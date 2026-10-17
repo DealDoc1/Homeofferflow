@@ -1874,16 +1874,19 @@ async def _accept_brokerage_invite(actor, data):
         raise ValueError("This brokerage invite link is invalid.")
     invites = await _get(
         "hof_brokerage_invites?"
-        f"invite_token=eq.{urllib.parse.quote(token)}&status=eq.pending"
-        "&select=id,brokerage_id,email,role,status,expires_at&limit=1"
+        f"invite_token=eq.{urllib.parse.quote(token)}&status=in.(pending,accepted)"
+        "&select=id,brokerage_id,email,role,status,expires_at,accepted_by&limit=1"
     )
     if not invites:
         raise ValueError("This brokerage invite is no longer available.")
     invite = invites[0]
     if _normalized_invite_email(actor.get("email")) != _normalized_invite_email(invite.get("email")):
         raise PermissionError("Sign in with the email address that received this brokerage invite.")
+    already_accepted = invite.get("status") == "accepted"
+    if already_accepted and str(invite.get("accepted_by") or "") != str(actor["id"]):
+        raise PermissionError("This brokerage invite was accepted by another account.")
     expiry = _parse_timestamp(invite.get("expires_at"))
-    if not expiry or expiry <= datetime.now(timezone.utc):
+    if not already_accepted and (not expiry or expiry <= datetime.now(timezone.utc)):
         async with httpx.AsyncClient(timeout=12) as client:
             await client.patch(
                 f"{SUPABASE_URL}/rest/v1/hof_brokerage_invites?"
@@ -1917,17 +1920,25 @@ async def _accept_brokerage_invite(actor, data):
     if existing_members and str(existing_members[0].get("status") or "") == "suspended":
         raise PermissionError("This brokerage membership is suspended. Contact your broker.")
 
+    brokerages = await _get(
+        "hof_brokerages?"
+        f"id=eq.{urllib.parse.quote(brokerage_id)}"
+        "&is_active=eq.true&select=id,user_cap&limit=1"
+    )
+    if not brokerages:
+        raise ValueError("This brokerage is no longer active.")
+    # A lost final response may be retried, but a consumed invitation must
+    # never reconnect a profile or reactivate removed/suspended membership.
+    if already_accepted:
+        if (not profile or str(profile.get("brokerage_id") or "") != brokerage_id
+                or not existing_members or existing_members[0].get("status") != "active"):
+            raise PermissionError("This invite is already accepted. Your current brokerage connection needs review.")
+        return {"brokerageId": brokerage_id, "accepted": True}
+
     # An existing active agent does not consume a new seat. A first-time invite
     # acceptance does, so give the broker a clear error before attempting the
     # change. The database trigger supplies the final concurrency-safe guard.
     if not existing_members:
-        brokerages = await _get(
-            "hof_brokerages?"
-            f"id=eq.{urllib.parse.quote(brokerage_id)}"
-            "&is_active=eq.true&select=id,user_cap&limit=1"
-        )
-        if not brokerages:
-            raise ValueError("This brokerage is no longer active.")
         await _require_available_agent_seat(brokerages[0], include_pending=False)
 
     now_iso = datetime.now(timezone.utc).isoformat()
@@ -1946,6 +1957,13 @@ async def _accept_brokerage_invite(actor, data):
             )
         if profile_response.status_code not in {200, 201}:
             raise RuntimeError("Could not connect this account to the brokerage.")
+        profile_rows = profile_response.json()
+        if (not isinstance(profile_rows, list) or len(profile_rows) != 1
+                or str(profile_rows[0].get("id")) != str(actor["id"])
+                or str(profile_rows[0].get("brokerage_id")) != brokerage_id
+                or str(profile_rows[0].get("role") or "agent") != "agent"
+                or profile_rows[0].get("is_brokerage_admin")):
+            raise RuntimeError("Could not confirm this account's brokerage connection.")
 
         if existing_members:
             membership_response = await client.patch(
@@ -1962,6 +1980,12 @@ async def _accept_brokerage_invite(actor, data):
             )
         if membership_response.status_code not in {200, 201}:
             raise RuntimeError("Could not activate the brokerage membership.")
+        member_rows = membership_response.json()
+        if (not isinstance(member_rows, list) or len(member_rows) != 1
+                or str(member_rows[0].get("user_id")) != str(actor["id"])
+                or str(member_rows[0].get("brokerage_id")) != brokerage_id
+                or member_rows[0].get("role") != "agent" or member_rows[0].get("status") != "active"):
+            raise RuntimeError("Could not confirm the active brokerage membership.")
 
         invite_response = await client.patch(
             f"{SUPABASE_URL}/rest/v1/hof_brokerage_invites?"
@@ -1971,6 +1995,12 @@ async def _accept_brokerage_invite(actor, data):
         )
     if invite_response.status_code >= 300:
         raise RuntimeError("Could not finalize the brokerage invite.")
+    invite_rows = invite_response.json()
+    if (not isinstance(invite_rows, list) or len(invite_rows) != 1
+            or str(invite_rows[0].get("id")) != str(invite["id"])
+            or invite_rows[0].get("status") != "accepted"
+            or str(invite_rows[0].get("accepted_by")) != str(actor["id"])):
+        raise RuntimeError("Could not confirm the brokerage invite. Try the same link again.")
     return {"brokerageId": brokerage_id, "accepted": True}
 
 
