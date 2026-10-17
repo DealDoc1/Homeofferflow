@@ -76,3 +76,43 @@ reserve a shell version newer than v105 before its own eventual release.
 
 Production identity, smoke and observability evidence will be recorded after
 the single release; no documentation-only follow-up deployment is requested.
+
+## Final frozen verification and production release
+
+- Corrected candidate bb043fc5895cae73f8b22193607720dd2730972e passed the
+  final local 2,652-test suite in 85.239 seconds (one environment skip), log
+  /private/tmp/hof-brokerage-save-final-full-20261016.log. Independent exact-head
+  CI 39000666652 passed, including golden rendering, signer geometry, database
+  preflight and whitespace. The earlier wording-assertion failure was resolved,
+  not ignored or retried unchanged.
+- PR 1344 merged as 9b9ccadf4b4c824aeb0d00d83b6698a1830b6b43. One intentional
+  release, 39000815637, finished successfully at 2026-10-17 04:02:48 UTC.
+- READY production deployment: dpl_5UZYVezc3CGFDxs7GBPbFCL7fTQJ,
+  https://homeofferflow-4fym4pidh-dealdoc1s-projects.vercel.app. Vercel metadata
+  confirms the exact merge SHA and root/www canonical aliases. Framework:
+  existing static HTML/JavaScript with Python APIs; prebuilt build step took
+  six seconds. No new hosting project or preview was created.
+- Fresh pre-build cost guard: $0.04 infrastructure credit used for September
+  22–October 21, $19.96 unconsumed, $3 reserved. This is a point-in-time check,
+  not a future traffic/spend guarantee. Automatic Git deployments remain off.
+- Hosted exact-merge regression, release preflight, schema-readiness check,
+  canonical/PWA smoke and production API/packet-runtime checks all passed.
+- Both canonical domains returned index and worker bytes identical to the
+  tested tree. Index SHA-256:
+  41f1890fe921e582823265e81db28f1c203baae354362b8f615e43e148c4db6d;
+  worker SHA-256:
+  005fb23d381af20a8c0715b7e9d41a1f911fe472e0ddc968d9fe4cb61d9c443b.
+- All 13 delayed-save cases also pass against the downloaded canonical index,
+  using fictional local responses, without changing a live brokerage/profile.
+  The production admin API still rejects an unauthenticated request with 401.
+- Post-deploy observability: a production/error+fatal query scoped to this
+  exact deployment, with a one-hour lookback, returned no log groups. That is
+  not proof of browser-console health or future traffic. The drains connector
+  returned an error, so configured drain count remains unverified; no logging
+  service or paid monitoring was installed or changed.
+
+Fresh authenticated broker-admin UI/end-to-end onboarding review remains
+outstanding; runtime fixture verification is not represented as that broader
+launch pass. Draft disclosure PR 1341 and its production migration remain
+excluded. This is a documentation-only post-release checkpoint, not another
+deployment request.
