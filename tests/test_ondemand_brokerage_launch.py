@@ -7,6 +7,7 @@ import subprocess
 import unittest
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
+from urllib.parse import parse_qs, urlparse
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -132,11 +133,12 @@ class BrokerageInviteClient:
                 "invite_token": "a" * 32,
                 "expires_at": "2030-01-15T12:00:00+00:00",
             }])
-        return Response(201, [{"id": "created"}])
+        return Response(201, [{"id": "created", **kwargs.get("json", {})}])
 
     async def patch(self, url, **kwargs):
         self.__class__.requests.append(("patch", url, kwargs))
-        return Response(200, [{"id": "updated"}])
+        target = parse_qs(urlparse(url).query).get("id", ["eq.updated"])[0].removeprefix("eq.")
+        return Response(200, [{"id": target, **kwargs.get("json", {})}])
 
 
 class BrokerageInviteEmailClient(BrokerageInviteClient):
