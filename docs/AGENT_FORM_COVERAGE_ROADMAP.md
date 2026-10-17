@@ -6,6 +6,14 @@ reducing verification standards.
 
 ## Current launch tracking - October 16, 2026
 
+October 16 integration checkpoint: draft PR #1341 now includes production
+d8d2f1a (complimentary-partner administration), reserves offline shell v105,
+and passes 98 focused plus 2,701 integrated regression tests. The live tracker
+now distinguishes locally implemented disclosure explanations from unfinished
+completed-provider and authenticated signing QA. No disclosure release,
+migration, replacement packet or final signature acceptance occurred. See
+[continuation evidence](release-evidence/seller-disclosure-continuation-2026-10-16.md).
+
 October 16 completed-provider disclosure check: both QA signers completed the
 single reserved 13-page/71-field v3 test. Its actual PDF exposed date wrapping
 and date/signature crowding despite exact field readback. The v4 local map now
