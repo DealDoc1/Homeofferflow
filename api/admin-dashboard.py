@@ -22,6 +22,7 @@ from lib import seller_checkout
 from lib import seller_financing
 from lib import signwell_delivery
 from lib import beta_partner_publication
+from lib.partner_operations import annotate_partner_operations, is_paid_partner
 from lib.offer_reporting import offer_status_bucket as _offer_status_bucket
 from lib.offer_reporting import reporting_bucket as _offer_reporting_bucket
 from lib.offer_reporting import signing_summary as _offer_signing_summary
@@ -263,12 +264,15 @@ def _is_sandbox_partner_lead(lead):
 
 
 def _partner_activation_readiness(lead, now=None):
-    """Return a non-secret, stage-specific paid-partner activation state."""
+    """Return a non-secret paid activation or published-beta operations state."""
     lead = lead or {}
     now = now or datetime.now(timezone.utc)
     onboarding = str(lead.get("onboarding_status") or "not_started").lower()
     agreement = str(lead.get("partner_agreement_status") or "not_started").lower()
     setup_complete = onboarding in {"complete", "completed"}
+
+    if str(lead.get('partner_program') or '').lower() == 'beta' and lead.get('has_active_placement'):
+        return {"code": "beta_live", "label": "Complimentary beta is live", "tone": "good", "next_action": "Review the published profile; no automatic paid conversion.", "partner_message": "review your published complimentary beta profile"}
 
     if not setup_complete:
         expires_at = _parse_timestamp(lead.get("onboarding_token_expires_at"))
@@ -5155,6 +5159,7 @@ class handler(BaseHTTPRequestHandler):
             partner_leads = [
                 lead for lead in all_partner_leads if not _is_sandbox_partner_lead(lead)
             ]
+            partner_leads, partner_placements = annotate_partner_operations(partner_leads, partner_placements)
             active_partner_source_lead_ids = {
                 str(placement.get("source_lead_id") or "")
                 for placement in partner_placements
@@ -5174,11 +5179,17 @@ class handler(BaseHTTPRequestHandler):
                 for lead in partner_leads
                 if lead.get("id")
             }
+            active_paid_partner_source_lead_ids = {
+                lead_id for lead_id in active_partner_source_lead_ids
+                if is_paid_partner(partner_leads_by_id.get(lead_id))
+            }
             partner_activation_durations = []
             for placement in partner_placements:
                 if not placement.get("is_active"):
                     continue
                 lead = partner_leads_by_id.get(str(placement.get("source_lead_id") or ""))
+                if not is_paid_partner(lead):
+                    continue
                 created_at = _parse_timestamp((lead or {}).get("created_at"))
                 activated_at = _parse_timestamp(placement.get("activated_at"))
                 if created_at and activated_at and activated_at >= created_at:
@@ -5188,7 +5199,7 @@ class handler(BaseHTTPRequestHandler):
             ) if partner_activation_durations else 0
             paid_partner_activation_queue = [
                 lead for lead in partner_leads
-                if str(lead.get("payment_status") or "").lower() == "paid"
+                if is_paid_partner(lead)
                 and str(lead.get("status") or "").lower() not in {"declined", "waitlist"}
                 and str(lead.get("id") or "") not in active_partner_source_lead_ids
             ]
@@ -5199,25 +5210,28 @@ class handler(BaseHTTPRequestHandler):
                 or datetime.max.replace(tzinfo=timezone.utc)
             )
             now = datetime.now(timezone.utc)
+            for lead in partner_leads:
+                if str(lead.get('partner_program') or '').lower() == 'beta' and lead.get('has_active_placement'):
+                    lead['activation_readiness'] = _partner_activation_readiness(lead, now)
             for lead in paid_partner_activation_queue:
                 lead["activation_readiness"] = _partner_activation_readiness(lead, now)
             paid_partner_lead_count = len([
                 lead for lead in partner_leads
-                if str(lead.get("payment_status") or "").lower() == "paid"
+                if is_paid_partner(lead)
             ])
             partner_onboarding_ready_count = len([
                 lead for lead in partner_leads
-                if str(lead.get("payment_status") or "").lower() == "paid"
+                if is_paid_partner(lead)
                 and str(lead.get("onboarding_status") or "").lower() in {"ready", "complete", "completed"}
             ])
             partner_onboarding_in_progress_count = len([
                 lead for lead in partner_leads
-                if str(lead.get("payment_status") or "").lower() == "paid"
+                if is_paid_partner(lead)
                 and str(lead.get("onboarding_status") or "").lower() == "in_progress"
             ])
             partner_onboarding_completed_count = len([
                 lead for lead in partner_leads
-                if str(lead.get("payment_status") or "").lower() == "paid"
+                if is_paid_partner(lead)
                 and (lead.get("onboarding_completed_at") or str(lead.get("onboarding_status") or "").lower() in {"complete", "completed"})
             ])
             # A paid partner cannot complete setup without a current hashed
@@ -5225,7 +5239,7 @@ class handler(BaseHTTPRequestHandler):
             # token, its hash, expiry timestamp, or partner contact details.
             partner_onboarding_access_missing_count = len([
                 lead for lead in partner_leads
-                if str(lead.get("payment_status") or "").lower() == "paid"
+                if is_paid_partner(lead)
                 and str(lead.get("onboarding_status") or "").lower() in {"ready", "in_progress"}
                 and (
                     not lead.get("onboarding_token_hash")
@@ -5235,7 +5249,7 @@ class handler(BaseHTTPRequestHandler):
             ])
             paid_partner_agreement_confirmed_count = len([
                 lead for lead in partner_leads
-                if str(lead.get("payment_status") or "").lower() == "paid"
+                if is_paid_partner(lead)
                 and (
                     str(lead.get("partner_agreement_status") or "").lower() == "signed"
                     or
@@ -5670,7 +5684,7 @@ class handler(BaseHTTPRequestHandler):
                 partner_onboarding_setup_issued_count,
                 len([
                     lead for lead in partner_leads
-                    if str(lead.get("payment_status") or "").lower() == "paid"
+                    if is_paid_partner(lead)
                     and (
                         lead.get("onboarding_token_hash")
                         or lead.get("onboarding_completed_at")
@@ -7191,7 +7205,7 @@ class handler(BaseHTTPRequestHandler):
                 ) if paid_partner_lead_count else 0,
                 "paidPartnerActivationQueueAgedCount": paid_partner_activation_queue_aged_count,
                 "paidPartnerActivationReadinessCounts": paid_partner_activation_readiness_counts,
-                "partnerActivationRate": round((len(active_partner_source_lead_ids) / paid_partner_lead_count) * 100)
+                "partnerActivationRate": round((len(active_paid_partner_source_lead_ids) / paid_partner_lead_count) * 100)
                 if paid_partner_lead_count else 0,
                 "partnerActivationAvgDays": partner_activation_avg_days,
                 "partnerFollowUpEmailStartCount": partner_follow_up_email_start_count,
