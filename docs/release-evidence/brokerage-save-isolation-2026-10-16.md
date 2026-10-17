@@ -48,6 +48,10 @@ claims of observed customer data loss or a completed live broker-admin pass.
   local log /private/tmp/hof-brokerage-save-full-20261016.log. The new final
   success message was shortened during the run; the actual-source save matrix
   was rechecked afterward and passed. No logic changed after the run began.
+- Independent CI on a93dbe6 caught one unchanged static wording assertion that
+  still required the old administrative-access claim. It was corrected to
+  require the concise saved message and reject that unsupported claim. This
+  is not counted as a green candidate; final frozen verification follows.
 - Patch whitespace is clean. A stalled initial negative fixture was stopped
   and corrected to resolve unexpected writes; no customer process was stopped.
 - Read-only production policy query confirms hof_profiles SELECT and UPDATE
