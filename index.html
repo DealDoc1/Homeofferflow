@@ -4775,6 +4775,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     if (!email) return '';
     const paid = String(row?.payment_status || '') === 'paid';
     const beta = String(row?.partner_program || '') === 'beta';
+    if (row?.has_active_placement === true) {
+      const subject = `HomeOfferFlow ${beta ? 'complimentary beta ' : ''}partner profile`;
+      const body = `Your HomeOfferFlow partner profile is live: https://www.homeofferflow.com/directory ${beta ? 'Your placement remains complimentary during beta, with no automatic paid conversion. ' : ''}Let us know if your public contact details need updating.`;
+      const metadata = adminEventMetadata({paid, beta, activationStage:'profile_update', surface:'admin'});
+      return `<a class="admin-contact-action" href="mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}" onclick='logOfferEvent(null, "partner_follow_up_email_started", "started", "Partner profile follow-up opened.", ${metadata})'>Email partner</a>`;
+    }
     const eligible = paid || beta;
     const onboarding = String(row?.onboarding_status || 'not_started');
     const readiness = row?.activation_readiness || {};
@@ -16153,6 +16159,14 @@ function routeAfterMagicLinkIfNeeded() {
 
   function partnerPlacementLifecycle(row) {
     if (!row?.is_active) return { label: 'Inactive', tone: 'warn', action: 'Confirm whether this placement should be reactivated.' };
+    const hasFee = row.monthly_fee !== null && row.monthly_fee !== undefined && String(row.monthly_fee).trim() !== '';
+    const noCharge = hasFee && Number(row.monthly_fee) === 0;
+    if (row.partner_program === 'beta') {
+      return noCharge
+        ? { label: 'Complimentary beta', tone: 'good', action: 'Live at no charge. No automatic paid conversion.' }
+        : { label: 'Review beta fee', tone: 'warn', action: 'A complimentary beta placement should have no monthly fee. Review the saved terms; no billing is changed here.' };
+    }
+    if (noCharge) return { label: 'No-charge placement', tone: 'good', action: 'No monthly fee is recorded. Confirm the agreed terms before changing billing.' };
     const activatedAt = Date.parse(row.activated_at || '');
     if (!Number.isFinite(activatedAt)) return { label: 'Awaiting activation', tone: 'warn', action: 'Complete the agreement-confirmed activation workflow.' };
     const elapsedDays = Math.max(0, Math.floor((Date.now() - activatedAt) / 86400000));
@@ -16215,7 +16229,9 @@ function routeAfterMagicLinkIfNeeded() {
       const lifecycleRows = hofPlatform.partners.map(partnerPlacementLifecycle);
       const launchCount = lifecycleRows.filter(item => item.label.startsWith('Launch period')).length;
       const renewalCount = lifecycleRows.filter(item => item.label === 'Renewal review window').length;
-      const summary = hofPlatform.partners.length ? `<div class="notice" style="margin-bottom:.75rem;">${launchCount} in launch period · ${renewalCount} ready for renewal review. Billing remains controlled by Stripe; these labels track placement operations only.</div>` : '';
+      const betaCount = lifecycleRows.filter(item => item.label === 'Complimentary beta').length;
+      const stages = [betaCount ? `${betaCount} complimentary beta` : '', launchCount ? `${launchCount} in commercial launch period` : '', renewalCount ? `${renewalCount} ready for renewal review` : ''].filter(Boolean);
+      const summary = stages.length ? `<div class="notice" style="margin-bottom:.75rem;">${stages.join(' · ')}. ${betaCount ? 'Complimentary beta has no automatic paid conversion. ' : ''}${launchCount || renewalCount ? 'Commercial billing remains controlled by Stripe.' : ''}</div>` : '';
       list.innerHTML = hofPlatform.partners.length ? summary + hofPlatform.partners.map((row, index) => {
         const lifecycle = lifecycleRows[index];
         const directoryTraffic = row.directoryTraffic || {};
