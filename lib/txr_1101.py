@@ -76,7 +76,7 @@ def validate_answers(data):
     allowed = set(TEXT_LIMITS) | set(CHOICES) | set(INTERVIEW_CHOICES) | {
         'client_names', 'term_start', 'term_end', 'listing_price', 'fee_amount',
         'additional_fee_amount', 'protection_days', 'mls_delay_days',
-        'financing', 'addenda', '_for_signing', 'broker_notice_contacts',
+        'financing', 'addenda', '_for_signing', 'broker_notice_contacts', 'lead_disclosure',
     }
     if set(data) - allowed:
         raise ValueError('Some listing answers are not supported.')
@@ -86,6 +86,9 @@ def validate_answers(data):
             or any(not isinstance(n, str) or not clean(n) or len(n) > 300 for n in names)):
         raise ValueError('Enter one or two seller names.')
     result['client_names'] = [clean(n) for n in names]
+    if 'lead_disclosure' in data:
+        from lib.listing_lead_disclosure import validate_answers as validate_lead
+        result['lead_disclosure']=validate_lead(data['lead_disclosure'])
     for key, limit in TEXT_LIMITS.items():
         value = data.get(key, '')
         if not isinstance(value, str) or len(value) > limit:

@@ -4605,6 +4605,16 @@ async def _assemble_owned_listing_packet(user, render_data, listing_pdf):
             if response is not None:
                 documents.append(PreparedDocument("A",response.content,[],{},hashlib.sha256(response.content).hexdigest()))
     base_count = len(PdfReader(BytesIO(listing_pdf)).pages)
+    if "C" in render_data["addenda"]:
+        from pathlib import Path
+        from lib.listing_lead_disclosure import prepare_listing_lead
+        source=(Path(__file__).resolve().parents[1]/"lead_based_paint_56-0.pdf").read_bytes()
+        lead=prepare_listing_lead(source,render_data)
+        role="associate" if render_data["signer_plan"]=="clients_and_associate" else "broker"
+        mapping={str(n):str(n) for n in range(1,len(render_data["client_names"])+1)}
+        mapping[role]=role
+        documents.append(PreparedDocument("C",lead.pdf,lead.fields,mapping,lead.content_fingerprint,
+                                          lead.checkbox_groups,lead.conditional_rules))
     fields = build_signwell_fields_txr1101(render_data,client_count=len(render_data["client_names"]),page_count=base_count)
     return assemble_listing_packet(render_data,listing_pdf,fields,documents=documents)
 
@@ -4706,6 +4716,8 @@ async def _render_owned_representation_agreement(user, agreement, *, for_signing
             fingerprint_context["listing_packet"] = packet.manifest
             fingerprint_context["listing_packet_fingerprint"] = packet.content_fingerprint
             fingerprint_context["listing_packet_fields"] = packet.fields
+            fingerprint_context["listing_packet_checkbox_groups"] = packet.checkbox_groups
+            fingerprint_context["listing_packet_conditional_rules"] = packet.conditional_rules
         return packet.pdf
     if agreement.get("form_code") == TXR_1507_FORM_CODE:
         from lib.txr_1507 import render_txr_1507
@@ -5110,10 +5122,17 @@ async def _deliver_tracked_signwell_request(user, table, record, data_field, pre
         rows = await _get(f"{table}?{base_query}&signwell_document_id=eq.{urllib.parse.quote(doc_id, safe='')}&select=id,status&limit=1")
         return bool(rows and rows[0].get("status") in {"sent", "signed", "void"})
 
+    def matches(document,fields,recipients):
+        if not _signwell_document_matches_signing_request(document,fields,recipients):return False
+        if payload.get("checkbox_groups") or payload.get("conditional_rules"):
+            from lib.signwell_controls import controls_match
+            return controls_match(document,fields,payload.get("checkbox_groups") or [],payload.get("conditional_rules") or [])
+        return True
+
     return await signwell_delivery.deliver_verified_document(
         payload=payload, context=context, document_id=document_id, journal=journal,
         create=create, inspect=inspect, send=send, checkpoint=checkpoint, finish=finish,
-        matches=_signwell_document_matches_signing_request,
+        matches=matches,
     )
 
 
@@ -5256,6 +5275,10 @@ async def _send_txr_agreement_for_signature(user, data):
             "test_mode": str(SIGNWELL_TEST_MODE).lower(),
         },
     }
+    if form_code == TXR_1101_FORM_CODE:
+        for name in ("checkbox_groups","conditional_rules"):
+            if render_context.get("listing_packet_"+name):
+                payload[name]=render_context["listing_packet_"+name]
     fingerprint_data = {key: value for key, value in agreement_data.items()
                         if key not in {signwell_delivery.JOURNAL_KEY, "signwellStatus",
                                        "signwellDocumentId", "signwellLastStatusRefresh"}}

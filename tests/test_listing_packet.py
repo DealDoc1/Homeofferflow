@@ -143,6 +143,46 @@ class ListingPacketTests(unittest.TestCase):
         self.assertNotEqual(first.content_fingerprint,changed.content_fingerprint)
         self.assertNotEqual(first.content_fingerprint,self.build().content_fingerprint)
 
+    def controlled_component(self,**changes):
+        fields=signing_fields()[0]+[
+            {**signing_fields()[0][0],'api_id':key,'type':kind,'required':False}
+            for key,kind in [('yes','checkbox'),('no','checkbox'),('explanation','text')]]
+        return component('B',fields=[fields],checkbox_groups=[{
+            'group_name':'choice','recipient_id':'1','checkbox_ids':['yes','no'],
+            'validation':'exact','required':True,'exact_value':1}],conditional_rules=[{
+            'target_id':'yes','action_type':'require','action_field_ids':['explanation'],
+            'conditions':[{'condition_type':'all_of','status':'completed','field_api_ids':['yes']}]}],**changes)
+
+    def test_completion_controls_reject_dangling_and_cross_signer_references(self):
+        original=self.controlled_component()
+        variants=[]
+        for key,value in [('checkbox_ids',['yes','missing']),('checkbox_ids',['yes','seller_signature']),
+                          ('recipient_id','2'),('exact_value',True),('required','true')]:
+            changed=deepcopy(original);changed.checkbox_groups[0][key]=value;variants.append(changed)
+        for key,value in [('target_id','missing'),('action_field_ids',['missing']),
+                          ('action_field_ids',['yes']),('conditions',[])]:
+            changed=deepcopy(original);changed.conditional_rules[0][key]=value;variants.append(changed)
+        changed=deepcopy(original);changed.fields[0][-1]['recipient_id']='2'
+        changed.recipient_map['2']='2';variants.append(changed)
+        changed=deepcopy(original);changed.conditional_rules[0]['conditions'][0]['field_api_ids']=['missing']
+        variants.append(changed)
+        for item in variants:
+            with self.subTest(item=item),self.assertRaises(ValueError):self.build(documents=[item])
+
+    def test_completion_controls_are_namespaced_immutable_and_bound_to_packet_identity(self):
+        document=self.controlled_component();before=deepcopy(document)
+        first=self.build(documents=[document])
+        self.assertEqual(document,before)
+        self.assertEqual(first.checkbox_groups[0]['checkbox_ids'],['listing_B_yes','listing_B_no'])
+        self.assertEqual(first.conditional_rules[0]['target_id'],'listing_B_yes')
+        self.assertEqual(first.conditional_rules[0]['action_field_ids'],['listing_B_explanation'])
+        changed=deepcopy(document);changed.checkbox_groups[0]['exact_value']=2
+        self.assertNotEqual(first.content_fingerprint,self.build(documents=[changed]).content_fingerprint)
+        changed=deepcopy(document);changed.conditional_rules[0]['conditions'][0]['status']='not_completed'
+        self.assertNotEqual(first.content_fingerprint,self.build(documents=[changed]).content_fingerprint)
+        changed=deepcopy(document);changed.conditional_rules.extend(deepcopy(changed.conditional_rules)*10)
+        with self.assertRaises(ValueError):self.build(documents=[changed])
+
     @unittest.skipUnless(os.environ.get('HOF_TXR1101_SOURCE'),'Exact private source opt-in')
     def test_real_listing_continuations_and_single_unicode_seller_keep_their_signing_pages(self):
         source=Path(os.environ['HOF_TXR1101_SOURCE']).read_bytes()

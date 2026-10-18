@@ -43,6 +43,10 @@ def request_fingerprint(payload, context):
              'test_mode': payload.get('test_mode'),
              'apply_signing_order': payload.get('apply_signing_order'),
              'embedded_signing': payload.get('embedded_signing')}
+    # Preserve exact legacy fingerprints when no completion controls exist.
+    # New controls are part of the request, not optional delivery decoration.
+    for key in ('checkbox_groups','conditional_rules'):
+        if payload.get(key): value[key]=payload[key]
     encoded = json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()
     return hashlib.sha256(encoded).hexdigest()
 

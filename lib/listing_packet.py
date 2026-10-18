@@ -7,7 +7,7 @@ documents remain pending; they never make an otherwise valid listing vanish.
 No seller answers, receipt acknowledgements or delivery states are inferred.
 """
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field as data_field
 import hashlib
 from io import BytesIO
 import json
@@ -19,7 +19,7 @@ from pypdf import PdfReader, PdfWriter
 from lib.txr_1101 import validate_answers
 
 
-REVISION = 'listing-packet-composition-v1'
+REVISION = 'listing-packet-composition-v2'
 MAX_PAGES = 160
 MAX_INPUT_BYTES = 20_000_000
 DOCUMENT_CHOICES = (
@@ -57,6 +57,8 @@ class PreparedDocument:
     fields: list
     recipient_map: dict
     content_fingerprint: str
+    checkbox_groups: list = data_field(default_factory=list)
+    conditional_rules: list = data_field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -65,6 +67,57 @@ class ListingPacket:
     fields: list
     manifest: dict
     content_fingerprint: str
+    checkbox_groups: list = data_field(default_factory=list)
+    conditional_rules: list = data_field(default_factory=list)
+
+
+def _controls(document, recipients, prefix):
+    """Namespace controls with their fields; never leave dangling references."""
+    fields={f['api_id']:f for group in document.fields for f in group}
+    groups=[];names=set()
+    if not isinstance(document.checkbox_groups,list) or not isinstance(document.conditional_rules,list):
+        raise ValueError('Review the document completion controls.')
+    for original in document.checkbox_groups:
+        group=deepcopy(original)
+        if not isinstance(group,dict) or set(group)-{'group_name','recipient_id','checkbox_ids','validation','required','min_value','max_value','exact_value'}:
+            raise ValueError('Review the checkbox selection requirements.')
+        name=group.get('group_name');ids=group.get('checkbox_ids');recipient=group.get('recipient_id')
+        if (not isinstance(name,str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,100}',name) or name in names
+                or not isinstance(ids,list) or len(ids)<2 or any(not isinstance(v,str) for v in ids)
+                or len(set(ids))!=len(ids) or recipient not in document.recipient_map
+                or document.recipient_map[recipient] not in recipients
+                or any(key not in fields or fields[key].get('type')!='checkbox' or fields[key].get('recipient_id')!=recipient for key in ids)):
+            raise ValueError('Review the checkbox field and signer assignments.')
+        names.add(name)
+        if group.get('validation')!='exact' or type(group.get('exact_value')) is not int or not 1<=group['exact_value']<=len(ids) or type(group.get('required')) is not bool:
+            raise ValueError('Use an explicit exact-selection checkbox requirement.')
+        group.update(group_name=prefix+name,checkbox_ids=[prefix+v for v in ids],recipient_id=document.recipient_map[recipient])
+        groups.append(group)
+    rules=[]
+    for original in document.conditional_rules:
+        rule=deepcopy(original)
+        if not isinstance(rule,dict) or set(rule)-{'target_id','action_type','action_field_ids','conditions'}:
+            raise ValueError('Review the conditional completion requirements.')
+        target=rule.get('target_id');actions=rule.get('action_field_ids');conditions=rule.get('conditions')
+        if (not isinstance(target,str) or target not in fields or rule.get('action_type') not in {'show','hide','require'}
+                or not isinstance(actions,list) or not actions or any(not isinstance(v,str) or v not in fields or v==target for v in actions)
+                or len(set(actions))!=len(actions) or not isinstance(conditions,list) or not 1<=len(conditions)<=5):
+            raise ValueError('A conditional rule references an unavailable field.')
+        owner=fields[target]['recipient_id']
+        for index,condition in enumerate(conditions,start=1):
+            if (not isinstance(condition,dict) or set(condition)-{'condition_type','status','field_api_ids','position','join_operator'}
+                    or condition.get('condition_type') not in {'any_of','all_of','none_of','not_all_of'}
+                    or condition.get('status') not in {'completed','not_completed'}
+                    or condition.get('join_operator','and_operator') not in {'and_operator','or_operator'}
+                    or not isinstance(condition.get('field_api_ids'),list) or not condition['field_api_ids']
+                    or any(not isinstance(v,str) or v not in fields for v in condition['field_api_ids'])):
+                raise ValueError('Review the conditional field trigger.')
+            if any(fields[v]['recipient_id']!=owner for v in actions+condition['field_api_ids']):
+                raise ValueError('A completion rule cannot change another signer’s fields.')
+            condition.update(field_api_ids=[prefix+v for v in condition['field_api_ids']],position=index)
+        rule.update(target_id=prefix+target,action_field_ids=[prefix+v for v in actions])
+        rules.append(rule)
+    return groups,rules
 
 
 def _reader(payload):
@@ -156,6 +209,7 @@ def assemble_listing_packet(answers, listing_pdf, listing_fields, *, documents=(
     recipients.add('associate' if data['signer_plan']=='clients_and_associate' else 'broker')
     primary = _reader(listing_pdf)
     fields = _fields(listing_fields,primary,{value:value for value in recipients},recipients,prefix='',offset=0)
+    checkbox_groups=[];conditional_rules=[]
     # Retain primary api_ids for compatibility with its existing source map.
     writer = PdfWriter()
     if primary.get_fields(): primary.add_form_topname('hof_listing_primary')
@@ -174,6 +228,10 @@ def assemble_listing_packet(answers, listing_pdf, listing_fields, *, documents=(
             raise ValueError('The listing packet is too large. Keep additional documents separate.')
         fields.extend(_fields(prepared.fields,reader,prepared.recipient_map,recipients,
                               prefix=f'listing_{code}_',offset=page_count))
+        groups,rules=_controls(prepared,recipients,f'listing_{code}_')
+        checkbox_groups.extend(groups);conditional_rules.extend(rules)
+        if len(conditional_rules)>10:
+            raise ValueError('This packet exceeds the signing service’s conditional-rule limit.')
         if reader.get_fields(): reader.add_form_topname(f'hof_listing_{code}')
         writer.append(reader,import_outline=False)
         included.append({'code':code,'label':labels[code],'status':'included',
@@ -188,7 +246,8 @@ def assemble_listing_packet(answers, listing_pdf, listing_fields, *, documents=(
     # Stable content identity, not a volatile renderer timestamp. The existing
     # delivery layer additionally binds primary source/revision, identity and
     # these combined fields and actual recipients before any invitation.
-    fingerprint = hashlib.sha256(json.dumps({'answers':{key:value for key,value in data.items() if key!='_for_signing'},'manifest':manifest,'fields':fields},
+    fingerprint = hashlib.sha256(json.dumps({'answers':{key:value for key,value in data.items() if key!='_for_signing'},'manifest':manifest,'fields':fields,
+        'checkbox_groups':checkbox_groups,'conditional_rules':conditional_rules},
         sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode()).hexdigest()
     # Avoid rewriting a standalone source when nothing has actually been added.
-    return ListingPacket(output.getvalue() if by_code else listing_pdf,[fields],deepcopy(manifest),fingerprint)
+    return ListingPacket(output.getvalue() if by_code else listing_pdf,[fields],deepcopy(manifest),fingerprint,checkbox_groups,conditional_rules)

@@ -55,6 +55,7 @@ class Store:
         self.alias=None;self.shared_profile=None;self.alias_wrong_row=False
         self.iabs=None;self.iabs_bytes=None;self.iabs_wrong_row=False
         self.iabs_error=404
+        self.bad_completion_controls=False
         self.bad_provider_fields=False
         self.fail_inspect_once=False
         self.storage_bytes=b'%PDF-private-source-fixture'
@@ -113,6 +114,7 @@ class Store:
                 self.provider_creates+=1
                 self.provider={**json.loads(request.content),'id':'qa-provider','status':'draft'}
                 if self.bad_provider_fields:self.provider['fields'][0].pop()
+                if self.bad_completion_controls:self.provider.pop('checkbox_groups',None)
                 return httpx.Response(201,json=deepcopy(self.provider))
             if request.method=='POST' and path=='/api/v1/documents/qa-provider/send':
                 self.provider_sends+=1;self.provider['status']='sent'
@@ -126,6 +128,15 @@ class Store:
 
 
 class Txr1101ApiTests(unittest.TestCase):
+    def test_private_api_bundle_keeps_the_reviewed_lead_source_and_fonts(self):
+        root=Path(__file__).resolve().parents[1]
+        config=json.loads((root/'vercel.json').read_text())
+        included=config['functions']['api/admin-dashboard.py']['includeFiles']
+        self.assertEqual(included,'{lead_based_paint_56-0.pdf,lib/fonts/**}')
+        from hashlib import sha256
+        from lib.listing_lead_disclosure import SOURCE_SHA256
+        self.assertEqual(sha256((root/'lead_based_paint_56-0.pdf').read_bytes()).hexdigest(),SOURCE_SHA256)
+
     @classmethod
     def setUpClass(cls):
         stream=BytesIO();canvas=Canvas(stream,pagesize=(612,792))
@@ -348,6 +359,28 @@ class Txr1101ApiTests(unittest.TestCase):
         self.assertEqual(self.post(body)[0],400)
         self.assertEqual(self.store.provider_creates,0);self.assertEqual(self.store.provider_sends,0)
         status,result=self.post(self.send_body());self.assertEqual(status,200,result)
+
+    def test_pre1978_listing_packet_contains_real_lead_source_and_seller_completion_controls(self):
+        from pypdf import PdfReader
+        self.create(built_before_1978='yes',addenda=[])
+        preview=asyncio.run(api._standalone_signing_recipient_preview(USER,AGREEMENT_ID))
+        self.assertIn('Lead-based paint disclosure',preview['packet']['included'])
+        status,result=self.post(self.send_body());self.assertEqual(status,200,result)
+        payload=self.store.provider;reader=PdfReader(BytesIO(base64.b64decode(payload['files'][0]['file_base64'])))
+        self.assertIn('LEAD WARNING STATEMENT',reader.pages[10].extract_text())
+        self.assertIn('Lead Disclosure Details',reader.pages[11].extract_text())
+        self.assertEqual(len(payload['checkbox_groups']),2);self.assertEqual(len(payload['conditional_rules']),2)
+        fields={field['api_id']:field for field in payload['fields'][0]}
+        self.assertTrue(all(set(group['checkbox_ids'])<=fields.keys() for group in payload['checkbox_groups']))
+        self.assertTrue(all(group['recipient_id']=='1' and group['exact_value']==1 for group in payload['checkbox_groups']))
+        self.assertFalse(any('buyer' in key for key in fields if key.startswith('listing_C_')))
+        self.assertFalse(payload['apply_signing_order'])
+
+    def test_dropped_lead_choice_requirements_never_send_an_incomplete_provider_draft(self):
+        self.create(built_before_1978='yes',addenda=[]);body=self.send_body()
+        self.store.bad_completion_controls=True
+        status,result=self.post(body);self.assertEqual(status,400,result)
+        self.assertEqual(self.store.provider_creates,1);self.assertEqual(self.store.provider_sends,0)
 
     def test_iabs_packet_retry_reuses_one_provider_record_and_changed_iabs_cannot_replace_it(self):
         self.add_iabs();self.create();body=self.send_body();self.store.fail_inspect_once=True

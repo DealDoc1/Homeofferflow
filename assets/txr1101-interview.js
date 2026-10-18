@@ -2,6 +2,10 @@
   'use strict';
   const FORM_CODE = 'TXR-1101';
   const noticeLimits = {address:300,city_state_zip:180,phone:80,email:180,email_2:180};
+  const leadChoices = {
+    knowledge:[['unanswered','Seller will complete in SignWell'],['known','Known lead-based paint or hazards'],['none','Seller has no actual knowledge']],
+    records:[['unanswered','Seller will complete in SignWell'],['provided','All available records and reports have been provided to the purchaser'],['none','Seller has no reports or records']]
+  };
   const textLimits = {
     client_address:300, client_city_state_zip:180, client_phone:80, client_email:180, client_email_2:180,
     property_address:400, lot:150, block:150, subdivision:600, city:180, county:120,
@@ -56,6 +60,8 @@
     answers.built_before_1978 = get('built_before_1978') || 'unanswered';
     answers.request_hoa_information = get('request_hoa_information') || 'unanswered';
     answers.broker_notice_contacts = Object.fromEntries(Object.keys(noticeLimits).map(key => [key,get('broker_notice_'+key)]));
+    answers.lead_disclosure = {knowledge:get('lead_knowledge') || 'unanswered',records:get('lead_records') || 'unanswered',
+      knowledge_details:get('lead_knowledge_details'),records_details:get('lead_records_details')};
     // Do not mark a document based on unknown age, an unchecked box, or an inferred seller answer.
     if (get('built_before_1978') === 'yes' && !answers.addenda.includes('C')) answers.addenda.push('C');
     if (answers.hoa === 'yes' && get('request_hoa_information') === 'yes' && !answers.addenda.includes('G')) answers.addenda.push('G');
@@ -68,6 +74,11 @@
       : {property_address:workspace?.property_address || '', seller_one:workspace?.seller_names?.[0] || '', seller_two:workspace?.seller_names?.[1] || ''};
     const contacts = saved?.agreement_data?.broker_notice_contacts ?? context?.noticeContacts;
     if (contacts) Object.keys(noticeLimits).forEach(key => { initial['broker_notice_'+key] = String(contacts[key] || ''); });
+    const lead = saved?.agreement_data?.lead_disclosure || {};
+    for (const key of ['knowledge','records']) {
+      initial['lead_'+key] = lead[key] || 'unanswered';
+      initial['lead_'+key+'_details'] = lead[key+'_details'] || '';
+    }
     return initial;
   }
 
@@ -94,7 +105,8 @@
   if (!document) return;
   let opening = false;
   const field = (name,label,options={}) => `<label${options.wide ? ' class="hof-agreement-wide"' : ''}>${label}<input name="${name}" ${options.required ? 'required' : ''} type="${options.type || 'text'}" maxlength="${textLimits[name] || options.max || 300}" ${options.type === 'email' ? 'autocomplete="email"' : ''} ${name.includes('address') ? 'autocomplete="street-address" inputmode="text"' : ''} ${options.money ? 'inputmode="decimal"' : ''}></label>`;
-  const area = (name,label) => `<label class="hof-agreement-wide">${label}<textarea name="${name}" maxlength="${textLimits[name]}" rows="3"></textarea></label>`;
+  const area = (name,label,max=textLimits[name]) => `<label class="hof-agreement-wide">${label}<textarea name="${name}" maxlength="${max}" rows="3"></textarea></label>`;
+  const leadSelect = (key,label) => `<label class="hof-agreement-wide">${label}<select name="lead_${key}" aria-label="${escape(label)}">${leadChoices[key].map(([value,title])=>`<option value="${value}">${title}</option>`).join('')}</select></label>`;
   const select = (name,label) => `<label class="hof-agreement-wide">${label}<select name="${name}" aria-label="${escape(label)}" required><option value="">Choose one</option>${choices[name].map(([value,title]) => `<option value="${value}">${title}</option>`).join('')}</select></label>`;
   const yesNo = (name,label) => `<label class="hof-agreement-wide">${label}<select name="${name}" aria-label="${escape(label)}"><option value="unanswered">Not yet confirmed</option><option value="yes">Yes</option><option value="no">No</option></select></label>`;
 
@@ -192,6 +204,13 @@
       <section data-step="4"><h4>Which related documents are needed?</h4><div class="hof-agreement-grid">
         ${yesNo('built_before_1978','Was the home built before 1978?')}
         <div class="hof-agreement-wide" data-condition="hoa">${yesNo('request_hoa_information','Is an owners’ association information request needed?')}</div>
+        <div class="hof-agreement-wide" data-condition="lead"><details><summary>Lead-based paint disclosure</summary>
+          <p class="hof-listing-note">Unconfirmed answers can be completed by the seller during signing. Only enter facts the seller has supplied. Buyer choices and receipts stay blank.</p>
+          ${leadSelect('knowledge','What has the seller confirmed about lead-based paint or hazards?')}
+          ${area('lead_knowledge_details','Seller’s explanation, if known (optional)',4000)}
+          ${leadSelect('records','What has the seller confirmed about records and reports?')}
+          ${area('lead_records_details','Records and reports provided to the purchaser (optional)',4000)}
+        </details></div>
         <p class="hof-agreement-wide hof-listing-note">Select the documents that apply. Your saved IABS is included when selected and available. Missing documents are shown separately and do not stop you from preparing the listing.</p>
         <details class="hof-agreement-wide"><summary>Review the related-document checklist</summary><fieldset class="hof-listing-checks"><legend>Documents that apply</legend>${documentChoices.map(([value,label]) => `<label><input type="checkbox" name="addenda" value="${value}"> ${label}</label>`).join('')}</fieldset></details>
         ${area('other_documents','Other related documents (optional)')}
@@ -217,8 +236,10 @@
     });
     const get = name => form.elements.namedItem(name)?.value || '';
     const sync = () => {
+      const lead = form.querySelector('[name="addenda"][value="C"]');
+      if (get('built_before_1978') === 'yes') lead.checked = true;
       const conditions = {fee:get('fee_basis') && get('fee_basis') !== 'none', additional_fee:get('additional_fee_basis') && get('additional_fee_basis') !== 'none',
-        delay:get('mls_filing') === 'delayed', internet:get('mls_filing') && get('mls_filing') !== 'none', hoa:get('hoa') === 'yes'};
+        delay:get('mls_filing') === 'delayed', internet:get('mls_filing') && get('mls_filing') !== 'none', hoa:get('hoa') === 'yes',lead:lead.checked};
       form.querySelectorAll('[data-condition]').forEach(panel => {
         const visible = Boolean(conditions[panel.dataset.condition]);
         panel.hidden = !visible; panel.style.display = visible ? '' : 'none';
@@ -227,8 +248,6 @@
       form.elements.namedItem('mls_delay_purpose').required = conditions.delay;
       form.querySelector('[data-fee-unit]').textContent = get('fee_basis') === 'percentage' ? 'Enter a percentage, such as 2.5. No compensation rate is suggested.' : 'Enter the agreed dollar amount, including zero if applicable.';
       // Pre-1978 age requires the lead disclosure selection; do not let an unchecked checklist erase it.
-      const lead = form.querySelector('[name="addenda"][value="C"]');
-      if (get('built_before_1978') === 'yes') lead.checked = true;
     };
     function showStep() {
       sync();
@@ -265,6 +284,7 @@
       rows.push(['Brokerage',officeIdentity || 'Check in the completed PDF'],
         ['Brokerage notice address',[a.broker_notice_contacts.address,a.broker_notice_contacts.city_state_zip].filter(Boolean).join(', ')],
         ['Brokerage notice contacts',[a.broker_notice_contacts.phone,a.broker_notice_contacts.email,a.broker_notice_contacts.email_2].filter(Boolean).join(' · ')]);
+      if (a.addenda.includes('C')) rows.push(['Lead disclosure','Included. The seller completes any unconfirmed answers during signing; Buyer choices remain blank.']);
       const list = collect(new root.FormData(form)).agreementData.addenda.map(code => documentChoices.find(([value]) => value === code)?.[1]).filter(Boolean);
       form.querySelector('#txr1101Review').innerHTML = `<dl>${rows.map(([key,value]) => `<div><dt>${key}</dt><dd>${escape(value || 'Not provided')}</dd></div>`).join('')}</dl><p><strong>Related-document checklist:</strong> ${escape(list.join(' · ') || 'None selected')}</p><p class="hof-listing-note">Your account supplies the brokerage and agent identity. The notice contacts above are saved with this agreement. Check the completed PDF before sending.</p>`;
     }

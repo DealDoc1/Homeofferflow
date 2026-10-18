@@ -2,6 +2,7 @@ const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const assert=require('node:assert/strict'),{test}=require('node:test');
 const file=path.join(__dirname,'../assets/txr1101-interview.js');
 const source=fs.readFileSync(file,'utf8'),model=require(file);
+const leadDefaults={lead_knowledge:'unanswered',lead_records:'unanswered',lead_knowledge_details:'',lead_records_details:''};
 const values=(changes={})=>{
   const data={seller_one:'QA Seller',seller_two:'',property_address:'100 Fictional Lane',term_start:'2026-10-17',term_end:'2027-04-17',listing_price:'350,000',
     fee_basis:'percentage',fee_amount:'2.5',additional_fee_basis:'none',mls_filing:'standard',internet_display:'full',hoa:'no',foreign_person:'unanswered',financing:[],addenda:[],...changes};
@@ -36,12 +37,19 @@ test('tax status remains unanswered, and identical legal names are not merged',(
 });
 test('prefill reuses only selected workspace seller/property data, not fabricated terms',()=>{
   const result=model.prefill({property_address:'100 QA Lane',seller_names:['José 李','Zoë QA'],listing_price:'999999'});
-  assert.deepEqual(result,{property_address:'100 QA Lane',seller_one:'José 李',seller_two:'Zoë QA'});
+  assert.deepEqual(result,{property_address:'100 QA Lane',seller_one:'José 李',seller_two:'Zoë QA',...leadDefaults});
   assert.ok(!('fee_amount' in result));
 });
 test('editing rehydrates saved answers rather than a different selected workspace',()=>{
   assert.deepEqual(model.prefill({property_address:'Wrong house'},{client_names:['Saved Seller'],agreement_data:{property_address:'Saved house',fee_amount:'0'}}),
-    {property_address:'Saved house',fee_amount:'0',seller_one:'Saved Seller',seller_two:''});
+    {property_address:'Saved house',fee_amount:'0',seller_one:'Saved Seller',seller_two:'',...leadDefaults});
+});
+test('lead answers default to Seller completion, and saved explicit facts survive reopening',()=>{
+  const blank=model.collect(values()).agreementData.lead_disclosure;
+  assert.deepEqual(blank,{knowledge:'unanswered',records:'unanswered',knowledge_details:'',records_details:''});
+  const supplied=model.collect(values({lead_knowledge:'known',lead_records:'provided',lead_knowledge_details:'Seller supplied QA fact',lead_records_details:'QA report'}));
+  const opened=model.prefill(null,{client_names:['QA Seller'],agreement_data:supplied.agreementData});
+  assert.equal(opened.lead_knowledge,'known');assert.equal(opened.lead_records_details,'QA report');
 });
 test('new agreements reuse office defaults but a saved snapshot, including blanks, always wins',()=>{
   const context={noticeContacts:{address:'10 Current Office',email:'current@example.test'}};

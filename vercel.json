@@ -35,7 +35,7 @@
       "excludeFiles": "{tests/**,docs/**,assets/**,supabase/**,scripts/**,__pycache__/**,**/__pycache__/**,**/*.pyc,lib/fonts/**}"
     },
     "api/admin-dashboard.py": {
-      "includeFiles": "lib/fonts/**",
+      "includeFiles": "{lead_based_paint_56-0.pdf,lib/fonts/**}",
       "excludeFiles": "{tests/**,docs/**,assets/**,supabase/**,scripts/**,__pycache__/**,**/__pycache__/**,**/*.pyc}"
     },
     "api/ai-offer-review.py": {

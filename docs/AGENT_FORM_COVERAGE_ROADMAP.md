@@ -21,15 +21,23 @@ IABS into the same PDF and shows included versus pending documents; related
 fields have explicit recipient/page remapping and the review binds the packet
 contents before send. This follow-on passes 98 focused plus 91 affected
 signing/schema checks, with local desktop/phone and PDF-boundary visual review.
-Only the saved-IABS adapter is connected, not the real disclosure/lead/water
-adapters. Source registration, applied schema migration, complete
-related-packet orchestration and completed SignWell QA remain unfinished;
-**this is not a released
-listing-agreement workflow**. See [renderer evidence](release-evidence/txr1101-sale-listing-local-2026-10-17.md)
+The saved-IABS and seller-side TREC 56-0 lead-disclosure adapters are now
+connected locally. The lead interview retains explicit seller facts and
+leaves unconfirmed choices for seller completion; Buyer rights and receipts
+remain blank. Exact-one choice groups and conditional explanations are bound
+to the packet and checked against the provider draft before invitations.
+This follow-on passes 131 focused checks, actual-source local PDF review and
+desktop/phone save/reopen checks. Actual SignWell control retention and
+completed-provider PDF review remain unverified. The Seller's Disclosure
+Notice and water-rights adapters are not connected. Source registration,
+applied schema migration, complete related-packet orchestration and completed
+SignWell QA remain unfinished; **this is not a released listing-agreement
+workflow**. See [renderer evidence](release-evidence/txr1101-sale-listing-local-2026-10-17.md)
 and [API/schema evidence](release-evidence/txr1101-private-api-local-2026-10-17.md),
-plus the [mobile interview checkpoint and recovery notes](release-evidence/txr1101-mobile-interview-local-2026-10-17.md)
-the [notice-contact checkpoint](release-evidence/txr1101-notice-contacts-local-2026-10-17.md)
-and [current packet-composition checkpoint](release-evidence/txr1101-packet-composition-local-2026-10-17.md).
+plus the [mobile interview checkpoint and recovery notes](release-evidence/txr1101-mobile-interview-local-2026-10-17.md),
+the [notice-contact checkpoint](release-evidence/txr1101-notice-contacts-local-2026-10-17.md),
+the [packet-composition checkpoint](release-evidence/txr1101-packet-composition-local-2026-10-17.md)
+and [lead-disclosure checkpoint](release-evidence/txr1101-listing-lead-local-2026-10-17.md).
 
 ### Retrieved source PDFs
 
