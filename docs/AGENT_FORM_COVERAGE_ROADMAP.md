@@ -4,6 +4,19 @@ Future batches follow the [lean development protocol](LEAN_DEVELOPMENT_PROTOCOL.
 to reduce model context, repeated regression runs and Vercel usage without
 reducing verification standards.
 
+## Actual listing lead signer check - October 18, 2026
+
+PR #1347 deployed a read-only diagnostic, and the original v1 provider draft
+passed every field/control readback. It was then sent once to the two approved
+QA inboxes. Actual signer use verified exact-one choices and conditional
+explanation requirements but exposed oversized explanation text. No signatures
+or electronic-disclosure acceptance were completed. The separate v2 candidate
+corrects initial line height and reserves a bounded paragraph area; changed-
+page local preview is reviewed, but provider font and completed-PDF QA remain
+unverified. Customer listing activation remains separate and undeployed.
+See [actual readback/signing evidence](release-evidence/listing-lead-readback-2026-10-18.md)
+and [v2 local correction](release-evidence/listing-lead-text-layout-2026-10-18.md).
+
 ## Listing lead provider-QA preparation - October 17, 2026
 
 **October 18 update:** the isolated owner-only QA tool is production deployed
