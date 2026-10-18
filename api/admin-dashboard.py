@@ -752,14 +752,27 @@ async def _purchase_signing_qa(user, *, send=False, _spec=None):
                 or (document.get("metadata") or {}).get("qa_revision") != QA_REVISION
                 or (getattr(spec,"VERIFY_DRAFT",False) and (
                     (document.get('metadata') or {}).get('layout_sha256')!=spec.LAYOUT_SHA256
-                    or (document.get('metadata') or {}).get('release_sha')!=REVIEWED_SOURCE_COMMIT
-                    or document.get('apply_signing_order') is not False))
+                    or (document.get('metadata') or {}).get('release_sha')!=REVIEWED_SOURCE_COMMIT))
                 or len(recipients) != 2
                 or {str(r.get("email") or "").lower() for r in recipients} != {r["email"] for r in QA_RECIPIENTS}):
             result["message"] = "The provider response did not match the recorded signing test. Nothing new was sent."
             return result
         status = _purchase_qa_provider_status(document.get("status"))
         result["provider_status"] = status
+        if getattr(spec, "VERIFY_DRAFT", False) and status in {"draft", "created"}:
+            from lib.signwell_qa_readback import readback_report
+            import inspect
+            built = build_packet()
+            packet, fields, _ = await built if inspect.isawaitable(built) else built
+            payload = build_payload(packet, fields, REVIEWED_SOURCE_COMMIT)
+            result["verification"] = readback_report(document, {**payload, "id": result["document_id"]})
+            result["message"] = ("The same private test draft remains unsent. Read-only verification: "
+                + json.dumps(result["verification"], separators=(",", ":")))
+            return result
+        if getattr(spec, "VERIFY_DRAFT", False) and document.get("apply_signing_order") is not False:
+            result["provider_status"] = "unknown"
+            result["message"] = "The provider response did not match the recorded signing test. Nothing new was sent."
+            return result
         if status == "completed":
             result["message"] = ("Signing and placement review passed for this test."
                                  if result["visual_review_passed"] else
