@@ -6,6 +6,17 @@ reducing verification standards.
 
 ## Listing lead provider-QA preparation - October 17, 2026
 
+**October 18 update:** the isolated owner-only QA tool is production deployed
+through PR #1346 at `c2507e2`; CI and intentional production run `39094550825`
+passed. One actual private SignWell test draft was retained without invitations
+because its API readback did not match every check. Provider signing and signed-
+PDF visual QA have **not** passed; customer-facing listing integration remains
+separate and undeployed. The next bounded workstream diagnoses that exact draft
+read-only rather than sending another packet. See [observed release evidence](release-evidence/listing-lead-qa-only-release-2026-10-17.md)
+and [readback diagnosis](release-evidence/listing-lead-readback-2026-10-18.md).
+
+The following paragraph records the earlier local preparation checkpoint:
+
 A fixed seven-page, two-inbox TREC 56-0 test now reuses the existing owner-only
 QA tracker and server-side signing connection. Its private draft must retain
 the reviewed geometry, recipients, exact-one choices and conditional explanation

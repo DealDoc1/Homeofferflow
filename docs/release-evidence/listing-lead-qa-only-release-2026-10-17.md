@@ -73,3 +73,33 @@ This strengthens test coverage without changing customer placement behavior.
 Exact-head CI, production identity and canonical live owner-control verification
 are recorded below when observed. Do not infer those results, actual provider
 completion or customer-form release from the local regression pass.
+
+## Observed release and provider result - October 18
+
+PR [#1346](https://github.com/DealDoc1/Homeofferflow/pull/1346) merged as
+`c2507e293cbb8cf11416c1e094438ec4e3541017`. Exact candidate CI
+`39092937720` passed at `312f371ae58b4da63124f8a020cdfd4024837db9`.
+Intentional production run `39094550825` passed and finished at
+2026-10-18 03:46:51 UTC. Independent deployment metadata confirmed READY,
+production, the exact main SHA and canonical-domain aliases for
+`dpl_DLtD2kKTgrFBvD36btZDXgTYVQR8`. The authenticated control was exercised
+on `https://www.homeofferflow.com/`, not a preview. The workflow repeated
+schema, spend/capacity, canonical-site, PWA and API/packet-runtime checks.
+There was no migration, preview deployment or new paid service.
+
+The owner-only send action was invoked once after the tracker confirmed no
+earlier attempt. It created private test-mode draft
+`646c8e81-e9e9-4820-8774-e1a892cc661e` and held it **without invitations**
+because provider readback did not pass every verification. The QA tracker
+independently confirmed run `03d45107-ccb6-4dac-92e0-741282f53eb2`, phase
+`draft_unverified`, provider status `created`, test mode true, the deployed
+commit, reviewed layout digest and completion-controls digest. No retry or
+replacement draft was created.
+
+Read-only inspection of that exact SignWell builder showed all four
+conditional requirements, exact-one group settings, fixed-width text and the
+custom length constraint present. This does **not** prove a completed signing
+flow, explain the exact API mismatch or justify weakening verification. No
+provider setting was edited and no Send action was used. Completed-provider
+signing and signed-PDF visual review remain unverified. Next work is a bounded,
+redacted readback diagnosis against this same draft.

@@ -92,7 +92,31 @@ class OperatorListingLeadSigningQATests(unittest.IsolatedAsyncioTestCase):
             MODULE._get.side_effect=[SCENARIO,[run]]
             result=await MODULE._listing_lead_signing_qa(USER,send=send)
             self.assertEqual(result['document_id'],DOCUMENT_ID)
-        self.client.post.assert_not_called();MODULE._patch.assert_not_called();qa.build_packet.assert_not_called()
+        self.client.post.assert_not_called();MODULE._patch.assert_not_called()
+        qa.build_packet.assert_called_once() # Read-only check reconstructs the fixed reviewed expectation.
+
+    async def test_readonly_check_explains_retained_draft_without_writes_or_raw_response(self):
+        MODULE._get.side_effect=[SCENARIO,[{'id':'run','notes':json.dumps({
+            'qa_revision':qa.QA_REVISION,'phase':'draft_unverified','document_id':DOCUMENT_ID,'test_mode':True})}]]
+        self.provider['apply_signing_order']=None
+        self.provider['checkbox_groups'][0]['recipient_id']=None
+        self.provider['fields'][0][0]['x']=999
+        self.provider['private_url']='SECRET_LINK'
+        result=await MODULE._listing_lead_signing_qa(USER)
+        checks=result['verification']['checks']
+        self.assertFalse(checks['parallel_invitations']);self.assertFalse(checks['checkbox_groups'])
+        self.assertFalse(checks['geometry_and_recipients'])
+        self.assertIn('Read-only verification',result['message'])
+        self.assertNotIn('SECRET_LINK',str(result));self.assertNotIn('PRIVATE_KEY',str(result))
+        self.client.post.assert_not_called();MODULE._patch.assert_not_called()
+
+    async def test_foreign_test_identity_never_reaches_diagnostic_builder(self):
+        MODULE._get.side_effect=[SCENARIO,[{'id':'run','notes':json.dumps({
+            'qa_revision':qa.QA_REVISION,'phase':'draft_unverified','document_id':DOCUMENT_ID,'test_mode':True})}]]
+        self.provider['recipients'][0]['email']='other@example.test'
+        result=await MODULE._listing_lead_signing_qa(USER)
+        self.assertNotIn('verification',result);qa.build_packet.assert_not_called()
+        self.client.post.assert_not_called();MODULE._patch.assert_not_called()
 
     async def test_owner_and_platform_admin_are_both_required(self):
         with self.assertRaises(PermissionError):await MODULE._listing_lead_signing_qa({**USER,'email':'another-admin@example.test'},send=True)
