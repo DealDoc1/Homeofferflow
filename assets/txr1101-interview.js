@@ -192,7 +192,7 @@
       <section data-step="4"><h4>Which related documents are needed?</h4><div class="hof-agreement-grid">
         ${yesNo('built_before_1978','Was the home built before 1978?')}
         <div class="hof-agreement-wide" data-condition="hoa">${yesNo('request_hoa_information','Is an owners’ association information request needed?')}</div>
-        <p class="hof-agreement-wide hof-listing-note">These choices identify related documents in the listing agreement. They do not attach or complete those documents. A missing seller disclosure does not stop you from preparing this agreement.</p>
+        <p class="hof-agreement-wide hof-listing-note">Select the documents that apply. Your saved IABS is included when selected and available. Missing documents are shown separately and do not stop you from preparing the listing.</p>
         <details class="hof-agreement-wide"><summary>Review the related-document checklist</summary><fieldset class="hof-listing-checks"><legend>Documents that apply</legend>${documentChoices.map(([value,label]) => `<label><input type="checkbox" name="addenda" value="${value}"> ${label}</label>`).join('')}</fieldset></details>
         ${area('other_documents','Other related documents (optional)')}
       </div></section>

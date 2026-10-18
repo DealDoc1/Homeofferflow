@@ -16,13 +16,20 @@ HOA answers. A final affected-workflow run passes 260 Python checks, including
 the actual source and JavaScript runtime wrappers. Independent-office notice
 contacts, saved contact snapshots and approved shared-profile reuse now also
 pass focused checks (67 Python and 46 JavaScript cases) and desktop/phone/PDF
-visual review. Source registration, applied schema migration, complete
+visual review. The actual preview/send path now composes the selected saved
+IABS into the same PDF and shows included versus pending documents; related
+fields have explicit recipient/page remapping and the review binds the packet
+contents before send. This follow-on passes 98 focused plus 91 affected
+signing/schema checks, with local desktop/phone and PDF-boundary visual review.
+Only the saved-IABS adapter is connected, not the real disclosure/lead/water
+adapters. Source registration, applied schema migration, complete
 related-packet orchestration and completed SignWell QA remain unfinished;
 **this is not a released
 listing-agreement workflow**. See [renderer evidence](release-evidence/txr1101-sale-listing-local-2026-10-17.md)
 and [API/schema evidence](release-evidence/txr1101-private-api-local-2026-10-17.md),
 plus the [mobile interview checkpoint and recovery notes](release-evidence/txr1101-mobile-interview-local-2026-10-17.md)
-and [current notice-contact checkpoint](release-evidence/txr1101-notice-contacts-local-2026-10-17.md).
+the [notice-contact checkpoint](release-evidence/txr1101-notice-contacts-local-2026-10-17.md)
+and [current packet-composition checkpoint](release-evidence/txr1101-packet-composition-local-2026-10-17.md).
 
 ### Retrieved source PDFs
 

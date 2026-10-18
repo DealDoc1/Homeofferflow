@@ -17,6 +17,18 @@ class Txr1101InterviewRuntimeTests(unittest.TestCase):
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_listing_packet_customer_summary(self):
+        result = subprocess.run(['node', '--test', str(Path(__file__).with_name('listing_packet_summary.runtime.cjs'))],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_packet_labels_match_the_source_checklist_shown_in_the_interview(self):
+        from lib.listing_packet import DOCUMENT_CHOICES
+        import json
+        result = subprocess.run(['node','-e','console.log(JSON.stringify(require("./assets/txr1101-interview.js").documentChoices))'],
+                                cwd=ROOT,capture_output=True,text=True,check=True)
+        self.assertEqual(json.loads(result.stdout),[list(row) for row in DOCUMENT_CHOICES])
+
     def test_asset_and_saved_queue_are_connected_to_the_sale_path(self):
         html = (ROOT / 'index.html').read_text()
         self.assertIn('src="/assets/txr1101-interview.js"', html)

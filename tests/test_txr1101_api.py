@@ -2,6 +2,7 @@
 import asyncio
 from contextlib import ExitStack
 from copy import deepcopy
+import base64
 from io import BytesIO
 import json
 import os
@@ -52,6 +53,8 @@ class Store:
                       'brokerage_name':'Independent QA Realty','brokerage_license':'9000001'}
         self.office=None;self.empty_create=False;self.wrong_owner_create=False
         self.alias=None;self.shared_profile=None;self.alias_wrong_row=False
+        self.iabs=None;self.iabs_bytes=None;self.iabs_wrong_row=False
+        self.iabs_error=404
         self.bad_provider_fields=False
         self.fail_inspect_once=False
         self.storage_bytes=b'%PDF-private-source-fixture'
@@ -67,6 +70,8 @@ class Store:
                 if token=='Bearer other-token':return httpx.Response(200,json={**USER,'id':'other-owner'})
                 return httpx.Response(401,json={})
             if path.startswith('/storage/v1/object/'):
+                if '/agent-documents/' in path:
+                    return httpx.Response(200,content=self.iabs_bytes) if self.iabs_bytes else httpx.Response(self.iabs_error,content=b'')
                 return httpx.Response(200,content=self.storage_bytes)
             if request.method=='GET':
                 if path.endswith('/hof_brokerage_form_sources'):row=self.source
@@ -74,6 +79,9 @@ class Store:
                 elif path.endswith('/hof_agent_profile_aliases'):
                     row=self.alias
                     return httpx.Response(200,json=[deepcopy(row)] if row and (self.alias_wrong_row or matches(row,params)) else [])
+                elif path.endswith('/hof_agent_documents'):
+                    row=self.iabs
+                    return httpx.Response(200,json=[deepcopy(row)] if row and (self.iabs_wrong_row or matches(row,params)) else [])
                 elif path.endswith('/hof_agent_profiles'):
                     profile=self.profile if params.get('user_id')=='eq.'+USER['id'] else self.shared_profile if params.get('user_id')=='eq.'+SHARED_PROFILE_ID else None
                     return httpx.Response(200,json=[deepcopy(profile)] if profile else [])
@@ -262,11 +270,104 @@ class Txr1101ApiTests(unittest.TestCase):
         self.assertEqual(legacy['profile'],self.store.profile)
         self.assertFalse(any('hof_agent_profile_aliases' in r.url.path for r in self.store.requests))
 
+    def add_iabs(self):
+        self.store.iabs={'user_id':USER['id'],'document_type':'iabs','storage_bucket':'agent-documents',
+                         'storage_path':USER['id']+'/iabs.pdf','mime_type':'application/pdf'}
+        stream=BytesIO();canvas=Canvas(stream,pagesize=(612,792))
+        canvas.drawString(40,740,'Fictional saved IABS for packet transport QA');canvas.showPage();canvas.save()
+        self.store.iabs_bytes=stream.getvalue()
+
+    def test_selected_saved_iabs_is_in_the_actual_single_file_without_new_signers_or_initials(self):
+        from pypdf import PdfReader
+        self.add_iabs();self.create()
+        summary=asyncio.run(api._standalone_signing_recipient_preview(USER,AGREEMENT_ID))['packet']
+        status,result=self.post(self.send_body());self.assertEqual(status,200,result)
+        payload=self.store.provider
+        self.assertEqual(len(payload['files']),1);self.assertEqual(len(payload['fields']),1)
+        merged=base64.b64decode(payload['files'][0]['file_base64'])
+        reader=PdfReader(BytesIO(merged));self.assertEqual(len(reader.pages),11)
+        self.assertIn('Fictional saved IABS',reader.pages[10].extract_text())
+        self.assertLessEqual(max(field['page'] for field in payload['fields'][0]),10)
+        self.assertFalse(payload['apply_signing_order'])
+        self.assertEqual({r['id'] for r in payload['recipients']},{'1','2','associate'})
+        self.assertEqual(summary['included'],['Sale listing agreement','Information About Brokerage Services'])
+        self.assertEqual(summary['pending'],['Seller’s Disclosure Notice'])
+        self.assertEqual(summary['pageCount'],11)
+        self.assertNotIn('storage_path',json.dumps(summary));self.assertNotIn('content_fingerprint',json.dumps(summary))
+
+    def test_missing_disclosure_or_iabs_does_not_stop_listing_signing_and_manifest_is_truthful(self):
+        self.create();context={}
+        asyncio.run(api._render_representation_draft_preview(USER,AGREEMENT_ID,fingerprint_context=context))
+        self.assertEqual([row['code'] for row in context['listing_packet']['included']],['TXR-1101'])
+        self.assertEqual([row['code'] for row in context['listing_packet']['pending']],['A','B'])
+        status,result=self.post(self.send_body());self.assertEqual(status,200,result)
+
+    def test_unselected_iabs_is_not_read_or_added(self):
+        self.add_iabs();self.create(addenda=[])
+        status,result=self.post(self.send_body());self.assertEqual(status,200,result)
+        self.assertFalse(any(r.url.path.endswith('/hof_agent_documents') for r in self.store.requests))
+        self.assertFalse(any('/agent-documents/' in r.url.path for r in self.store.requests))
+
+    def test_iabs_lookup_cannot_follow_source_host_shared_profile_or_wrong_storage_path(self):
+        self.add_iabs();self.create()
+        for key,value in (('user_id',SHARED_PROFILE_ID),('storage_path',SHARED_PROFILE_ID+'/iabs.pdf'),
+                          ('storage_bucket','brokerage-form-sources'),('document_type','private-other')):
+            with self.subTest(key=key):
+                self.add_iabs();self.store.iabs[key]=value;self.store.iabs_wrong_row=True
+                with self.assertRaises(PermissionError):
+                    asyncio.run(api._render_representation_draft_preview(USER,AGREEMENT_ID))
+        self.assertFalse(any('/agent-documents/' in r.url.path for r in self.store.requests))
+
+    def test_unavailable_known_iabs_never_produces_an_invitation_with_an_unconfirmed_attachment(self):
+        self.add_iabs();self.create();body=self.send_body();self.store.iabs_bytes=None;self.store.iabs_error=503
+        status,result=self.post(body)
+        self.assertGreaterEqual(status,400,result)
+        self.assertEqual(self.store.provider_creates,0);self.assertEqual(self.store.provider_sends,0)
+
+    def test_missing_iabs_object_is_pending_and_does_not_stop_a_reviewed_listing(self):
+        self.add_iabs();self.create();self.store.iabs_bytes=None
+        summary=asyncio.run(api._standalone_signing_recipient_preview(USER,AGREEMENT_ID))
+        self.assertEqual(summary['packet']['included'],['Sale listing agreement'])
+        self.assertIn('Information About Brokerage Services',summary['packet']['pending'])
+        status,result=self.post(self.send_body());self.assertEqual(status,200,result)
+
+    def test_changed_packet_review_is_required_before_any_new_invitation(self):
+        self.add_iabs();self.create();body=self.send_body()
+        self.store.iabs_bytes=None
+        status,result=self.post(body);self.assertEqual(status,400,result)
+        self.assertEqual(self.store.provider_creates,0);self.assertEqual(self.store.provider_sends,0)
+        # A fresh review shows the now-pending IABS and can continue normally.
+        status,result=self.post(self.send_body());self.assertEqual(status,200,result)
+
+    def test_missing_tampered_or_stale_packet_confirmation_never_creates_a_request(self):
+        self.create();body=self.send_body()
+        for value in (None,'','client-chosen-fingerprint'):
+            status,result=self.post({**body,'confirmedPacketFingerprint':value})
+            self.assertEqual(status,400,result)
+        self.store.profile['brokerage_license']='9000002'
+        self.assertEqual(self.post(body)[0],400)
+        self.assertEqual(self.store.provider_creates,0);self.assertEqual(self.store.provider_sends,0)
+        status,result=self.post(self.send_body());self.assertEqual(status,200,result)
+
+    def test_iabs_packet_retry_reuses_one_provider_record_and_changed_iabs_cannot_replace_it(self):
+        self.add_iabs();self.create();body=self.send_body();self.store.fail_inspect_once=True
+        self.assertEqual(self.post(body)[0],409)
+        self.assertEqual(self.post(body)[0],200)
+        self.assertEqual(self.store.provider_creates,1);self.assertEqual(self.store.provider_sends,1)
+
+    def test_changed_iabs_during_a_pending_request_cannot_cause_new_or_changed_invitations(self):
+        self.add_iabs();self.create();body=self.send_body();self.store.fail_inspect_once=True
+        self.assertEqual(self.post(body)[0],409)
+        # A new upload changes the source hash, even if the page count is equal.
+        self.store.iabs_bytes=self.rendered
+        self.assertEqual(self.post(body)[0],400)
+        self.assertEqual(self.store.provider_creates,1);self.assertEqual(self.store.provider_sends,0)
+
     def send_body(self):
         preview=asyncio.run(api._standalone_signing_recipient_preview(USER,AGREEMENT_ID))
         contacts=[{key:r[key] for key in ('id','name','email')} for r in preview['recipients']]
         return {'action':'send_txr_agreement_for_signature','agreementId':AGREEMENT_ID,
-                'confirmedRecipients':contacts}
+                'confirmedRecipients':contacts,'confirmedPacketFingerprint':preview.get('packetFingerprint')}
 
     def update_body(self,**changes):
         return {**payload(**changes),'action':'update_txr_1101_draft','agreementId':AGREEMENT_ID,

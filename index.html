@@ -23812,16 +23812,25 @@ function routeAfterMagicLinkIfNeeded() {
     return payload;
   }
 
+  function listingPacketSummary(packet) {
+    if (!packet || !Array.isArray(packet.included) || !Array.isArray(packet.pending)) return '';
+    const included = packet.included.map(escape).join(' · ');
+    const pending = packet.pending.map(escape).join(' · ');
+    return `<details class="hof-listing-note"><summary>Your packet${Number.isInteger(packet.pageCount) ? ' · '+packet.pageCount+' pages' : ''}</summary><p><strong>Included:</strong> ${included || 'None prepared'}</p>${pending ? `<p><strong>Still to prepare:</strong> ${pending}</p>` : ''}${packet.otherDocuments ? `<p><strong>Other documents noted:</strong> ${escape(packet.otherDocuments)}</p>` : ''}${pending || packet.otherDocuments ? '<p>You can send the prepared documents now and complete the remaining items separately.</p>' : ''}</details>`;
+  }
+
   async function openSendDialog(agreement, refresh) {
     const actor = captureViewer();
     document.getElementById('hofStandaloneSendDialog')?.remove();
     let signers = [];
+    let listingPacketFingerprint = '';
     const modal = document.createElement('div');
     modal.id = 'hofStandaloneSendDialog';
     modal.className = 'hof-agreement-modal';
     modal.innerHTML = `<form class="hof-agreement-dialog" id="hofStandaloneSendForm">
-      <h3>Send ${escape(agreement.form_code === 'TXR-1101' ? 'sale listing agreement' : agreement.form_code)} for signature</h3>
+      <h3>Send ${escape(agreement.form_code === 'TXR-1101' ? 'sale listing packet' : agreement.form_code)} for signature</h3>
       <p>Review everyone who will receive this document. Each signer needs a different email address.</p>
+      <div id="hofStandalonePacketSummary"></div>
       <div class="hof-agreement-grid" id="hofStandaloneSigningRecipients"></div>
       <div id="hofStandaloneSendStatus" class="hof-iabs-status" role="status" aria-live="polite">Loading signing recipients…</div>
       <div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="hofStandaloneSendCancel">Cancel</button><button class="btn-primary" type="submit" disabled>Send signature request</button></div>
@@ -23852,7 +23861,7 @@ function routeAfterMagicLinkIfNeeded() {
       const submit = event.currentTarget.querySelector('button[type="submit"]');
       submit.disabled = true; status.textContent = 'Sending securely…';
       try {
-        const response = await fetch('/api/admin-dashboard', { method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${token()}`}, body:JSON.stringify({ action:'send_txr_agreement_for_signature', agreementId:agreement.id, clientEmails, confirmedRecipients, brokerSigner }) });
+        const response = await fetch('/api/admin-dashboard', { method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${token()}`}, body:JSON.stringify({ action:'send_txr_agreement_for_signature', agreementId:agreement.id, clientEmails, confirmedRecipients, brokerSigner, ...(agreement.form_code === 'TXR-1101' ? {confirmedPacketFingerprint:listingPacketFingerprint} : {}) }) });
         const result = await response.json().catch(() => ({}));
         if (!viewerIsCurrent(actor) || !modal.isConnected) { modal.remove(); return; }
         if (!response.ok) {
@@ -23899,6 +23908,8 @@ function routeAfterMagicLinkIfNeeded() {
       if (!modal.isConnected || !viewerIsCurrent(actor)) return;
       if (!Array.isArray(result.recipients) || !result.recipients.length) throw new Error('This document has no signing recipients.');
       signers = result.recipients;
+      listingPacketFingerprint = result.packetFingerprint || '';
+      modal.querySelector('#hofStandalonePacketSummary').innerHTML = agreement.form_code === 'TXR-1101' ? listingPacketSummary(result.packet) : '';
       modal.querySelector('#hofStandaloneSigningRecipients').innerHTML = signers.map(signer => signer.nameEditable
         ? `<div class="hof-agreement-grid hof-agreement-wide" style="margin:0"><label>Broker's name<input name="signerName${escape(signer.id)}" required maxlength="120" autocomplete="off" value="${escape(signer.name || '')}"></label><label>Broker's email<input name="clientEmail${escape(signer.id)}" required type="email" maxlength="254" autocomplete="off" value="${escape(signer.email || '')}"></label></div>`
         : `<label>${escape(signer.label)}: ${escape(signer.name)}<input ${signer.emailEditable ? `name="clientEmail${escape(signer.id)}" required autocomplete="email"` : 'readonly'} type="email" maxlength="254" value="${escape(signer.email || '')}"></label>`).join('');

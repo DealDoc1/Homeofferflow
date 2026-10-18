@@ -4568,6 +4568,63 @@ async def _txr1101_notice_context(user):
             "noticeContacts": {key: str(brokerage.get(key) or "") for key in NOTICE_CONTACT_LIMITS}}
 
 
+async def _assemble_owned_listing_packet(user, render_data, listing_pdf):
+    """Reuse the actual login's saved IABS, never source-host/private aliases.
+
+    Other related-document adapters are added here only after their own source
+    and signing implementation is verified. Missing documents remain pending;
+    no seller response or new signer is inferred to make the packet look ready.
+    """
+    from lib.listing_packet import PreparedDocument, assemble_listing_packet
+    from lib.txr_1101 import build_signwell_fields_txr1101
+    documents = []
+    if "A" in render_data["addenda"]:
+        rows = await _get(
+            "hof_agent_documents?"
+            f"user_id=eq.{urllib.parse.quote(str(user['id']),safe='')}&document_type=eq.iabs"
+            "&select=user_id,document_type,storage_bucket,storage_path,mime_type&limit=1"
+        )
+        if rows:
+            document = rows[0]
+            expected_path = str(user["id"])+"/iabs.pdf"
+            if (document.get("user_id") != user["id"] or document.get("document_type") != "iabs"
+                    or document.get("storage_bucket") != "agent-documents"
+                    or document.get("storage_path") != expected_path
+                    or document.get("mime_type") != "application/pdf"):
+                raise PermissionError("Your saved IABS document could not be confirmed.")
+            async with httpx.AsyncClient(timeout=20) as client:
+                response = await client.get(
+                    f"{SUPABASE_URL}/storage/v1/object/agent-documents/"
+                    f"{urllib.parse.quote(expected_path,safe='/')}",headers=_headers())
+            if response.status_code == 404:
+                # A stale saved-file row must not prevent preparing/sending the
+                # documents that exist. The manifest shows IABS as pending.
+                response = None
+            elif response.status_code != 200 or not response.content.startswith(b"%PDF") or len(response.content)>10_485_760:
+                raise RuntimeError("Your saved IABS PDF could not be loaded. The listing draft remains saved.")
+            if response is not None:
+                documents.append(PreparedDocument("A",response.content,[],{},hashlib.sha256(response.content).hexdigest()))
+    base_count = len(PdfReader(BytesIO(listing_pdf)).pages)
+    fields = build_signwell_fields_txr1101(render_data,client_count=len(render_data["client_names"]),page_count=base_count)
+    return assemble_listing_packet(render_data,listing_pdf,fields,documents=documents)
+
+
+def _listing_packet_confirmation(user, agreement, context):
+    """Bind the reviewed actual contents, not timestamped PDF bytes.
+
+    Broker signing contacts are separately reviewed and do not alter printed
+    broker identity or the saved notice contacts. Ignore only those redundant
+    contact keys so entering a missing broker email does not invalidate review.
+    """
+    value = {"owner":user["id"],"agreement":agreement["id"],
+        "packet":context["listing_packet_fingerprint"],
+        "source":context["source_sha256"],"render":context.get("render_revision"),
+        "profile":context["profile"],
+        "brokerage":{key:value for key,value in context["brokerage"].items()
+                     if key not in {"contact_name","contact_email"}}}
+    return hashlib.sha256(json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()
+
+
 async def _render_owned_representation_agreement(user, agreement, *, for_signing=False, fingerprint_context=None, professional_context=None):
     """Render one server-loaded, owner-scoped draft snapshot.
 
@@ -4643,7 +4700,13 @@ async def _render_owned_representation_agreement(user, agreement, *, for_signing
             fingerprint_context["render_revision"] = render_revision
     if agreement.get("form_code") == TXR_1101_FORM_CODE:
         from lib.txr_1101 import render_txr_1101
-        return render_txr_1101(response.content, render_data, brokerage, profile)
+        listing_pdf = render_txr_1101(response.content, render_data, brokerage, profile)
+        packet = await _assemble_owned_listing_packet(user,render_data,listing_pdf)
+        if fingerprint_context is not None:
+            fingerprint_context["listing_packet"] = packet.manifest
+            fingerprint_context["listing_packet_fingerprint"] = packet.content_fingerprint
+            fingerprint_context["listing_packet_fields"] = packet.fields
+        return packet.pdf
     if agreement.get("form_code") == TXR_1507_FORM_CODE:
         from lib.txr_1507 import render_txr_1507
         return render_txr_1507(response.content, render_data, brokerage, profile)
@@ -4892,7 +4955,7 @@ async def _standalone_signing_recipient_preview(user, agreement_id):
         f"id=eq.{urllib.parse.quote(agreement_uuid)}"
         f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
         "&status=in.(draft,failed)"
-        "&select=id,brokerage_id,form_code,client_names,agreement_data,status,signwell_document_id&limit=1"
+        "&select=id,brokerage_id,form_code,form_source_id,source_revision,client_names,agreement_data,status,signwell_document_id&limit=1"
     )
     if not rows:
         raise PermissionError("That document is unavailable or has already been sent.")
@@ -4910,7 +4973,9 @@ async def _standalone_signing_recipient_preview(user, agreement_id):
     if agreement.get("form_code") == TXR_1101_FORM_CODE and not _tracked_signature_journal(agreement):
         answers = _txr1101_stored_answers(agreement.get("agreement_data") or {}, names)
         emails = [answers["client_email"], answers["client_email_2"]][:len(names)]
-    recipients = await _standalone_signing_recipients(user, agreement, emails, allow_incomplete_broker=True)
+    professional_context = {}
+    recipients = await _standalone_signing_recipients(user, agreement, emails,
+        professional_context=professional_context,allow_incomplete_broker=True)
     labels = _standalone_signer_labels(agreement)
     for index, recipient in enumerate(recipients):
         editable = index < len(names)
@@ -4921,7 +4986,18 @@ async def _standalone_signing_recipient_preview(user, agreement_id):
         if recipient["id"] == "broker" and not recipient["email"]:
             recipient["emailEditable"] = True
             recipient["nameEditable"] = True
-    return {"agreementId": agreement_uuid, "recipients": recipients}
+    result = {"agreementId": agreement_uuid, "recipients": recipients}
+    if agreement.get("form_code") == TXR_1101_FORM_CODE:
+        packet_context = {}
+        await _render_owned_representation_agreement(user,agreement,
+            fingerprint_context=packet_context,professional_context=professional_context or None)
+        manifest = packet_context["listing_packet"]
+        result["packet"] = {"pageCount":manifest["page_count"],
+            "included":[row["label"] for row in manifest["included"]],
+            "pending":[row["label"] for row in manifest["pending"]],
+            "otherDocuments":manifest["other_documents"]}
+        result["packetFingerprint"] = _listing_packet_confirmation(user,agreement,packet_context)
+    return result
 
 
 def _validate_confirmed_signing_recipients(recipients, confirmed):
@@ -5138,8 +5214,16 @@ async def _send_txr_agreement_for_signature(user, data):
     rendered = await _render_owned_representation_agreement(
         user, agreement, for_signing=True, fingerprint_context=render_context,
         professional_context=professional_context or None)
-    fields = _txr_signwell_fields(form_code, {"client_names": client_names, **agreement_data}, client_count,
-                                 rendered_pdf=rendered)
+    if form_code == TXR_1101_FORM_CODE:
+        expected_packet = _listing_packet_confirmation(user,agreement,render_context)
+        confirmed_packet = data.get("confirmedPacketFingerprint")
+        if not isinstance(confirmed_packet,str) or not secrets.compare_digest(expected_packet,confirmed_packet):
+            raise ValueError("The document package changed. Reopen Send for signature to review its current contents. Nothing was sent.")
+    # The listing renderer has already composed related documents and shifted
+    # their fields. Never mistake appended pages for primary continuations.
+    fields = (render_context["listing_packet_fields"] if form_code == TXR_1101_FORM_CODE
+              else _txr_signwell_fields(form_code, {"client_names": client_names, **agreement_data}, client_count,
+                                       rendered_pdf=rendered))
     address_label = form_code.replace("-", " ")
     payload = {
         "test_mode": SIGNWELL_TEST_MODE,

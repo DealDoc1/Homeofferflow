@@ -25,10 +25,12 @@ window.fetch=async(url,options={})=>{
  if(!url.startsWith('/api/admin-dashboard'))throw new Error('External calls are blocked');
  if(url.includes('scope=txr1101_context'))return mode==='office-down'?{ok:false,status:503,json:async()=>({error:'Synthetic optional defaults failure'})}
    :{ok:true,status:200,json:async()=>({brokerage:{name:'Independent QA Realty',license_number:'9000001'},noticeContacts:{address:'10 Current Office Lane',city_state_zip:'Dallas, TX 75201',phone:'214-555-0100',email:'current-office@example.test',email_2:''}})};
- if(url.includes('scope=standalone_agreements'))return {ok:true,status:200,json:async()=>({agreements:record?[record]:[],signingEnabled:false,signingFormCodes:['TXR-1101']})};
+ if(url.includes('scope=standalone_agreements'))return {ok:true,status:200,json:async()=>({agreements:record?[record]:[],signingEnabled:mode==='packet',signingFormCodes:['TXR-1101']})};
+ if(url.includes('scope=standalone_signing_recipients'))return {ok:true,status:200,json:async()=>({recipients:[{id:'1',name:'QA Seller One',label:'Seller 1',email:'seller1@example.test',emailEditable:true},{id:'2',name:'QA Seller Two',label:'Seller 2',email:'seller2@example.test',emailEditable:true},{id:'associate',name:'QA Associate',label:'Associate signer (your account)',email:'agent@example.test',emailEditable:false}],packetFingerprint:'a'.repeat(64),packet:{pageCount:11,included:['Sale listing agreement','Information About Brokerage Services'],pending:['Seller’s Disclosure Notice'],otherDocuments:''}})};
  if(!options.method)return {ok:!!record,status:record?200:404,json:async()=>({agreement:record})};
  const body=JSON.parse(options.body);count++;
  document.getElementById('qaRequests').textContent=JSON.stringify({requestCount:count,lastRequest:body},null,2);
+ if(body.action==='send_txr_agreement_for_signature')throw new Error('No signing invitation is permitted in local QA.');
  if(mode==='lost-save')throw new Error('Synthetic connection loss');
  if(mode==='conflict')return {ok:false,status:409,json:async()=>({refreshRequired:true,error:'Synthetic ambiguous save'})};
  if(mode==='rejected')return {ok:false,status:400,json:async()=>({error:'Check the listing dates.'})};
