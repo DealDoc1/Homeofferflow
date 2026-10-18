@@ -4,6 +4,19 @@ Future batches follow the [lean development protocol](LEAN_DEVELOPMENT_PROTOCOL.
 to reduce model context, repeated regression runs and Vercel usage without
 reducing verification standards.
 
+## Seller-owned disclosure questionnaire - October 18, 2026
+
+Implemented locally: offer/listing/account entry points, shared seller interview,
+private email-verified answer saves, version-bound seller confirmations and the
+existing separate SignWell send path with saved recipients only. Existing
+review-only links stay read-only. The focused run passes 155 checks; real local
+PostgreSQL passes 52 assertions. Desktop/390px phone UI and unavailable-preview
+recovery were checked with fictional data; no customer email was sent.
+**Not deployed.** Combined-packet inclusion, retained v4 signed-provider visual
+QA, approved/current source differential checking and the coordinated release
+remain implementation work. No owner action or new authorization is required.
+See [seller-owned questionnaire checkpoint](release-evidence/seller-owned-questionnaire-2026-10-18.md).
+
 ## Listing lead provider-QA preparation - October 17, 2026
 
 **October 18 update:** the isolated owner-only QA tool is production deployed

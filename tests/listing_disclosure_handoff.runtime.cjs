@@ -36,13 +36,20 @@ function setup({kind = 'sale', sellers = ['Ana García', 'Wei Chen'], address = 
   const user = {id: 'agent-one'};
   const listing = {id: 'listing-one', agent_user_id: user.id, listing_kind: kind, property_address: address, seller_names: sellers};
   let result = {data: [listing], error: null};
+  const offer={id:'offer-one',user_id:user.id,property_address:'202 Fictional Offer Lane',offer_data:{
+    seller1Name:'Offer Seller',seller1Email:'seller@example.test',buyer1Name:'Do not copy buyer',defect_roof:'N'}};
+  let offerResult={data:offer,error:null};
   let resolvePending;
   let pending = false;
   const query = {select: value => {queries.push(['select', value]); return query;},
     eq: (key, value) => {queries.push(['eq', key, value]); return query;},
+    is:(key,value)=>{queries.push(['is',key,value]);return query;},maybeSingle:()=>Promise.resolve(offerResult),
     limit: count => {queries.push(['limit', count]); return pending ? new Promise(resolve => {resolvePending = resolve;}) : Promise.resolve(result);},
   };
-  const root = {hofAuth: {session: {user}}, getSupabaseClient: () => ({from: table => {queries.push(['from', table]); return query;}}),
+  const root = {hofAuth: {session: {user}}, getSupabaseClient: () => ({from: table => {
+    queries.push(['from', table]);
+    return query;
+  }}),
     setTimeout: fn => {timers.push(fn);},
   };
   const choices = [];
@@ -59,11 +66,33 @@ function setup({kind = 'sale', sellers = ['Ana García', 'Wei Chen'], address = 
     if (confirm !== null) queueMicrotask(() => modal.controls[confirm ? 'replace' : 'keep'].handlers.click());
   }}};
   vm.runInNewContext(handoff, {root, window: root, document, active: () => true,
-    renderCard: async () => {}, syncWaterRightsVisibility: () => {calls.push(['water']);}});
+    renderCard: async () => {}, syncDisclosureDetails:()=>{}, syncWaterRightsVisibility: () => {calls.push(['water']);}});
   return {root, fields, card, responses, calls, queries, listing, timers, choices,
     setResult: value => {result = value;}, waitForQuery: () => {pending = true;}, resolve: value => resolvePending(value),
+    offer,setOfferResult:value=>{offerResult=value;},
   };
 }
+
+test('offer handoff reads the owner row, reuses contacts, and never infers seller answers or buyers',async()=>{
+ const p=setup();await p.root.startOfferSellerDisclosure('offer-one');
+ assert.equal(p.fields.get('hofSellerAddress').value,'202 Fictional Offer Lane');
+ assert.equal(p.fields.get('hofSeller1').value,'Offer Seller');
+ assert.equal(p.fields.get('hofSellerEmail').value,'seller@example.test');
+ assert.equal(p.fields.get('hofBuyer1').value,'');assert.ok(p.responses.every(f=>f.value===''));
+ assert.deepEqual(p.queries.filter(q=>q[0]==='eq'),[['eq','id','offer-one'],['eq','user_id','agent-one']]);
+ assert.deepEqual(p.queries.find(q=>q[0]==='is'),['is','deleted_at',null]);
+ assert.equal(p.fields.get('hofSendSellerReview').disabled,true);
+});
+test('foreign offer read cannot populate the questionnaire',async()=>{
+ const p=setup();p.setOfferResult({data:{...p.offer,user_id:'other-owner'},error:null});
+ await p.root.startOfferSellerDisclosure('offer-one');
+ assert.equal(p.fields.get('hofSellerAddress').value,'');assert.equal(p.fields.get('hofSeller1').value,'');
+});
+test('offer handoff preserves current disclosure when the user keeps it',async()=>{
+ const p=setup({confirm:false});p.fields.get('hofSellerAddress').value='Existing disclosure';
+ await p.root.startOfferSellerDisclosure('offer-one');
+ assert.equal(p.fields.get('hofSellerAddress').value,'Existing disclosure');
+});
 
 test('saved sale listing carries address and one/two seller names through an owner-scoped read, without saving or sending', async () => {
   const p = setup();

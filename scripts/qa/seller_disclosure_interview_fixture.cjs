@@ -8,7 +8,8 @@ function between(start, end) {
   return source.slice(a, b);
 }
 const css = between('<style id="hof-seller-disclosure-draft-ui-v1">', '</style>').replace(/^[\s\S]*?>/, '');
-const declarations = between('  const responseGroups = [', '  async function approvedSources()');
+const declarations = fs.readFileSync(path.join(rootDir,'assets/seller-disclosure-interview.js'),'utf8') +
+  '\nconst draftCache=new Map();const {renderResponses,renderWaterResponses,collectDisclosureResponses,syncDisclosureDetails}=window.hofDisclosureInterview;';
 const visibility = between('  function syncWaterRightsVisibility()', '  root.loadSellerDisclosureDraft = function');
 const load = between('  root.loadSellerDisclosureDraft = function', '  let listingDisclosureHandoffRevision');
 const page = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
