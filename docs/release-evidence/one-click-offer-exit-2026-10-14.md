@@ -31,7 +31,7 @@
   harness and existing Resume, modal accessibility and autosave guards.
 - Fictional-only localhost fixture uses actual production exit, snapshot,
   debounce, save and Resume-label functions with simplified interview and
-  reopening scaffolding. Desktop 1280x900 and phone 390x844 interactions
+  reopening scaffolding. Desktop and phone-width interactions
   returned home without a JavaScript dialog; changing the buyer's first name
   survived reopening at both widths. Cash and survey selections remained.
   The homepage was no longer inert and the Resume CTA was usable.
@@ -45,15 +45,40 @@
 
 ## Release checkpoint
 
-Full local suite: 2,643 tests passed, one environment skip (see local regression
-log for elapsed time). Whitespace passed. Read-only Vercel capacity workflow
+Full local suite: 2,643 tests in 89.542s passed, one environment skip.
+Whitespace passed. Read-only Vercel capacity workflow
 38674376178 passed at 03:05:25 UTC October 15 (10:05 PM Chicago October 14):
 four deployments in 24 hours, $0.04 used, $19.96 unconsumed, $3 reserved for
 the September 22–October 21 cycle. This is a measured snapshot, not an account
 reset or a guarantee about future usage. The production workflow repeats its
 own spend check before upload.
 
-CI and deployment identities are recorded only after completion. Until then
-this is locally tested, not a deployed or completed-provider signing claim.
+## Deployed verification
+
+- PR #1340 exact head 56d669f1718ddcd67e246de2ab4b9341e282ab1a passed
+  independent CI 38674570237: 2,643 tests in 170.470s, two skips; golden
+  rendering, signer geometry, schema preflight and whitespace passed.
+  Normal merge e15c5db0138751a0232054045eda7e0b8442e465. The application PR
+  attachment helper hit its existing 100-item limit; no attachments removed.
+- Production workflow 38674908583 passed: 2,643 merged tests in 172.102s,
+  two skips, then project/schema/spend/prebuilt/readiness/canonical/PWA and
+  API/packet-runtime checks. Exactly one prebuilt deployment, no previews.
+- READY dpl_47tztcZ7rgRmvVYvdCdLUubDpBSz independently matches that merge
+  SHA and both canonical root/www aliases. Last pre-build credit snapshot
+  03:14:44 UTC: $0.04 used, $19.96 unconsumed, $3 reserve, four prior
+  deployments in the rolling 24-hour window. Not a guarantee of future spend.
+- Canonical byte comparisons matched: homepage
+  cd129da789a07d4d5cf4452aabf5e00bd26b833fb56a260a0da2790f59dbcd28;
+  worker cafca38e481305628529bf92064a099f81485bdc8b83d353dbbc575d300c5dd1.
+- A temporary canonical agent-entry tab opened the existing active account;
+  closing only that account panel showed the account-aware Agent homepage
+  at 390px, without reopening or changing the saved customer interview.
+  Live screenshot: /private/tmp/hof-one-click-exit-live-home-2026-10-14.png.
+  This confirms the released presentation, not a fresh live-customer exit
+  or full signing run. Behavior proof remains the isolated actual-source
+  runtime/browser tests above. Original offer/signing tabs are preserved.
+- No error/fatal logs in the bounded deployment window 03:15:11–03:27:20 UTC;
+  this is not a universal service-health claim. No new signatures, invitations,
+  customer packet, outreach, source activation, database write or fee change.
 
 Rollback: prior READY dpl_C9CAxDShcosKDjYov6LoqYpjpF64.

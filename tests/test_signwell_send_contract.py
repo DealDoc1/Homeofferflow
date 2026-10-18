@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import AsyncMock, patch
 from tests.test_txr_1507_renderer import blank_two_page_pdf
+from lib.seller_disclosure_explanations import RENDER_REVISION
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -86,9 +87,17 @@ class SignwellSendContractTests(unittest.TestCase):
                          'signing_map_revision': MODULE.TXR_SIGNING_MAP_REVISIONS['TXR-1507']}}
         source = {'source_revision': '06-15-26', 'storage_bucket': 'private', 'storage_path': 'source.pdf'}
         disclosure = {'id': RECORD_ID, 'seller_names': ['Seller One'], 'buyer_names': ['Buyer One'],
+                      'brokerage_id': 'fictional-library', 'agent_user_id': USER['id'],
+                      'review_content_revision': '44444444-4444-4444-8444-444444444444',
+                      'seller_review_render_revision': RENDER_REVISION,
                       'updated_at': '2026-09-15T13:00:00+00:00', 'status': 'draft', 'response_data': {}}
         record = agreement if kind == 'agreement' else disclosure
         async def lookup(query):
+            if query.startswith('hof_seller_disclosure_review_links?'):
+                return [{'seller_index': 1, 'seller_name': 'Seller One', 'seller_attested_name': 'Seller One',
+                         'seller_attested_at': '2026-09-15T12:59:00Z',
+                         'review_content_revision': disclosure['review_content_revision'],
+                         'review_render_revision': RENDER_REVISION}]
             return [copy.deepcopy(source if 'hof_brokerage_form_sources?' in query else record)]
         with patch.object(MODULE, 'TXR_SIGNING_ENABLED', True), \
              patch.object(MODULE, 'SIGNWELL_ENABLED', True), \
