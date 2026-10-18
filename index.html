@@ -5366,9 +5366,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   async function runPurchaseSigningTest(send, button, scope = 'purchase') {
     const showing = scope === 'showing';
     const amendment = scope === 'amendment';
-    const status = document.getElementById(amendment ? 'adminAmendmentSigningTestStatus' : showing ? 'adminShowingSigningTestStatus' : 'adminPurchaseSigningTestStatus');
+    const listingLead = scope === 'listing-lead';
+    const status = document.getElementById(listingLead ? 'adminListingLeadSigningTestStatus' : amendment ? 'adminAmendmentSigningTestStatus' : showing ? 'adminShowingSigningTestStatus' : 'adminPurchaseSigningTestStatus');
     if (!status || !hofAuth.session) return;
-    const sendButton = document.getElementById(amendment ? 'adminAmendmentSigningTestSend' : showing ? 'adminShowingSigningTestSend' : 'adminPurchaseSigningTestSend');
+    const sendButton = document.getElementById(listingLead ? 'adminListingLeadSigningTestSend' : amendment ? 'adminAmendmentSigningTestSend' : showing ? 'adminShowingSigningTestSend' : 'adminPurchaseSigningTestSend');
     const originalLabel = button?.textContent;
     if (button) { button.disabled = true; button.textContent = send ? 'Sending test…' : 'Checking…'; }
     if (sendButton) sendButton.disabled = true;
@@ -5377,7 +5378,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const response = await fetch('/api/admin-dashboard', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hofAuth.session.access_token}` },
-        body: JSON.stringify({ action: amendment
+        body: JSON.stringify({ action: listingLead
+          ? (send ? 'send_listing_lead_signing_test' : 'check_listing_lead_signing_test')
+          : amendment
           ? (send ? 'send_amendment_signing_test' : 'check_amendment_signing_test')
           : showing
           ? (send ? 'send_showing_signing_test' : 'check_showing_signing_test')
@@ -5882,6 +5885,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <button id="adminAmendmentSigningTestSend" type="button" class="admin-contact-action" onclick="runPurchaseSigningTest(true, this, 'amendment')">Send one amendment test</button>
             <button type="button" class="admin-contact-action" onclick="runPurchaseSigningTest(false, this, 'amendment')">Check amendment test</button>
             <div id="adminAmendmentSigningTestStatus" class="admin-empty" role="status" aria-live="polite">Check first. A recorded attempt cannot be sent again.</div>
+          </details><details style="margin-top:1rem;">
+            <summary>Listing lead disclosure test</summary>
+            <p class="admin-muted">One fictional TREC 56-0 packet for the same two test inboxes. Checks seller choices, required explanations and signature placement. Fields are checked before invitations; client documents are unchanged.</p>
+            <button id="adminListingLeadSigningTestSend" type="button" class="admin-contact-action" style="min-height:44px" onclick="runPurchaseSigningTest(true, this, 'listing-lead')">Send one lead disclosure test</button>
+            <button type="button" class="admin-contact-action" style="min-height:44px" onclick="runPurchaseSigningTest(false, this, 'listing-lead')">Check lead disclosure test</button>
+            <div id="adminListingLeadSigningTestStatus" class="admin-empty" role="status" aria-live="polite">Check first. A recorded attempt cannot be sent again.</div>
           </details>` : ''}
         </div>
 
