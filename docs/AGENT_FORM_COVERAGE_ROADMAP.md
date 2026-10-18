@@ -4,6 +4,20 @@ Future batches follow the [lean development protocol](LEAN_DEVELOPMENT_PROTOCOL.
 to reduce model context, repeated regression runs and Vercel usage without
 reducing verification standards.
 
+## Listing lead provider-QA preparation - October 17, 2026
+
+A fixed seven-page, two-inbox TREC 56-0 test now reuses the existing owner-only
+QA tracker and server-side signing connection. Its private draft must retain
+the reviewed geometry, recipients, exact-one choices and conditional explanation
+rules before invitations. The reservation and document identity are saved
+before sending, so refreshes or ambiguous outcomes cannot create another test.
+Eighty-six focused checks pass, including nine JavaScript control cases; all
+seven local placement pages and the desktop/phone owner control were reviewed.
+This QA action is **implemented locally, not published or sent**. No production
+credential was exported. The next workstream is a controlled QA-only release,
+actual SignWell readback/signing and completed-PDF visual review, not another
+local-layout claim. See [provider-QA preparation](release-evidence/listing-lead-provider-qa-preparation-2026-10-17.md).
+
 ## Listing-agreement implementation checkpoint - October 17, 2026
 
 TXR-1101 now has a locally tested answer contract, exact-source overlay,
