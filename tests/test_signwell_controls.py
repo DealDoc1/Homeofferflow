@@ -1,7 +1,10 @@
 from copy import deepcopy
+import hashlib
+import json
 import unittest
 
 from lib.signwell_controls import controls_match
+from lib.signwell_delivery import request_fingerprint
 
 
 def specimen():
@@ -49,5 +52,20 @@ class SignwellControlTests(unittest.TestCase):
         for field_index,key,value in ((0,'required',True),(2,'fixed_width',False),(2,'validation_regex','.*')):
             old=deepcopy(self.document);self.document['fields'][0][field_index][key]=value
             self.assertFalse(self.matches());self.document=old
+
+    def test_control_changes_are_bound_but_legacy_fingerprint_is_byte_compatible(self):
+        payload={'fields':self.fields,'recipients':[{'id':'1'}],'metadata':{'source':'QA'},'test_mode':True,'apply_signing_order':False,'embedded_signing':False}
+        context={'source':'stable'}
+        previous={'context':context,'metadata':payload['metadata'],'fields':self.fields,'recipients':payload['recipients'],
+                  'test_mode':True,'apply_signing_order':False,'embedded_signing':False}
+        expected=hashlib.sha256(json.dumps(previous,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()
+        self.assertEqual(request_fingerprint(payload,context),expected)
+        self.assertEqual(request_fingerprint({**payload,'checkbox_groups':[],'conditional_rules':[]},context),expected)
+        controlled={**payload,'checkbox_groups':self.groups,'conditional_rules':self.rules}
+        first=request_fingerprint(controlled,context)
+        self.assertNotEqual(first,expected)
+        changed=deepcopy(controlled);changed['checkbox_groups'][0]['exact_value']=2
+        self.assertNotEqual(first,request_fingerprint(changed,context))
+
 
 if __name__=='__main__':unittest.main()

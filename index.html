@@ -159,6 +159,8 @@
   <script defer src="/assets/trec-62-followup.js"></script>
   <script defer src="/assets/trec-38-8-followup.js"></script>
   <script defer src="/assets/trec-39-11-amendment.js"></script>
+<link rel="stylesheet" href="/assets/txr1101-interview.css">
+<script defer src="/assets/txr1101-interview.js"></script>
   <link rel="icon" href="/assets/homeofferflow-app-icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/assets/homeofferflow-apple-touch-icon.png" sizes="180x180" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -4671,6 +4673,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     window.hofClearProfileEditDraft?.();
     document.getElementById('agentIabsProfileCard')?.remove();
     document.getElementById('agentIabsOfferOption')?.remove();
+    document.getElementById('txr1101Interview')?.remove();
+    document.getElementById('hofStandaloneAgreementCard')?.remove();
+    document.getElementById('hofStandaloneSendDialog')?.remove();
+    window.hofOpenPreparedAgreement = null;
   }
 
   function beginAccountProfileLoad() {
@@ -8457,7 +8463,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       sale_listing: {
         title: 'What do you need for this listing?',
         choices: [
-          { label: 'Start a listing workspace', copy: 'Begin with the seller, property, timing, and next steps.', primary: true, action: () => openListingWorkspace(true), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) },
+          { label: 'Prepare a listing agreement', copy: 'Answer a few questions about the seller, property, and agreed terms. Review the agreement before sending.', primary: true, action: () => openRelationshipDraft('hofOpenTxr1101Draft', undefined, { formCode: 'TXR-1101' }), isWorkspaceOpen: () => Boolean(document.getElementById('txr1101Interview')) },
+          { label: 'Open a listing workspace', copy: 'Keep the seller, property, timing, and next steps together.', action: () => openListingWorkspace(true), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) },
           { label: 'Create seller disclosures', copy: 'Answer the property and seller questions, then review the completed disclosure.', action: () => { showAccountTab('seller'); window.setTimeout(() => window.openSellerDisclosureDraftWorkspace?.(), 0); }, isWorkspaceOpen: () => Boolean(document.getElementById('hofSellerDisclosureCard')) },
           { label: 'Compare a buyer offer', copy: 'Compare price, financing, deadlines, concessions, and possession.', action: () => window.hofOpenListingOfferComparison?.(), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceOfferComparisonCard')) }
         ]
@@ -13528,6 +13535,8 @@ function routeAfterMagicLinkIfNeeded() {
       propAddress: fillAddressFields,
       buyerMailAddr: fillBuyerMailAddressField,
       clientAddress: fillClientMailingAddressFields,
+      client_address: fillListingSellerNoticeAddressFields,
+      broker_notice_address: fillListingBrokerNoticeAddressFields,
       fsboPropertyAddress: fillFsboAddressFields,
       brandOfficeAddress: fillBrandOfficeAddressFields
     };
@@ -13641,6 +13650,11 @@ function routeAfterMagicLinkIfNeeded() {
     const fields = ids.map(id => document.getElementById(id)).filter(Boolean);
     if (input.id === 'clientAddress' || input.name === 'clientAddress') {
       const companion = document.querySelector('#txr1501AgreementForm [name="clientCityStateZip"]');
+      if (companion) fields.push(companion);
+    }
+    const listingCompanion = {client_address:'client_city_state_zip',broker_notice_address:'broker_notice_city_state_zip'}[input.name];
+    if (listingCompanion) {
+      const companion = document.querySelector(`#txr1101InterviewForm [name="${listingCompanion}"]`);
       if (companion) fields.push(companion);
     }
     return fields;
@@ -14022,6 +14036,18 @@ function routeAfterMagicLinkIfNeeded() {
     const companion = document.querySelector('#txr1501AgreementForm [name="clientCityStateZip"]');
     _setGoogleAddressFields([[companion, cityStateZip]]);
   }
+
+  function fillListingNoticeAddressFields(components, party) {
+    const { street, city, state, zip } = _googleAddressParts(components);
+    const names = party === 'broker' ? ['broker_notice_address','broker_notice_city_state_zip'] : ['client_address','client_city_state_zip'];
+    const address = document.querySelector(`#txr1101InterviewForm [name="${names[0]}"]`);
+    const location = document.querySelector(`#txr1101InterviewForm [name="${names[1]}"]`);
+    const updates = [[location,[city,[state,zip].filter(Boolean).join(' ')].filter(Boolean).join(', ')]];
+    if (street) updates.unshift([address,street]);
+    _setGoogleAddressFields(updates);
+  }
+  function fillListingSellerNoticeAddressFields(components) { fillListingNoticeAddressFields(components,'seller'); }
+  function fillListingBrokerNoticeAddressFields(components) { fillListingNoticeAddressFields(components,'broker'); }
 
   function fillAddressFields(components) {
     const { street, city, county, state, zip } = _googleAddressParts(components);
@@ -15469,6 +15495,17 @@ function routeAfterMagicLinkIfNeeded() {
     }
   };
 
+  window.startListingAgreement = async function startListingAgreement(workspaceId) {
+    const workspace = (hofPlatform.listingWorkspaces || []).find(item => String(item.id) === String(workspaceId));
+    if (!workspace || workspace.listing_kind !== 'sale') return;
+    try {
+      if (typeof window.hofOpenTxr1101Draft !== 'function') throw new Error('The interview is still loading.');
+      await window.hofOpenTxr1101Draft({ workspace: { property_address: workspace.property_address, seller_names: workspace.seller_names } });
+    } catch (_) {
+      platformStatus('listingWorkspaceStatus', 'We couldn’t open the listing agreement. Your workspace is saved—please try again.', 'err');
+    }
+  };
+
   function listingWorkspaceLabel(value) {
     return String(value || '').replace(/_/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
   }
@@ -15938,7 +15975,7 @@ function routeAfterMagicLinkIfNeeded() {
           ? workspace.requested_workflows.map(listingWorkspaceLabel).join(' · ') : 'No workflow selected yet';
         const workspaceId = String(workspace.id || '');
         const statusControls = /^[0-9a-f-]{20,80}$/i.test(workspaceId)
-          ? `<div class="seller-lead-actions"><select id="listingWorkspaceStatus-${escapeAttr(workspaceId)}" aria-label="Listing workspace status">${listingWorkspaceStatusOptions(workspace.status || 'intake')}</select><button type="button" class="brokerage-access-button" id="listingWorkspaceStatusButton-${escapeAttr(workspaceId)}" onclick="updateListingWorkspaceStatus('${escapeAttr(workspaceId)}')">Save status</button>${workspace.listing_kind === 'sale' ? `<button type="button" class="brokerage-access-button" onclick="startListingSellerDisclosure('${escapeAttr(workspaceId)}')">Prepare seller disclosure</button>` : ''}</div>`
+          ? `<div class="seller-lead-actions"><select id="listingWorkspaceStatus-${escapeAttr(workspaceId)}" aria-label="Listing workspace status">${listingWorkspaceStatusOptions(workspace.status || 'intake')}</select><button type="button" class="brokerage-access-button" id="listingWorkspaceStatusButton-${escapeAttr(workspaceId)}" onclick="updateListingWorkspaceStatus('${escapeAttr(workspaceId)}')">Save status</button>${workspace.listing_kind === 'sale' ? `<button type="button" class="brokerage-access-button" onclick="startListingAgreement('${escapeAttr(workspaceId)}')">Prepare listing agreement</button><button type="button" class="brokerage-access-button" onclick="startListingSellerDisclosure('${escapeAttr(workspaceId)}')">Prepare seller disclosure</button>` : ''}</div>`
           : '';
         return `<div class="platform-list-item"><strong>${escapeAttr(workspace.property_address || 'Listing workspace')}</strong><span class="platform-pill">${escapeAttr(listingWorkspaceLabel(workspace.listing_kind))}</span><span class="platform-pill">${escapeAttr(listingWorkspaceLabel(workspace.status))}</span><br>${escapeAttr((workspace.seller_names || []).join(' · '))}<br><small>${escapeAttr(workflows)}</small>${statusControls}</div>`;
       }).join('') : '<div class="platform-list-item">No listing workspaces yet.</div>';
@@ -23774,6 +23811,8 @@ function routeAfterMagicLinkIfNeeded() {
   const escape = value => String(value ?? '').replace(/[&<>\"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[char]));
   const token = () => root.hofAuth?.session?.access_token || '';
   const activeAgent = () => !!root.hofAuth?.session?.user;
+  const captureViewer = () => ({ id:root.hofAuth?.session?.user?.id, epoch:root.__hofAccountProfileEpoch || 0 });
+  const viewerIsCurrent = actor => Boolean(actor.id) && actor.id === root.hofAuth?.session?.user?.id && actor.epoch === (root.__hofAccountProfileEpoch || 0);
 
   async function loadAgreements() {
     const response = await fetch('/api/admin-dashboard?scope=standalone_agreements', { headers: { Authorization: `Bearer ${token()}` } });
@@ -23782,15 +23821,25 @@ function routeAfterMagicLinkIfNeeded() {
     return payload;
   }
 
+  function listingPacketSummary(packet) {
+    if (!packet || !Array.isArray(packet.included) || !Array.isArray(packet.pending)) return '';
+    const included = packet.included.map(escape).join(' · ');
+    const pending = packet.pending.map(escape).join(' · ');
+    return `<details class="hof-listing-note"><summary>Your packet${Number.isInteger(packet.pageCount) ? ' · '+packet.pageCount+' pages' : ''}</summary><p><strong>Included:</strong> ${included || 'None prepared'}</p>${pending ? `<p><strong>Still to prepare:</strong> ${pending}</p>` : ''}${packet.otherDocuments ? `<p><strong>Other documents noted:</strong> ${escape(packet.otherDocuments)}</p>` : ''}${pending || packet.otherDocuments ? '<p>You can send the prepared documents now and complete the remaining items separately.</p>' : ''}</details>`;
+  }
+
   async function openSendDialog(agreement, refresh) {
+    const actor = captureViewer();
     document.getElementById('hofStandaloneSendDialog')?.remove();
     let signers = [];
+    let listingPacketFingerprint = '';
     const modal = document.createElement('div');
     modal.id = 'hofStandaloneSendDialog';
     modal.className = 'hof-agreement-modal';
     modal.innerHTML = `<form class="hof-agreement-dialog" id="hofStandaloneSendForm">
-      <h3>Send ${escape(agreement.form_code)} for signature</h3>
+      <h3>Send ${escape(agreement.form_code === 'TXR-1101' ? 'sale listing packet' : agreement.form_code)} for signature</h3>
       <p>Review everyone who will receive this document. Each signer needs a different email address.</p>
+      <div id="hofStandalonePacketSummary"></div>
       <div class="hof-agreement-grid" id="hofStandaloneSigningRecipients"></div>
       <div id="hofStandaloneSendStatus" class="hof-iabs-status" role="status" aria-live="polite">Loading signing recipients…</div>
       <div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="hofStandaloneSendCancel">Cancel</button><button class="btn-primary" type="submit" disabled>Send signature request</button></div>
@@ -23800,6 +23849,7 @@ function routeAfterMagicLinkIfNeeded() {
     modal.addEventListener('click', event => { if (event.target === modal) modal.remove(); });
     modal.querySelector('#hofStandaloneSendForm').addEventListener('submit', async event => {
       event.preventDefault();
+      if (!viewerIsCurrent(actor)) { modal.remove(); return; }
       if (!signers.length) return;
       const status = modal.querySelector('#hofStandaloneSendStatus');
       const form = new FormData(event.currentTarget);
@@ -23820,20 +23870,22 @@ function routeAfterMagicLinkIfNeeded() {
       const submit = event.currentTarget.querySelector('button[type="submit"]');
       submit.disabled = true; status.textContent = 'Sending securely…';
       try {
-        const response = await fetch('/api/admin-dashboard', { method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${token()}`}, body:JSON.stringify({ action:'send_txr_agreement_for_signature', agreementId:agreement.id, clientEmails, confirmedRecipients, brokerSigner }) });
+        const response = await fetch('/api/admin-dashboard', { method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${token()}`}, body:JSON.stringify({ action:'send_txr_agreement_for_signature', agreementId:agreement.id, clientEmails, confirmedRecipients, brokerSigner, ...(agreement.form_code === 'TXR-1101' ? {confirmedPacketFingerprint:listingPacketFingerprint} : {}) }) });
         const result = await response.json().catch(() => ({}));
+        if (!viewerIsCurrent(actor) || !modal.isConnected) { modal.remove(); return; }
         if (!response.ok) {
           const deliveryError = new Error(result.error || 'Could not send the signature request.');
           deliveryError.customerSafe = Boolean(result.deliveryUnconfirmed);
           throw deliveryError;
         }
-        status.className = 'hof-iabs-status ready'; status.textContent = result.message || 'Signature request sent.';
+        status.className = 'hof-iabs-status ready'; status.textContent = result.signwell?.message || result.message || 'Signature request sent.';
         try { await refresh(); } catch (_) {
           status.textContent += ' Your document list could not refresh. Check its status from your account.';
           return;
         }
         setTimeout(() => modal.remove(), 800);
       } catch (error) {
+        if (!viewerIsCurrent(actor) || !modal.isConnected) return;
         console.error('Signature request send failed:', error);
         const fallback = 'We couldn’t send the signature request. Your document is still saved—please try again.';
         status.className = 'hof-iabs-status error'; status.textContent = error.customerSafe ? error.message : (root.hofCustomerActionError?.(error, fallback) || fallback);
@@ -23842,6 +23894,7 @@ function routeAfterMagicLinkIfNeeded() {
           'TXR-1506': root.hofOpenTxr1506Draft,
           'TXR-1507': root.hofOpenTxr1507Draft,
           'TXR-1508': root.hofOpenTxr1508Draft,
+          'TXR-1101': () => root.hofOpenTxr1101Draft?.({ agreementId: agreement.id }),
         };
         const prepareCurrentCopy = staleMapOpeners[agreement.form_code];
         if (prepareCurrentCopy && /signature fields appear in the right places/i.test(String(error.message || ''))) {
@@ -23861,16 +23914,18 @@ function routeAfterMagicLinkIfNeeded() {
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || 'Could not load the signing recipients.');
-      if (!modal.isConnected) return;
+      if (!modal.isConnected || !viewerIsCurrent(actor)) return;
       if (!Array.isArray(result.recipients) || !result.recipients.length) throw new Error('This document has no signing recipients.');
       signers = result.recipients;
+      listingPacketFingerprint = result.packetFingerprint || '';
+      modal.querySelector('#hofStandalonePacketSummary').innerHTML = agreement.form_code === 'TXR-1101' ? listingPacketSummary(result.packet) : '';
       modal.querySelector('#hofStandaloneSigningRecipients').innerHTML = signers.map(signer => signer.nameEditable
         ? `<div class="hof-agreement-grid hof-agreement-wide" style="margin:0"><label>Broker's name<input name="signerName${escape(signer.id)}" required maxlength="120" autocomplete="off" value="${escape(signer.name || '')}"></label><label>Broker's email<input name="clientEmail${escape(signer.id)}" required type="email" maxlength="254" autocomplete="off" value="${escape(signer.email || '')}"></label></div>`
         : `<label>${escape(signer.label)}: ${escape(signer.name)}<input ${signer.emailEditable ? `name="clientEmail${escape(signer.id)}" required autocomplete="email"` : 'readonly'} type="email" maxlength="254" value="${escape(signer.email || '')}"></label>`).join('');
       modal.querySelector('#hofStandaloneSendStatus').textContent = '';
       modal.querySelector('button[type="submit"]').disabled = false;
     } catch (error) {
-      if (!modal.isConnected) return;
+      if (!modal.isConnected || !viewerIsCurrent(actor)) return;
       const status = modal.querySelector('#hofStandaloneSendStatus');
       status.className = 'hof-iabs-status error';
       console.error('Signing recipient load failed:', error);
@@ -23907,6 +23962,7 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   async function downloadCompletedAgreementPdf(agreement, button) {
+    const actor = captureViewer();
     const originalText = button.textContent;
     button.disabled = true;
     button.textContent = 'Preparing…';
@@ -23920,7 +23976,9 @@ function routeAfterMagicLinkIfNeeded() {
         const result = await response.json().catch(() => ({}));
         throw new Error(result.error || 'Could not download the completed PDF.');
       }
-      const url = URL.createObjectURL(await response.blob());
+      const blob = await response.blob();
+      if (!viewerIsCurrent(actor)) return;
+      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.download = `${agreement.form_code || 'HomeOfferFlow'}-completed.pdf`;
@@ -23930,6 +23988,7 @@ function routeAfterMagicLinkIfNeeded() {
       window.setTimeout(() => URL.revokeObjectURL(url), 60000);
       window.announceWorkspaceStatus?.('Completed PDF downloaded. Review it before filing or sharing it.');
     } catch (error) {
+      if (!viewerIsCurrent(actor)) return;
       console.error('Completed PDF download failed:', error);
       window.announceWorkspaceStatus?.(window.hofCustomerActionError?.(error, 'We couldn’t download the completed PDF. Please try again.') || 'We couldn’t download the completed PDF. Please try again.');
     } finally {
@@ -23939,6 +23998,7 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   async function previewAgreementPdf(agreement, button) {
+    const actor = captureViewer();
     button.disabled = true;
     try {
       const isCompleted = agreement.status === 'signed' && agreement.signwell_document_id;
@@ -23956,8 +24016,11 @@ function routeAfterMagicLinkIfNeeded() {
         throw new Error(result.error || (isCompleted ? 'Completed PDF preview is unavailable.' : 'Document preview is unavailable.'));
       }
       if (!root.hofShowPdfPreview) throw new Error('PDF preview is temporarily unavailable.');
-      root.hofShowPdfPreview(await response.blob(), agreement.form_code);
+      const blob = await response.blob();
+      if (!viewerIsCurrent(actor)) return;
+      root.hofShowPdfPreview(blob, agreement.form_code);
     } catch (error) {
+      if (!viewerIsCurrent(actor)) return;
       console.error('Document preview failed:', error);
       window.announceWorkspaceStatus?.(window.hofCustomerActionError?.(error, 'We couldn’t open the document preview. Please try again.') || 'We couldn’t open the document preview. Please try again.');
     } finally {
@@ -23968,19 +24031,25 @@ function routeAfterMagicLinkIfNeeded() {
   async function renderCard() {
     const panel = document.getElementById('accountPanelDashboard');
     if (!panel || !activeAgent() || document.getElementById('hofStandaloneAgreementCard')) return;
+    const actor = { id: root.hofAuth?.session?.user?.id, epoch: root.__hofAccountProfileEpoch || 0 };
+    const isCurrent = () => actor.id === root.hofAuth?.session?.user?.id && actor.epoch === (root.__hofAccountProfileEpoch || 0);
     const card = document.createElement('div');
     card.id = 'hofStandaloneAgreementCard';
     card.className = 'account-card hof-agreement-card';
-    card.innerHTML = '<h4>Texas REALTORS® forms</h4><p>Review your prepared documents here. When signature sending is available, confirm the recipients and signer plan before anything is sent.</p><div id="hofStandaloneAgreementList"><div class="hof-iabs-status">Loading…</div></div>';
+    card.innerHTML = '<h4>Prepared documents</h4><p>Review your documents and confirm the recipients before sending for signature.</p><div id="hofStandaloneAgreementList"><div class="hof-iabs-status">Loading…</div></div>';
     panel.appendChild(card);
     const list = card.querySelector('#hofStandaloneAgreementList');
+    let refreshVersion = 0;
     const refresh = async () => {
+      if (!isCurrent()) { card.remove(); return; }
+      const version = ++refreshVersion;
       try {
         const payload = await loadAgreements();
+        if (!isCurrent() || version !== refreshVersion || !card.isConnected) return;
         const agreements = payload.agreements || [];
         const signingEnabled = payload.signingEnabled === true;
         const signingFormCodes = new Set(payload.signingFormCodes || []);
-        if (!agreements.length) { list.innerHTML = '<div class="hof-iabs-status">No standalone agreement drafts yet.</div>'; return; }
+        if (!agreements.length) { list.innerHTML = '<div class="hof-iabs-status">No prepared documents yet.</div>'; return; }
         list.innerHTML = agreements.map(agreement => {
           // A failed record without a provider document was never delivered.
           // Let its owner retry after a temporary provider issue without
@@ -23994,30 +24063,46 @@ function routeAfterMagicLinkIfNeeded() {
           const canRefresh = agreement.status !== 'signed' && agreement.signwell_document_id;
           const canDownloadCompleted = agreement.status === 'signed' && agreement.signwell_document_id;
           const sendLabel = canRetrySaved ? 'Retry saved request' : (canRetryUnsent ? 'Retry signature request' : 'Send for signature');
-          return `<div style="display:flex;justify-content:space-between;align-items:center;gap:.75rem;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.12);padding:.7rem 0"><span><strong>${escape(agreement.form_code)}</strong><small style="display:block;color:var(--gray-light)">${escape(names)} · ${escape(agreement.status || 'draft')}</small>${gate}</span><span style="display:flex;gap:.4rem;flex-wrap:wrap"><button type="button" class="btn-secondary" data-preview="${escape(agreement.id)}">Preview</button>${canRefresh ? `<button type="button" class="btn-secondary" data-refresh-signing="${escape(agreement.id)}">Refresh status</button>` : ''}${canDownloadCompleted ? `<button type="button" class="btn-secondary" data-download-completed="${escape(agreement.id)}">Download completed PDF</button>` : ''}${canSend ? `<button type="button" class="btn-primary" data-send="${escape(agreement.id)}">${sendLabel}</button>` : ''}</span></div>`;
+          const canEditListing = agreement.form_code === 'TXR-1101' && !agreement.signwell_document_id && ['draft', 'failed'].includes(agreement.status);
+          const title = agreement.form_code === 'TXR-1101' ? 'Sale listing agreement' : agreement.form_code;
+          return `<div style="display:flex;justify-content:space-between;align-items:center;gap:.75rem;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.12);padding:.7rem 0"><span><strong>${escape(title)}</strong><small style="display:block;color:var(--gray-light)">${escape(names)} · ${escape(agreement.status || 'draft')}</small>${gate}</span><span style="display:flex;gap:.4rem;flex-wrap:wrap">${canEditListing ? `<button type="button" class="btn-secondary" data-edit-listing="${escape(agreement.id)}">Edit answers</button>` : ''}<button type="button" class="btn-secondary" data-preview="${escape(agreement.id)}">Preview</button>${canRefresh ? `<button type="button" class="btn-secondary" data-refresh-signing="${escape(agreement.id)}">Refresh status</button>` : ''}${canDownloadCompleted ? `<button type="button" class="btn-secondary" data-download-completed="${escape(agreement.id)}">Download completed PDF</button>` : ''}${canSend ? `<button type="button" class="btn-primary" data-send="${escape(agreement.id)}">${sendLabel}</button>` : ''}</span></div>`;
         }).join('');
+        list.querySelectorAll('[data-edit-listing]').forEach(button => button.addEventListener('click', async () => {
+          if (!isCurrent() || button.disabled) return;
+          button.disabled = true;
+          try { await root.hofOpenTxr1101Draft?.({ agreementId: button.dataset.editListing }); }
+          catch (_) { root.announceWorkspaceStatus?.('We couldn’t open that listing agreement. Refresh your saved documents and try again.'); }
+          finally { button.disabled = false; }
+        }));
         list.querySelectorAll('[data-preview]').forEach(button => button.addEventListener('click', () => {
+          if (!isCurrent()) return;
           const agreement = agreements.find(item => item.id === button.dataset.preview);
           if (agreement) previewAgreementPdf(agreement, button);
         }));
         list.querySelectorAll('[data-send]').forEach(button => button.addEventListener('click', () => {
+          if (!isCurrent()) return;
           const agreement = agreements.find(item => item.id === button.dataset.send);
           if (agreement) openSendDialog(agreement, refresh);
         }));
         list.querySelectorAll('[data-refresh-signing]').forEach(button => button.addEventListener('click', () => {
+          if (!isCurrent()) return;
           const agreement = agreements.find(item => item.id === button.dataset.refreshSigning);
           if (agreement) refreshAgreementSignWellStatus(agreement, button, refresh);
         }));
         list.querySelectorAll('[data-download-completed]').forEach(button => button.addEventListener('click', () => {
+          if (!isCurrent()) return;
           const agreement = agreements.find(item => item.id === button.dataset.downloadCompleted);
           if (agreement) downloadCompletedAgreementPdf(agreement, button);
         }));
-      } catch (error) { console.error('Prepared document list failed:', error); list.innerHTML = `<div class="hof-iabs-status error">${escape(window.hofCustomerActionError?.(error, 'We couldn’t load your prepared documents. Refresh and try again.') || 'We couldn’t load your prepared documents. Refresh and try again.')}</div>`; }
+      } catch (error) { if (!isCurrent() || version !== refreshVersion) return; console.error('Prepared document list failed:', error); list.innerHTML = `<div class="hof-iabs-status error">${escape(window.hofCustomerActionError?.(error, 'We couldn’t load your prepared documents. Refresh and try again.') || 'We couldn’t load your prepared documents. Refresh and try again.')}</div>`; }
     };
-    root.hofOpenPreparedAgreement = async function hofOpenPreparedAgreement() {
+    root.hofOpenPreparedAgreement = async function hofOpenPreparedAgreement(agreementId) {
       await refresh();
+      if (!isCurrent() || !card.isConnected) return false;
       card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      card.querySelector('[data-send], [data-preview]')?.focus();
+      const target = [...card.querySelectorAll('[data-preview]')].find(button => button.dataset.preview === agreementId);
+      (target || card.querySelector('[data-send], [data-preview]'))?.focus();
+      return true;
     };
     await refresh();
   }

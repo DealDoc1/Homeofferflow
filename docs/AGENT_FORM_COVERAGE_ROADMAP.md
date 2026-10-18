@@ -4,6 +4,21 @@ Future batches follow the [lean development protocol](LEAN_DEVELOPMENT_PROTOCOL.
 to reduce model context, repeated regression runs and Vercel usage without
 reducing verification standards.
 
+## Combined listing-package integration - October 18, 2026
+
+The prepared TXR-1101 workflow is now integrated locally with current production
+and the v2 lead-text correction. A real-source, isolated-transport test verifies
+one 13-page listing/IABS/lead packet, truthful pending disclosure, correct signer
+offsets and safe repeated-request recovery. This exposed and corrected a
+standalone retry rejection after successful send; changed/foreign requests
+remain rejected and no duplicate invitation is generated. Affected integration
+passes 291 checks without skips. The actual send dialog was reviewed locally
+on desktop and 390px phone width, with no horizontal overflow and no send.
+This is **not deployed**; actual v2 lead/TXR-1101 signed-provider QA and the
+coordinated source/schema release remain. The safe retry correction can be
+released separately without activating unfinished legal-form work.
+See [integrated checkpoint](release-evidence/listing-package-integration-2026-10-18.md).
+
 ## Actual listing lead signer check - October 18, 2026
 
 PR #1347 deployed a read-only diagnostic, and the original v1 provider draft
@@ -41,6 +56,51 @@ This QA action is **implemented locally, not published or sent**. No production
 credential was exported. The next workstream is a controlled QA-only release,
 actual SignWell readback/signing and completed-PDF visual review, not another
 local-layout claim. See [provider-QA preparation](release-evidence/listing-lead-provider-qa-preparation-2026-10-17.md).
+
+## Listing-agreement implementation checkpoint - October 17, 2026
+
+TXR-1101 now has a locally tested answer contract, exact-source overlay,
+one-/two-seller broker-or-associate signer map and private create/edit/preview/
+recipient-review/signing API adapters. The latest focused run passes 132 checks,
+including the actual private source through the API with simulated delivery.
+The mobile interview and same-draft queue handoff now also have local desktop/
+phone verification, including safe retry/account isolation and retained age/
+HOA answers. A final affected-workflow run passes 260 Python checks, including
+the actual source and JavaScript runtime wrappers. Independent-office notice
+contacts, saved contact snapshots and approved shared-profile reuse now also
+pass focused checks (67 Python and 46 JavaScript cases) and desktop/phone/PDF
+visual review. The actual preview/send path now composes the selected saved
+IABS into the same PDF and shows included versus pending documents; related
+fields have explicit recipient/page remapping and the review binds the packet
+contents before send. This follow-on passes 98 focused plus 91 affected
+signing/schema checks, with local desktop/phone and PDF-boundary visual review.
+The saved-IABS and seller-side TREC 56-0 lead-disclosure adapters are now
+connected locally. The lead interview retains explicit seller facts and
+leaves unconfirmed choices for seller completion; Buyer rights and receipts
+remain blank. Exact-one choice groups and conditional explanations are bound
+to the packet and checked against the provider draft before invitations.
+This follow-on passes 131 focused checks, actual-source local PDF review and
+desktop/phone save/reopen checks. Actual SignWell control retention and
+completed-provider PDF review remain unverified. The Seller's Disclosure
+Notice and water-rights adapters are not connected. Source registration,
+applied schema migration, complete related-packet orchestration and completed
+SignWell QA remain unfinished; **this is not a released listing-agreement
+workflow**. See [renderer evidence](release-evidence/txr1101-sale-listing-local-2026-10-17.md)
+and [API/schema evidence](release-evidence/txr1101-private-api-local-2026-10-17.md),
+plus the [mobile interview checkpoint and recovery notes](release-evidence/txr1101-mobile-interview-local-2026-10-17.md),
+the [notice-contact checkpoint](release-evidence/txr1101-notice-contacts-local-2026-10-17.md),
+the [packet-composition checkpoint](release-evidence/txr1101-packet-composition-local-2026-10-17.md)
+and [lead-disclosure checkpoint](release-evidence/txr1101-listing-lead-local-2026-10-17.md).
+
+### Retrieved source PDFs
+
+The current English TXR-1101 (June 15, 2026) and TXR-1102 (January 5, 2026)
+source PDFs have now been downloaded from the authenticated official library
+and checked for revision, page count and integrity. No owner sign-in/source-file
+action remains for these two forms. Interview, overlay, signer-map and completed
+signing QA remain implementation work; source retrieval is not a deployed
+listing workflow. No brokerage-seat or per-agent approval requirement was
+added. See the [source inventory and next implementation evidence](release-evidence/listing-agreement-source-checkpoint-2026-10-17.md).
 
 ## Current launch tracking - October 14, 2026
 

@@ -23,6 +23,19 @@ SPEC.loader.exec_module(MODULE)
 
 
 class ProductionSchemaReadinessTests(unittest.TestCase):
+    def test_listing_release_requires_the_new_database_contract_even_if_old_readiness_is_true(self):
+        migration=(ROOT/'supabase/migrations/20261017131634_add_txr1101_listing_drafts.sql').read_text()
+        self.assertIn(MODULE.EXPECTED_CONTRACT,migration)
+        self.assertIn("'TXR-1101'",migration)
+        self.assertIn("'hof_standalone_agreements'",migration)
+        self.assertIn("'hof_brokerage_form_sources'",migration)
+        with patch.dict(MODULE.os.environ,{'SUPABASE_URL':'https://fixture.supabase.co',
+                                          'SUPABASE_SERVICE_ROLE_KEY':'fixture'},clear=True), \
+             patch.object(MODULE,'fetch_readiness',return_value={
+                 'contract':'homeofferflow-release-schema-v1','ready':True,'missing':[]}), \
+             redirect_stderr(io.StringIO()):
+            self.assertEqual(MODULE.main([]),1)
+
     def test_readiness_probes_new_public_profile_columns_without_reading_rows(self):
         import json
         from contextlib import contextmanager
