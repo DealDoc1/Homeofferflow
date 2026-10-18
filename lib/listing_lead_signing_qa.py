@@ -18,7 +18,7 @@ from lib.purchase_signing_qa import QA_RECIPIENTS, QA_OPERATOR_EMAILS
 
 QA_REVISION='listing-lead-56-0-provider-2026-10-18-v2'
 QA_SCENARIO='listing-lead-disclosure-provider-placement'
-REVIEWED_SOURCE_COMMIT='fcbf606c19662af45793eb662df6329f44ee43ab'
+REVIEWED_SOURCE_COMMIT='0bc9f5d342b670df631d9dd478e53834fc68d010'
 RENDER_REVISION=REVISION
 DOCUMENT_PREFIX='QA ONLY - listing lead disclosure - '
 QA_TITLE='Listing lead disclosure completion and placement'

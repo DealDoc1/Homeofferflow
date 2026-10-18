@@ -41,7 +41,9 @@ two-Seller/associate explanation pages (2 and 4) were visually reviewed with
 initials. Source pages, known Unicode continuation, signatures and choice
 locations are unchanged. The fixed QA revision advances to v2 and binds the
 new layout digest `9ec04b6fd1e282f8f1e04a2d89d70c7468cb8fe75d19115f60cfa36e80e1d1bd`.
-The reviewed-source pin is updated after committing this source checkpoint.
+The reviewed-source pin is `0bc9f5d342b670df631d9dd478e53834fc68d010`, the
+committed correction checkpoint. Updating that metadata pin does not change
+the reviewed PDF content, fields or page images.
 
 Official contract inspected: https://developers.signwell.com/reference/createdocument
 
