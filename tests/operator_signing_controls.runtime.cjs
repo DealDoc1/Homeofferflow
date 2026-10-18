@@ -8,7 +8,7 @@ const end = html.indexOf('  async function loadAdminDashboard(', start);
 assert.ok(start >= 0 && end > start);
 
 function harness(phase) {
-  const nodes = Object.fromEntries(['Purchase', 'Showing'].flatMap(scope => [
+  const nodes = Object.fromEntries(['Purchase', 'Showing', 'Amendment', 'ListingLead'].flatMap(scope => [
     ['admin' + scope + 'SigningTestStatus', { textContent: '' }],
     ['admin' + scope + 'SigningTestSend', { textContent: 'Send', disabled: false }],
   ]));
@@ -20,7 +20,7 @@ function harness(phase) {
   vm.runInContext(html.slice(start, end), ctx);
   return { ctx, nodes, requests };
 }
-for (const [scope, actionPrefix, widget] of [['purchase', 'purchase', 'Purchase'], ['showing', 'showing', 'Showing']]) {
+for (const [scope, actionPrefix, widget] of [['purchase', 'purchase', 'Purchase'], ['showing', 'showing', 'Showing'], ['amendment', 'amendment', 'Amendment'], ['listing-lead', 'listing_lead', 'ListingLead']]) {
   for (const send of [false, true]) test(`${scope} ${send ? 'send' : 'check'} uses only its fixed action and status`, async () => {
     const h = harness('created'), button = { textContent: 'Original', disabled: false };
     await h.ctx.runPurchaseSigningTest(send, button, scope);
@@ -28,9 +28,10 @@ for (const [scope, actionPrefix, widget] of [['purchase', 'purchase', 'Purchase'
     assert.deepEqual(JSON.parse(h.requests[0].input.body), { action: `${send ? 'send' : 'check'}_${actionPrefix}_signing_test` });
     assert.equal(h.nodes[`admin${widget}SigningTestStatus`].textContent, 'Scoped result');
     assert.equal(h.nodes[`admin${widget}SigningTestSend`].disabled, true);
-    const other = widget === 'Showing' ? 'Purchase' : 'Showing';
-    assert.equal(h.nodes[`admin${other}SigningTestStatus`].textContent, '');
-    assert.equal(h.nodes[`admin${other}SigningTestSend`].disabled, false);
+    for (const other of ['Purchase', 'Showing', 'Amendment', 'ListingLead'].filter(value => value !== widget)) {
+      assert.equal(h.nodes[`admin${other}SigningTestStatus`].textContent, '');
+      assert.equal(h.nodes[`admin${other}SigningTestSend`].disabled, false);
+    }
     assert.equal(button.textContent, 'Original');
   });
 }
