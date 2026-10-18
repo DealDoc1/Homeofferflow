@@ -1,8 +1,9 @@
 const fs=require('node:fs'), path=require('node:path'), vm=require('node:vm');
 const assert=require('node:assert/strict'), {test}=require('node:test');
 const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
+const shared=fs.readFileSync(path.join(__dirname,'..','assets/seller-disclosure-interview.js'),'utf8');
 test('Unknown answers are explained without source-incompatible automatic choices',()=>{
- assert.ok(html.includes('Where the form only offers Yes or No, an Unknown answer appears in the attached details without selecting either answer.'));
+ assert.ok(shared.includes('Where the form only offers Yes or No, an Unknown answer appears in the attached details without selecting either answer.'));
 });
 function code(start,end){const a=html.indexOf(start), b=html.indexOf(end,a);assert.ok(a>=0&&b>a);return html.slice(a,b);}
 function setup(){
@@ -15,7 +16,8 @@ function setup(){
   createElement:()=>({hidden:false,className:'',textContent:''})},syncWaterRightsVisibility(){},
   escape:v=>String(v??'').replace(/[&<>"]/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[x]))};
  vm.createContext(c);
- vm.runInContext(code('  const responseGroups = [','  async function approvedSources()')+
+ c.window=root;vm.runInContext(shared,c);
+ vm.runInContext('const draftCache=new Map();const {renderResponses,renderWaterResponses,collectDisclosureResponses,disclosureDetailRelevant,syncDisclosureDetails}=window.hofDisclosureInterview;'+
    '\nthis.qa={renderResponses,renderWaterResponses,collectDisclosureResponses,disclosureDetailRelevant,syncDisclosureDetails,cache:draftCache};',c);
  for(const kind of ['seller','water']){
   const markup=kind==='seller'?c.qa.renderResponses():c.qa.renderWaterResponses();

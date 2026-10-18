@@ -153,7 +153,41 @@ async function main() {
     check(after.review_content_revision!==reviewFirst.review_content_revision && !after.seller_review_attested,'Save waiting behind review invalidates that completed version');
     check((await admin.query('select seller_attested_at from public.hof_seller_disclosure_review_links where id=$1',[reviewLink])).rows[0].seller_attested_at!==null,'Prior completed evidence retained');
     await reject(()=>createLink(reviewFirst),'55000');
-    console.log(JSON.stringify({result:'PASS',checks,scope:'actual migration and independent local PostgreSQL row locks',nothingSent:true,productionChanged:false}));
+    // Extend the same isolated source fixture for seller-editable invitations.
+    await admin.query(`alter table public.hof_seller_disclosure_review_links alter column id set default gen_random_uuid();
+      alter table public.hof_seller_disclosure_review_links add column expires_at timestamptz not null default now()+interval '7 days',
+        add column session_token_hash text unique, add column session_expires_at timestamptz;
+      create unique index hof_seller_review_links_draft_seller_active_idx
+        on public.hof_seller_disclosure_review_links(draft_id,seller_index)
+        where seller_index is not null and revoked_at is null and seller_attested_at is null;`);
+    await admin.query(fs.readFileSync(path.resolve(__dirname,'../../supabase/migrations/20261018134817_seller_disclosure_questionnaire_access.sql'),'utf8'));
+    const q=await createDraft(['QA Seller One','QA Seller Two']), q1=await createLink(q), q2=await createLink(q,2);
+    await admin.query(`update public.hof_seller_disclosure_review_links set questionnaire_enabled=true,
+      session_token_hash='session-'||id::text,session_expires_at=now()+interval '30 minutes' where id=any($1::uuid[])`,[[q1,q2]]);
+    const rpc=(client,id,version,action='save',answers={notes:'Seller-entered facts'},water={}) => client.query(
+      'select public.hof_save_seller_questionnaire($1,$2,$3,$4,$5,$6) as result',
+      ['session-'+id,version,action,JSON.stringify(answers),JSON.stringify(water),render]);
+    await reject(()=>rpc(actor,q1,q.review_content_revision),'42501');
+    await reject(()=>rpc(service,'missing',q.review_content_revision),'42501');
+    await reject(()=>rpc(service,q1,q.review_content_revision,'save',{_hof_signature_delivery:{}}),'22023');
+    await reject(()=>rpc(service,q1,q.review_content_revision,'save',{}, {notes:'No water source'}),'22023');
+    const saved=(await rpc(service,q1,q.review_content_revision)).rows[0].result;
+    check(saved.reviewContentRevision!==q.review_content_revision,'Seller save rotates content version');
+    await reject(()=>rpc(service,q2,q.review_content_revision),'40001');
+    await rpc(service,q1,saved.reviewContentRevision,'review');
+    await rpc(service,q1,saved.reviewContentRevision,'review');
+    check((await admin.query('select count(*)::int n from public.hof_seller_disclosure_review_links where draft_id=$1 and seller_attested_at is not null',[q.id])).rows[0].n===1,'Review retry records evidence once');
+    await rpc(service,q2,saved.reviewContentRevision,'review');
+    check((await cache(service,{...q,review_content_revision:saved.reviewContentRevision})).rowCount===1,'Both seller confirmations authorize current content');
+    const qChanged=(await rpc(service,q2,saved.reviewContentRevision,'save',{notes:'Changed by second seller'})).rows[0].result;
+    check(!(await row(q.id)).seller_review_attested,'Changed answers invalidate prior seller confirmations');
+    check((await admin.query('select count(*)::int n from public.hof_seller_disclosure_review_links where draft_id=$1 and seller_attested_at is not null',[q.id])).rows[0].n===2,'Old confirmation evidence retained unchanged');
+    await rpc(service,q1,qChanged.reviewContentRevision,'review');
+    await admin.query('update public.hof_seller_disclosure_review_links set session_expires_at=now()-interval \'1 second\' where id=$1',[q2]);
+    await reject(()=>rpc(service,q2,qChanged.reviewContentRevision),'42501');
+    await admin.query('update public.hof_seller_disclosure_review_links set revoked_at=now() where id=$1',[q1]);
+    await reject(()=>rpc(service,q1,qChanged.reviewContentRevision),'42501');
+    console.log(JSON.stringify({result:'PASS',checks,scope:'review integrity plus seller questionnaire RPC against isolated PostgreSQL',nothingSent:true,productionChanged:false}));
   } finally {
     for(const c of clients) {try{await c.query('rollback');}catch{} try{await c.end();}catch{}}
     if(server && server.exitCode===null) {
