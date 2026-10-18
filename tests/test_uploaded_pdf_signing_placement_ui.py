@@ -1,17 +1,23 @@
 from pathlib import Path
+import re
 import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
 PLACEMENT_JS = ROOT / "assets/uploaded-pdf-signing-placement.js"
+MERGE_MARKERS = re.compile(r"(?m)^(?:<{7}(?: .*)?|={7}|>{7}(?: .*)?)[ \t]*$")
 
 
 class UploadedPdfSigningPlacementUiTests(unittest.TestCase):
     def test_upload_flow_loads_the_manual_placement_tool(self):
         html = (ROOT / "index.html").read_text(encoding="utf-8")
-        if any(marker in html for marker in ("<<<<<<< ", "=======\n", ">>>>>>> ")):
-            self.skipTest("The local index.html has unresolved merge markers; CI verifies the committed release source.")
+        self.assertNotRegex(html, MERGE_MARKERS, "Resolve actual merge markers before publishing the app shell.")
         self.assertIn('/assets/uploaded-pdf-signing-placement.js', html)
+
+    def test_merge_guard_accepts_css_separators_but_rejects_real_conflicts(self):
+        self.assertNotRegex('  /* =========================================\n     AUTO SAVE\n     ========================================= */', MERGE_MARKERS)
+        for marker in ('<<<<<<< HEAD', '=======', '>>>>>>> branch'):
+            with self.subTest(marker=marker):self.assertRegex(marker, MERGE_MARKERS)
 
     def test_visual_placement_payload_matches_the_packet_backend_contract(self):
         source = PLACEMENT_JS.read_text(encoding="utf-8")

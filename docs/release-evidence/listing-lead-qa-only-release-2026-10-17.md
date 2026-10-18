@@ -64,6 +64,12 @@ approved TXR signer-geometry baseline and Supabase branch preflight (118
 migrations, zero errors) pass. Patch whitespace is clean. Neither previously
 reviewed helper dependency differs from `fcbf606`.
 
+The one skipped legacy test mistook an ordinary CSS separator for unresolved
+merge markers. Its guard now checks complete marker lines and fails rather
+than silently skipping. Four focused manual-placement UI tests pass, including
+the original script-inclusion assertion and the new false-positive guard case.
+This strengthens test coverage without changing customer placement behavior.
+
 Exact-head CI, production identity and canonical live owner-control verification
 are recorded below when observed. Do not infer those results, actual provider
 completion or customer-form release from the local regression pass.
