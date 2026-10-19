@@ -895,6 +895,12 @@ def build_signwell_fields_20_19(offer, pdf_bytes):
     }
 
     for doc_index, doc in enumerate(docs):
+        if doc.get('homeOfferFlowDisclosureReceipt') is not None:
+            from lib.purchase_disclosure_receipt import receipt_fields
+            fields_for_file.extend(receipt_fields(doc, offer, page_offset=uploaded_page_cursor - 1,
+                                                  namespace=f'saved_disclosure_{doc_index + 1}'))
+            uploaded_page_cursor += doc['page_count']
+            continue
         placements = doc.get("signaturePlacements") or doc.get("placements") or []
         if isinstance(placements, list):
             for placement_index, placement in enumerate(placements):

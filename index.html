@@ -2929,6 +2929,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 </style>
 
 <script defer src="/assets/uploaded-pdf-signing-placement.js"></script>
+<script defer src="/assets/saved-disclosure-attachment.js"></script>
 </head>
 
 <body>
@@ -4048,6 +4049,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <div class="field-group">
           <div class="field">
             <label>Upload PDF attachments</label>
+            <button type="button" id="useSavedSellerDisclosure" class="btn-secondary" onclick="window.hofChooseSavedDisclosure?.(this)">Use a saved seller disclosure</button>
             <input type="file" id="uploadedDisclosureDocs" accept="application/pdf,.pdf" multiple onchange="handleUploadedDisclosureDocs(this.files)"/>
             <small style="display:block; margin-top:0.35rem; color:var(--muted);">PDF only. Add up to 5 files, 2MB each and 2.5MB combined. We suggest a label from each filename; confirm the labels and order before the packet is generated. Examples: seller disclosure, survey, T-47/T-47.1, HOA docs, PID/MUD notices.</small>
           </div>
@@ -12769,6 +12771,7 @@ function routeAfterMagicLinkIfNeeded() {
         mimeType: d.mimeType || 'application/pdf',
         needsBuyerSignature: !!d.needsBuyerSignature,
         needsBuyerInitials: !!d.needsBuyerInitials,
+        ...(d.homeOfferFlowDisclosureReceipt ? {homeOfferFlowDisclosureReceipt:d.homeOfferFlowDisclosureReceipt} : {}),
         base64: d.base64
       }));
 
@@ -12916,6 +12919,7 @@ function routeAfterMagicLinkIfNeeded() {
           mimeType: d.mimeType || 'application/pdf',
           needsBuyerSignature: !!d.needsBuyerSignature,
           needsBuyerInitials: !!d.needsBuyerInitials,
+          ...(d.homeOfferFlowDisclosureReceipt ? {homeOfferFlowDisclosureReceipt:d.homeOfferFlowDisclosureReceipt} : {}),
           base64: d.base64
           })),
           ...(profileIabsDoc ? [profileIabsDoc] : [])
