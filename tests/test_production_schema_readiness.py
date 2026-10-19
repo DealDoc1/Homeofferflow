@@ -36,6 +36,7 @@ class ProductionSchemaReadinessTests(unittest.TestCase):
             result = MODULE.fetch_readiness('https://fixture.supabase.co', 'sb_secret_fixture')
         self.assertTrue(result['ready'])
         self.assertEqual(len(requests), 3)
+        self.assertTrue(requests[0].full_url.endswith('/rpc/hof_seller_disclosure_schema_readiness'))
         self.assertEqual(requests[1].method, 'GET')
         self.assertIn('onboarding_public_contact_phone', requests[1].full_url)
         self.assertTrue(requests[1].full_url.endswith('&limit=0'))
@@ -50,6 +51,11 @@ class ProductionSchemaReadinessTests(unittest.TestCase):
         self.assertIn(MODULE.EXPECTED_CONTRACT, sql)
         self.assertIn('hof_save_seller_questionnaire', sql)
         self.assertNotIn("'TXR-1101'", sql)
+        self.assertNotIn('drop index', sql.lower())
+        self.assertIn('create unique index hof_seller_questionnaire_active_idx', sql)
+        self.assertIn('create function public.hof_seller_disclosure_schema_readiness()', sql)
+        self.assertIn('baseline := public.hof_release_schema_readiness()', sql)
+        self.assertNotIn('create or replace function public.hof_release_schema_readiness()', sql)
 
     def test_missing_public_profile_columns_cannot_be_silently_ignored(self):
         import json

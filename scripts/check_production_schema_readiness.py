@@ -65,7 +65,7 @@ def request_headers(service_key: str) -> dict[str, str]:
 
 
 def fetch_readiness(url: str, service_key: str) -> dict:
-    endpoint = f"{url.rstrip('/')}/rest/v1/rpc/hof_release_schema_readiness"
+    endpoint = f"{url.rstrip('/')}/rest/v1/rpc/hof_seller_disclosure_schema_readiness"
     request = Request(
         endpoint,
         data=b"{}",
