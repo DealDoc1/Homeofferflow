@@ -33,7 +33,7 @@ class SignwellStatusRuntimeTests(unittest.TestCase):
           const vm = require('node:vm');
           const source = require('node:fs').readFileSync(SOURCE_PATH,'utf8');
           const writes = [], providerCalls = [];
-          let providerDocument = {}, allowRead = true, rejectStaleWrite = false, savedOfferStatus = 'draft';
+          let providerDocument = {}, allowRead = true, rejectStaleWrite = false, savedOfferStatus = 'draft', sellerExtras = {};
           const response = (data, ok=true) => ({ok,status:ok?200:403,
             json:async()=>data,text:async()=>JSON.stringify(data),
             arrayBuffer:async()=>Buffer.from('%PDF-test')});
@@ -63,21 +63,21 @@ class SignwellStatusRuntimeTests(unittest.TestCase):
                 return response([{id:'packet',...payload}]);
               }
               return response(allowRead?[{id:'packet',user_id:'owner',agent_user_id:'owner',
-                signwell_document_id:'provider-doc',status:table==='hof_offers'?savedOfferStatus:'draft',updated_at:'2026-09-15T10:00:00Z',last_updated:'2026-09-15T10:00:00Z',offer_data:{},agreement_data:{}}]:[]);
+                signwell_document_id:'provider-doc',status:table==='hof_offers'?savedOfferStatus:'draft',updated_at:'2026-09-15T10:00:00Z',last_updated:'2026-09-15T10:00:00Z',offer_data:{},agreement_data:{},...(table==='hof_seller_disclosure_drafts'?sellerExtras:{})}]:[]);
             }
             if (url.endsWith('/hof_offer_events')) return response(null);
             throw new Error('Unexpected request: '+url);
           };
           const context={module:{exports:{}},process:{env:{SUPABASE_URL:'https://database.example',
             SUPABASE_SERVICE_ROLE_KEY:'test-only',SIGNWELL_API_KEY:'test-only'}},
-            fetch,Buffer,console:{error(){}}};
+            fetch,Buffer,require,console:{error(){}}};
           vm.runInNewContext(source,context);
-          const run = async (kind,doc,action='refresh_status')=>{
+          const run = async (kind,doc,action='refresh_status',extra={})=>{
             providerDocument=doc; writes.length=0; providerCalls.length=0;
             const res={status(code){this.code=code;return this},json(body){this.body=body;return this},
               setHeader(){},send(body){this.body=body;return this}};
             await context.module.exports({method:'POST',headers:{authorization:'Bearer test-token'},
-              body:{[kind]:'packet',action}},res);
+              body:{[kind]:'packet',action,...extra}},res);
             assert.ok(providerCalls.every(call=>(call.options.method||'GET')==='GET'));
             return res;
           };
@@ -86,6 +86,31 @@ class SignwellStatusRuntimeTests(unittest.TestCase):
                                  + '\n})().catch(e=>{console.error(e);process.exitCode=1});'],
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_prepare_disclosure_attachment_is_completed_owned_property_matched_and_read_only(self):
+        self.run_js('''
+          sellerExtras={property_address:'123 QA Road, Dallas, TX 75201',buyer_names:[],disclosure_source_revision:'05-04-2026'};
+          const property={address:'123 QA Road',city:'Dallas',state:'TX',zip:'75201'};
+          const document={status:'completed',test_mode:false,metadata:{seller_disclosure_draft_id:'packet',form_code:'TREC-55-1'}};
+          let r=await run('sellerDisclosureId',document,'prepare_purchase_disclosure',{property});
+          assert.equal(r.code,200);assert.equal(writes.length,0);assert.equal(providerCalls.length,2);
+          assert.equal(r.body.attachment.type,'seller_disclosure');
+          assert.equal(r.body.attachment.homeOfferFlowDisclosureReceipt.sourceDisclosureId,'packet');
+          assert.equal(r.body.attachment.homeOfferFlowDisclosureReceipt.hasWaterRights,false);
+          assert.equal(Buffer.from(r.body.attachment.base64,'base64').toString(),'%PDF-test');
+          for (const changed of [{...document,status:'sent'},{...document,test_mode:true},{...document,metadata:{}}]) {
+            r=await run('sellerDisclosureId',changed,'prepare_purchase_disclosure',{property});
+            assert.equal(r.code,400);assert.equal(writes.length,0);assert.equal(providerCalls.length,1);
+          }
+          r=await run('sellerDisclosureId',document,'prepare_purchase_disclosure',{property:{...property,address:'124 QA Road'}});
+          assert.equal(r.code,400);assert.equal(providerCalls.length,1);
+          sellerExtras.buyer_names=['Already acknowledged'];
+          r=await run('sellerDisclosureId',document,'prepare_purchase_disclosure',{property});
+          assert.equal(r.code,400);assert.equal(providerCalls.length,1);
+          allowRead=false;
+          r=await run('sellerDisclosureId',document,'prepare_purchase_disclosure',{property});
+          assert.equal(r.code,400);assert.equal(providerCalls.length,0);assert.equal(writes.length,0);
+        ''')
 
     def test_draft_is_never_persisted_as_sent_or_shown_awaiting_signature(self):
         self.run_js('''

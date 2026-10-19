@@ -210,18 +210,50 @@ async function getStandaloneAgreementForUser(agreementId, user) {
   return agreement;
 }
 
-async function getSellerDisclosureForUser(draftId, user) {
+async function getSellerDisclosureForUser(draftId, user, forPurchase = false) {
   if (!draftId) throw new Error('Missing seller disclosure ID.');
 
   // A seller disclosure remains private to the agent who prepared it. Keep
   // status refreshes and signed-PDF downloads scoped to that same owner.
   const rows = await supabaseRequest(
-    `hof_seller_disclosure_drafts?id=eq.${encodeURIComponent(draftId)}&agent_user_id=eq.${encodeURIComponent(user.id)}&select=id,agent_user_id,signwell_document_id,status,signwell_status,sent_at,signed_at,updated_at`,
+    `hof_seller_disclosure_drafts?id=eq.${encodeURIComponent(draftId)}&agent_user_id=eq.${encodeURIComponent(user.id)}&select=id,agent_user_id,signwell_document_id,status,signwell_status,sent_at,signed_at,updated_at${forPurchase ? ',property_address,buyer_names,disclosure_source_revision,water_source_id,water_source_revision' : ''}`,
     { method: 'GET' }
   );
   const draft = Array.isArray(rows) ? rows[0] : null;
   if (!draft) throw new Error('Seller disclosure not found or access denied.');
   return draft;
+}
+
+function disclosurePropertyMatches(saved, offer = {}) {
+  const normalize = value => String(value || '').toLowerCase().replace(/[^\p{L}\p{N}_]+/gu, ' ').trim();
+  const address = String(offer.address || '').trim();
+  const full = [address, offer.city, offer.state || 'TX', offer.zip].filter(Boolean).join(' ');
+  return Boolean(address && normalize(saved) && [normalize(address), normalize(full)].includes(normalize(saved)));
+}
+
+async function preparePurchaseDisclosure(draft, document, offer) {
+  if (!disclosurePropertyMatches(draft.property_address, offer)) {
+    throw new Error('Choose a signed disclosure for this property. You can continue the offer without adding one.');
+  }
+  if (!Array.isArray(draft.buyer_names) || draft.buyer_names.length) {
+    throw new Error('Choose a disclosure signed by the seller only. This copy already includes buyer acknowledgments.');
+  }
+  const metadata = document.metadata || {};
+  if (document.test_mode !== false || String(metadata.seller_disclosure_draft_id || '') !== String(draft.id)
+      || metadata.form_code !== 'TREC-55-1' || draft.disclosure_source_revision !== '05-04-2026'
+      || (draft.water_source_id && draft.water_source_revision !== '05-04-2026')) {
+    throw new Error('This copy needs a document review before automatic buyer acknowledgments can be added. You can still download and attach it yourself.');
+  }
+  const pdf = await getCompletedSignWellPdf(draft.signwell_document_id);
+  if (pdf.length > 2 * 1024 * 1024 || pdf.subarray(0, 4).toString() !== '%PDF') {
+    throw new Error('This signed PDF cannot be added automatically. Download it to review its format and size.');
+  }
+  return {name:`Seller-disclosure-${draft.id}.pdf`, type:'seller_disclosure', size:pdf.length,
+    mimeType:'application/pdf', base64:pdf.toString('base64'),
+    homeOfferFlowDisclosureReceipt:{sourceDisclosureId:draft.id, propertyAddress:draft.property_address,
+      sourceRevision:draft.disclosure_source_revision, hasWaterRights:Boolean(draft.water_source_id),
+      renderRevision:'seller-disclosure-date-fit-2026-10-16-v4',
+      sha256:require('node:crypto').createHash('sha256').update(pdf).digest('hex')}};
 }
 
 async function getSignWellDocument(documentId) {
@@ -446,14 +478,16 @@ module.exports = async (req, res) => {
     const agreementId = body.agreementId || body.agreement_id || '';
     const sellerDisclosureId = body.sellerDisclosureId || body.seller_disclosure_id || '';
     const downloadCompletedPdf = body.action === 'download_completed_pdf';
+    const preparePurchase = body.action === 'prepare_purchase_disclosure';
     const requestedPackets = [offerId, agreementId, sellerDisclosureId].filter(Boolean);
     if (!requestedPackets.length) throw new Error('Missing packet ID.');
     if (requestedPackets.length > 1) throw new Error('Choose one packet to refresh.');
 
     const isStandaloneAgreement = Boolean(agreementId);
     const isSellerDisclosure = Boolean(sellerDisclosureId);
+    if (preparePurchase && !isSellerDisclosure) throw new Error('Choose a signed seller disclosure.');
     const packet = isSellerDisclosure
-      ? await getSellerDisclosureForUser(sellerDisclosureId, user)
+      ? await getSellerDisclosureForUser(sellerDisclosureId, user, preparePurchase)
       : isStandaloneAgreement
         ? await getStandaloneAgreementForUser(agreementId, user)
         : await getOfferForUser(offerId, user);
@@ -476,9 +510,14 @@ module.exports = async (req, res) => {
 
     const document = await getSignWellDocument(documentId);
     const status = deriveStatus(document);
-    if (downloadCompletedPdf) {
+    if (downloadCompletedPdf || preparePurchase) {
       if (cleanStatusLabel(status) !== 'Buyer Signatures Complete') {
         throw new Error('The completed PDF is available after every recipient finishes signing.');
+      }
+      if (preparePurchase) {
+        const attachment = await preparePurchaseDisclosure(packet, document, body.property);
+        res.setHeader('Cache-Control', 'private, no-store');
+        return json(res, 200, {ok:true, attachment});
       }
       const pdf = await getCompletedSignWellPdf(documentId);
       res.setHeader('Content-Type', 'application/pdf');
