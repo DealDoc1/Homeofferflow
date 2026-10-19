@@ -91,3 +91,38 @@ No routine preview, new paid provider, schema migration or billing change.
 Record actual PR, workflow, deployment and canonical outcomes below. The full
 seller/listing roadmap remains in progress; unsigned disclosure plus listing or
 purchase execution in a single request is separate from reusing a completed PDF.
+
+## Verified production release
+
+PR #1351 exact head `3e5d393b` passed CI `39328756580`: 2,765 tests, three
+environment skips, approved golden packets, standalone geometry, schema
+preflight and whitespace. Normal merge is
+`4bd1cce57f052a587d6017d8782204ef521dfa41`.
+Read-only capacity `39328753086` passed: two prior releases/24h,
+$0.05 infrastructure used, $19.95 unconsumed, $3 reserve. Intentional production
+workflow `39329453051` succeeded with full regression, fresh schema/cost checks,
+prebuilt deployment and canonical PWA/API/packet runtime verification. No new
+environment value, source registration, migration, invoice or invitation.
+
+Deploy result: production READY `dpl_5PDXAmJRpp5kZyqZvp8RdPTQ7ZUx`,
+`homeofferflow-5h5oajse1-dealdoc1s-projects.vercel.app`, exact merged commit above,
+static HTML with existing Python/Node functions; deploy job duration 1m7s.
+Canonical HTML contains the new attachment entry. Both canonical public JS
+assets match released bytes exactly; canonical service worker is v109.
+The new preparation action without an account token returns HTTP 400 / Missing
+auth token, with no private disclosure returned. Deployment-scoped error/fatal
+counts for the initial ten-minute lookback returned no groups at observation;
+this is a short fresh-deployment observation, not an all-time clean-log claim.
+Drains were not inspected or changed. The deliberate unauthenticated probe may
+appear later in logs as an expected rejection.
+
+Authenticated successful selection/addition was exercised locally through the
+real component and real API handler with fictional dependencies, not on a real
+client's signed document. A newly completed combined provider packet remains
+unclaimed. The existing v4 component placement proof is retained. Local test tab
+and server were closed; existing user browser tabs were not changed for this
+release. The separate daily 8 AM heartbeat was verified ACTIVE and unchanged.
+
+The Codex PR attachment limit prevented attaching another PR artifact; the
+normal GitHub PR URL remains `https://github.com/DealDoc1/Homeofferflow/pull/1351`.
+No existing attachment was removed to make room.
