@@ -94,3 +94,26 @@ packet or new multi-case invitation is authorized by this evidence file.
 Verify canonical shell, API and normal seller flow afterward; record the actual
 deployment identity and any incomplete acceptance separately. A green workflow
 alone is not a full seller-suite or revenue-impact claim.
+
+## Release coordination continuation
+
+PR #1348 merged as `aedca42589c45c81e67ef4ac0a69c36b334e84a2` after exact-head
+CI `39288563117`: 2,755 tests passed (three environment skips), approved golden
+PDFs and signer geometry passed. Read-only capacity `39288255024` reported
+$0.05 used / $19.95 unconsumed / $3 reserve. No production deployment started.
+
+The review-revision migration applied successfully. The questionnaire migration
+tool returned an expired-request error twice; independent database readback
+confirmed its column/function absent and the original v1 readiness intact.
+Do not blindly rerun the already applied first migration.
+
+The still-unapplied second migration is now fully additive: retain the legacy
+pending-link index, add the questionnaire-specific index, and add a private
+`hof_seller_disclosure_schema_readiness` wrapper that delegates to the unchanged
+core readiness RPC. The deployment checker calls that v2 wrapper. No DROP or
+replacement of the legacy function is needed. Existing pending uniqueness,
+review proof insertion and reissue semantics remain supported. Thirty-six
+focused checks and 55 actual isolated PostgreSQL assertions pass, including
+retained baseline/index, service-only wrapper access and questionnaire races.
+This small follow-up must pass its own CI before deployment; it does not change
+the reviewed renderer, customer UI or provider signing geometry.

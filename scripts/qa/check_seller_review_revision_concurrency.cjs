@@ -160,7 +160,13 @@ async function main() {
       create unique index hof_seller_review_links_draft_seller_active_idx
         on public.hof_seller_disclosure_review_links(draft_id,seller_index)
         where seller_index is not null and revoked_at is null and seller_attested_at is null;`);
+    await admin.query(`create function public.hof_release_schema_readiness() returns jsonb language sql as
+      'select jsonb_build_object(''contract'',''homeofferflow-release-schema-v1'',''ready'',true,''missing'',''[]''::jsonb)';`);
     await admin.query(fs.readFileSync(path.resolve(__dirname,'../../supabase/migrations/20261018134817_seller_disclosure_questionnaire_access.sql'),'utf8'));
+    const readiness=(await service.query('select public.hof_seller_disclosure_schema_readiness() as result')).rows[0].result;
+    check(readiness.ready && readiness.contract==='homeofferflow-release-schema-v2','Additive readiness delegates the retained baseline and verifies the new schema');
+    await reject(()=>actor.query('select public.hof_seller_disclosure_schema_readiness()'),'42501');
+    check((await admin.query("select indexdef from pg_indexes where indexname='hof_seller_review_links_draft_seller_active_idx'")).rows[0].indexdef.includes('seller_attested_at IS NULL'),'Legacy pending-request index retained');
     const q=await createDraft(['QA Seller One','QA Seller Two']), q1=await createLink(q), q2=await createLink(q,2);
     await admin.query(`update public.hof_seller_disclosure_review_links set questionnaire_enabled=true,
       session_token_hash='session-'||id::text,session_expires_at=now()+interval '30 minutes' where id=any($1::uuid[])`,[[q1,q2]]);
