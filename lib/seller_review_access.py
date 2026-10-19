@@ -12,6 +12,7 @@ import hashlib
 import hmac
 import re
 import secrets
+import uuid
 from typing import Iterable
 
 TOKEN_BYTES = 32
@@ -96,3 +97,14 @@ def normalize_seller_name(value: object) -> str:
 def seller_name_matches(candidate: object, seller_names: Iterable[object]) -> bool:
     normalized = normalize_seller_name(candidate)
     return bool(normalized) and any(normalized == normalize_seller_name(name) for name in seller_names or [])
+
+
+def current_review(link: dict, draft: dict, render_revision: str) -> bool:
+    """An identity match alone cannot approve a changed disclosure (or layout)."""
+    try:
+        version = str(uuid.UUID(str(draft.get("review_content_revision") or "")))
+        reviewed = str(uuid.UUID(str(link.get("review_content_revision") or "")))
+    except (ValueError, TypeError, AttributeError):
+        return False
+    return (version == reviewed and link.get("review_render_revision") == render_revision
+            and not link.get("revoked_at"))

@@ -64,7 +64,7 @@ class SellerDisclosureAgentUiTests(unittest.TestCase):
         self.assertIn("draft?.status === 'signed'", html)
 
     def test_response_controls_cover_all_mapped_groups(self):
-        html = (ROOT / "index.html").read_text()
+        html = (ROOT / "assets/seller-disclosure-interview.js").read_text()
         for key in (
             "range", "smoke_detector", "defect_interior_walls",
             "active_termites", "present_flood_insurance",
@@ -75,7 +75,7 @@ class SellerDisclosureAgentUiTests(unittest.TestCase):
             self.assertIn("['" + key + "'", html)
 
     def test_water_rights_controls_are_saved_and_renderer_aliases_exist(self):
-        html = (ROOT / "index.html").read_text()
+        html = (ROOT / "index.html").read_text() + (ROOT / "assets/seller-disclosure-interview.js").read_text()
         renderer = (ROOT / "lib" / "trec_seller_disclosure.py").read_text()
         for key in (
             "in_groundwater_district", "water_wells_known",

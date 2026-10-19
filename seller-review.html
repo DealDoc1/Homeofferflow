@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
   <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
-  <title>Seller Disclosure Verification | HomeOfferFlow</title>
+  <title>Your Seller’s Disclosure | HomeOfferFlow</title>
   <style>
+    :root{--brand-navy:#0d1f35;--brand-gold:#c8973f}
     :root { color-scheme: light; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
     body { margin: 0; background: #f6f8fb; color: #172033; }
     main { max-width: 1040px; margin: 0 auto; padding: 28px 16px 48px; }
@@ -15,15 +16,26 @@
     p { line-height: 1.5; } .muted { color: #5c687b; }
     .warning { background: #fff8e6; border: 1px solid #efcf75; padding: 12px 14px; border-radius: 10px; }
     label { display: block; margin: 12px 0; } input[type=text] { width: 100%; max-width: 440px; box-sizing: border-box; padding: 11px 12px; border: 1px solid #b9c5d4; border-radius: 8px; font-size: 16px; }
-    button { border: 0; border-radius: 8px; padding: 12px 18px; background: #1459c7; color: #fff; font-weight: 700; cursor: pointer; }
+    button { border: 0; border-radius: 8px; padding: 12px 18px; background: var(--brand-gold); color: var(--brand-navy); font-weight: 700; cursor: pointer; }
     button:disabled { opacity: .55; cursor: wait; } .check { display:flex; gap:9px; align-items:flex-start; max-width:760px; }
     iframe { width:100%; height:760px; border:1px solid #cbd5e1; border-radius:10px; } .meta { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 18px; }
-    .meta strong { display:block; margin-top:3px; } #status { margin-left:10px; font-weight:600; }
+    .meta strong { display:block; margin-top:3px; } #status { display:block; margin:12px 0; font-weight:600; }
+    .pdf-link{display:inline-block;padding:12px 18px;border-radius:8px;background:var(--brand-gold);color:var(--brand-navy);font-weight:700;text-decoration:none}
+    .pdf-embed{margin-top:18px}.pdf-embed iframe{margin-top:12px}
     @media(max-width:700px){.meta{grid-template-columns:1fr} iframe{height:620px} main{padding:18px 10px 34px}}
+    [hidden]{display:none!important} .hof-seller-response-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 20px}
+    .hof-seller-response-row{display:flex;justify-content:space-between;gap:10px;align-items:center}
+    select,textarea{font:inherit;padding:10px;border:1px solid #b9c5d4;border-radius:8px;box-sizing:border-box;max-width:100%}
+    textarea,.hof-seller-explanation input{display:block;width:100%;max-width:none!important;margin-top:6px}
+    details{border-top:1px solid #d9e0ea;padding:14px 0}summary{font-weight:700;cursor:pointer}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.secondary{background:#edf2f8;color:#172033}
+    .hof-seller-saved-detail,.hof-seller-step-hint{color:#5c687b;font-size:14px;line-height:1.5}
+    @media(max-width:700px){.hof-seller-response-grid{grid-template-columns:1fr}.card{padding:18px}h1{font-size:25px}}
   </style>
 </head>
 <body>
 <main>
+  <a href="/" aria-label="HomeOfferFlow home" style="display:inline-block;margin-bottom:20px;font-size:20px;font-weight:800;color:var(--brand-navy);text-decoration:none">Home<span style="color:#916921">Offer</span>Flow</a>
   <section class="card">
     <h1>Seller disclosure review</h1>
     <p class="muted">HomeOfferFlow provides a secure review step for a seller disclosure prepared by your real estate professional.</p>
@@ -38,7 +50,19 @@
     <button id="verify" type="button">Verify and continue</button><span id="verifyStatus" role="status"></span>
   </section>
   <section class="card" id="details" hidden></section>
-  <section class="card" id="previewCard" hidden><h2>Unsigned preview</h2><iframe id="preview" title="Unsigned seller disclosure preview"></iframe></section>
+  <section class="card hof-seller-disclosure-card" id="questionnaire" hidden>
+    <h2>Tell us about the property</h2>
+    <p>Answer from your own knowledge. Choose Unknown when you are not sure. Save at any time; no signature request is sent until you choose to send it.</p>
+    <div id="mainQuestions"></div><div id="waterQuestions" hidden></div>
+    <div class="actions"><button id="saveAnswers" class="secondary" type="button">Save progress</button><button id="reviewAnswers" type="button">Review completed disclosure</button></div>
+    <p id="answerStatus" role="status" aria-live="polite"></p>
+  </section>
+  <section class="card" id="previewCard" hidden>
+    <h2>Your completed disclosure</h2>
+    <p>Open the PDF and review every page before confirming your answers. It has not been signed.</p>
+    <div class="actions"><a class="pdf-link" id="openPreview" target="_blank" rel="noopener noreferrer">Open disclosure PDF</a><a class="pdf-link secondary" id="downloadPreview" download="Seller_Disclosure.pdf">Download PDF</a></div>
+    <details class="pdf-embed"><summary>Preview on this page</summary><iframe id="preview" title="Unsigned seller disclosure preview"></iframe></details>
+  </section>
   <section class="card" id="attestationCard" hidden>
     <h2>Seller review attestation</h2>
     <p>After reviewing every page, enter your name exactly as listed and confirm that you reviewed the disclosure. This records review only; it is not an electronic signature.</p>
@@ -47,6 +71,8 @@
     <button id="attest" type="button">Record review attestation</button><span id="status" role="status"></span>
   </section>
 </main>
+<script src="/assets/seller-disclosure-interview.js"></script>
+<script src="/assets/seller-disclosure-questionnaire.js"></script>
 <script>
 (() => {
   const token = new URLSearchParams(location.search).get('token') || '';
@@ -79,8 +105,9 @@
       const session = p.sessionToken;
       const meta = await fetch('/api/admin-dashboard?seller_review_session=' + encodeURIComponent(session),{cache:'no-store'});
       const d = await meta.json().catch(() => ({})); if(!meta.ok) throw new Error(d.error || 'Could not load the review.');
+      if (d.questionnaireEnabled) { window.hofSellerQuestionnaire.start(session, d); return; }
       details.hidden = false; details.innerHTML = '<h2>Transaction details</h2><div class="meta"><div>Property<strong>'+esc(d.propertyAddress)+'</strong></div><div>Your review<strong>'+esc(d.sellerName || 'Seller review recipient')+'</strong></div><div>Seller(s)<strong>'+esc((d.sellerNames||[]).join(', '))+'</strong></div><div>Buyer(s)<strong>'+esc((d.buyerNames||[]).join(', ')||'Not provided')+'</strong></div><div>Session expires<strong>'+esc(new Date(d.expiresAt).toLocaleString())+'</strong></div></div>';
-      preview.src='/api/admin-dashboard?seller_review_pdf='+encodeURIComponent(session); previewCard.hidden=false;
+      window.hofSellerQuestionnaire.setPreviewSource('/api/admin-dashboard?seller_review_pdf='+encodeURIComponent(session)); previewCard.hidden=false;
       if (!d.sellerAttested) { attestationCard.hidden=false; attest.addEventListener('click',async()=>{ if(!sellerName.value.trim()||!confirm.checked){status.textContent='Enter your name and confirm the review first.';return;} attest.disabled=true; status.textContent='Recording…'; try {const a=await fetch('/api/admin-dashboard?attest_seller_review='+encodeURIComponent(session),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sellerName:sellerName.value})}); const ap=await a.json().catch(()=>({})); if(!a.ok) throw new Error(ap.error||'Could not record the review.'); status.textContent=ap.allSellersAttested ? 'Review recorded. Your agent can now send the completed disclosure for signature.' : 'Review recorded for you. Any other listed seller must complete their own review before the disclosure can be sent for signature.'; attestationCard.hidden=true;}catch(e){status.textContent=e.message;attest.disabled=false;}}); }
     } catch (e) { verifyStatus.textContent=e.message; verify.disabled=false; }
   });

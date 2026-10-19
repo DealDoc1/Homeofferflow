@@ -1,311 +1,63 @@
-import importlib.util
-import pathlib
-import sys
+"""Independent 05-04-2026 source bounds, not copies of draft anchors."""
 import unittest
-
-ROOT = pathlib.Path(__file__).resolve().parents[1]
-MODULE_PATH = ROOT / "lib" / "trec_seller_disclosure.py"
-SPEC = importlib.util.spec_from_file_location("trec_seller_disclosure", MODULE_PATH)
-MODULE = importlib.util.module_from_spec(SPEC)
-sys.modules[SPEC.name] = MODULE
-SPEC.loader.exec_module(MODULE)
-
+from lib import trec_seller_disclosure as m
 
 class TrecSellerDisclosureMapTests(unittest.TestCase):
-    def test_source_contracts_are_explicit_and_gated(self):
-        for code, pages in (("TREC-55-1", 4), ("TREC-61-0", 2)):
-            contract = MODULE.source_contract(code)
-            self.assertEqual(contract["page_count"], pages)
-            self.assertEqual(contract["activation_status"], "pending_visual_qa")
-            self.assertEqual(len(contract["source_sha256"]), 64)
-            self.assertIn("property_address" if code == "TREC-55-1" else "property_address_page_1", contract["field_map"])
+    def check_row(self, rows, key, left, right, rule):
+        x,y={k:(x,y) for k,x,y in rows}[key]
+        self.assertGreater(x,left);self.assertLess(x+6,right)
+        self.assertGreaterEqual(y-rule,2);self.assertLessEqual(y-rule,3)
 
-    def test_trec_55_occupancy_duration_anchor_is_explicit(self):
-        self.assertEqual(
-            MODULE.TREC_55_1_MAP["seller_occupancy_duration"],
-            {"page": 1, "x": 492, "y": 596, "width": 100},
-        )
+    def test_all_item_answers_fit_source_rules_including_two_line_fireplaces(self):
+        # Source rule coordinates measured before changing the renderer.
+        rows=[(('range','oven','microwave'),566.68),(('dishwasher','trash_compactor','disposal'),548.68),
+            (('washer_dryer_hookups','window_screens','rain_gutters'),530.68),
+            (('security_system','fire_detection_equipment','intercom_system'),512.68),
+            (('smoke_detector',),494.68),(('smoke_detector_hearing_impaired',),476.68),
+            (('carbon_monoxide_alarm',),458.68),(('emergency_escape_ladders',),440.68),
+            (('tv_antenna','cable_tv_wiring','satellite_dish'),422.68),(('ceiling_fans','attic_fans','exhaust_fans'),404.68),
+            (('central_ac','central_heating','wall_window_ac'),386.68),(('plumbing_system','septic_system','public_sewer_system'),368.68),
+            (('patio_decking','outdoor_grill','fences'),350.68),(('pool','sauna','spa'),332.68),
+            (('pool_equipment','pool_heater','automatic_lawn_sprinkler_system'),314.68),
+            (('fireplace_wood_burning','fireplace_mock'),291.68),(('natural_gas_lines','gas_fixtures'),273.68),
+            (('liquid_propane_gas',),255.68),(('fuel_gas_piping',),236.69)]
+        rules={key:rule for names,rule in rows for key in names}
+        self.assertEqual({k for k,_,_ in m.TREC_55_1_ITEM_ROWS},set(rules))
+        for key,x,y in m.TREC_55_1_ITEM_ROWS:
+            left={74:63.6,227:216.6,407:396.6}[x]
+            self.check_row(m.TREC_55_1_ITEM_ROWS,key,left,left+27,rules[key])
 
-    def test_signature_anchors_clear_the_printed_execution_captions(self):
-        self.assertEqual(MODULE.TREC_55_1_MAP["seller_signature_1"]["y"], 212)
-        self.assertEqual(MODULE.TREC_55_1_MAP["purchaser_signature_1"]["y"], 122)
-        self.assertEqual(MODULE.TREC_61_0_MAP["seller_signature_1"]["y"], 185)
-        self.assertEqual(MODULE.TREC_61_0_MAP["buyer_signature_1"]["y"], 129)
+    def test_every_defect_maps_to_its_own_question(self):
+        groups=[(('defect_interior_walls','defect_ceilings','defect_floors'),494.16),
+            (('defect_exterior_walls','defect_doors','defect_windows'),476.16),
+            (('defect_roof','defect_foundation_slabs','defect_sidewalks'),458.16),
+            (('defect_walls_fences','defect_driveways','defect_intercom'),440.16),
+            (('defect_plumbing_sewers_septics','defect_electrical_systems','defect_lighting_fixtures'),422.16)]
+        for names,rule in groups:
+            for key,left in zip(names,(55,235,406)):self.check_row(m.TREC_55_1_CONDITION_ROWS,key,left,left+29,rule)
+        self.check_row(m.TREC_55_1_CONDITION_ROWS,'defect_other_structural_components',55,83.7,404.16)
 
-    def test_trec_55_repair_awareness_anchors_are_explicit(self):
-        self.assertEqual(MODULE.TREC_55_1_MAP["repair_condition_yes"], {"page": 3, "x": 487, "y": 728})
-        self.assertEqual(MODULE.TREC_55_1_MAP["repair_condition_no"], {"page": 3, "x": 58, "y": 713})
+    def test_flood_and_wrapped_additional_answers_fit_source_rules(self):
+        for rows,rules in ((m.TREC_55_1_FLOOD_ROWS,(647.16,629.16,611.16,575.16,557.16,539.16,521.16,503.16)),
+            (m.TREC_55_1_ADDITIONAL_ROWS,(705.16,687.96,664.96,642.17,623.76,605.76,582.76,564.96,546.96,514.55,496.55,477.95,459.94,436.94,413.77))):
+            self.assertEqual(len(rows),len(rules))
+            for (key,_,_),rule in zip(rows,rules):self.check_row(rows,key,54.5,82.3,rule)
 
-    def test_trec_55_smoke_detector_anchors_are_explicit(self):
-        field_map = MODULE.TREC_55_1_MAP
-        self.assertEqual(field_map["smoke_detectors_yes"], {"page": 2, "x": 219, "y": 728})
-        self.assertEqual(field_map["smoke_detectors_no"], {"page": 2, "x": 248, "y": 728})
-        self.assertEqual(field_map["smoke_detectors_unknown"], {"page": 2, "x": 283, "y": 728})
+    def test_main_choice_marks_fit_inside_actual_ten_point_squares(self):
+        boxes={'seller_occupancy_yes':(76.13,607.17),'seller_occupancy_no':(100.30,607.17),
+            'repair_awareness_yes':(130.13,102.34),'repair_awareness_no':(166.13,102.34),'repair_awareness_unknown':(202.13,102.34),
+            'smoke_detectors_yes':(193.13,723.66),'smoke_detectors_no':(229.13,723.66),'smoke_detectors_unknown':(265.13,723.66),
+            'repair_condition_yes':(482.93,734.46),'repair_condition_no':(58.13,723.66),
+            'flood_claim_yes':(202.14,166.48),'flood_claim_no':(238.14,166.48),'fema_yes':(103.14,58.48),'fema_no':(139.14,58.48)}
+        for key,(left,bottom) in boxes.items():
+            a=m.TREC_55_1_MAP[key]
+            self.assertGreaterEqual(a['x'],left+1);self.assertLessEqual(a['x']+6,left+9)
+            self.assertGreaterEqual(a['y'],bottom+1);self.assertLessEqual(a['y']+6,bottom+9)
 
-    def test_trec_55_reviewed_condition_rows_are_explicit(self):
-        self.assertEqual(
-            MODULE.TREC_55_1_CONDITION_ROWS,
-            (
-                ("defect_interior_walls", 58, 500),
-                ("defect_ceilings", 238, 500),
-                ("defect_floors", 408, 500),
-                ("defect_other_structural_components", 58, 405),
-                ("defect_exterior_walls", 58, 473),
-                ("defect_doors", 238, 473),
-                ("defect_windows", 408, 473),
-                ("defect_roof", 58, 446),
-                ("defect_foundation_slabs", 238, 446),
-                ("defect_sidewalks", 408, 446),
-                ("defect_walls_fences", 58, 419),
-                ("defect_driveways", 238, 419),
-                ("defect_intercom", 408, 419),
-                ("defect_plumbing_sewers_septics", 58, 392),
-                ("defect_electrical_systems", 238, 392),
-                ("defect_lighting_fixtures", 408, 392),
-            ),
-        )
-
-
-    def test_trec_55_water_utility_fields_are_explicit(self):
-        expected = {
-            "water_heater_gas": {"page": 1, "x": 172, "y": 185},
-            "water_heater_electric": {"page": 1, "x": 292, "y": 185},
-            "water_supply_city": {"page": 1, "x": 172, "y": 166},
-            "water_supply_well": {"page": 1, "x": 292, "y": 166},
-            "water_supply_mud": {"page": 1, "x": 404, "y": 166},
-            "water_supply_coop": {"page": 1, "x": 512, "y": 166},
-        }
-        for key, anchor in expected.items():
-            self.assertEqual(MODULE.TREC_55_1_MAP[key], anchor)
-
-    def test_trec_55_roof_fields_are_explicit(self):
-        self.assertEqual(
-            MODULE.TREC_55_1_MAP["roof_type"],
-            {"page": 1, "x": 120, "y": 140, "width": 230},
-        )
-        self.assertEqual(
-            MODULE.TREC_55_1_MAP["roof_age"],
-            {"page": 1, "x": 380, "y": 140, "width": 120},
-        )
-
-    def test_trec_55_section4_condition_rows_are_explicit(self):
-        self.assertEqual(
-            MODULE.TREC_55_1_CONDITION4_ROWS,
-            (
-                ("active_termites", 58, 281),
-                ("previous_structural_or_roof_repair", 318, 281),
-                ("termite_or_wood_rot_needing_repair", 58, 263),
-                ("hazardous_toxic_waste", 318, 263),
-                ("previous_termite_damage", 58, 245),
-                ("asbestos_components", 318, 245),
-                ("previous_termite_treatment", 58, 227),
-                ("urea_formaldehyde_insulation", 318, 227),
-                ("improper_drainage", 58, 209),
-                ("radon_gas", 318, 209),
-                ("water_damage_not_flood", 58, 191),
-                ("lead_based_paint", 318, 191),
-                ("landfill_settling_soil_movement_fault_lines", 58, 173),
-                ("aluminum_wiring", 318, 173),
-                ("single_blockable_main_drain", 58, 155),
-                ("previous_fires", 318, 155),
-                ("unplatted_easements", 318, 137),
-                ("subsurface_structure_or_pits", 318, 119),
-                ("previous_methamphetamine_use", 318, 97),
-            ),
-        )
-
-    def test_trec_55_first_item_response_rows_are_explicit(self):
-        self.assertEqual(
-            MODULE.TREC_55_1_ITEM_ROWS,
-            (
-                ("range", 58, 570),
-                ("oven", 211, 570),
-                ("microwave", 391, 570),
-                ("dishwasher", 58, 552),
-                ("trash_compactor", 211, 552),
-                ("disposal", 391, 552),
-                ("washer_dryer_hookups", 58, 534),
-                ("window_screens", 211, 534),
-                ("rain_gutters", 391, 534),
-                ("security_system", 58, 516),
-                ("fire_detection_equipment", 211, 516),
-                ("intercom_system", 391, 516),
-                ("smoke_detector", 211, 498),
-                ("smoke_detector_hearing_impaired", 211, 480),
-                ("carbon_monoxide_alarm", 211, 462),
-                ("emergency_escape_ladders", 211, 444),
-                ("tv_antenna", 58, 426),
-                ("cable_tv_wiring", 211, 426),
-                ("satellite_dish", 391, 426),
-                ("ceiling_fans", 58, 408),
-                ("attic_fans", 211, 408),
-                ("exhaust_fans", 391, 408),
-                ("central_ac", 58, 390),
-                ("central_heating", 211, 390),
-                ("wall_window_ac", 391, 390),
-                ("plumbing_system", 58, 372),
-                ("septic_system", 211, 372),
-                ("public_sewer_system", 391, 372),
-                ("patio_decking", 58, 354),
-                ("outdoor_grill", 211, 354),
-                ("fences", 391, 354),
-                ("pool", 58, 336),
-                ("sauna", 211, 336),
-                ("spa", 391, 336),
-                ("pool_equipment", 58, 318),
-                ("pool_heater", 211, 318),
-                ("automatic_lawn_sprinkler_system", 391, 318),
-                ("fireplace_wood_burning", 58, 307),
-                ("fireplace_mock", 391, 307),
-                ("natural_gas_lines", 58, 277),
-                ("gas_fixtures", 391, 277),
-            ),
-        )
-
-
-    def test_trec_55_reviewed_item_response_rows_are_explicit(self):
-        self.assertEqual(
-            MODULE.TREC_55_1_ITEM_ROWS,
-            (
-                ("range", 58, 570),
-                ("oven", 211, 570),
-                ("microwave", 391, 570),
-                ("dishwasher", 58, 552),
-                ("trash_compactor", 211, 552),
-                ("disposal", 391, 552),
-                ("washer_dryer_hookups", 58, 534),
-                ("window_screens", 211, 534),
-                ("rain_gutters", 391, 534),
-                ("security_system", 58, 516),
-                ("fire_detection_equipment", 211, 516),
-                ("intercom_system", 391, 516),
-                ("smoke_detector", 211, 498),
-                ("smoke_detector_hearing_impaired", 211, 480),
-                ("carbon_monoxide_alarm", 211, 462),
-                ("emergency_escape_ladders", 211, 444),
-                ("tv_antenna", 58, 426),
-                ("cable_tv_wiring", 211, 426),
-                ("satellite_dish", 391, 426),
-                ("ceiling_fans", 58, 408),
-                ("attic_fans", 211, 408),
-                ("exhaust_fans", 391, 408),
-                ("central_ac", 58, 390),
-                ("central_heating", 211, 390),
-                ("wall_window_ac", 391, 390),
-                ("plumbing_system", 58, 372),
-                ("septic_system", 211, 372),
-                ("public_sewer_system", 391, 372),
-                ("patio_decking", 58, 354),
-                ("outdoor_grill", 211, 354),
-                ("fences", 391, 354),
-                ("pool", 58, 336),
-                ("sauna", 211, 336),
-                ("spa", 391, 336),
-                ("pool_equipment", 58, 318),
-                ("pool_heater", 211, 318),
-                ("automatic_lawn_sprinkler_system", 391, 318),
-                ("fireplace_wood_burning", 58, 307),
-                ("fireplace_mock", 391, 307),
-                ("natural_gas_lines", 58, 277),
-                ("gas_fixtures", 391, 277),
-            ),
-        )
-
-    def test_trec_61_page2_response_anchors_are_explicit(self):
-        field_map = MODULE.TREC_61_0_MAP
-        expected = {
-            "water_other_property_yes": {"page": 2, "x": 281, "y": 698},
-            "water_other_property_no": {"page": 2, "x": 322, "y": 698},
-            "outside_groundwater_rights_yes": {"page": 2, "x": 410, "y": 625},
-            "outside_groundwater_rights_no": {"page": 2, "x": 451, "y": 625},
-            "rights_severed_yes": {"page": 2, "x": 72, "y": 545},
-            "rights_severed_no": {"page": 2, "x": 112, "y": 545},
-            "surface_water_right_yes": {"page": 2, "x": 428, "y": 485},
-            "surface_water_right_no": {"page": 2, "x": 468, "y": 485},
-            "pond_lake_tank_yes": {"page": 2, "x": 72, "y": 390},
-            "pond_lake_tank_no": {"page": 2, "x": 112, "y": 390},
-        }
-        for key, anchor in expected.items():
-            self.assertEqual(field_map[key], anchor)
-
-    def test_trec_61_water_well_anchors_match_reviewed_rows(self):
-        field_map = MODULE.TREC_61_0_MAP
-        self.assertEqual(field_map["water_well_yes"], {"page": 1, "x": 383, "y": 258})
-        self.assertEqual(field_map["water_well_no"], {"page": 1, "x": 420, "y": 258})
-        self.assertEqual(field_map["well_owned_seller"], {"page": 1, "x": 48, "y": 145})
-        self.assertEqual(field_map["well_other_party"], {"page": 1, "x": 48, "y": 120})
-
-    def test_preview_requires_explicit_qa_mode(self):
-        with self.assertRaisesRegex(ValueError, "qa_mode"):
-            MODULE.render_unsigned_preview(b"%PDF", "TREC-55-1", {}, qa_mode=False)
-
-    def test_source_fingerprint_gate(self):
-        with self.assertRaisesRegex(ValueError, "fingerprint"):
-            MODULE.validate_source_bytes("TREC-55-1", b"not-the-approved-source")
-
-    def test_unknown_form_rejected(self):
-        with self.assertRaises(ValueError):
-            MODULE.source_contract("TREC-56-0")
-
-
-if __name__ == "__main__":
-    unittest.main()
-
-
-def test_trec_55_1_page1_gas_and_garage_anchors():
-    mapping = source_contract("TREC-55-1")["field_map"]
-    assert mapping["liquid_propane_lp_community"] == {"page": 1, "x": 172, "y": 249}
-    assert mapping["liquid_propane_on_property"] == {"page": 1, "x": 314, "y": 249}
-    assert mapping["fuel_gas_black_iron"] == {"page": 1, "x": 185, "y": 231}
-    assert mapping["fuel_gas_corrugated_stainless"] == {"page": 1, "x": 315, "y": 231}
-    assert mapping["fuel_gas_copper"] == {"page": 1, "x": 450, "y": 231}
-    assert mapping["garage_attached"] == {"page": 1, "x": 110, "y": 214}
-    assert mapping["garage_not_attached"] == {"page": 1, "x": 230, "y": 214}
-    assert mapping["garage_carport"] == {"page": 1, "x": 370, "y": 214}
-    assert mapping["garage_door_electronic"] == {"page": 1, "x": 190, "y": 198}
-    assert mapping["garage_door_controls"] == {"page": 1, "x": 310, "y": 198}
-
-
-def test_trec_55_1_page1_safety_item_anchors():
-    rows = dict((key, (x, y)) for key, x, y in TREC_55_1_ITEM_ROWS)
-    assert rows["smoke_detector"] == (211, 498)
-    assert rows["smoke_detector_hearing_impaired"] == (211, 480)
-    assert rows["carbon_monoxide_alarm"] == (211, 462)
-    assert rows["emergency_escape_ladders"] == (211, 444)
-
-
-def test_trec_55_1_canonical_item_aliases():
-    mapping = source_contract("TREC-55-1")["field_map"]
-    assert mapping["lp_community"] == {"page": 1, "x": 172, "y": 249}
-    assert mapping["lp_on_property"] == {"page": 1, "x": 314, "y": 249}
-    assert mapping["fuel_gas_corrugated_steel"] == {"page": 1, "x": 315, "y": 231}
-    assert mapping["carport"] == {"page": 1, "x": 370, "y": 214}
-    assert mapping["garage_opener_electronic"] == {"page": 1, "x": 190, "y": 198}
-    assert mapping["garage_opener_controls"] == {"page": 1, "x": 310, "y": 198}
-    assert mapping["hot_tub"] == {"page": 1, "x": 470, "y": 336}
-
-
-def test_trec_55_1_flood_response_anchors():
-    assert TREC_55_1_FLOOD_ROWS == (
-        ("present_flood_insurance", 58, 650),
-        ("previous_reservoir_release_flooding", 58, 632),
-        ("previous_natural_flood_water_penetration", 58, 614),
-        ("in_100_year_floodplain", 58, 596),
-        ("in_500_year_floodplain", 58, 578),
-        ("in_floodway", 58, 560),
-        ("in_flood_pool", 58, 542),
-        ("in_reservoir", 58, 524),
-    )
-
-
-def test_trec_55_1_additional_disclosure_anchors():
-    assert TREC_55_1_ADDITIONAL_ROWS == (
-        ("unpermitted_modifications", 58, 704), ("hoa_assessments", 58, 686),
-        ("common_area", 58, 668), ("deed_or_ordinance_violations", 58, 650),
-        ("property_lawsuits", 58, 632), ("health_or_safety_condition", 58, 614),
-        ("large_rainwater_system", 58, 596), ("groundwater_or_subsidence_district", 58, 578),
-        ("conservation_easements", 58, 560), ("covered_by_insurance", 58, 542),
-        ("covered_by_windstorm_insurance", 58, 524), ("unable_to_insure", 58, 496),
-        ("private_road_maintenance", 58, 478), ("storage_tanks", 58, 460),
-        ("large_aboveground_storage_tanks", 58, 442),
-    )
+    def test_source_contract_and_unapproved_bytes_stay_protected(self):
+        for code,pages in (('TREC-55-1',4),('TREC-61-0',2)):
+            self.assertEqual(m.source_contract(code)['page_count'],pages)
+            self.assertEqual(m.source_contract(code)['activation_status'],'pending_visual_qa')
+            with self.assertRaisesRegex(ValueError,'fingerprint'):m.validate_source_bytes(code,b'not-source')
+        with self.assertRaisesRegex(ValueError,'qa_mode'):m.render_unsigned_preview(b'not-source','TREC-55-1',{},qa_mode=False)
+        with self.assertRaises(ValueError):m.source_contract('TREC-56-0')

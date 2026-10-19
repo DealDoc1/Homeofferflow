@@ -35,11 +35,21 @@ class ProductionSchemaReadinessTests(unittest.TestCase):
         with patch.object(MODULE, 'urlopen', side_effect=open_fixture):
             result = MODULE.fetch_readiness('https://fixture.supabase.co', 'sb_secret_fixture')
         self.assertTrue(result['ready'])
-        self.assertEqual(len(requests), 2)
+        self.assertEqual(len(requests), 3)
         self.assertEqual(requests[1].method, 'GET')
         self.assertIn('onboarding_public_contact_phone', requests[1].full_url)
         self.assertTrue(requests[1].full_url.endswith('&limit=0'))
         self.assertNotIn('contact_email', requests[1].full_url)
+        self.assertIn('questionnaire_enabled,review_content_revision,review_render_revision', requests[2].full_url)
+        self.assertTrue(requests[2].full_url.endswith('&limit=0'))
+        self.assertNotIn('seller_email', requests[2].full_url)
+
+    def test_questionnaire_readiness_matches_only_the_released_schema(self):
+        sql = (ROOT / 'supabase/migrations/20261018134817_seller_disclosure_questionnaire_access.sql').read_text()
+        self.assertEqual(MODULE.EXPECTED_CONTRACT, 'homeofferflow-release-schema-v2')
+        self.assertIn(MODULE.EXPECTED_CONTRACT, sql)
+        self.assertIn('hof_save_seller_questionnaire', sql)
+        self.assertNotIn("'TXR-1101'", sql)
 
     def test_missing_public_profile_columns_cannot_be_silently_ignored(self):
         import json

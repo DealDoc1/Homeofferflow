@@ -3663,6 +3663,9 @@ async def _prepare_seller_disclosure_draft_record(user, data):
         "response_data": draft["response_data"],
         "water_rights_data": draft["water_rights_data"],
         "seller_review_attested": False,
+        "seller_review_attested_at": None,
+        "seller_review_attested_by": None,
+        "seller_review_render_revision": None,
     }
     return brokerage_id, record
 
@@ -3696,16 +3699,18 @@ async def _update_seller_disclosure_draft(user, data):
         f"id=eq.{urllib.parse.quote(draft_uuid)}"
         f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
         f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
-        "&status=eq.draft&select=id&limit=1"
+        "&status=eq.draft&select=id,signwell_document_id,response_data&limit=1"
     )
     if not existing:
         raise PermissionError("That private seller disclosure draft is unavailable.")
+    if existing[0].get("signwell_document_id") or signwell_delivery.JOURNAL_KEY in (existing[0].get("response_data") or {}):
+        raise PermissionError("This disclosure already has a signing request. Create a new draft to change its answers.")
     record["updated_at"] = datetime.now(timezone.utc).isoformat()
     async with httpx.AsyncClient(timeout=12) as client:
         response = await client.patch(
             f"{SUPABASE_URL}/rest/v1/hof_seller_disclosure_drafts?id=eq.{urllib.parse.quote(draft_uuid)}"
             f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
-            f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}&status=eq.draft",
+            f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}&status=eq.draft&signwell_document_id=is.null",
             headers={**_headers(), "Prefer": "return=representation"},
             json=record,
         )
@@ -3849,23 +3854,25 @@ async def _create_txr_1919_draft(user, data):
     return await _create_representation_draft(user, data, TXR_1919_FORM_CODE, _parse_txr_1919_draft)
 
 
-async def _deliver_seller_review_email(email, review_url, verification_code, expires_at, property_address):
+async def _deliver_seller_review_email(email, review_url, verification_code, expires_at, property_address, *, questionnaire=False):
     if not RESEND_API_KEY:
         raise RuntimeError("Seller review email is not configured yet.")
     payload = {
         "from": BROKERAGE_INVITE_FROM_EMAIL,
         "to": [email],
-        "subject": "Review your HomeOfferFlow seller disclosure",
+        "subject": "Your HomeOfferFlow seller disclosure",
         # Keep delivery reporting aggregate-only. Recipient, property, review
         # URL, and verification code are never used as Resend tag values.
         "tags": [{"name": "email_type", "value": "seller_disclosure_review"}],
         "html": (
-            "<p>Your real estate professional prepared a seller disclosure for your review.</p>"
+            ("<p>Your seller disclosure is ready. Answer the property questions from your own knowledge, then review the completed form.</p>" if questionnaire else "<p>Your real estate professional prepared a seller disclosure for your review.</p>")
+            +
             f"<p><strong>Property:</strong> {html.escape(property_address)}</p>"
             f"<p>Open the private review page: <a href=\"{html.escape(review_url)}\">{html.escape(review_url)}</a></p>"
             f"<p>When prompted, enter this one-time verification code: <strong>{html.escape(verification_code)}</strong></p>"
             f"<p>This link expires {html.escape(expires_at)}. Do not forward the link or code.</p>"
-            "<p>This private page lets you review the completed disclosure. It is not an electronic signature request.</p>"
+            +
+            ("<p>You can save your progress and return to this link. After review, signatures are completed separately through SignWell.</p>" if questionnaire else "<p>This private page lets you review the completed disclosure. It is not an electronic signature request.</p>")
         ),
     }
     if BROKERAGE_INVITE_REPLY_TO:
@@ -3897,11 +3904,14 @@ async def _create_seller_disclosure_review_link(user, data):
         f"id=eq.{urllib.parse.quote(draft_id)}"
         f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
         "&status=eq.draft"
-        "&select=id,brokerage_id,property_address,seller_names&limit=1"
+        "&select=id,brokerage_id,property_address,seller_names,review_content_revision&limit=1"
     )
     if not drafts:
         raise PermissionError("That private seller disclosure draft is unavailable.")
     brokerage_id = drafts[0].get("brokerage_id")
+    from lib.seller_disclosure_explanations import RENDER_REVISION
+    if not drafts[0].get("review_content_revision"):
+        raise RuntimeError("Seller review is temporarily unavailable. Please try again shortly.")
     seller_names = [" ".join(str(name).strip().split()) for name in (drafts[0].get("seller_names") or data.get("sellerNames") or []) if str(name).strip()]
     if not seller_names:
         # Preserve the original one-seller API contract for existing clients.
@@ -3975,6 +3985,9 @@ async def _create_seller_disclosure_review_link(user, data):
                 "seller_email": review["email"],
                 "seller_name": review["seller_name"],
                 "seller_index": review["seller_index"],
+                "questionnaire_enabled": data.get("questionnaireEnabled") is True,
+                "review_content_revision": drafts[0]["review_content_revision"],
+                "review_render_revision": RENDER_REVISION,
                 "token_hash": issued["token_hash"],
                 "verification_code_hash": issued["verification_code_hash"],
                 "expires_at": issued["expires_at"],
@@ -3989,7 +4002,8 @@ async def _create_seller_disclosure_review_link(user, data):
             rows = response.json()
             try:
                 await _deliver_seller_review_email(
-                    review["email"], review_url, issued["code"], issued["expires_at"], drafts[0]["property_address"]
+                    review["email"], review_url, issued["code"], issued["expires_at"], drafts[0]["property_address"],
+                    questionnaire=data.get("questionnaireEnabled") is True
                 )
             except Exception:
                 if rows:
@@ -4011,7 +4025,7 @@ async def _seller_review_pending(token):
         f"token_hash=eq.{urllib.parse.quote(token_hash)}"
         "&select=id,expires_at,revoked_at,verified_at&limit=1"
     )
-    if not rows or not seller_review_access.is_active(rows[0].get("expires_at")):
+    if not rows or rows[0].get("revoked_at") or not seller_review_access.is_active(rows[0].get("expires_at")):
         raise PermissionError("This seller review link is invalid or expired.")
     return rows[0]
 
@@ -4023,7 +4037,7 @@ async def _verify_seller_review(token, data):
         f"token_hash=eq.{urllib.parse.quote(token_hash)}"
         "&select=id,agent_user_id,seller_index,expires_at,revoked_at,verification_code_hash&limit=1"
     )
-    if not rows or not seller_review_access.is_active(rows[0].get("expires_at")):
+    if not rows or rows[0].get("revoked_at") or not seller_review_access.is_active(rows[0].get("expires_at")):
         raise PermissionError("This seller review link is invalid or expired.")
     row = rows[0]
     if not seller_review_access.code_matches(data.get("verificationCode"), token_hash, row.get("verification_code_hash")):
@@ -4053,12 +4067,12 @@ async def _verify_seller_review(token, data):
     return {"sessionToken": session["token"], "sessionExpiresAt": session["expires_at"], "workflowActivated": False}
 
 
-async def _seller_review_context(session_token):
+async def _seller_review_context(session_token, *, allow_questionnaire=False):
     session_hash = seller_review_access.hash_secret(session_token)
     rows = await _get(
         "hof_seller_disclosure_review_links?"
         f"session_token_hash=eq.{urllib.parse.quote(session_hash)}"
-        "&select=id,draft_id,brokerage_id,agent_user_id,seller_name,seller_index,session_expires_at,revoked_at,viewed_at,seller_attested_at,seller_attested_name&limit=1"
+        "&select=id,draft_id,brokerage_id,agent_user_id,seller_name,seller_index,seller_email,expires_at,session_expires_at,revoked_at,viewed_at,seller_attested_at,seller_attested_name,review_content_revision,review_render_revision,questionnaire_enabled&limit=1"
     )
     if not rows or rows[0].get("revoked_at") or not seller_review_access.is_active(rows[0].get("session_expires_at")):
         raise PermissionError("Your seller review session is invalid or expired.")
@@ -4068,12 +4082,26 @@ async def _seller_review_context(session_token):
         f"id=eq.{urllib.parse.quote(str(link['draft_id']))}"
         f"&brokerage_id=eq.{urllib.parse.quote(str(link['brokerage_id']))}"
         "&status=eq.draft"
-        "&select=id,property_address,seller_names,buyer_names,response_data,water_rights_data,"
-        "disclosure_source_id,water_source_id,disclosure_source_revision,water_source_revision"
+        "&select=id,agent_user_id,brokerage_id,property_address,seller_names,buyer_names,response_data,water_rights_data,signwell_document_id,"
+        "disclosure_source_id,water_source_id,disclosure_source_revision,water_source_revision,review_content_revision"
         "&limit=1"
     )
     if not drafts:
         raise PermissionError("The seller disclosure draft is no longer available.")
+    from lib.seller_disclosure_explanations import RENDER_REVISION
+    questionnaire = allow_questionnaire and link.get("questionnaire_enabled") is True
+    draft = drafts[0]
+    if questionnaire:
+        index = link.get("seller_index")
+        names = draft.get("seller_names") or []
+        if (link.get("agent_user_id") != draft.get("agent_user_id") or not isinstance(index, int)
+                or not 1 <= index <= len(names) or draft.get("signwell_document_id")
+                or signwell_delivery.JOURNAL_KEY in (draft.get("response_data") or {})
+                or not seller_review_access.is_active(link.get("expires_at"))
+                or not seller_review_access.seller_name_matches(link.get("seller_name"), [names[index - 1]])):
+            raise PermissionError("This seller questionnaire is unavailable.")
+    if not questionnaire and not seller_review_access.current_review(link, draft, RENDER_REVISION):
+        raise PermissionError("This disclosure changed. Ask the agent for an updated review request.")
     if not link.get("viewed_at"):
         now = datetime.now(timezone.utc).isoformat()
         async with httpx.AsyncClient(timeout=12) as client:
@@ -4092,7 +4120,7 @@ async def _seller_review_context(session_token):
 
 
 async def _seller_review_payload(session_token):
-    link, draft = await _seller_review_context(session_token)
+    link, draft = await _seller_review_context(session_token, allow_questionnaire=True)
     return {
         "id": link["id"],
         "propertyAddress": draft.get("property_address"),
@@ -4102,59 +4130,140 @@ async def _seller_review_payload(session_token):
         "buyerNames": draft.get("buyer_names") or [],
         "expiresAt": link.get("session_expires_at"),
         "sellerAttested": bool(link.get("seller_attested_at")),
+        "questionnaireEnabled": link.get("questionnaire_enabled") is True,
+        "reviewContentRevision": draft.get("review_content_revision"),
+        "responseData": {k: v for k, v in (draft.get("response_data") or {}).items() if not k.startswith('_')} if link.get("questionnaire_enabled") else {},
+        "waterRightsData": draft.get("water_rights_data") or {} if link.get("questionnaire_enabled") else {},
+        "hasWaterRights": bool(draft.get("water_source_id")),
+        "canSignSeparately": not bool(draft.get("buyer_names")),
         "workflowActivated": False,
     }
 
 
+async def _seller_reviews_complete_for_draft(draft):
+    """Revalidate durable per-seller evidence, never trust a cached boolean."""
+    from lib.seller_disclosure_explanations import RENDER_REVISION
+    seller_names = draft.get("seller_names") or []
+    if not seller_names or not draft.get("review_content_revision"):
+        return False
+    links = await _get(
+        "hof_seller_disclosure_review_links?"
+        f"draft_id=eq.{urllib.parse.quote(str(draft['id']))}"
+        f"&brokerage_id=eq.{urllib.parse.quote(str(draft['brokerage_id']))}"
+        f"&agent_user_id=eq.{urllib.parse.quote(str(draft['agent_user_id']))}"
+        f"&review_content_revision=eq.{urllib.parse.quote(str(draft['review_content_revision']))}"
+        "&revoked_at=is.null&select=seller_name,seller_index,seller_attested_at,seller_attested_name,review_content_revision,review_render_revision,revoked_at"
+    )
+    for index, expected_name in enumerate(seller_names, start=1):
+        if not any(
+            link for link in links
+            if link.get("seller_index") == index
+            and seller_review_access.current_review(link, draft, RENDER_REVISION)
+            and seller_review_access.seller_name_matches(link.get("seller_name"), [expected_name])
+            and seller_review_access.seller_name_matches(link.get("seller_attested_name"), [expected_name])
+            and link.get("seller_attested_at")
+        ):
+            return False
+    return True
+
+
 async def _refresh_seller_review_attestation(draft_id, brokerage_id):
-    """Mark the draft reviewed only after every listed seller has attested."""
+    """Cache review only for the version read; the database rechecks evidence."""
+    from lib.seller_disclosure_explanations import RENDER_REVISION
     drafts = await _get(
         "hof_seller_disclosure_drafts?"
         f"id=eq.{urllib.parse.quote(str(draft_id))}"
         f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
-        "&status=eq.draft&select=id,seller_names,seller_review_attested&limit=1"
+        "&status=eq.draft&select=id,brokerage_id,agent_user_id,seller_names,seller_review_attested,seller_review_render_revision,review_content_revision&limit=1"
     )
     if not drafts:
         return False
-    seller_names = [" ".join(str(name).strip().split()) for name in (drafts[0].get("seller_names") or []) if str(name).strip()]
-    links = await _get(
-        "hof_seller_disclosure_review_links?"
-        f"draft_id=eq.{urllib.parse.quote(str(draft_id))}"
-        f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
-        "&revoked_at=is.null&select=seller_name,seller_index,seller_attested_at,agent_user_id"
-    )
-    if not seller_names:
-        return False
-    complete = True
-    for index, expected_name in enumerate(seller_names, start=1):
-        matching = [
-            link for link in links
-            if (link.get("seller_index") == index or (len(seller_names) == 1 and link.get("seller_index") is None))
-            and seller_review_access.seller_name_matches(link.get("seller_name") or expected_name, [expected_name])
-            and link.get("seller_attested_at")
-        ]
-        if not matching:
-            complete = False
-            break
-    if complete and not drafts[0].get("seller_review_attested"):
+    draft = drafts[0]
+    complete = await _seller_reviews_complete_for_draft(draft)
+    if complete and (not draft.get("seller_review_attested") or draft.get("seller_review_render_revision") != RENDER_REVISION):
         now = datetime.now(timezone.utc).isoformat()
-        attested_by = next((link.get("agent_user_id") for link in links if link.get("agent_user_id")), None)
+        attested_by = draft.get("agent_user_id")
         if not attested_by:
             return False
         async with httpx.AsyncClient(timeout=12) as client:
             response = await client.patch(
                 f"{SUPABASE_URL}/rest/v1/hof_seller_disclosure_drafts?"
-                f"id=eq.{urllib.parse.quote(str(draft_id))}&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}",
-                headers={**_headers(), "Prefer": "return=minimal"},
-                json={"seller_review_attested": True, "seller_review_attested_at": now, "seller_review_attested_by": attested_by, "updated_at": now},
+                f"id=eq.{urllib.parse.quote(str(draft_id))}&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
+                f"&status=eq.draft&review_content_revision=eq.{urllib.parse.quote(str(draft['review_content_revision']))}",
+                headers={**_headers(), "Prefer": "return=representation"},
+                json={"seller_review_attested": True, "seller_review_attested_at": now, "seller_review_attested_by": attested_by,
+                      "seller_review_render_revision": RENDER_REVISION, "updated_at": now},
             )
         if response.status_code >= 300:
             raise RuntimeError("Could not update the seller disclosure review status.")
+        rows = response.json()
+        return bool(isinstance(rows, list) and len(rows) == 1 and rows[0].get("id") == draft_id)
     return complete
 
 
+async def _save_seller_questionnaire(session_token, data, *, attest=False):
+    """One verified seller can change answers only, never parties or sources."""
+    from lib.seller_questionnaire import parse_answers
+    from lib.seller_disclosure_explanations import RENDER_REVISION
+    link, draft = await _seller_review_context(session_token, allow_questionnaire=True)
+    if link.get("questionnaire_enabled") is not True:
+        raise PermissionError("This link is for review only. Ask for a seller questionnaire.")
+    values = data
+    if attest:
+        # Validate the saved content being approved, not substitute answers
+        # supplied in the confirmation request.
+        values = {**data, "responseData": {k:v for k,v in (draft.get("response_data") or {}).items() if not k.startswith('_')},
+                  "waterRightsData": draft.get("water_rights_data") or {}}
+    revision, answers, water = parse_answers(values, has_water=bool(draft.get("water_source_id")), require_complete=attest)
+    if attest and (data.get("confirmed") is not True or not seller_review_access.seller_name_matches(
+            data.get("sellerName"), [link.get("seller_name")])):
+        raise ValueError("Enter your name and confirm that you reviewed every page.")
+    async with httpx.AsyncClient(timeout=15) as client:
+        response = await client.post(
+            f"{SUPABASE_URL}/rest/v1/rpc/hof_save_seller_questionnaire", headers=_headers(),
+            json={"p_session_hash": seller_review_access.hash_secret(session_token),
+                  "p_expected_revision": revision, "p_action": "review" if attest else "save",
+                  "p_answers": answers, "p_water_answers": water, "p_render_revision": RENDER_REVISION})
+    if response.status_code >= 300:
+        if response.status_code in {400, 403, 409}:
+            raise ValueError("The disclosure changed or this session expired. Reload the latest answers before continuing.")
+        raise RuntimeError("We could not save your disclosure. Please try again.")
+    result = response.json()
+    if not isinstance(result, dict) or not result.get("reviewContentRevision"):
+        raise RuntimeError("Your save could not be confirmed. Reload before continuing.")
+    if attest:
+        result["allSellersAttested"] = await _refresh_seller_review_attestation(draft["id"], link["brokerage_id"])
+    return {**result, "ok": True, "workflowActivated": False}
+
+
+async def _send_seller_questionnaire_for_signature(session_token):
+    """A questionnaire recipient cannot choose owners, files or other signers."""
+    link, draft = await _seller_review_context(session_token, allow_questionnaire=True)
+    if not link.get("questionnaire_enabled") or draft.get("buyer_names"):
+        raise PermissionError("Your agent will send this disclosure with the signing packet.")
+    if not await _seller_reviews_complete_for_draft(draft):
+        raise PermissionError("Each seller must confirm the latest completed disclosure before signing.")
+    links = await _get(
+        "hof_seller_disclosure_review_links?"
+        f"draft_id=eq.{urllib.parse.quote(str(draft['id']))}"
+        f"&agent_user_id=eq.{urllib.parse.quote(str(draft['agent_user_id']))}"
+        "&questionnaire_enabled=is.true&revoked_at=is.null"
+        "&select=seller_index,seller_name,seller_email&order=seller_index.asc&limit=3")
+    names = draft.get("seller_names") or []
+    if len(links) != len(names) or any(
+        row.get("seller_index") != i or not seller_review_access.seller_name_matches(row.get("seller_name"), [name])
+        for i, (row, name) in enumerate(zip(links, names), 1)):
+        raise PermissionError("The seller recipients changed. Ask your agent to check the questionnaire invitations.")
+    result = await _send_seller_disclosure_for_signature({"id": draft['agent_user_id']}, {
+        "draftId": draft['id'], "signerEmails": [seller_review_access.normalize_email(r.get('seller_email')) for r in links]})
+    # Never disclose other recipients' bearer signing links to this visitor.
+    return {"ok": True, "message": result['message'], "sent": True}
+
+
 async def _attest_seller_review(session_token, data):
-    link, draft = await _seller_review_context(session_token)
+    link, draft = await _seller_review_context(session_token, allow_questionnaire=True)
+    if link.get("questionnaire_enabled"):
+        return await _save_seller_questionnaire(session_token, data, attest=True)
     if link.get("seller_attested_at"):
         return {"ok": True, "alreadyAttested": True, "workflowActivated": False}
     seller_name = " ".join(str(data.get("sellerName") or "").strip().split())
@@ -4167,12 +4276,16 @@ async def _attest_seller_review(session_token, data):
     async with httpx.AsyncClient(timeout=12) as client:
         response = await client.patch(
             f"{SUPABASE_URL}/rest/v1/hof_seller_disclosure_review_links?"
-            f"id=eq.{urllib.parse.quote(str(link['id']))}&seller_attested_at=is.null",
+            f"id=eq.{urllib.parse.quote(str(link['id']))}&seller_attested_at=is.null&revoked_at=is.null"
+            f"&review_content_revision=eq.{urllib.parse.quote(str(link['review_content_revision']))}",
             headers={**_headers(), "Prefer": "return=representation"},
             json={"seller_attested_at": now, "seller_attested_name": seller_name, "updated_at": now},
         )
     if response.status_code >= 300:
         raise RuntimeError("Could not record the seller review attestation.")
+    rows = response.json()
+    if not isinstance(rows, list) or len(rows) != 1 or rows[0].get("id") != link["id"]:
+        raise PermissionError("This review request changed. Refresh the page before continuing.")
     all_sellers_attested = await _refresh_seller_review_attestation(link["draft_id"], link["brokerage_id"])
     await _record_offer_event(
         link.get("agent_user_id"),
@@ -4183,7 +4296,7 @@ async def _attest_seller_review(session_token, data):
     return {"ok": True, "attestedAt": now, "attestedName": seller_name, "allSellersAttested": all_sellers_attested, "workflowActivated": False}
 
 
-async def _render_seller_disclosure_draft_preview(user, draft_id, review_context=None, *, fingerprint_context=None):
+async def _render_seller_disclosure_draft_preview(user, draft_id, review_context=None, *, fingerprint_context=None, layout_context=None, expected_review_revision=None):
     """Render an agent-owned or email-verified seller draft as an unsigned preview."""
     try:
         draft_uuid = str(uuid.UUID(str(draft_id)))
@@ -4207,13 +4320,18 @@ async def _render_seller_disclosure_draft_preview(user, draft_id, review_context
     drafts = await _get(
         draft_query +
         "&select=id,brokerage_id,property_address,response_data,water_rights_data,"
-        "disclosure_source_id,water_source_id,disclosure_source_revision,water_source_revision"
+        "disclosure_source_id,water_source_id,disclosure_source_revision,water_source_revision,seller_names,buyer_names,review_content_revision"
         "&limit=1"
     )
     if not drafts:
         raise PermissionError("That private seller disclosure draft is unavailable.")
     draft = drafts[0]
     brokerage_id = draft.get("brokerage_id")
+    from lib.seller_disclosure_explanations import RENDER_REVISION
+    if (review_context and not review_context.get("questionnaire_enabled") and not seller_review_access.current_review(review_context, draft, RENDER_REVISION)) or (
+        expected_review_revision is not None and draft.get("review_content_revision") != expected_review_revision
+    ):
+        raise PermissionError("This disclosure changed. Review the updated answers before continuing.")
 
     async def _approved_source(source_id, form_code, expected_revision):
         if not source_id:
@@ -4258,7 +4376,11 @@ async def _render_seller_disclosure_draft_preview(user, draft_id, review_context
     )
 
     from lib.trec_seller_disclosure import render_unsigned_preview
+    from lib.seller_disclosure_explanations import append_explanations, RENDER_REVISION
 
+    explanations = []
+    if fingerprint_context is not None:
+        fingerprint_context["render_revision"] = RENDER_REVISION
     response_values = dict(draft.get("response_data") or {})
     response_values.pop(signwell_delivery.JOURNAL_KEY, None)
     response_values["propertyAddress"] = draft.get("property_address") or ""
@@ -4267,6 +4389,7 @@ async def _render_seller_disclosure_draft_preview(user, draft_id, review_context
         TREC_55_1_FORM_CODE,
         response_values,
         qa_mode=True,
+        continuation_sink=explanations,
     )
     if water_source:
         water_values = dict(draft.get("water_rights_data") or {})
@@ -4276,6 +4399,7 @@ async def _render_seller_disclosure_draft_preview(user, draft_id, review_context
             TREC_61_0_FORM_CODE,
             water_values,
             qa_mode=True,
+            continuation_sink=explanations,
         )
         writer = PdfWriter()
         for payload in (preview, water_preview):
@@ -4285,6 +4409,12 @@ async def _render_seller_disclosure_draft_preview(user, draft_id, review_context
         merged = BytesIO()
         writer.write(merged)
         preview = merged.getvalue()
+    preview, continuation_pages = append_explanations(
+        preview, explanations, property_address=str(draft.get("property_address") or ""),
+        parties={"seller_names": draft.get("seller_names") or [], "buyer_names": draft.get("buyer_names") or []},
+    )
+    if layout_context is not None:
+        layout_context["continuation_pages"] = continuation_pages
     return preview
 
 
@@ -4323,7 +4453,7 @@ async def _send_seller_disclosure_for_signature(user, data):
         f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
         "&status=eq.draft"
         "&seller_review_attested=is.true"
-        "&select=id,property_address,seller_names,buyer_names,water_source_id,disclosure_source_revision,water_source_revision,disclosure_source_id,response_data,water_rights_data,signwell_document_id,signwell_status,updated_at,sent_at"
+        "&select=id,brokerage_id,agent_user_id,property_address,seller_names,buyer_names,water_source_id,disclosure_source_revision,water_source_revision,disclosure_source_id,response_data,water_rights_data,signwell_document_id,signwell_status,updated_at,sent_at,review_content_revision,seller_review_render_revision"
         "&limit=1"
     )
     if not drafts:
@@ -4331,15 +4461,25 @@ async def _send_seller_disclosure_for_signature(user, data):
     draft = drafts[0]
     if draft.get("signwell_document_id") and not _tracked_signature_journal(draft, "response_data"):
         raise PermissionError("This signature request already exists. Refresh its status before sending again.")
+    from lib.seller_disclosure_explanations import RENDER_REVISION
+    if draft.get("seller_review_render_revision") != RENDER_REVISION or not await _seller_reviews_complete_for_draft(draft):
+        raise PermissionError("Every seller must review the current disclosure before signing.")
     recipients = _seller_disclosure_signing_recipients(draft, data.get("signerEmails"))
-    render_context = {}
-    rendered = await _render_seller_disclosure_draft_preview(user, draft_uuid, fingerprint_context=render_context)
+    render_context, layout_context = {}, {}
+    rendered = await _render_seller_disclosure_draft_preview(
+        user, draft_uuid, fingerprint_context=render_context, layout_context=layout_context,
+        expected_review_revision=draft["review_content_revision"])
     from lib.trec_seller_disclosure import build_signwell_fields
+    from lib.seller_disclosure_explanations import continuation_fields
 
     signing_data = {"seller_names": draft.get("seller_names") or [], "buyer_names": draft.get("buyer_names") or []}
-    fields = build_signwell_fields(TREC_55_1_FORM_CODE, signing_data)
+    # One merged PDF requires one field array, including the water form and
+    # any overflow pages. A second field array would refer to a nonexistent
+    # second file rather than the water pages of this file.
+    fields = build_signwell_fields(TREC_55_1_FORM_CODE, signing_data)[0]
     if draft.get("water_source_id"):
-        fields.extend(build_signwell_fields(TREC_61_0_FORM_CODE, signing_data, page_offset=4))
+        fields.extend(build_signwell_fields(TREC_61_0_FORM_CODE, signing_data, page_offset=4)[0])
+    fields.extend(continuation_fields(signing_data, layout_context.get("continuation_pages", [])))
     payload = {
         "test_mode": SIGNWELL_TEST_MODE,
         # Keep this private until SignWell confirms it retained the exact
@@ -4359,7 +4499,7 @@ async def _send_seller_disclosure_for_signature(user, data):
         ),
         "recipients": recipients,
         "files": [{"name": "HomeOfferFlow_Seller_Disclosure.pdf", "file_base64": base64.b64encode(rendered).decode("ascii")}],
-        "fields": fields,
+        "fields": [fields],
         "metadata": {
             "source": "HomeOfferFlow",
             "seller_disclosure_draft_id": draft_uuid,
@@ -5086,9 +5226,13 @@ class handler(BaseHTTPRequestHandler):
                 _json(self, 200, asyncio.run(_seller_review_payload(review_session)))
                 return
             if review_pdf_session:
-                link, _draft = asyncio.run(_seller_review_context(review_pdf_session))
+                link, _draft = asyncio.run(_seller_review_context(review_pdf_session, allow_questionnaire=True))
+                requested_revision = str((query.get("revision") or [""])[0])
+                if link.get("questionnaire_enabled") and requested_revision != _draft.get("review_content_revision"):
+                    raise PermissionError("The disclosure changed. Save and review the latest answers.")
                 pdf = asyncio.run(_render_seller_disclosure_draft_preview(
-                    None, link["draft_id"], review_context=link
+                    None, link["draft_id"], review_context=link,
+                    expected_review_revision=requested_revision if link.get("questionnaire_enabled") else None
                 ))
                 _pdf_response(self, pdf, "seller-disclosure-review-preview.pdf")
                 return
@@ -7848,7 +7992,9 @@ class handler(BaseHTTPRequestHandler):
             query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
             verify_token = str((query.get("verify_seller_review") or [""])[0]).strip()
             attest_session = str((query.get("attest_seller_review") or [""])[0]).strip()
-            if verify_token or attest_session:
+            save_session = str((query.get("save_seller_questionnaire") or [""])[0]).strip()
+            sign_session = str((query.get("sign_seller_questionnaire") or [""])[0]).strip()
+            if verify_token or attest_session or save_session or sign_session:
                 length = int(self.headers.get("Content-Length", "0") or "0")
                 if length <= 0 or length > MAX_BODY_BYTES:
                     _json(self, 400, {"error": "Invalid request size."})
@@ -7856,6 +8002,10 @@ class handler(BaseHTTPRequestHandler):
                 data = json.loads(self.rfile.read(length).decode("utf-8"))
                 if verify_token:
                     result = asyncio.run(_verify_seller_review(verify_token, data))
+                elif save_session:
+                    result = asyncio.run(_save_seller_questionnaire(save_session, data))
+                elif sign_session:
+                    result = asyncio.run(_send_seller_questionnaire_for_signature(sign_session))
                 else:
                     result = asyncio.run(_attest_seller_review(attest_session, data))
                 _json(self, 200, result)

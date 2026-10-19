@@ -3268,6 +3268,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     </div>
 
     <div class="account-panel" id="accountPanelSeller">
+      <div class="account-card"><h4>Seller’s disclosure</h4><p>Complete your own disclosure or send your seller a secure questionnaire.</p><button class="btn-secondary" type="button" onclick="window.openSellerDisclosureDraftWorkspace?.()">Start seller’s disclosure</button></div>
       <div id="sellerFoundationPanel" class="offer-empty">Loading listing workspace...</div>
     </div>
 
@@ -19915,6 +19916,7 @@ function routeAfterMagicLinkIfNeeded() {
         <button class="offer-action-btn" type="button" onclick="reuseOfferTerms('${esc(o.id)}')">Reuse terms</button>
         <button class="offer-action-btn" type="button" onclick="duplicateOffer('${esc(o.id)}', false, true)">${isExpired ? 'Duplicate &amp; edit to resend' : 'Duplicate &amp; edit'}</button>
         <button class="offer-action-btn" type="button" onclick="copyOfferSummary('${esc(o.id)}')">Copy summary</button>
+        <button class="offer-action-btn" type="button" onclick="window.startOfferSellerDisclosure('${esc(o.id)}')">Seller’s disclosure</button>
         ${hasDoc ? `<button class="offer-action-btn" type="button" onclick="refreshSignWellStatus('${esc(o.id)}', this)">Refresh</button>` : `<button class="offer-action-btn" type="button" onclick="viewOfferDetails('${esc(o.id)}')">Status</button>`}
         ${canRetrySigning ? `<button class="offer-action-btn" type="button" onclick="retryOfferSignature('${esc(o.id)}', this)">Retry signing</button>` : ''}
         ${needsBuyerReminder ? `<button class="offer-action-btn" type="button" onclick="copyBuyerSigningReminder('${esc(o.id)}')">Copy buyer reminder</button>` : ''}
@@ -24466,9 +24468,14 @@ function routeAfterMagicLinkIfNeeded() {
 .hof-seller-step-copy{display:flex;flex-direction:column}
 .hof-seller-response-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;margin-top:10px}
 .hof-seller-response-row{display:grid;grid-template-columns:1fr 95px;align-items:center;gap:8px}
+.hof-seller-explanation{display:block;margin-top:12px;min-width:0}
+.hof-seller-explanation textarea,.hof-seller-explanation input,.hof-seller-explanation select{display:block;width:100%;min-width:0;max-width:100%;box-sizing:border-box;margin-top:6px;padding:10px;border-radius:8px;resize:vertical;font:inherit}
+.hof-seller-disclosure-card .hof-seller-conditional[hidden],.hof-seller-saved-detail[hidden]{display:none!important}
+.hof-seller-saved-detail{display:block;margin-top:5px;color:var(--gold-light);font-size:.8rem;line-height:1.4}
 .hof-seller-disclosure-card .hof-seller-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 @media(max-width:700px){.hof-seller-disclosure-card .hof-seller-grid,.hof-seller-response-grid{grid-template-columns:1fr}}
 </style>
+<script src="/assets/seller-disclosure-interview.js"></script>
 <script id="hof-seller-disclosure-draft-ui-v1">
 (function () {
   const root = window;
@@ -24477,75 +24484,10 @@ function routeAfterMagicLinkIfNeeded() {
   const active = () => {
     const role = String(root.hofAuth?.role || profile().role || '').toLowerCase();
     return !!root.hofAuth?.session?.user &&
-      ['agent', 'broker', 'brokerage_admin', 'broker_admin', 'owner', 'team_lead'].includes(role);
+      ['agent', 'broker', 'brokerage_admin', 'broker_admin', 'owner', 'team_lead', 'seller', 'buyer', 'investor', 'user'].includes(role);
   };
-  const responseGroups = [
-    ['Systems and features', [
-      ['range','Range'],['oven','Oven'],['microwave','Microwave'],['dishwasher','Dishwasher'],['trash_compactor','Trash Compactor'],['disposal','Disposal'],
-      ['washer_dryer_hookups','Washer/Dryer Hookups'],['window_screens','Window Screens'],['rain_gutters','Rain Gutters'],['security_system','Security System'],
-      ['fire_detection_equipment','Fire Detection Equipment'],['intercom_system','Intercom System'],['smoke_detector','Smoke Detector'],
-      ['smoke_detector_hearing_impaired','Smoke Detector-Hearing Impaired'],['carbon_monoxide_alarm','Carbon Monoxide Alarm'],['emergency_escape_ladders','Emergency Escape Ladder(s)'],
-      ['tv_antenna','TV Antenna'],['cable_tv_wiring','Cable TV Wiring'],['satellite_dish','Satellite Dish'],['ceiling_fans','Ceiling Fan(s)'],['attic_fans','Attic Fan(s)'],
-      ['exhaust_fans','Exhaust Fan(s)'],['central_ac','Central A/C'],['central_heating','Central Heating'],['wall_window_ac','Wall/Window A/C'],
-      ['plumbing_system','Plumbing System'],['septic_system','Septic System'],['public_sewer_system','Public Sewer System'],['patio_decking','Patio/Decking'],
-      ['outdoor_grill','Outdoor Grill'],['fences','Fences'],['pool','Pool'],['sauna','Sauna'],['spa','Spa'],['hot_tub','Hot Tub'],['pool_equipment','Pool Equipment'],
-      ['pool_heater','Pool Heater'],['automatic_lawn_sprinkler_system','Automatic Lawn Sprinkler System'],['fireplace_wood_burning','Fireplace(s) & Chimney (Wood burning)'],
-      ['fireplace_mock','Fireplace(s) & Chimney (Mock)'],['natural_gas_lines','Natural Gas Lines'],['gas_fixtures','Gas Fixtures'],['lp_community','LP Community (Captive)'],
-      ['lp_on_property','LP on Property'],['fuel_gas_black_iron','Fuel Gas: Black Iron Pipe'],['fuel_gas_corrugated_steel','Fuel Gas: Corrugated Stainless Steel Tubing'],
-      ['fuel_gas_copper','Fuel Gas: Copper'],['garage_attached','Garage Attached'],['garage_not_attached','Garage Not Attached'],['carport','Carport'],
-      ['garage_opener_electronic','Garage Door Opener Electronic'],['garage_opener_controls','Garage Door Opener Control(s)'],['water_heater_gas','Water Heater Gas'],
-      ['water_heater_electric','Water Heater Electric'],['water_supply_city','Water Supply City'],['water_supply_well','Water Supply Well'],['water_supply_mud','Water Supply MUD'],
-      ['water_supply_coop','Water Supply Co-op']
-    ]],
-    ['Known defects', [
-      ['defect_interior_walls','Interior walls'],['defect_ceilings','Ceilings'],['defect_floors','Floors'],['defect_exterior_walls','Exterior walls'],
-      ['defect_doors','Doors'],['defect_windows','Windows'],['defect_roof','Roof'],['defect_foundation_slabs','Foundation/slabs'],['defect_sidewalks','Sidewalks'],
-      ['defect_walls_fences','Walls/fences'],['defect_driveways','Driveways'],['defect_intercom','Intercom'],['defect_plumbing_sewers_septics','Plumbing/sewers/septics'],
-      ['defect_electrical_systems','Electrical systems'],['defect_lighting_fixtures','Lighting fixtures'],['defect_other_structural_components','Other structural components']
-    ]],
-    ['Conditions', [
-      ['active_termites','Active termites'],['previous_structural_or_roof_repair','Previous structural/roof repair'],['termite_or_wood_rot_needing_repair','Termite/wood rot needing repair'],
-      ['hazardous_toxic_waste','Hazardous/toxic waste'],['previous_termite_damage','Previous termite damage'],['asbestos_components','Asbestos components'],
-      ['previous_termite_treatment','Previous termite treatment'],['urea_formaldehyde_insulation','Urea-formaldehyde insulation'],['improper_drainage','Improper drainage'],
-      ['radon_gas','Radon gas'],['water_damage_not_flood','Water damage (not flood)'],['lead_based_paint','Lead-based paint'],
-      ['landfill_settling_soil_movement_fault_lines','Landfill/settling/soil movement/fault lines'],['aluminum_wiring','Aluminum wiring'],
-      ['single_blockable_main_drain','Single blockable main drain'],['previous_fires','Previous fires'],['unplatted_easements','Unplatted easements'],
-      ['subsurface_structure_or_pits','Subsurface structure or pits'],['previous_methamphetamine_use','Previous methamphetamine use']
-    ]],
-    ['Flood and repairs', [
-      ['property_needs_repair','Property needs repair'],['working_smoke_detectors','Working smoke detectors'],['present_flood_insurance','Present flood insurance coverage'],
-      ['previous_reservoir_release_flooding','Previous reservoir release flooding'],['previous_natural_flood_water_penetration','Previous natural-flood water penetration'],
-      ['in_100_year_floodplain','In 100-year floodplain'],['in_500_year_floodplain','In 500-year floodplain'],['in_floodway','In a floodway'],
-      ['in_flood_pool','In a flood pool'],['in_reservoir','In a reservoir'],['filed_flood_claim','Filed flood claim'],
-      ['received_fema_or_sba_assistance','Received FEMA/SBA assistance']
-    ]],
-    ['Additional disclosures', [
-      ['unpermitted_modifications','Unpermitted modifications'],['hoa_assessments','HOA assessments'],['common_area','Common area'],
-      ['deed_or_ordinance_violations','Deed/ordinance violations'],['property_lawsuits','Property lawsuits'],['health_or_safety_condition','Health/safety condition'],
-      ['large_rainwater_system','Large rainwater system'],['groundwater_or_subsidence_district','Groundwater/subsidence district'],
-      ['conservation_easements','Conservation easements'],['covered_by_insurance','Covered by insurance'],['covered_by_windstorm_insurance','Covered by windstorm insurance'],
-      ['unable_to_insure','Unable to insure'],['private_road_maintenance','Private-road maintenance'],['storage_tanks','Storage tanks'],
-      ['large_aboveground_storage_tanks','Large aboveground storage tanks']
-    ]]
-  ];
-  const waterGroups = [['TREC-61-0 water rights', [
-    ['in_groundwater_district','In groundwater conservation district'],['water_wells_known','Water wells known'],
-    ['water_well_on_another_property','Water well on another property'],['water_well_relies_on_outside_rights','Relies on outside groundwater rights'],
-    ['groundwater_rights_severed_sold_leased','Groundwater rights severed/sold/leased'],['surface_water_right','Surface-water right'],
-    ['pond_lake_or_water_tank','Pond/lake/water tank']
-  ]]];
   const draftCache = new Map();
-  const responsePrompt = '<p class="hof-seller-step-hint">Use Yes, No, or Unknown only for items the seller can answer now. Leave a category blank when it does not apply.</p>';
-  const renderWaterResponses = () => waterGroups.map(([title, fields]) =>
-    '<details><summary>' + escape(title) + '</summary><div class="hof-seller-response-grid">' +
-    fields.map(([key,label]) => '<label class="hof-seller-response-row"><span>' + escape(label) + '</span><select data-water-response="' + escape(key) + '"><option value="">—</option><option value="Y">Yes (Y)</option><option value="N">No (N)</option><option value="U">Unknown (U)</option></select></label>').join('') +
-    '</div></details>'
-  ).join('');
-  const renderResponses = () => responsePrompt + responseGroups.map(([title, fields]) =>
-    '<details><summary>' + escape(title) + '</summary><div class="hof-seller-response-grid">' +
-    fields.map(([key,label]) => '<label class="hof-seller-response-row"><span>' + escape(label) + '</span><select data-seller-response="' + escape(key) + '"><option value="">—</option><option value="Y">Yes (Y)</option><option value="N">No (N)</option><option value="U">Unknown (U)</option></select></label>').join('') +
-    '</div></details>'
-  ).join('');
+  const {renderResponses, renderWaterResponses, collectDisclosureResponses, syncDisclosureDetails} = root.hofDisclosureInterview;
   async function approvedSources() {
     return root.hofLoadApprovedFormCatalog();
   }
@@ -24579,6 +24521,7 @@ function routeAfterMagicLinkIfNeeded() {
     const responses = document.getElementById('hofSellerWaterResponses');
     if (!source || !responses) return;
     responses.hidden = !source.value;
+    syncDisclosureDetails(document.getElementById('hofSellerDisclosureCard'));
   }
   root.loadSellerDisclosureDraft = function loadSellerDisclosureDraft(draftId) {
     const draft = draftCache.get(String(draftId || ''));
@@ -24596,10 +24539,12 @@ function routeAfterMagicLinkIfNeeded() {
     setValue('hofSeller2Email', reviewLinks.find(link => Number(link.sellerIndex) === 2)?.sellerEmail);
     setValue('hofBuyer1', draft.buyer_names?.[0]);
     setValue('hofBuyer2', draft.buyer_names?.[1]);
-    document.querySelectorAll('[data-seller-response]').forEach(select => { select.value = draft.response_data?.[select.dataset.sellerResponse] || ''; });
-    document.querySelectorAll('[data-water-response]').forEach(select => { select.value = draft.water_rights_data?.[select.dataset.waterResponse] || ''; });
+    const savedResponseValue = value => value === true ? 'Y' : value === false ? 'N' : value == null ? '' : String(value);
+    document.querySelectorAll('[data-seller-response]').forEach(select => { select.value = savedResponseValue(draft.response_data?.[select.dataset.sellerResponse]); });
+    document.querySelectorAll('[data-water-response]').forEach(select => { select.value = savedResponseValue(draft.water_rights_data?.[select.dataset.waterResponse]); });
     const card = document.getElementById('hofSellerDisclosureCard');
     if (card) {
+      syncDisclosureDetails(card);
       const workspace = document.getElementById('hofSellerDisclosureWorkspace');
       if (workspace) workspace.open = true;
       card.dataset.loadedDraftId = draft.id || '';
@@ -24647,6 +24592,8 @@ function routeAfterMagicLinkIfNeeded() {
     });
   }
   root.openSellerDisclosureDraftWorkspace = async function openSellerDisclosureDraftWorkspace(workspaceId = '') {
+    if (!document.getElementById('hofSellerDisclosureCard') && active()) await renderCard();
+    root.showAccountTab?.('seller');
     const open = () => {
       const card = document.getElementById('hofSellerDisclosureCard');
       if (!card) return false;
@@ -24710,6 +24657,38 @@ function routeAfterMagicLinkIfNeeded() {
     if (open()) return true;
     window.setTimeout(open, 250);
     window.setTimeout(open, 900);
+  };
+  root.startOfferSellerDisclosure = async function startOfferSellerDisclosure(offerId) {
+    const userId = root.hofAuth?.session?.user?.id, client = root.getSupabaseClient?.();
+    if (!userId || !client || !active()) return;
+    const revision = ++listingDisclosureHandoffRevision;
+    const {data, error} = await client.from('hof_offers')
+      .select('id,user_id,property_address,offer_data').eq('id', String(offerId)).eq('user_id', userId)
+      .is('deleted_at', null).maybeSingle();
+    if (revision !== listingDisclosureHandoffRevision || root.hofAuth?.session?.user?.id !== userId) return;
+    await root.openSellerDisclosureDraftWorkspace();
+    const card = document.getElementById('hofSellerDisclosureCard'), status = document.getElementById('hofSellerDraftStatus');
+    if (!card) return;
+    if (error || data?.id !== String(offerId) || data?.user_id !== userId) {
+      if (status) status.textContent = 'We could not open that offer for this account.'; return;
+    }
+    const fields = ['hofSellerAddress','hofSeller1','hofSeller2','hofSellerEmail','hofSeller2Email','hofBuyer1','hofBuyer2','hofWaterSource'];
+    const responses = [...card.querySelectorAll('[data-seller-response], [data-water-response]')];
+    if ((card.dataset.loadedDraftId || fields.some(id => document.getElementById(id)?.value) || responses.some(f => f.value))
+        && !await confirmListingDisclosureReplacement()) return;
+    if (revision !== listingDisclosureHandoffRevision || root.hofAuth?.session?.user?.id !== userId || document.getElementById('hofSaveSellerDraft')?.disabled) return;
+    fields.forEach(id => { document.getElementById(id).value = ''; }); responses.forEach(f => { f.value = ''; });
+    delete card.dataset.loadedDraftId; delete card.dataset.sellerDraftId;
+    document.getElementById('hofSellerWorkspace').value = '';
+    const saved = data.offer_data || {};
+    document.getElementById('hofSellerAddress').value = data.property_address || saved.propertyAddress || saved.propAddress || '';
+    document.getElementById('hofSeller1').value = saved.seller1Name || saved.seller1 || '';
+    document.getElementById('hofSeller2').value = saved.seller2Name || saved.seller2 || '';
+    document.getElementById('hofSellerEmail').value = saved.seller1Email || '';
+    document.getElementById('hofSeller2Email').value = saved.seller2Email || '';
+    document.getElementById('hofSendSellerReview').disabled = true;
+    syncWaterRightsVisibility(); syncDisclosureDetails(card);
+    if (status) status.textContent = 'Offer details added. Confirm the seller contacts, save the disclosure, then send the questionnaire. You do not need to answer for the seller.';
   };
   root.filterSellerDisclosureDrafts = function filterSellerDisclosureDrafts(value) {
     const query = String(value || '').trim().toLowerCase();
@@ -24877,6 +24856,9 @@ function routeAfterMagicLinkIfNeeded() {
       '<details class="hof-seller-step"><summary><span class="hof-seller-step-number">3</span><span class="hof-seller-step-copy"><strong>Water rights, if they apply</strong><small>Add this only when the property needs a water-rights disclosure.</small></span></summary><label>Water-rights disclosure (optional)<select id="hofWaterSource"><option value="">Do not include</option></select></label><div id="hofSellerWaterResponses" hidden>' + renderWaterResponses() + '</div></details>' +
       '<div class="hof-seller-actions"><button class="btn-primary" type="button" id="hofSaveSellerDraft">Save and preview</button><button class="btn-secondary" type="button" id="hofSendSellerReview" disabled>Send seller review email</button><span id="hofSellerDraftStatus" class="hof-iabs-status" role="status" aria-live="polite" aria-atomic="true"></span></div><h5>Saved seller disclosures</h5><div class="hof-seller-actions"><input id="hofSellerDraftFilter" type="search" placeholder="Search address or seller" aria-label="Search saved seller disclosures" oninput="filterSellerDisclosureDrafts(this.value)"><span id="hofSellerDraftSummary" class="hof-iabs-status"></span></div><ul id="hofSellerDraftList" class="hof-private-form-drafts-list"><li>Loading…</li></ul></div></details>';
     panel.appendChild(card);
+    card.addEventListener('change', () => syncDisclosureDetails(card));
+    card.addEventListener('input', () => syncDisclosureDetails(card));
+    syncDisclosureDetails(card);
     try {
       const sources = await approvedSources();
       const seller = sources.find(s => s.form_code === 'TREC-55-1');
@@ -24898,10 +24880,9 @@ function routeAfterMagicLinkIfNeeded() {
       const token = root.hofAuth?.session?.access_token;
       const sellerNames = [document.getElementById('hofSeller1').value, document.getElementById('hofSeller2').value].map(v => v.trim()).filter(Boolean);
       const buyerNames = [document.getElementById('hofBuyer1').value, document.getElementById('hofBuyer2').value].map(v => v.trim()).filter(Boolean);
-      const responseData = {};
-      card.querySelectorAll('[data-seller-response]').forEach(select => { if (select.value) responseData[select.dataset.sellerResponse] = select.value; });
-      const waterRightsData = {};
-      card.querySelectorAll('[data-water-response]').forEach(select => { if (select.value) waterRightsData[select.dataset.waterResponse] = select.value; });
+      const savedDraft = draftCache.get(String(card.dataset.loadedDraftId || ''));
+      const responseData = collectDisclosureResponses(card, 'seller', savedDraft?.response_data || {});
+      const waterRightsData = collectDisclosureResponses(card, 'water', savedDraft?.water_rights_data || {});
       const payload = {action:card.dataset.loadedDraftId ? 'update_seller_disclosure_draft' : 'create_seller_disclosure_draft',draftId:card.dataset.loadedDraftId || '',formCode:'TREC-55-1',disclosureSourceId:document.getElementById('hofSellerSource').value,waterSourceId:document.getElementById('hofWaterSource').value || null,listingWorkspaceId:document.getElementById('hofSellerWorkspace').value || null,propertyAddress:document.getElementById('hofSellerAddress').value,sellerNames,buyerNames,responseData,waterRightsData};
       if (!token) { status.textContent = 'Sign in before saving this seller disclosure.'; return; }
       if (!payload.disclosureSourceId || !payload.propertyAddress.trim() || !sellerNames.length) {
@@ -24948,10 +24929,10 @@ function routeAfterMagicLinkIfNeeded() {
       try {
         const sellerReviews = [{sellerEmail:seller1Email,sellerName:seller1Name,sellerIndex:1}];
         if (seller2Email) sellerReviews.push({sellerEmail:seller2Email,sellerName:seller2Name,sellerIndex:2});
-        const response = await fetch('/api/admin-dashboard',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer ' + token},body:JSON.stringify({action:'create_seller_disclosure_review_link',draftId,sellerNames:[seller1Name,seller2Name].filter(Boolean),sellerReviews})});
+        const response = await fetch('/api/admin-dashboard',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer ' + token},body:JSON.stringify({action:'create_seller_disclosure_review_link',draftId,sellerNames:[seller1Name,seller2Name].filter(Boolean),sellerReviews,questionnaireEnabled:true})});
         const result = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(result.error || 'Could not send seller review email.');
-        status.textContent = 'Secure review email sent. The seller will verify a one-time code before reviewing the completed disclosure.';
+        status.textContent = 'Secure questionnaire sent. The seller can answer, save, review and confirm the disclosure before signing.';
         button.textContent = 'Review email sent';
         root.logOfferEvent?.(null, 'seller_review_request_sent', 'sent', 'Seller disclosure review request sent.', {
           sellerCount: sellerReviews.length
