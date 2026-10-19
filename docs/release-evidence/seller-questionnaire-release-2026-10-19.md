@@ -157,3 +157,32 @@ rendered controls are readable, mobile scroll width 390px; 36 focused tests pass
 This small visually verified correction requires exact-head CI and one corrective
 production release, not another provider signing test or migration. Reuse the
 existing prebuilt release workflow and its fresh spend/reserve check.
+
+## Final corrective production verification
+
+PR #1350 passed CI `39325374854`: 2,756 tests, three environment skips, approved
+golden packet and standalone geometry checks. It merged as
+`a162d1ea629b139e1e23689d6ed36e08ef959b70`. Corrective production workflow
+`39325880560` succeeded, including full regression, schema v2, credit reserve,
+canonical PWA shell and production API/packet runtime checks. Immediately before
+deploy, the guard reported one prior deployment/24h, $0.05 infrastructure used,
+$19.95 unconsumed and $3 reserve. There were two intentional production releases
+in this workstream (initial feature, then contrast correction), no previews.
+
+Final READY deployment: `dpl_Vsii5ubcsgVsZkeLrQa2cWfU2k3T`, production URL
+`homeofferflow-n67tel426-dealdoc1s-projects.vercel.app`, canonical shell v108.
+Authenticated canonical owner entry was reloaded and exercised again; real
+computed controls are white text on navy, sections are readable, and the
+approved source loads. At 390px viewport the disclosure card is 324px wide with
+322px content scroll width, no disclosure overflow. Desktop/mobile screenshots:
+`normal-seller-flow-2026-10-19/production-account-desktop.jpg` and
+`normal-seller-flow-2026-10-19/production-account-mobile.jpg` in the chat output
+folder. The normal production PDF first/execution pages were visually reviewed;
+all original four source pages remain present. The draft was deliberately saved
+without answers; no fabricated answers, customer changes, review email or
+signature invitation were made during canonical acceptance.
+
+Temporary local visual tab/server closed. Existing user tabs retained. Main
+disclosure tab remains open as a deliverable. Operational seller-workflow stays
+in progress/partial for the separately listed integration work, not for a
+missing source authorization or already-completed v4 signer.
