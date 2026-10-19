@@ -3,6 +3,12 @@
   'use strict';
   const byId = id => document.getElementById(id);
   const interview = root.hofDisclosureInterview;
+  function setPreviewSource(url) {
+    for (const id of ['preview','openPreview','downloadPreview']) {
+      const element=byId(id), attribute=id==='preview'?'src':'href';
+      if (url) element.setAttribute(attribute,url); else element.removeAttribute(attribute);
+    }
+  }
   async function request(action, session, body) {
     const response = await fetch('/api/admin-dashboard?' + action + '=' + encodeURIComponent(session), {
       method:'POST', cache:'no-store', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
@@ -33,6 +39,8 @@
     interview.syncDisclosureDetails(card);
     function invalidatePreview() {
       previewRevision = ''; byId('previewCard').hidden = true; byId('attestationCard').hidden = true;
+      setPreviewSource('');
+      if (previewUrl) { URL.revokeObjectURL(previewUrl); previewUrl=''; }
       if (signingButton) signingButton.hidden = true;
       interview.syncDisclosureDetails(card);
     }
@@ -66,7 +74,7 @@
           const blob = await response.blob();
           if (!blob.type.includes('pdf')) throw Error('We could not load your completed disclosure. Please try again.');
           if (previewUrl) URL.revokeObjectURL(previewUrl);
-          previewUrl = URL.createObjectURL(blob); byId('preview').src = previewUrl;
+          previewUrl = URL.createObjectURL(blob); setPreviewSource(previewUrl);
           previewRevision = data.reviewContentRevision;
           byId('previewCard').hidden = byId('attestationCard').hidden = false;
           byId('sellerName').value = data.sellerName; byId('confirm').checked = false;
@@ -110,11 +118,11 @@
             };
           }
           signingButton.hidden = false;
-          message.textContent = 'Your disclosure is confirmed. Send it to the listed sellers for initials and signatures, or let your agent prepare the signing request.';
+          message.textContent = 'Your answers are confirmed. You can send for signature now or let your agent handle it.';
         }
       } catch (error) { message.textContent = error.message; byId('attest').disabled = false; }
       finally { busy = false; }
     };
   }
-  root.hofSellerQuestionnaire = Object.freeze({start});
+  root.hofSellerQuestionnaire = Object.freeze({start,setPreviewSource});
 })(window);

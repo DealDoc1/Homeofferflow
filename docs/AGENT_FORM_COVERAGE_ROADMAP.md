@@ -4,6 +4,30 @@ Future batches follow the [lean development protocol](LEAN_DEVELOPMENT_PROTOCOL.
 to reduce model context, repeated regression runs and Vercel usage without
 reducing verification standards.
 
+## Ordinary seller PDF access - October 19, 2026
+
+The normal seller browser flow now uses an actual four-page API-rendered
+disclosure rather than the multi-case provider specimen. Browser download
+retains the edited answer; all four normal pages were reviewed. This exposed
+and corrected a blank embedded-preview problem: the customer page now provides
+Open PDF/Download PDF and a collapsed optional embedded viewer, with stale
+links removed after edits. Thirty-one focused checks pass, with desktop and
+390px mobile review. **Implemented locally, not deployed.** Production data and
+delivery acceptance remain separate from this isolated browser fixture. See
+[normal seller-flow evidence](release-evidence/normal-seller-review-flow-2026-10-19.md).
+
+## Completed v4 disclosure placement review - October 19, 2026
+
+Both approved QA signers are now confirmed complete by SignWell email and the
+user-supplied actual PDF. All 13 comparison pages were visually reviewed;
+signature/date/initial rows, sole-Seller blanks, Unicode continuations and
+Unknown preservation pass this exact completed-provider check. No second
+invitation or new consent is needed. The owner correctly objected to the
+confusing technical test bundle: it combines four cases and is not a complete
+or acceptable customer packet. Normal customer-shaped end-to-end acceptance,
+v2 listing-lead QA and the coordinated release remain; this is not deployment
+or a full Seller-suite pass. See [completed review and limitations](release-evidence/seller-disclosure-v4-completed-review-2026-10-19.md).
+
 ## Seller-owned disclosure questionnaire - October 18, 2026
 
 Implemented locally: offer/listing/account entry points, shared seller interview,
