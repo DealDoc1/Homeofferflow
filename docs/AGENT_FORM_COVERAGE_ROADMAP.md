@@ -29,7 +29,84 @@ credential was exported. The next workstream is a controlled QA-only release,
 actual SignWell readback/signing and completed-PDF visual review, not another
 local-layout claim. See [provider-QA preparation](release-evidence/listing-lead-provider-qa-preparation-2026-10-17.md).
 
-## Current launch tracking - October 14, 2026
+## Current launch tracking - October 16, 2026
+
+October 16 integration checkpoint: draft PR #1341 now includes production
+d8d2f1a (complimentary-partner administration), reserves offline shell v105,
+and passes 98 focused plus 2,701 integrated regression tests. The live tracker
+now distinguishes locally implemented disclosure explanations from unfinished
+completed-provider and authenticated signing QA. No disclosure release,
+migration, replacement packet or final signature acceptance occurred. See
+[continuation evidence](release-evidence/seller-disclosure-continuation-2026-10-16.md).
+
+October 16 completed-provider disclosure check: both QA signers completed the
+single reserved 13-page/71-field v3 test. Its actual PDF exposed date wrapping
+and date/signature crowding despite exact field readback. The v4 local map now
+uses separated signature/date regions and 18px signing-date fields. Forty
+focused tests and ordinary/single-Seller rectangle checks passed. This is not
+a corrected provider pass or deployment; repeat the v4 execution check before
+claiming placement success. See
+[provider date-fit evidence](release-evidence/seller-disclosure-provider-date-fit-2026-10-16.md).
+
+October 16 conditional interview: empty follow-up fields now appear only for
+relevant main/water answers. Previously entered facts remain visible after a
+parent answer changes until explicitly cleared; zero and Unicode survive
+save/reopen. Ten actual-source runtime cases, 22 focused Python tests and
+isolated 390/1280px browser checks passed. Not deployed; the integrated Seller
+review/signing/completed-PDF pass remains unfinished. See
+[conditional interview evidence](release-evidence/seller-disclosure-conditional-interview-2026-10-16.md).
+
+October 16 Unknown-answer continuation: all 68 Yes/No-only main/water answers
+now retain Unknown in labeled attached details, leaving the printed Yes/No
+answer blank. Real source Unknown options remain selected normally. No answer
+is inferred and no user step is added. 93 affected tests and changed-page visual
+review passed; ordinary/Unicode/single-Seller text and field arrays are unchanged.
+Not deployed or completed-provider verified. The subsequent conditional-question
+checkpoint above resolves that UI work; the integrated review/signing/completed-PDF
+pass remains unfinished.
+See [Unknown preservation evidence](release-evidence/seller-disclosure-unknown-preservation-2026-10-16.md).
+
+October 16 checkpoint of October 15 source-layout work: measured item, defect,
+flood and additional-disclosure rows, checkbox bounds, main/water execution
+widgets and repeated addresses are corrected locally. Roof/occupancy/well
+details survive save/reopen, including zero counts. Final 76 focused and 2,677
+full-suite tests passed, plus fictional source-page and 390/1280px checks.
+Not deployed or completed-provider verified. Unknown answers on Yes/No-only
+source questions and conditional-question handling remain unfinished.
+See [source-layout evidence](release-evidence/seller-disclosure-source-layout-2026-10-15.md)
+and the [October 16 report](daily-reports/2026-10-16.md).
+
+October 15 review-integrity continuation: old Seller reviews can no longer
+authorize changed draft content in the local candidate. Review links bind to a
+database-generated content version and render revision; concurrent saves and
+reviews are serialized, prior evidence retained, and signing rechecks each
+Seller. Focused checks and 40 actual local PostgreSQL assertions passed,
+including preservation of an already tracked signing request on stale saves.
+Code plus the new migration require one coordinated release; neither is live.
+Remaining source placement/scalar coverage and provider QA are still incomplete.
+See [review-version evidence](release-evidence/seller-review-version-binding-2026-10-15.md).
+
+October 15 explanation continuation: the private disclosure interview now
+preserves written details locally through save/reopen and source-PDF rendering,
+with automatic overflow pages and corrected one-file signing-field assembly.
+88 focused tests and isolated 390/1280px checks passed. Not deployed. Full-source
+review found additional existing answer anchors, scalar coverage and stale
+seller-review evidence that need correction before integrated provider QA.
+See [explanation checkpoint](release-evidence/seller-disclosure-explanations-2026-10-15.md).
+
+October 15 continuation: a real TREC-55-1 response defect is corrected locally.
+Seventeen feature answers previously treated nonempty N/U as affirmative
+checkmarks; the candidate now preserves Y/N/U and centers each letter on its
+source response line. Signature/date widgets are unchanged. This is not
+deployed or a completed-provider pass. See
+[response-correction evidence](release-evidence/seller-disclosure-response-correction-2026-10-15.md).
+
+Offer exit is now one click (PR #1340 / e15c5db, production release
+38674908583): unchanged guarded autosave retains answers, releases the modal
+and updates Resume; destructive new-offer confirmation stays. Actual-source
+tests, isolated desktop/phone interaction, full suites and canonical source
+identity passed. This does not complete outstanding provider-signing cases.
+See [one-click exit evidence](release-evidence/one-click-offer-exit-2026-10-14.md).
 
 The live tracker now records the deployed listing-to-disclosure handoff
 (PR #1330) and accurate brokerage signing progress/stable account navigation
