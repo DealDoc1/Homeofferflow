@@ -6,6 +6,16 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
 class SellerDisclosureAgentUiTests(unittest.TestCase):
+    def test_account_disclosure_uses_readable_dark_theme_controls(self):
+        html = (ROOT / "index.html").read_text()
+        css = html.split('<style id="hof-seller-disclosure-draft-ui-v1">', 1)[1].split('</style>', 1)[0]
+        self.assertIn('background:var(--navy-mid);color:var(--white)', css)
+        self.assertIn('background:rgba(255,255,255,.035);color:var(--white)', css)
+        self.assertIn('color:var(--gray-light)', css)
+        self.assertNotIn('background:#fff', css)
+        self.assertNotIn('var(--primary)', css)
+        self.assertNotIn('var(--muted)', css)
+
     def test_linked_listing_labels_and_fields_fit_the_mobile_grid(self):
         html = (ROOT / "index.html").read_text()
         self.assertIn('.hof-seller-disclosure-card .hof-seller-grid>label{min-width:0}', html)
