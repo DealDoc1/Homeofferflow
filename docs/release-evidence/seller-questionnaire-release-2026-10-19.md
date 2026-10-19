@@ -117,3 +117,43 @@ focused checks and 55 actual isolated PostgreSQL assertions pass, including
 retained baseline/index, service-only wrapper access and questionnaire races.
 This small follow-up must pass its own CI before deployment; it does not change
 the reviewed renderer, customer UI or provider signing geometry.
+
+## Production release and authenticated acceptance
+
+PR #1349 merged as `84d7fb6220b65ea0c35204e125db38092346ff08` after CI
+`39323423380` passed. Both exact production migrations applied successfully;
+independent readback confirmed baseline v1 and disclosure v2 ready, service-only
+questionnaire/readiness RPCs, RLS and both legacy/questionnaire indexes intact.
+Security advisor counts did not change. Original failed second-migration
+attempts made no partial change; the already-applied first was not repeated.
+
+Intentional production workflow `39324133277` passed full regression, schema,
+spend, canonical PWA and API/packet runtime verification. Deployment
+`dpl_Edgjv5XGuwUCLFJFafbp3FEKzjdV` is READY, production URL
+`homeofferflow-hckrtup7x-dealdoc1s-projects.vercel.app`, canonical shell v107.
+Authenticated owner Listing Tools -> Start seller's disclosure loaded the
+approved 05-04-2026 source and saved one clearly fictional QA draft, with no
+seller review request or signature invitation sent. Downloaded canonical API
+output is four pages, preserves the fictional property address on all four,
+contains no multi-case stress markers, SHA256
+`782178ebcc6fc721dc15ec5526f4e58991a7f7f7274eea2117e1b2f5ccf969da`.
+Read-only owner-admin checks confirmed SignWell and Resend ready without sending
+anything. This does not claim a new live email-code/session-to-signing roundtrip;
+the questionnaire's code/session boundaries have local browser, API and real
+isolated PostgreSQL coverage, and the existing v4 completed-provider placement
+proof remains the exact signature-map evidence.
+
+## Focused account contrast correction
+
+Post-deploy visual acceptance found white panels inheriting white account text;
+the disclosure section also referenced undefined primary/muted theme variables.
+The focused correction uses the existing navy, white, gray-light and gold-light
+tokens for owner disclosure controls, panels, helper copy and step badges only.
+Public seller-review styling, form sources, PDF content and signature maps are
+unchanged. Shell v108 delivers the corrected account markup to installed users.
+The local visual fixture uses actual index styles and the real interview module,
+has no API or external access, and sends/saves nothing. Desktop and 390px mobile
+rendered controls are readable, mobile scroll width 390px; 36 focused tests pass.
+This small visually verified correction requires exact-head CI and one corrective
+production release, not another provider signing test or migration. Reuse the
+existing prebuilt release workflow and its fresh spend/reserve check.
