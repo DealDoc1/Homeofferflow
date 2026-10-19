@@ -4,6 +4,18 @@ Future batches follow the [lean development protocol](LEAN_DEVELOPMENT_PROTOCOL.
 to reduce model context, repeated regression runs and Vercel usage without
 reducing verification standards.
 
+## Completed v4 disclosure placement review - October 19, 2026
+
+Both approved QA signers are now confirmed complete by SignWell email and the
+user-supplied actual PDF. All 13 comparison pages were visually reviewed;
+signature/date/initial rows, sole-Seller blanks, Unicode continuations and
+Unknown preservation pass this exact completed-provider check. No second
+invitation or new consent is needed. The owner correctly objected to the
+confusing technical test bundle: it combines four cases and is not a complete
+or acceptable customer packet. Normal customer-shaped end-to-end acceptance,
+v2 listing-lead QA and the coordinated release remain; this is not deployment
+or a full Seller-suite pass. See [completed review and limitations](release-evidence/seller-disclosure-v4-completed-review-2026-10-19.md).
+
 ## Reviewed disclosure in the listing signing package - October 18, 2026
 
 Implemented locally: the listing interview can select an owned, seller-reviewed
