@@ -12,7 +12,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 
-EXPECTED_CONTRACT = "homeofferflow-release-schema-v1"
+EXPECTED_CONTRACT = "homeofferflow-release-schema-v2"
 URL_KEYS = ("SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL", "VITE_SUPABASE_URL")
 SERVICE_KEY_KEYS = (
     "SUPABASE_SERVICE_ROLE_KEY",
@@ -84,6 +84,12 @@ def fetch_readiness(url: str, service_key: str) -> dict:
         with urlopen(probe, timeout=30) as response:
             if json.load(response) != []:
                 raise ValueError("public partner schema probe did not return an empty list")
+        # Verify the exact disclosure release columns without reading any row.
+        probe = Request(f"{url.rstrip('/')}/rest/v1/hof_seller_disclosure_review_links?select=questionnaire_enabled,review_content_revision,review_render_revision&limit=0",
+                        headers=request_headers(service_key), method="GET")
+        with urlopen(probe, timeout=30) as response:
+            if json.load(response) != []:
+                raise ValueError("disclosure schema probe did not return an empty list")
     return payload
 
 

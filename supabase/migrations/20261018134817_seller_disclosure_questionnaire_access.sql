@@ -156,7 +156,7 @@ begin
   from pg_catalog.pg_constraint c
   where c.conrelid = pg_catalog.to_regclass('public.hof_standalone_agreements')
     and c.conname = 'hof_standalone_agreements_form_code_check' and c.contype = 'c';
-  foreach supported_form_code in array array['TXR-1101','TXR-1501','TXR-1506','TXR-1507','TXR-1508','TXR-1905','TXR-1914','TXR-1917','TXR-1919','TXR-1948','TXR-1953','TXR-1954','TREC-62-0','TREC-38-8','TREC-39-11'] loop
+  foreach supported_form_code in array array['TXR-1501','TXR-1506','TXR-1507','TXR-1508','TXR-1905','TXR-1914','TXR-1917','TXR-1919','TXR-1948','TXR-1953','TXR-1954','TREC-62-0','TREC-38-8','TREC-39-11'] loop
     if form_code_definition is null
       or pg_catalog.strpos(form_code_definition, pg_catalog.quote_literal(supported_form_code)) = 0 then
       missing := pg_catalog.array_append(missing, 'form_code:hof_standalone_agreements.' || supported_form_code);
