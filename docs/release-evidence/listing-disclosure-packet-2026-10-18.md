@@ -68,3 +68,21 @@ the full regression once, apply dependent migrations and code together, make
 one intentional release after checking current headroom, and verify canonical
 live behavior. Purchase-offer packet integration remains separate from this
 TXR-1101 listing adapter. No new owner action is needed for this checkpoint.
+
+## Retained provider-test continuation
+
+After the local checkpoint (`a88a8512`, pushed), reopened the exact existing
+fictional, nonbinding v4 invitation from October 16. No new provider document,
+invitation or reminder was created. Used the owner's packet-specific approval
+to finalize the first QA signer; SignWell displayed "Document complete!" and
+"Once everyone has completed the document we will email you the final copy."
+This is one completed signer, **not** a completed two-signer/PDF pass.
+
+The second approved inbox, `brewbqinfo@gmail.com`, is currently signed out.
+Google's normal recovery reaches "Complete sign-in using your passkey"; the
+owner must complete that account verification before the second invitation can
+be opened. The exact sign-in page is left open in the built-in browser. The
+SignWell owner session is also signed out; its Google login control did not
+restore a session. No password, credential, security policy or permission was
+changed. Screenshots: `v4-first-signer-complete.png`, `second-qa-passkey.png` in
+the same chat output directory. Local UI and provider-state proof are distinct.
