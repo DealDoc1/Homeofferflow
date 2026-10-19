@@ -18,6 +18,13 @@ test('explicit zero is retained, and no percentage is chosen by the mapper',()=>
   assert.equal(model.collect(values({fee_amount:'0'})).agreementData.fee_amount,'0');
   assert.equal(model.collect(values({fee_amount:''})).agreementData.fee_amount,'');
 });
+test('an explicitly selected disclosure reopens by saved ID without copying its answers',()=>{
+ const id='22222222-2222-4222-8222-222222222222';
+ assert.equal(model.collect(values({disclosure_draft_id:id})).agreementData.disclosure_draft_id,id);
+ assert.equal(model.collect(values()).agreementData.disclosure_draft_id,undefined);
+ assert.equal(model.prefill(null,{client_names:['QA Seller'],agreement_data:{disclosure_draft_id:id}}).disclosure_draft_id,id);
+ assert.ok(source.includes('data-water="${d.includesWaterRights'));
+});
 test('unselected compensation and MLS delay values cannot leak from a previous branch',()=>{
   const a=model.collect(values({fee_basis:'none',fee_amount:'9',other_compensation:'Agreed terms',additional_fee_amount:'150',mls_filing:'none',internet_display:'hide_address',mls_delay_days:'10',mls_delay_purpose:'Old choice'})).agreementData;
   assert.equal(a.fee_amount,'');assert.equal(a.additional_fee_amount,'');assert.equal(a.mls_delay_days,'');assert.equal(a.mls_delay_purpose,'');assert.equal(a.internet_display,'not_applicable');

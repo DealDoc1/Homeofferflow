@@ -24611,6 +24611,12 @@ function routeAfterMagicLinkIfNeeded() {
   root.loadSellerDisclosureDraft = function loadSellerDisclosureDraft(draftId) {
     const draft = draftCache.get(String(draftId || ''));
     if (!draft) return;
+    if (draft.signature_packet_id) {
+      previewSellerDisclosure(draft.id);
+      const status = document.getElementById('hofSellerDraftStatus');
+      if (status) status.textContent = 'This disclosure is included in the transaction signing packet. Start a new disclosure if the answers need to change.';
+      return;
+    }
     const setValue = (id, value) => { const field = document.getElementById(id); if (field) field.value = value || ''; };
     setValue('hofSellerWorkspace', draft.listing_workspace_id);
     setValue('hofSellerAddress', draft.property_address);
@@ -24790,6 +24796,7 @@ function routeAfterMagicLinkIfNeeded() {
   const sellerReviewStatus = draft => {
     const progress = draft?.sellerReviewProgress || {};
     const links = Array.isArray(draft?.sellerReviewLinks) ? draft.sellerReviewLinks : [];
+    if (draft?.signature_packet_id) return 'Included in signing packet';
     if (draft?.status === 'signed') return 'Signed';
     if (draft?.status === 'sent') return 'Sent for signature';
     if (draft?.seller_review_attested) return 'All seller reviews complete';
@@ -24805,6 +24812,7 @@ function routeAfterMagicLinkIfNeeded() {
   function openSellerDisclosureSignature(draft) {
     const token = root.hofAuth?.session?.access_token;
     const status = document.getElementById('hofSellerDraftStatus');
+    if (draft?.signature_packet_id) { if (status) status.textContent = 'This disclosure is included in the transaction signing packet.'; return; }
     if (!token || !draft?.id) { if (status) status.textContent = 'Sign in and choose a reviewed seller disclosure first.'; return; }
     const parties = [
       ...(draft.seller_names || []).map((name, index) => ({role:'Seller', name, index})),
@@ -24908,7 +24916,7 @@ function routeAfterMagicLinkIfNeeded() {
         const progress = d.sellerReviewProgress || {};
         const reviewStatus = sellerReviewStatus(d);
         const followUp = progress.requested && !d.seller_review_attested ? '<button type="button" class="btn-secondary hof-seller-followup" data-id="' + escape(d.id) + '">Follow up</button>' : '';
-        const sendForSignature = d.status === 'draft' && d.seller_review_attested && (!d.signwell_document_id || d.canRetrySavedRequest === true) ? '<button type="button" class="btn-primary hof-seller-send-signing" data-id="' + escape(d.id) + '">' + (d.canRetrySavedRequest ? 'Retry saved request' : 'Send for signature') + '</button>' : '';
+        const sendForSignature = d.status === 'draft' && d.seller_review_attested && !d.signature_packet_id && (!d.signwell_document_id || d.canRetrySavedRequest === true) ? '<button type="button" class="btn-primary hof-seller-send-signing" data-id="' + escape(d.id) + '">' + (d.canRetrySavedRequest ? 'Retry saved request' : 'Send for signature') + '</button>' : '';
         const refreshSigning = d.signwell_document_id && d.status !== 'signed' ? '<button type="button" class="btn-secondary hof-seller-refresh-signing" data-id="' + escape(d.id) + '">Refresh signing status</button>' : '';
         const downloadSigned = d.signwell_document_id && d.status === 'signed' ? '<button type="button" class="btn-secondary hof-seller-download-signed" data-id="' + escape(d.id) + '">Download signed PDF</button>' : '';
         return '<li data-seller-draft-row data-search="' + escape([d.property_address, ...(d.seller_names || []), d.status, d.disclosure_source_revision, d.water_source_revision, reviewStatus].filter(Boolean).join(' ')) + '"><span><strong>' + escape(d.property_address) + '</strong><br><small>' + escape((d.seller_names || []).join(', ')) + ' · ' + escape(d.disclosure_source_revision || '') + (d.water_source_revision ? ' + TREC-61-0' : '') + ' · ' + escape(reviewStatus) + '</small></span><button type="button" class="btn-secondary hof-seller-load" data-id="' + escape(d.id) + '">Open</button>' + followUp + '<button type="button" class="btn-secondary hof-seller-preview" data-id="' + escape(d.id) + '">Preview PDF</button>' + refreshSigning + downloadSigned + sendForSignature + '</li>';

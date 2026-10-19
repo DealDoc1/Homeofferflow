@@ -4,6 +4,22 @@ Future batches follow the [lean development protocol](LEAN_DEVELOPMENT_PROTOCOL.
 to reduce model context, repeated regression runs and Vercel usage without
 reducing verification standards.
 
+## Reviewed disclosure in the listing signing package - October 18, 2026
+
+Implemented locally: the listing interview can select an owned, seller-reviewed
+disclosure and include it, its water-rights notice and any explanation pages in
+one signing package. Property/party matching and an atomic version binding
+prevent a different or concurrently edited disclosure from being sent. Missing
+or unready disclosures remain pending without stopping the primary documents.
+The affected run passes 230 checks; isolated PostgreSQL passes 67 assertions.
+Actual-source 14/16/17-page cases and the desktop/390px mobile selector were
+visually reviewed. The supplied and current official TREC disclosure sources
+render identically; no source authorization or replacement is needed.
+**Not deployed.** Retained v4 completed-provider PDF review, v2 listing-lead
+provider QA and the coordinated code/schema release remain. Purchase-offer
+combined-packet inclusion is not implemented by this listing-only adapter.
+See [combined disclosure checkpoint](release-evidence/listing-disclosure-packet-2026-10-18.md).
+
 ## Seller-owned disclosure questionnaire - October 18, 2026
 
 Implemented locally: offer/listing/account entry points, shared seller interview,
@@ -12,9 +28,9 @@ existing separate SignWell send path with saved recipients only. Existing
 review-only links stay read-only. The focused run passes 155 checks; real local
 PostgreSQL passes 52 assertions. Desktop/390px phone UI and unavailable-preview
 recovery were checked with fictional data; no customer email was sent.
-**Not deployed.** Combined-packet inclusion, retained v4 signed-provider visual
-QA, approved/current source differential checking and the coordinated release
-remain implementation work. No owner action or new authorization is required.
+**Not deployed.** The listing-packet inclusion and source differential check
+were completed locally in the checkpoint above. Retained v4 signed-provider
+visual QA and the coordinated release remain; no new owner authorization is required.
 See [seller-owned questionnaire checkpoint](release-evidence/seller-owned-questionnaire-2026-10-18.md).
 
 ## Combined listing-package integration - October 18, 2026

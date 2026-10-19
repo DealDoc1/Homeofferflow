@@ -48,11 +48,13 @@ class ProductionSchemaReadinessTests(unittest.TestCase):
         with patch.object(MODULE, 'urlopen', side_effect=open_fixture):
             result = MODULE.fetch_readiness('https://fixture.supabase.co', 'sb_secret_fixture')
         self.assertTrue(result['ready'])
-        self.assertEqual(len(requests), 2)
+        self.assertEqual(len(requests), 3)
         self.assertEqual(requests[1].method, 'GET')
         self.assertIn('onboarding_public_contact_phone', requests[1].full_url)
         self.assertTrue(requests[1].full_url.endswith('&limit=0'))
         self.assertNotIn('contact_email', requests[1].full_url)
+        self.assertIn('signature_packet_id', requests[2].full_url)
+        self.assertTrue(requests[2].full_url.endswith('&limit=0'))
 
     def test_missing_public_profile_columns_cannot_be_silently_ignored(self):
         import json

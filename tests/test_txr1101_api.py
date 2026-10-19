@@ -55,6 +55,7 @@ class Store:
         self.alias=None;self.shared_profile=None;self.alias_wrong_row=False
         self.iabs=None;self.iabs_bytes=None;self.iabs_wrong_row=False
         self.iabs_error=404
+        self.disclosure=None
         self.bad_completion_controls=False
         self.bad_provider_fields=False
         self.fail_inspect_once=False
@@ -89,6 +90,7 @@ class Store:
                 elif path.endswith('/hof_profiles'):return httpx.Response(200,json=[{'brokerage_id':self.office['id']}] if self.office and params.get('id')=='eq.'+USER['id'] else [])
                 elif path.endswith('/hof_brokerage_members'):return httpx.Response(200,json=[{'id':'active-member'}] if self.office else [])
                 elif path.endswith('/hof_brokerages'):row=self.office
+                elif path.endswith('/hof_seller_disclosure_drafts'):row=self.disclosure
                 else:raise AssertionError('Unexpected fixture read '+path)
                 return httpx.Response(200,json=[deepcopy(row)] if row and matches(row,params) else [])
             if path.endswith('/hof_standalone_agreements'):
@@ -287,6 +289,45 @@ class Txr1101ApiTests(unittest.TestCase):
         stream=BytesIO();canvas=Canvas(stream,pagesize=(612,792))
         canvas.drawString(40,740,'Fictional saved IABS for packet transport QA');canvas.showPage();canvas.save()
         self.store.iabs_bytes=stream.getvalue()
+
+    def test_reviewed_disclosure_and_water_use_one_actual_send_with_a_bound_journal(self):
+        from tests.test_listing_seller_disclosure import disclosure
+        from tests.test_listing_packet import pdf
+        from unittest.mock import AsyncMock
+        self.store.disclosure=disclosure(True,agent_user_id=USER['id'])
+        self.create(addenda=['B','P'],disclosure_draft_id=self.store.disclosure['id'])
+        with patch.object(api,'_seller_reviews_complete_for_draft',AsyncMock(return_value=True)), \
+             patch.object(api,'_render_seller_disclosure_draft_preview',AsyncMock(return_value=pdf('Fictional disclosure and water',6))):
+            summary=asyncio.run(api._standalone_signing_recipient_preview(USER,AGREEMENT_ID))['packet']
+            self.assertEqual(summary['pageCount'],16);self.assertEqual(summary['pending'],[])
+            body=self.send_body()
+            status,result=self.post(body);self.assertEqual(status,200,result)
+            status,retry=self.post(body);self.assertEqual(status,200,retry)
+        self.assertEqual(self.store.provider_creates,1);self.assertEqual(self.store.provider_sends,1)
+        self.assertEqual(len(self.store.provider['files']),1);self.assertEqual(len(self.store.provider['fields']),1)
+        binding=self.store.record['agreement_data']['_hof_signature_delivery']['seller_disclosure']
+        self.assertEqual(binding['id'],self.store.disclosure['id'])
+        self.assertEqual(binding['revision'],self.store.disclosure['review_content_revision'])
+        self.assertEqual({f['recipient_id'] for f in self.store.provider['fields'][0]}, {'1','2','associate'})
+
+    def test_unfinished_selected_disclosure_does_not_stop_the_rest_of_the_package(self):
+        from tests.test_listing_seller_disclosure import disclosure
+        from tests.test_listing_packet import pdf
+        from unittest.mock import AsyncMock
+        self.store.disclosure=disclosure(agent_user_id=USER['id'])
+        self.create(addenda=['B'],disclosure_draft_id=self.store.disclosure['id'])
+        review=AsyncMock(return_value=True)
+        with patch.object(api,'_seller_reviews_complete_for_draft',review), \
+             patch.object(api,'_render_seller_disclosure_draft_preview',AsyncMock(return_value=pdf('Fictional disclosure',4))):
+            body=self.send_body();review.return_value=False
+            status,result=self.post(body);self.assertEqual(status,400,result)
+            self.assertEqual(self.store.provider_creates,0)
+            summary=asyncio.run(api._standalone_signing_recipient_preview(USER,AGREEMENT_ID))['packet']
+            self.assertEqual(summary['pageCount'],10)
+            self.assertTrue(any('not confirmed' in p for p in summary['pending']))
+            status,result=self.post(self.send_body());self.assertEqual(status,200,result)
+        self.assertEqual(self.store.provider_sends,1)
+        self.assertNotIn('seller_disclosure',self.store.record['agreement_data']['_hof_signature_delivery'])
 
     def test_selected_saved_iabs_is_in_the_actual_single_file_without_new_signers_or_initials(self):
         from pypdf import PdfReader

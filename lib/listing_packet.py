@@ -59,6 +59,8 @@ class PreparedDocument:
     content_fingerprint: str
     checkbox_groups: list = data_field(default_factory=list)
     conditional_rules: list = data_field(default_factory=list)
+    contained_documents: dict = data_field(default_factory=dict)
+    disclosure_binding: dict = data_field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -181,7 +183,7 @@ def _fields(groups, reader, mapping, recipients, *, prefix, offset):
     return result
 
 
-def assemble_listing_packet(answers, listing_pdf, listing_fields, *, documents=()):
+def assemble_listing_packet(answers, listing_pdf, listing_fields, *, documents=(), pending_reasons=None):
     """Return one actual merged PDF, one field group and an honest manifest.
 
     Primary and continuation pages always stay together. Related documents are
@@ -196,12 +198,23 @@ def assemble_listing_packet(answers, listing_pdf, listing_fields, *, documents=(
     selected = data['addenda']
     labels = dict(DOCUMENT_CHOICES)
     by_code = {}
+    contained_by = {}
     for document in documents:
         if not isinstance(document, PreparedDocument) or document.code not in selected or document.code in by_code:
             raise ValueError('Add each selected related document only once.')
         if not isinstance(document.content_fingerprint,str) or not re.fullmatch(r'[a-f0-9]{64}',document.content_fingerprint):
             raise ValueError('The prepared document’s saved content could not be confirmed.')
         by_code[document.code] = document
+        if not isinstance(document.contained_documents, dict):
+            raise ValueError('Review the combined disclosure documents.')
+        for code, bounds in document.contained_documents.items():
+            if (code not in selected or code <= document.code or code in contained_by
+                    or not isinstance(bounds, (tuple,list)) or len(bounds) != 2
+                    or any(type(n) is not int for n in bounds) or not 1 <= bounds[0] <= bounds[1]):
+                raise ValueError('Review the combined disclosure document pages.')
+            contained_by[code] = (document.code, bounds)
+    if set(contained_by) & set(by_code):
+        raise ValueError('Add each selected related document only once.')
     if (not isinstance(listing_pdf,bytes) or any(not isinstance(item.pdf,bytes) for item in by_code.values())
             or len(listing_pdf)+sum(len(item.pdf) for item in by_code.values()) > MAX_INPUT_BYTES):
         raise ValueError('The prepared listing documents exceed the packet size limit.')
@@ -219,9 +232,20 @@ def assemble_listing_packet(answers, listing_pdf, listing_fields, *, documents=(
                  'start_page':1,'end_page':page_count}]
     pending = []
     for code in selected:
+        if code in contained_by:
+            parent, (first, last) = contained_by[code]
+            parent_row = next(row for row in included if row['code'] == parent)
+            if last > parent_row['end_page'] - parent_row['start_page'] + 1:
+                raise ValueError('A combined disclosure points outside its document.')
+            included.append({'code':code,'label':labels[code],'status':'included',
+                'start_page':parent_row['start_page']+first-1,'end_page':parent_row['start_page']+last-1,
+                'included_with':parent,'content_fingerprint':parent_row['content_fingerprint']})
+            continue
         prepared = by_code.get(code)
         if prepared is None:
-            pending.append({'code':code,'label':labels[code],'status':'pending'})
+            row = {'code':code,'label':labels[code],'status':'pending'}
+            if pending_reasons and pending_reasons.get(code): row['reason'] = pending_reasons[code]
+            pending.append(row)
             continue
         reader = _reader(prepared.pdf)
         if page_count+len(reader.pages) > MAX_PAGES:
@@ -243,6 +267,8 @@ def assemble_listing_packet(answers, listing_pdf, listing_fields, *, documents=(
     output = BytesIO();writer.write(output)
     manifest = {'revision':REVISION,'page_count':page_count,'included':included,'pending':pending,
                 'other_documents':data['other_documents'],'has_pending_documents':bool(pending or data['other_documents'])}
+    if by_code.get('B') and by_code['B'].disclosure_binding:
+        manifest['seller_disclosure'] = deepcopy(by_code['B'].disclosure_binding)
     # Stable content identity, not a volatile renderer timestamp. The existing
     # delivery layer additionally binds primary source/revision, identity and
     # these combined fields and actual recipients before any invitation.

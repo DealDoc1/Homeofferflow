@@ -76,11 +76,17 @@ def validate_answers(data):
     allowed = set(TEXT_LIMITS) | set(CHOICES) | set(INTERVIEW_CHOICES) | {
         'client_names', 'term_start', 'term_end', 'listing_price', 'fee_amount',
         'additional_fee_amount', 'protection_days', 'mls_delay_days',
-        'financing', 'addenda', '_for_signing', 'broker_notice_contacts', 'lead_disclosure',
+        'financing', 'addenda', '_for_signing', 'broker_notice_contacts', 'lead_disclosure', 'disclosure_draft_id',
     }
     if set(data) - allowed:
         raise ValueError('Some listing answers are not supported.')
     result = {}
+    if data.get('disclosure_draft_id'):
+        import uuid
+        try:
+            result['disclosure_draft_id'] = str(uuid.UUID(str(data['disclosure_draft_id'])))
+        except (ValueError, TypeError, AttributeError):
+            raise ValueError('Choose a saved seller disclosure.')
     names = data.get('client_names')
     if (not isinstance(names, list) or len(names) not in (1, 2)
             or any(not isinstance(n, str) or not clean(n) or len(n) > 300 for n in names)):

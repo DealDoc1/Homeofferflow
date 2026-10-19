@@ -84,6 +84,12 @@ def fetch_readiness(url: str, service_key: str) -> dict:
         with urlopen(probe, timeout=30) as response:
             if json.load(response) != []:
                 raise ValueError("public partner schema probe did not return an empty list")
+        disclosure_columns = 'review_content_revision,seller_review_render_revision,signature_packet_id'
+        disclosure_probe = Request(f"{url.rstrip('/')}/rest/v1/hof_seller_disclosure_drafts?select={disclosure_columns}&limit=0",
+                                   headers=request_headers(service_key), method='GET')
+        with urlopen(disclosure_probe, timeout=30) as response:
+            if json.load(response) != []:
+                raise ValueError('disclosure packet schema probe did not return an empty list')
     return payload
 
 

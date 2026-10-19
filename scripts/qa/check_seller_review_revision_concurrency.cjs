@@ -187,7 +187,52 @@ async function main() {
     await reject(()=>rpc(service,q2,qChanged.reviewContentRevision),'42501');
     await admin.query('update public.hof_seller_disclosure_review_links set revoked_at=now() where id=$1',[q1]);
     await reject(()=>rpc(service,q1,qChanged.reviewContentRevision),'42501');
-    console.log(JSON.stringify({result:'PASS',checks,scope:'review integrity plus seller questionnaire RPC against isolated PostgreSQL',nothingSent:true,productionChanged:false}));
+    await admin.query(`create table public.hof_standalone_agreements (
+      id uuid primary key,agent_user_id uuid not null,form_code text not null,
+      client_names jsonb not null,agreement_data jsonb not null default '{}',signwell_document_id text);
+      grant all on public.hof_standalone_agreements to service_role;
+      grant select,update on public.hof_standalone_agreements to authenticated;`);
+    await admin.query(fs.readFileSync(path.resolve(__dirname,'../../supabase/migrations/20261019000034_bind_disclosure_to_listing_signature.sql'),'utf8'));
+    async function packetReviewedDraft() {
+      const d=await createDraft(['QA Seller One','QA Seller Two']);
+      for(let i=1;i<=2;i++){const l=await createLink(d,i);await attest(service,l,d.seller_names[i-1]);}
+      await cache(service,d);return row(d.id);
+    }
+    async function agreement(d,actor=owner) {
+      const id=randomUUID();
+      await admin.query(`insert into public.hof_standalone_agreements(id,agent_user_id,form_code,client_names,agreement_data)
+        values ($1,$2,'TXR-1101',$3,$4)`,[id,actor,JSON.stringify(d.seller_names.slice().reverse()),
+        JSON.stringify({property_address:d.property_address,disclosure_draft_id:d.id})]);return id;
+    }
+    const bind=(client,id,d,version=d.review_content_revision)=>client.query(`update public.hof_standalone_agreements
+      set signwell_document_id='fictional-doc',agreement_data=agreement_data || jsonb_build_object('_hof_signature_delivery',
+        jsonb_build_object('seller_disclosure',jsonb_build_object('id',$2::text,'revision',$3::text,'render_revision',$4::text))) where id=$1`,
+      [id,d.id,version,render]);
+    const ready=await packetReviewedDraft(), ag=await agreement(ready);
+    await reject(()=>bind(actor,ag,ready),'42501');
+    await reject(()=>bind(service,ag,ready,randomUUID()),'55000');
+    check((await row(ready.id)).signature_packet_id===null,'Stale packet cannot reserve disclosure');
+    await bind(service,ag,ready);
+    check((await row(ready.id)).signature_packet_id===ag,'Signing checkpoint atomically binds exact reviewed disclosure');
+    await bind(service,ag,ready);
+    await reject(()=>service.query("update public.hof_seller_disclosure_drafts set response_data='{\"notes\":\"late change\"}' where id=$1",[ready.id]),'55000');
+    await reject(()=>service.query("update public.hof_seller_disclosure_drafts set signwell_document_id='separate-doc' where id=$1",[ready.id]),'55000');
+    await reject(()=>service.query('update public.hof_seller_disclosure_drafts set signature_packet_id=null where id=$1',[ready.id]),'55000');
+    await reject(()=>service.query("update public.hof_standalone_agreements set agreement_data=agreement_data-'_hof_signature_delivery' where id=$1",[ag]),'55000');
+    const otherAgreement=await agreement(ready);await reject(()=>bind(service,otherAgreement,ready),'55000');
+    const foreign=await packetReviewedDraft(), foreignAgreement=await agreement(foreign,randomUUID());
+    await reject(()=>bind(service,foreignAgreement,foreign),'55000');
+    check((await row(foreign.id)).signature_packet_id===null,'Another account cannot reserve the disclosure');
+    // Real save/checkpoint interleavings, not sequential-only assertions.
+    const raceEdit=await packetReviewedDraft(), raceAgreement=await agreement(raceEdit);
+    await a.query('begin');await a.query("update public.hof_seller_disclosure_drafts set response_data='{\"notes\":\"changed while sending\"}' where id=$1",[raceEdit.id]);
+    const lateBind=bind(b,raceAgreement,raceEdit).then(()=>null,e=>e);
+    await blocked(b);await a.query('commit');check((await lateBind)?.code==='55000','Checkpoint waiting behind seller edit refuses stale answers');
+    const raceSend=await packetReviewedDraft(), raceSendAgreement=await agreement(raceSend);
+    await a.query('begin');await bind(a,raceSendAgreement,raceSend);
+    const lateEdit=b.query("update public.hof_seller_disclosure_drafts set response_data='{\"notes\":\"changed after checkpoint\"}' where id=$1",[raceSend.id]).then(()=>null,e=>e);
+    await blocked(b);await a.query('commit');check((await lateEdit)?.code==='55000','Seller edit waiting behind checkpoint cannot alter included answers');
+    console.log(JSON.stringify({result:'PASS',checks,scope:'review, seller questionnaire and atomic combined-packet binding against isolated PostgreSQL',nothingSent:true,productionChanged:false}));
   } finally {
     for(const c of clients) {try{await c.query('rollback');}catch{} try{await c.end();}catch{}}
     if(server && server.exitCode===null) {

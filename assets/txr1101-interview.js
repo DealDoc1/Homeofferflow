@@ -57,6 +57,7 @@
     if (answers.mls_filing === 'none') answers.internet_display = 'not_applicable';
     answers.financing = values.getAll('financing');
     answers.addenda = values.getAll('addenda');
+    if (get('disclosure_draft_id')) answers.disclosure_draft_id = get('disclosure_draft_id');
     answers.built_before_1978 = get('built_before_1978') || 'unanswered';
     answers.request_hoa_information = get('request_hoa_information') || 'unanswered';
     answers.broker_notice_contacts = Object.fromEntries(Object.keys(noticeLimits).map(key => [key,get('broker_notice_'+key)]));
@@ -212,6 +213,7 @@
           ${area('lead_records_details','Records and reports provided to the purchaser (optional)',4000)}
         </details></div>
         <p class="hof-agreement-wide hof-listing-note">Select the documents that apply. Your saved IABS is included when selected and available. Missing documents are shown separately and do not stop you from preparing the listing.</p>
+        <label class="hof-agreement-wide">Seller-reviewed disclosure (optional)<select name="disclosure_draft_id" aria-label="Seller-reviewed disclosure"><option value="">Complete separately</option>${(officeContext?.sellerDisclosures || []).map(d => `<option value="${escape(d.id)}" data-water="${d.includesWaterRights ? 'yes' : 'no'}">${escape([d.propertyAddress,(d.sellerNames || []).join(', '),d.includesWaterRights ? 'Includes water rights' : ''].filter(Boolean).join(' · '))}</option>`).join('')}${initial.disclosure_draft_id && !(officeContext?.sellerDisclosures || []).some(d=>d.id===initial.disclosure_draft_id) ? `<option value="${escape(initial.disclosure_draft_id)}">Previously selected disclosure — recheck before including</option>` : ''}</select></label>
         <details class="hof-agreement-wide"><summary>Review the related-document checklist</summary><fieldset class="hof-listing-checks"><legend>Documents that apply</legend>${documentChoices.map(([value,label]) => `<label><input type="checkbox" name="addenda" value="${value}"> ${label}</label>`).join('')}</fieldset></details>
         ${area('other_documents','Other related documents (optional)')}
       </div></section>
@@ -230,6 +232,13 @@
       else if (form.elements.namedItem(name)) form.elements.namedItem(name).value = value;
     }
     const validActor = () => { if (current(actor) && activeAgent()) return true; modal.remove(); return false; };
+    form.elements.namedItem('disclosure_draft_id').addEventListener('change', () => {
+      if (!validActor() || busy || uncertain) return;
+      const selected = form.elements.namedItem('disclosure_draft_id').selectedOptions[0];
+      if (!selected?.value) return;
+      form.querySelector('[name="addenda"][value="B"]').checked = true;
+      if (selected.dataset.water === 'yes') form.querySelector('[name="addenda"][value="P"]').checked = true;
+    });
     form.querySelector('[data-current-office]')?.addEventListener('click',() => {
       if (!validActor() || busy || uncertain) return;
       Object.keys(noticeLimits).forEach(key => { form.elements.namedItem('broker_notice_'+key).value = String(officeContext.noticeContacts?.[key] || ''); });
@@ -285,6 +294,7 @@
         ['Brokerage notice address',[a.broker_notice_contacts.address,a.broker_notice_contacts.city_state_zip].filter(Boolean).join(', ')],
         ['Brokerage notice contacts',[a.broker_notice_contacts.phone,a.broker_notice_contacts.email,a.broker_notice_contacts.email_2].filter(Boolean).join(' · ')]);
       if (a.addenda.includes('C')) rows.push(['Lead disclosure','Included. The seller completes any unconfirmed answers during signing; Buyer choices remain blank.']);
+      if (a.disclosure_draft_id) rows.push(['Seller’s disclosure','Selected for this package. Current seller confirmation and matching parties are checked before inclusion.']);
       const list = collect(new root.FormData(form)).agreementData.addenda.map(code => documentChoices.find(([value]) => value === code)?.[1]).filter(Boolean);
       form.querySelector('#txr1101Review').innerHTML = `<dl>${rows.map(([key,value]) => `<div><dt>${key}</dt><dd>${escape(value || 'Not provided')}</dd></div>`).join('')}</dl><p><strong>Related-document checklist:</strong> ${escape(list.join(' · ') || 'None selected')}</p><p class="hof-listing-note">Your account supplies the brokerage and agent identity. The notice contacts above are saved with this agreement. Check the completed PDF before sending.</p>`;
     }
