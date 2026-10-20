@@ -22,6 +22,14 @@ from lib.txr_1101 import _number, _mark, _remove_member_footer, NOTICE_CONTACT_L
 SOURCE_SHA256 = '30ae702ee94d71fc2aec5717f0d1b6d78b4fea53b5b418f7d74b39f658e44657'
 SOURCE_PAGES = 11
 REVISION = 'txr-1102-2026-01-05-overlay-v1'
+DOCUMENT_CHOICES = (
+    ('A','Information About Brokerage Services'),('B','Rental flood disclosure'),
+    ('C','Lead-based paint disclosure for a lease'),('D','Owners’ association information request'),
+    ('E','Special flood hazard information'),('F','Condominium listing addendum'),
+    ('G','Tenant keybox authorization'),('H','On-site sewer information'),('I','IRS Form W-9 or W-8'),
+    ('J','Owner’s authorization for unescorted access'),('K','Assistance-animal information for landlords'),
+    ('L','Other related documents'),
+)
 TEXT_LIMITS = {
     'client_address':300,'client_city_state_zip':180,'client_phone':80,'client_email':180,'client_email_2':180,
     'property_address':400,'lot':150,'block':150,'subdivision':600,'city':180,'county':120,

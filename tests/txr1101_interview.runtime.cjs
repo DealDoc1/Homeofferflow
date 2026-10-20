@@ -107,7 +107,7 @@ test('late office defaults cannot open an interview after the account changes',a
   assert.equal(x.officeRequests[0].options.cache,'no-store');assert.equal(x.officeRequests[0].options.headers.Authorization,'Bearer qa-token');
 });
 test('the optional office-default loader falls back to manual entry but preserves an expired-session error',async()=>{
-  const start=source.indexOf('  async function loadOfficeContext()'),end=source.indexOf('  async function openInterview(',start);
+  const start=source.indexOf('  async function loadOfficeContext('),end=source.indexOf('  async function openInterview(',start);
   const root={hofAuth:{session:{access_token:'qa-token'}},fetch:async()=>{throw new Error('Synthetic optional defaults outage');}};
   const c=vm.createContext({root});vm.runInContext(source.slice(start,end)+'this.load=loadOfficeContext;',c);
   const fallback=await c.load();assert.equal(fallback.unavailable,true);
@@ -144,7 +144,7 @@ function submittingSetup(){
     fetch:(url,options)=>{const pending=deferred();requests.push({url,options,...pending});return pending.promise;}};
   const context=vm.createContext({root,form,modal,status,save,back,document:{createElement:()=>({addEventListener(){}})},
     current:()=>root.hofAuth.session.user.id==='actor',actor:{id:'actor'},approved:{id:'source'},collect:model.collect,validateTerms:model.validateTerms,
-    validActor:()=>{if(root.hofAuth.session.user.id==='actor')return true;modal.remove();return false;},invalidStep:()=>false,reviewSaved:()=>{},sync:()=>{},step:5,busy:false,uncertain:false,saved:null,FORM_CODE:'TXR-1101'});
+    validActor:()=>{if(root.hofAuth.session.user.id==='actor')return true;modal.remove();return false;},invalidStep:()=>false,reviewSaved:()=>{},sync:()=>{},step:5,lastStep:5,busy:false,uncertain:false,saved:null,FORM_CODE:'TXR-1101'});
   vm.runInContext(source.slice(start,end),context);
   return {submit:()=>submit({preventDefault(){}}),requests,root,save,status,modal,context,
     reply:(index,body,statusCode=200)=>requests[index].resolve({ok:statusCode<300,status:statusCode,json:async()=>body})};

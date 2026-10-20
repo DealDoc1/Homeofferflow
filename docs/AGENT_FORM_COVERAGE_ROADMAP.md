@@ -11,8 +11,14 @@ TXR-1102 now has a source-backed answer contract and visually reviewed renderer
 signing API adapters. Focused affected-workflow checks pass 146 tests (four
 unrelated opt-in skips); an isolated real PostgreSQL migration check passes 36
 assertions without changing RLS or table grants. No live invitations, hosted SQL
-or deployment occurred. The lease-listing interview, actual related-document
-composition, coordinated release checks and completed-provider QA remain
+or deployment occurred. The seven-step lease-listing interview and same-draft
+queue handoff are now implemented locally as well: 162 focused checks pass
+(two unrelated opt-in skips), plus 67 desktop/mobile lease browser checks and
+seven shared sale-dialog regression checks. Conditional preferences, explicit
+zeroes, saved snapshots and ambiguous-save recovery pass; phone visual review
+also corrected the optional checkbox and sticky footer. See the
+[interview checkpoint and local screenshots](release-evidence/txr1102-interview-local-2026-10-20.md).
+Actual related-document composition, coordinated release checks and completed-provider QA remain
 implementation work, not an owner/source authorization blocker. See
 [lease API/schema evidence and next steps](release-evidence/txr1102-private-api-local-2026-10-20.md).
 

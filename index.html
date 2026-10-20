@@ -160,6 +160,7 @@
   <script defer src="/assets/trec-38-8-followup.js"></script>
   <script defer src="/assets/trec-39-11-amendment.js"></script>
 <link rel="stylesheet" href="/assets/txr1101-interview.css">
+<script defer src="/assets/txr1102-interview.js"></script>
 <script defer src="/assets/txr1101-interview.js"></script>
   <link rel="icon" href="/assets/homeofferflow-app-icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/assets/homeofferflow-apple-touch-icon.png" sizes="180x180" />
@@ -8483,6 +8484,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           { label: 'Compare a buyer offer', copy: 'Compare price, financing, deadlines, concessions, and possession.', action: () => window.hofOpenListingOfferComparison?.(), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceOfferComparisonCard')) }
         ]
       },
+      lease_listing: {
+        title: 'What do you need for this lease listing?',
+        choices: [
+          { label: 'Prepare a lease listing agreement', copy: 'Add the landlord, property, rent and agreed terms. Review the completed agreement before sending.', primary: true, action: () => openRelationshipDraft('hofOpenTxr1102Draft', undefined, { formCode: 'TXR-1102' }), isWorkspaceOpen: () => Boolean(document.getElementById('txr1101Interview')) },
+          { label: 'Open a lease listing workspace', copy: 'Keep the landlord, property and next steps together.', action: () => openListingWorkspace(true), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) }
+        ]
+      },
       lease_representation: {
         title: 'What do you need for this tenant?',
         choices: [
@@ -8571,7 +8579,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       lease_listing: {
         event: 'agent_workflow_lease_listing_selected',
         message: 'Next, add the landlord and property details for this lease listing.',
-        action: () => openListingWorkspaceDirectly('lease_listing')
+        action: () => window.hofOpenAgentPackageInterview('lease_listing') || openListingWorkspaceDirectly('lease_listing')
       },
       lease_representation: {
         event: 'agent_workflow_lease_representation_selected',
@@ -23856,7 +23864,7 @@ function routeAfterMagicLinkIfNeeded() {
     modal.id = 'hofStandaloneSendDialog';
     modal.className = 'hof-agreement-modal';
     modal.innerHTML = `<form class="hof-agreement-dialog" id="hofStandaloneSendForm">
-      <h3>Send ${escape(agreement.form_code === 'TXR-1101' ? 'sale listing packet' : agreement.form_code)} for signature</h3>
+      <h3>Send ${escape(agreement.form_code === 'TXR-1101' ? 'sale listing packet' : agreement.form_code === 'TXR-1102' ? 'lease listing agreement' : agreement.form_code)} for signature</h3>
       <p>Review everyone who will receive this document. Each signer needs a different email address.</p>
       <div id="hofStandalonePacketSummary"></div>
       <div class="hof-agreement-grid" id="hofStandaloneSigningRecipients"></div>
@@ -23914,6 +23922,7 @@ function routeAfterMagicLinkIfNeeded() {
           'TXR-1507': root.hofOpenTxr1507Draft,
           'TXR-1508': root.hofOpenTxr1508Draft,
           'TXR-1101': () => root.hofOpenTxr1101Draft?.({ agreementId: agreement.id }),
+          'TXR-1102': () => root.hofOpenTxr1102Draft?.({ agreementId: agreement.id }),
         };
         const prepareCurrentCopy = staleMapOpeners[agreement.form_code];
         if (prepareCurrentCopy && /signature fields appear in the right places/i.test(String(error.message || ''))) {
@@ -24082,14 +24091,18 @@ function routeAfterMagicLinkIfNeeded() {
           const canRefresh = agreement.status !== 'signed' && agreement.signwell_document_id;
           const canDownloadCompleted = agreement.status === 'signed' && agreement.signwell_document_id;
           const sendLabel = canRetrySaved ? 'Retry saved request' : (canRetryUnsent ? 'Retry signature request' : 'Send for signature');
-          const canEditListing = agreement.form_code === 'TXR-1101' && !agreement.signwell_document_id && ['draft', 'failed'].includes(agreement.status);
-          const title = agreement.form_code === 'TXR-1101' ? 'Sale listing agreement' : agreement.form_code;
+          const canEditListing = ['TXR-1101','TXR-1102'].includes(agreement.form_code) && !agreement.signwell_document_id && ['draft', 'failed'].includes(agreement.status);
+          const title = agreement.form_code === 'TXR-1101' ? 'Sale listing agreement' : agreement.form_code === 'TXR-1102' ? 'Lease listing agreement' : agreement.form_code;
           return `<div style="display:flex;justify-content:space-between;align-items:center;gap:.75rem;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.12);padding:.7rem 0"><span><strong>${escape(title)}</strong><small style="display:block;color:var(--gray-light)">${escape(names)} · ${escape(agreement.status || 'draft')}</small>${gate}</span><span style="display:flex;gap:.4rem;flex-wrap:wrap">${canEditListing ? `<button type="button" class="btn-secondary" data-edit-listing="${escape(agreement.id)}">Edit answers</button>` : ''}<button type="button" class="btn-secondary" data-preview="${escape(agreement.id)}">Preview</button>${canRefresh ? `<button type="button" class="btn-secondary" data-refresh-signing="${escape(agreement.id)}">Refresh status</button>` : ''}${canDownloadCompleted ? `<button type="button" class="btn-secondary" data-download-completed="${escape(agreement.id)}">Download completed PDF</button>` : ''}${canSend ? `<button type="button" class="btn-primary" data-send="${escape(agreement.id)}">${sendLabel}</button>` : ''}</span></div>`;
         }).join('');
         list.querySelectorAll('[data-edit-listing]').forEach(button => button.addEventListener('click', async () => {
           if (!isCurrent() || button.disabled) return;
           button.disabled = true;
-          try { await root.hofOpenTxr1101Draft?.({ agreementId: button.dataset.editListing }); }
+          try {
+            const agreement = agreements.find(row => row.id === button.dataset.editListing);
+            const open = agreement?.form_code === 'TXR-1102' ? root.hofOpenTxr1102Draft : root.hofOpenTxr1101Draft;
+            await open?.({ agreementId: button.dataset.editListing });
+          }
           catch (_) { root.announceWorkspaceStatus?.('We couldn’t open that listing agreement. Refresh your saved documents and try again.'); }
           finally { button.disabled = false; }
         }));

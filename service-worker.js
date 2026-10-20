@@ -14,6 +14,7 @@ const SHELL_ASSETS = [
   '/assets/trec-38-8-followup.js',
   '/assets/trec-39-11-amendment.js',
   '/assets/txr1101-interview.js',
+  '/assets/txr1102-interview.js',
   '/assets/txr1101-interview.css',
   '/assets/seller-disclosure-interview.js',
   '/assets/saved-disclosure-attachment.js',

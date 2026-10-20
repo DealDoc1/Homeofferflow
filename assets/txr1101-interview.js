@@ -99,6 +99,7 @@
     if (a.mls_filing === 'delayed' && (!(Number(a.mls_delay_days) >= 1) || !a.mls_delay_purpose)) return 'Enter the MLS delay and its purpose.';
     return '';
   }
+  const saleModel = {collect,prefill,validateTerms};
 
   // Pure answer mapping is shared with isolated runtime tests, not a browser data store.
   if (typeof module !== 'undefined' && module.exports) module.exports = {collect,prefill,validateTerms,choices,textLimits,noticeLimits,documentChoices};
@@ -111,9 +112,10 @@
   const select = (name,label) => `<label class="hof-agreement-wide">${label}<select name="${name}" aria-label="${escape(label)}" required><option value="">Choose one</option>${choices[name].map(([value,title]) => `<option value="${value}">${title}</option>`).join('')}</select></label>`;
   const yesNo = (name,label) => `<label class="hof-agreement-wide">${label}<select name="${name}" aria-label="${escape(label)}"><option value="unanswered">Not yet confirmed</option><option value="yes">Yes</option><option value="no">No</option></select></label>`;
 
-  async function loadOfficeContext() {
+  async function loadOfficeContext(formCode='TXR-1101') {
     try {
-      const response = await root.fetch('/api/admin-dashboard?scope=txr1101_context',{headers:{Authorization:`Bearer ${root.hofAuth.session.access_token}`},cache:'no-store'});
+      const scope = formCode === 'TXR-1102' ? 'txr1102_context' : 'txr1101_context';
+      const response = await root.fetch('/api/admin-dashboard?scope='+scope,{headers:{Authorization:`Bearer ${root.hofAuth.session.access_token}`},cache:'no-store'});
       if (response.status === 401) { const error = new Error('Sign in again to prepare the listing agreement.'); error.requiresSignIn = true; throw error; }
       if (!response.ok) throw new Error('Saved office details are temporarily unavailable.');
       return await response.json();
@@ -127,19 +129,26 @@
   async function openInterview(options={}) {
     if (opening) return;
     if (!activeAgent()) throw new Error('Sign in to your agent account to prepare a listing agreement.');
+    const isLease = options.formCode === 'TXR-1102';
+    const model = isLease ? root.hofLeaseListingInterview : saleModel;
+    if (!model) throw new Error('The lease listing interview is still loading. Please try again.');
+    const {collect,prefill,validateTerms} = model;
+    const FORM_CODE = isLease ? 'TXR-1102' : 'TXR-1101';
+    const lastStep = isLease ? model.stepCount-1 : 5;
     const actor = capture();
     if (document.getElementById('txr1101Interview')) return;
     opening = true;
     let saved = null, approved, officeContext;
     try {
       if (options.agreementId) {
-        const response = await root.fetch(`/api/admin-dashboard?scope=txr1101_draft&agreement_id=${encodeURIComponent(options.agreementId)}`, {headers:{Authorization:`Bearer ${root.hofAuth.session.access_token}`},cache:'no-store'});
+        const scope = isLease ? 'txr1102_draft' : 'txr1101_draft';
+        const response = await root.fetch(`/api/admin-dashboard?scope=${scope}&agreement_id=${encodeURIComponent(options.agreementId)}`, {headers:{Authorization:`Bearer ${root.hofAuth.session.access_token}`},cache:'no-store'});
         const result = await response.json();
         if (!current(actor)) return;
         if (!response.ok) throw new Error(result.error || 'We couldn’t open that saved listing agreement.');
         saved = result.agreement;
       }
-      [approved,officeContext] = await Promise.all([root.hofLoadApprovedBrokerageSource?.(FORM_CODE),loadOfficeContext()]);
+      [approved,officeContext] = await Promise.all([root.hofLoadApprovedBrokerageSource?.(FORM_CODE),loadOfficeContext(FORM_CODE)]);
       if (!current(actor)) return;
       if (!approved?.id) throw new Error('We couldn’t open the listing agreement. Please try again.');
     } finally { opening = false; }
@@ -149,7 +158,7 @@
     const modal = document.createElement('div');
     modal.id = 'txr1101Interview'; modal.className = 'hof-agreement-modal';
     modal.setAttribute('role','dialog'); modal.setAttribute('aria-modal','true'); modal.setAttribute('aria-labelledby','txr1101Title');
-    modal.innerHTML = `<form id="txr1101InterviewForm" class="hof-agreement-dialog" novalidate>
+    modal.innerHTML = isLease ? model.markup({officeContext,officeIdentity,hasNoticeDetails}) : `<form id="txr1101InterviewForm" class="hof-agreement-dialog" novalidate>
       <div class="hof-listing-heading"><p class="hof-agent-question-step" id="txr1101Progress"></p><button type="button" data-close aria-label="Close listing interview">×</button></div>
       <h3 id="txr1101Title">Prepare a sale listing agreement</h3>
       <section data-step="0"><h4>Who is selling, and which property?</h4><div class="hof-agreement-grid">
@@ -229,10 +238,14 @@
     let step = 0, busy = false, uncertain = false;
     for (const [name,value] of Object.entries(initial)) {
       if (Array.isArray(value)) form.querySelectorAll(`[name="${name}"]`).forEach(input => { input.checked = value.includes(input.value); });
-      else if (form.elements.namedItem(name)) form.elements.namedItem(name).value = value;
+      else if (form.elements.namedItem(name)) {
+        const control = form.elements.namedItem(name);
+        if (control.type === 'checkbox') control.checked = value === true;
+        else control.value = value;
+      }
     }
     const validActor = () => { if (current(actor) && activeAgent()) return true; modal.remove(); return false; };
-    form.elements.namedItem('disclosure_draft_id').addEventListener('change', () => {
+    form.elements.namedItem('disclosure_draft_id')?.addEventListener('change', () => {
       if (!validActor() || busy || uncertain) return;
       const selected = form.elements.namedItem('disclosure_draft_id').selectedOptions[0];
       if (!selected?.value) return;
@@ -245,6 +258,7 @@
     });
     const get = name => form.elements.namedItem(name)?.value || '';
     const sync = () => {
+      if (isLease) { model.sync(form,get,{busy,uncertain}); return; }
       const lead = form.querySelector('[name="addenda"][value="C"]');
       if (get('built_before_1978') === 'yes') lead.checked = true;
       const conditions = {fee:get('fee_basis') && get('fee_basis') !== 'none', additional_fee:get('additional_fee_basis') && get('additional_fee_basis') !== 'none',
@@ -261,10 +275,10 @@
     function showStep() {
       sync();
       form.querySelectorAll('[data-step]').forEach(panel => { panel.hidden = Number(panel.dataset.step) !== step; panel.style.display = panel.hidden ? 'none' : ''; });
-      form.querySelector('#txr1101Progress').textContent = `Sale listing · ${step+1} of 6`;
-      back.hidden = step === 0; next.hidden = step === 5; save.hidden = step !== 5;
+      form.querySelector('#txr1101Progress').textContent = `${isLease ? 'Lease listing' : 'Sale listing'} · ${step+1} of ${lastStep+1}`;
+      back.hidden = step === 0; next.hidden = step === lastStep; save.hidden = step !== lastStep;
       back.style.display = back.hidden ? 'none' : ''; next.style.display = next.hidden ? 'none' : ''; save.style.display = save.hidden ? 'none' : '';
-      if (step === 5) renderReview();
+      if (step === lastStep) renderReview();
       form.querySelector(`[data-step="${step}"] h4`)?.setAttribute('tabindex','-1');
       form.querySelector(`[data-step="${step}"] h4`)?.focus();
     }
@@ -278,6 +292,10 @@
       return false;
     }
     function renderReview() {
+      if (isLease) {
+        form.querySelector('#txr1101Review').innerHTML = model.review(collect(new root.FormData(form)),officeIdentity);
+        return;
+      }
       const a = collect(new root.FormData(form)).agreementData;
       const label = key => choices[key]?.find(item => item[0] === a[key])?.[1] || 'Not selected';
       const displayDate = value => /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(value+'T12:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'}) : value;
@@ -324,18 +342,24 @@
       }
     });
     form.addEventListener('change',sync);
-    next.addEventListener('click',() => { if (!validActor() || busy || uncertain || invalidStep(step)) return; status.textContent = ''; step++; showStep(); });
+    next.addEventListener('click',() => {
+      if (!validActor() || busy || uncertain || invalidStep(step)) return;
+      const error = model.validateStep?.(collect(new root.FormData(form)),step);
+      if (error) { status.className = 'hof-iabs-status error'; status.textContent = error; return; }
+      status.textContent = ''; step++; showStep();
+    });
     back.addEventListener('click',() => { if (!validActor() || busy || uncertain) return; status.textContent = ''; step = Math.max(0,step-1); showStep(); });
     form.addEventListener('submit',async event => {
       event.preventDefault();
       if (!validActor() || busy || uncertain) return;
-      if (step !== 5) { next.click(); return; }
-      for (let index=0;index<6;index++) if (invalidStep(index)) return;
+      if (step !== lastStep) { next.click(); return; }
+      for (let index=0;index<=lastStep;index++) if (invalidStep(index)) return;
       const payload = collect(new root.FormData(form)), error = validateTerms(payload);
       if (error) { status.className = 'hof-iabs-status error'; status.textContent = error; return; }
       busy = true; save.disabled = true; back.disabled = true; save.setAttribute('aria-busy','true');
       status.className = 'hof-iabs-status'; status.textContent = 'Preparing your agreement…';
-      const body = {action:saved ? 'update_txr_1101_draft' : 'create_txr_1101_draft',formCode:FORM_CODE,formSourceId:approved.id,...payload};
+      const action = `${saved ? 'update' : 'create'}_${FORM_CODE.toLowerCase().replace('-','_')}_draft`;
+      const body = {action,formCode:FORM_CODE,formSourceId:approved.id,...payload};
       if (saved) { body.agreementId = saved.id; body.updatedAt = saved.updated_at; }
       // Freeze answers through readback so the saved-document confirmation always matches the screen.
       form.querySelectorAll('input,select,textarea').forEach(control => { control.disabled = true; });
@@ -375,4 +399,5 @@
     showStep();
   }
   root.hofOpenTxr1101Draft = openInterview;
+  root.hofOpenTxr1102Draft = options => openInterview({...options,formCode:'TXR-1102'});
 })(typeof window !== 'undefined' ? window : {});
