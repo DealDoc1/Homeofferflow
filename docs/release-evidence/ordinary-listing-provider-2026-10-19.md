@@ -68,3 +68,12 @@ included. Customer listing API/interview, form allowlists, schema checker and
 both pending migrations are excluded. Existing main disclosure and purchase
 behavior is retained. Shell v110 invalidates the prior static admin UI cache;
 no private PDF or API response is cached.
+
+Frozen local regression ran 2,822 tests in 96.134s, with five skips. Its sole
+failure was one companion test still expecting old shell v109; the cache
+assertion is corrected to v110 without changing application code. Its focused
+companion/PWA run and the exact corrected-head CI provide the final result.
+The 103 actual-source focused checks passed in 13.978s. Approved signer geometry
+matches. Supabase preflight has 120 migration files and no errors; none is added
+or applied by this QA-only branch. Capacity run 39358028894 passed: three
+deployments/24h, $0.05 infrastructure usage, $19.95 unconsumed, $3 reserve.
