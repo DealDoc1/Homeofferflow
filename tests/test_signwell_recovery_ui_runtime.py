@@ -9,13 +9,15 @@ START = HTML.index("modal.querySelector('#hofStandaloneSendForm').addEventListen
 SUBMIT = HTML[START:HTML.index('    });\n    try {', START) + len('    });')]
 START = HTML.index("          const canRetryUnsent = agreement.status === 'failed'")
 CONTROLS = HTML[START:HTML.index('          return `<div', START)]
+START = HTML.index('  const captureViewer =')
+VIEWER_GUARD = HTML[START:HTML.index('\n\n  async function loadAgreements', START)]
 
 
 class SignwellRecoveryUiTests(unittest.TestCase):
     def run_js(self, body):
         result = subprocess.run(['node', '-e', "const assert=require('node:assert/strict');\n" + body],
                                 capture_output=True, text=True, timeout=15)
-        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.returncode, 0, result.stderr[-3500:])
 
     def test_retry_requires_supported_owned_saved_request_and_draft_state(self):
         self.run_js('''
@@ -39,8 +41,10 @@ class SignwellRecoveryUiTests(unittest.TestCase):
           let handler, refreshes=0, requests=0, removals=0;
           const status={textContent:'',className:''}, submit={disabled:false};
           const formElement={querySelector:()=>submit,addEventListener:(_,fn)=>handler=fn};
-          const modal={querySelector:key=>key==='#hofStandaloneSendForm'?formElement:status,remove:()=>removals++};
-          const root={}, agreement={id:'draft-id',form_code:'TXR-1507'};
+          const modal={isConnected:true,querySelector:key=>key==='#hofStandaloneSendForm'?formElement:status,remove:()=>{removals++;modal.isConnected=false}};
+          const root={hofAuth:{session:{user:{id:'qa-owner'}}}}, agreement={id:'draft-id',form_code:'TXR-1507'};
+          VIEWER_GUARD
+          const actor=captureViewer();
           const token=()=> 'test-session';
           const signers=[{id:'1',name:'Customer',emailEditable:true}];
           const FormData=class {get(){return 'customer@example.com'}};
@@ -50,7 +54,18 @@ class SignwellRecoveryUiTests(unittest.TestCase):
             requests++; assert.equal(JSON.parse(request.body).agreementId,'draft-id');
             return {ok:RESPONSE_OK,json:async()=>(PAYLOAD)};
           };
-        '''.replace('REFRESH_FAILS', json.dumps(refresh_fails)).replace('RESPONSE_OK', json.dumps(response_ok)).replace('PAYLOAD', json.dumps(payload)) + SUBMIT
+        '''.replace('VIEWER_GUARD', VIEWER_GUARD).replace('REFRESH_FAILS', json.dumps(refresh_fails)).replace('RESPONSE_OK', json.dumps(response_ok)).replace('PAYLOAD', json.dumps(payload)) + SUBMIT
+
+    def test_changed_account_or_profile_epoch_cannot_submit_an_old_dialog(self):
+        for change in ("root.hofAuth.session.user.id='different-owner';", "root.__hofAccountProfileEpoch=1;"):
+            with self.subTest(change=change):
+                self.run_js(self.submit_case({'message':'Signature request sent.'}) + change + '''
+                  (async()=>{
+                    await handler({preventDefault(){},currentTarget:formElement});
+                    assert.equal(requests,0);assert.equal(removals,1);
+                    assert.equal(refreshes,0);assert.equal(status.textContent,'');
+                  })().catch(e=>{console.error(e);process.exit(1)});
+                ''')
 
     def test_successful_delivery_is_not_reported_as_failed_when_list_refresh_fails(self):
         self.run_js(self.submit_case({'message': 'Signature request sent.'}, refresh_fails=True) + '''

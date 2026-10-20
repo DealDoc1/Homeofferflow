@@ -112,8 +112,35 @@ existing reservation/digests and every other run. It does not resend anything
 or mark completed-PDF visual QA passed. The actual signed result still remains
 to be completed and inspected. No email to Tyler or real client was sent.
 
-Full customer PR #1353 first CI found a single stale prepared-document wording
+Full customer PR #1353 initially exposed a stale prepared-document wording
 assertion. The concise wording now explicitly includes documents, recipients
 and signing roles; the assertion is updated without removing recipient/retry
 behavior checks. Twenty-nine focused language, recipient and interview-runtime
 tests pass. Corrected-head CI is required before customer release.
+
+The complete subsequent failure inventory identified 74 fixture failures in
+three shared assumptions: an extracted send-handler harness omitted the new
+real viewer guard/modal lifecycle; an offline owned-record stub expected only
+draft/failed reads rather than safe recovery of tracked terminal requests; and
+the schema test checked only immutable core v1 instead of the additive v3
+contract. No product guard was removed. The harness now executes the real
+viewer predicate and also proves changed account/epoch cannot submit an old
+dialog; the source/render fixture still asserts exact owner/id/status scope;
+the schema assertion checks v3 delegation, code constraint and private grants.
+All 49 focused affected test methods and their signer/form subcases pass.
+
+Both QA signers have entered all applicable fields and reached Agree & Finish.
+Seller positive knowledge selection required the explanation; negative reports
+did not require a reports explanation. A 197-character fictional paragraph
+renders clearly as two lines in the reserved area. The owner was asked once
+to accept the final electronic disclosure for both signers of this new packet;
+neither final consent click has been performed pending that answer.
+
+Downloaded provider in-progress PDF is 12 pages, no widgets, SHA-256
+`eb8e4f7d8bed99776f523b397918f187db5f6c3cb2f16ef01f1ad45a721ab209`.
+Reviewed actual provider pages 1, 10, 11 and 12: both parties’ footer initials
+and execution signatures align; Seller choices and explanation fit. Test-mode
+watermarks are expected. Date text is not stamped in this unfinished copy;
+completed-date placement and final certificate/audit PDF remain unverified.
+This in-progress review is not a completed signing result. No further Vercel
+usage query or replacement invitation was made.

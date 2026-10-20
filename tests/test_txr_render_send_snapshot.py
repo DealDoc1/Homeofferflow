@@ -78,7 +78,9 @@ class RenderSendFixture:
         if path.startswith('hof_standalone_agreements?'):
             self.test.assertIn('agent_user_id=eq.' + USER['id'], path)
             self.test.assertIn('id=eq.' + RECORD_ID, path)
-            self.test.assertIn('status=in.(draft,failed)', path)
+            # Recovery reads an existing tracked request in any terminal state;
+            # that is not permission to create a fresh request in those states.
+            self.test.assertIn('status=in.(draft,failed,sent,signed,void)', path)
             return [] if self.hide_record else [copy.deepcopy(self.row)]
         if path.startswith('hof_brokerage_form_sources?'):
             self.test.assertIn('status=eq.approved&authorization_attested=is.true', path)

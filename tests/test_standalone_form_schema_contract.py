@@ -50,6 +50,17 @@ class StandaloneFormSchemaContractTests(unittest.TestCase):
         match = re.search(r'foreach supported_form_code in array array\[(.*?)\]', sql, re.DOTALL)
         self.assertIsNotNone(match, 'Release readiness must check actual draft form capabilities.')
         checked = set(re.findall(r"'([^']+)'", match.group(1)))
+        # The already deployed v1/v2 contracts are immutable. The additive v3
+        # delegates v2 and verifies newly supported codes against the constraint.
+        wrapper = (ROOT/'supabase/migrations/20261019000034_bind_disclosure_to_listing_signature.sql').read_text()
+        self.assertIn('baseline := public.hof_seller_disclosure_schema_readiness();', wrapper)
+        self.assertIn("'homeofferflow-release-schema-v3'", wrapper)
+        self.assertIn('strpos(constraint_definition,quote_literal(', wrapper)
+        self.assertIn("'form_code:hof_standalone_agreements.TXR-1101'", wrapper)
+        self.assertIn('security invoker', wrapper.lower())
+        self.assertIn('set search_path=pg_catalog', wrapper.lower())
+        self.assertIn('from public,anon,authenticated', wrapper.lower())
+        checked.update(re.findall(r"quote_literal\('([^']+)'\)", wrapper))
         self.assertLessEqual(implemented_form_codes(), checked)
         self.assertIn('security invoker', sql.lower())
         self.assertIn("set search_path = ''", sql.lower())
