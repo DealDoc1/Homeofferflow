@@ -24051,7 +24051,7 @@ function routeAfterMagicLinkIfNeeded() {
     const card = document.createElement('div');
     card.id = 'hofStandaloneAgreementCard';
     card.className = 'account-card hof-agreement-card';
-    card.innerHTML = '<h4>Prepared documents</h4><p>Review your documents and confirm the recipients before sending for signature.</p><div id="hofStandaloneAgreementList"><div class="hof-iabs-status">Loading…</div></div>';
+    card.innerHTML = '<h4>Prepared documents</h4><p>Review your documents, recipients, and signing roles before sending for signature.</p><div id="hofStandaloneAgreementList"><div class="hof-iabs-status">Loading…</div></div>';
     panel.appendChild(card);
     const list = card.querySelector('#hofStandaloneAgreementList');
     let refreshVersion = 0;

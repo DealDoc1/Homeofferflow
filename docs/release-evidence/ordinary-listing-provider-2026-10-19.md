@@ -77,3 +77,43 @@ The 103 actual-source focused checks passed in 13.978s. Approved signer geometry
 matches. Supabase preflight has 120 migration files and no errors; none is added
 or applied by this QA-only branch. Capacity run 39358028894 passed: three
 deployments/24h, $0.05 infrastructure usage, $19.95 unconsumed, $3 reserve.
+
+## Observed release and single dispatch
+
+PR #1352 merged as `afc44a9b2aebe23cefd8cfa8ee649ea4bf843732`.
+Exact-head CI `39358241638` passed 2,822 tests (six skips), golden rendering,
+signer geometry and branch schema preflight. Intentional release `39358689543`
+passed its 2,822-test verification and all deployment/canonical/PWA/API checks.
+Deployed URL: `homeofferflow-2jjgnm99s-dealdoc1s-projects.vercel.app`.
+No customer listing migration or activation was included. The owner requested
+no more standalone Vercel usage checks; rely on the existing deployment safety
+step rather than re-query usage during implementation.
+
+The canonical authenticated owner control confirmed no prior ordinary attempt,
+then created the sole reserved test draft
+`a2fa604d-6313-4ad8-97ea-290d029f28d0`, run
+`c7ac1904-9e6a-41bd-b262-06912dc314af`. The first verification retained it
+unsent. A later read-only reconstruction reported every identity, geometry,
+recipient, parallel-signing, group and conditional-rule check true. The exact
+reason for the initial hold was not recorded; eventual provider availability
+is not asserted as a proven root cause. No verifier was weakened.
+
+The existing owner SignWell session was restored using its existing Google
+account. The same exact draft was inspected, fixed recipients and TEST ONLY
+message confirmed, reminders visibly off, and dispatched once through its UI.
+SignWell displayed "Your Document Has Been Sent!". Canonical read-only status
+then confirmed it awaits both QA signers. Owner invitation
+`1a15727c91f78612` arrived at 2026-10-20 02:33:06 UTC and identifies this exact
+document. The saved dispatch screenshot is outside Git under the chat's
+`ordinary-listing-provider-2026-10-19/provider-sent.jpg`.
+
+The guarded tracker checkpoint records that verified dispatch, preserving the
+existing reservation/digests and every other run. It does not resend anything
+or mark completed-PDF visual QA passed. The actual signed result still remains
+to be completed and inspected. No email to Tyler or real client was sent.
+
+Full customer PR #1353 first CI found a single stale prepared-document wording
+assertion. The concise wording now explicitly includes documents, recipients
+and signing roles; the assertion is updated without removing recipient/retry
+behavior checks. Twenty-nine focused language, recipient and interview-runtime
+tests pass. Corrected-head CI is required before customer release.
