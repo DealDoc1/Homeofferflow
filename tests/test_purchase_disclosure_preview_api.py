@@ -19,7 +19,7 @@ SPEC.loader.exec_module(API)
 class PurchaseDisclosurePreviewApiTests(unittest.TestCase):
     def setUp(self):
         self.data = {'action': 'preview_purchase_disclosure_execution', 'offerId': OFFER, 'draftId': DRAFT}
-        self.plan = SimpleNamespace(pdf=b'%PDF-fictional-preview', binding={'id': DRAFT, 'revision': REVISION},
+        self.plan = SimpleNamespace(pdf=b'%PDF-fictional-preview', binding={'id': DRAFT, 'revision': REVISION}, content_fingerprint='c'*64,
             recipients=[{'id': '1', 'name': 'QA Buyer', 'email': 'buyer@example.test'},
                         {'id': '3', 'name': 'QA Seller', 'email': 'seller@example.test'}])
 

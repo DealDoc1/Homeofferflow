@@ -73,10 +73,10 @@ class PurchaseDisclosureExecutionTests(unittest.TestCase):
             self.source_patch.start()
             self.addCleanup(self.source_patch.stop)
 
-    def prepare(self, case=None, **options):
+    def prepare(self, case=None, retry=False, **options):
         record, draft, links = deepcopy(case or fixture(**options))
         return module.prepare_execution(record, draft, links, user_id=USER,
-            source_pdf=self.main_pdf, water_pdf=self.water_pdf if draft.get('water_source_id') else None)
+            source_pdf=self.main_pdf, water_pdf=self.water_pdf if draft.get('water_source_id') else None, for_retry=retry)
 
     def test_all_one_two_buyer_seller_water_cases_have_exact_roles_and_calibrated_fields(self):
         for buyers in (1, 2):
@@ -205,6 +205,25 @@ class PurchaseDisclosureExecutionTests(unittest.TestCase):
                 for link in links: link['review_content_revision'] = OTHER
             if kind == 'recipient': links[0]['seller_email'] = 'new-confirmed@example.com'
             self.assertNotEqual(plan.content_fingerprint, self.prepare((record, draft, links)).content_fingerprint)
+
+    def test_retry_reconstructs_only_the_same_server_bound_review_and_document(self):
+        case = fixture(buyers=2, sellers=2, water=True, long=True)
+        plan = self.prepare(case)
+        record, draft, links = deepcopy(case)
+        record.update(signwell_document_id='saved-document', status='Sent for Signature')
+        record['offer_data']['_hof_signature_delivery'] = {'document_id': 'saved-document', 'seller_disclosure': deepcopy(plan.binding)}
+        draft['signature_offer_id'] = OFFER
+        restored = self.prepare((record, draft, links), retry=True)
+        self.assertEqual(restored.binding, plan.binding)
+        self.assertEqual(restored.fields, plan.fields)
+        with self.assertRaises(module.DisclosureNotReady): self.prepare((record, draft, links))
+        for change in ('document', 'binding', 'association'):
+            current, disclosure = deepcopy(record), deepcopy(draft)
+            if change == 'document': current['signwell_document_id'] = 'another-document'
+            if change == 'binding': current['offer_data']['_hof_signature_delivery']['seller_disclosure']['fingerprint'] = 'changed'
+            if change == 'association': disclosure['signature_offer_id'] = OTHER
+            with self.subTest(change=change), self.assertRaises(module.DisclosureNotReady):
+                self.prepare((current, disclosure, links), retry=True)
 
 
 if __name__ == '__main__': unittest.main()

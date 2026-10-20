@@ -57,13 +57,13 @@ class PurchaseDisclosureStore:
             raise DisclosureNotReady('The complete disclosure PDF is temporarily unavailable.')
         return response.content
 
-    def prepare(self, *, user_id, offer_id, draft_id):
+    def prepare(self, *, user_id, offer_id, draft_id, for_retry=False):
         user_id, offer_id, draft_id = map(_uuid, (user_id, offer_id, draft_id))
         offers = self._rows('hof_offers', {'id': 'eq.' + offer_id, 'user_id': 'eq.' + user_id,
             'select': 'id,user_id,status,signwell_document_id,offer_data,last_updated', 'limit': '1'})
         if len(offers) != 1 or offers[0].get('id') != offer_id or offers[0].get('user_id') != user_id:
             raise PermissionError('The saved offer is unavailable for this account.')
-        if (offers[0].get('signwell_document_id')
+        if not for_retry and (offers[0].get('signwell_document_id')
                 or str(offers[0].get('status') or 'draft').lower() not in {'draft','generating','generated','generation failed'}):
             raise DisclosureNotReady('This offer has a signing request. Check its status before preparing another.')
         drafts = self._rows('hof_seller_disclosure_drafts', {'id': 'eq.' + draft_id,
@@ -74,7 +74,8 @@ class PurchaseDisclosureStore:
             raise PermissionError('The private disclosure is unavailable for this account.')
         draft = drafts[0]
         if (draft.get('status') != 'draft' or draft.get('seller_review_attested') is not True
-                or draft.get('signwell_document_id') or draft.get('signature_packet_id') or draft.get('signature_offer_id')):
+                or draft.get('signwell_document_id') or draft.get('signature_packet_id')
+                or (draft.get('signature_offer_id') and not (for_retry and draft['signature_offer_id'] == offer_id))):
             raise DisclosureNotReady('The disclosure needs seller review or has a separate signing request.')
         links = self._rows('hof_seller_disclosure_review_links', {
             'draft_id': 'eq.' + draft_id, 'agent_user_id': 'eq.' + user_id,
@@ -85,4 +86,5 @@ class PurchaseDisclosureStore:
         })
         main = self._source(draft.get('disclosure_source_id'), 'TREC-55-1', draft.get('disclosure_source_revision'))
         water = self._source(draft['water_source_id'], 'TREC-61-0', draft.get('water_source_revision')) if draft.get('water_source_id') else None
-        return prepare_execution(offers[0], draft, links, user_id=user_id, source_pdf=main, water_pdf=water)
+        options = {'for_retry': True} if for_retry else {}
+        return prepare_execution(offers[0], draft, links, user_id=user_id, source_pdf=main, water_pdf=water, **options)

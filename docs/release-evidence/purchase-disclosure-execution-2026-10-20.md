@@ -148,3 +148,71 @@ signature request has been run for this still-incomplete customer batch.
 Remaining: connect the purchase picker, save/preview/generate flow, existing
 delivery journal and same-document retry reconstruction; nonblocking pending
 document messaging; exact-head regression and coordinated release verification.
+
+## Purchase generation and tracked delivery connected locally
+
+The continuation connects the selected disclosure to the real owned generation
+path and the existing packet allowance/delivery coordinators. Current draft
+answers are conditionally persisted without marking them generated or sending
+anything. A new browser inclusion recipe is discarded; the server reconstructs
+the disclosure and verifies the exact preview revision/fingerprint. Its resulting
+inclusion decision is recorded with the generated offer before provider delivery.
+Existing ordinary purchase paths retain their original function defaults.
+
+The actual purchase PDF and its fields are prepared first; disclosure pages and
+fields are appended using that real prefix length, so surveys/addenda/IABS do
+not shift preexisting field calculations. Existing recipient IDs are merged
+with the reviewed disclosure roles; any conflicting name/email is refused
+before a provider document is created. The owner journal checkpoint now carries
+the binding through both prepared/sending phases in the same conditional write.
+Buyer/Seller invitations remain simultaneous. The invitation identifies the
+Seller's disclosure execution and Buyer's receipt acknowledgment; it does not
+claim that the Seller has signed the purchase contract.
+
+Missing, unreviewed, stale-preview or separately-attached disclosure is explicitly
+pending, not silently included and not a stop for the other ready purchase
+documents. The JSON response and invitation say it is excluded; the direct PDF
+response adds a non-sensitive pending-document header and private/no-store.
+An uncertain document-email response retains the pending-document information.
+Customer screen handling for these notices still needs the next UI step.
+
+Retry reconstructs only the recorded inclusion decision from owned server reads.
+An included disclosure must retain the same offer association, provider document,
+review revision and content fingerprint; a pending disclosure cannot be added
+later to the existing request. Retries reuse its document and consume no new
+allowance or document email. Regenerating an already-sent selected package directs
+the account to its existing My Offers recovery instead of creating a new request.
+Download-then-send reuses the same completed allowance reservation.
+
+The pending additive migration also strips client-authored inclusion recipes
+while preserving a prior server recipe. It does not replace the existing
+autosave protection function. Its private readiness now checks four enabled
+guards; the production release checker calls that independent contract and a
+zero-row association-column probe as well as the unchanged disclosure baseline.
+No hosted migration was applied. The new recipe guard was exercised against
+client INSERT and draft UPDATE, not only asserted in source text.
+
+Current verification: 98 focused methods passed in 0.853 seconds across actual
+generation/send/retry code, fictional HTTP persistence/provider responses,
+composition/ownership/version checks, normal legacy purchase recovery and the
+release checker. The isolated actual PostgreSQL run passed 110 assertions and
+stopped successfully, including the added client-recipe guard. All 12 planner
+methods additionally passed using the actual approved sources with source
+validation unmocked (1.858 seconds), including same-bound-document reconstruction.
+No new PDF rectangle/source/continuation layout changed, so earlier actual-source
+visual evidence is reused. The legacy invalid-PDF negative fixture logs its
+expected diagnostic after a successful test result; it is not a failed product
+run. No full regression/CI/provider/live result is claimed for this incomplete
+customer batch.
+
+Next bounded continuation: extend the existing saved-disclosure picker with
+seller-reviewed choices (keep signed-PDF reuse intact), save/preview/select the
+three ID/revision/fingerprint fields, show concise selected/pending document and
+recipient summaries, and prevent bound disclosures from offering a second
+standalone send. Do not store base64 preview PDFs or a trusted inclusion recipe
+in browser state. Verify real-module mobile/desktop behavior and account/draft
+change races using a local fictional fixture. Reserve a distinct shell cache
+(v112) from the separate listing candidate's v111. Freeze the full batch for
+exact-head regression, coordinate only its additive migration/code, then one
+intentional release and canonical authenticated checks. Do not deploy this
+partial implementation, resend the ordinary listing test or re-query Vercel usage.

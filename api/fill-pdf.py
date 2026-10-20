@@ -1389,7 +1389,7 @@ build_signwell_fields = build_signwell_fields_20_19
 
 
 
-def create_signwell_signature_request(offer, pdf_bytes, *, record=None, user_id=None):
+def create_signwell_signature_request(offer, pdf_bytes, *, record=None, user_id=None, disclosure_packet=None):
     """
     SignWell request for HomeOfferFlow.
 
@@ -1454,12 +1454,18 @@ def create_signwell_signature_request(offer, pdf_bytes, *, record=None, user_id=
             {"id": party["id"], "name": party["name"], "email": party["email"]}
             for party in seller_parties
         ])
+    if disclosure_packet is not None:
+        from lib.purchase_disclosure_packet import merge_recipients
+        try:
+            recipients = merge_recipients(recipients, disclosure_packet)
+        except ValueError as error:
+            return {'enabled': True, 'ok': False, 'error': str(error)}
 
     filename_safe_addr = re.sub(r"[^A-Za-z0-9_\-]+", "_", str(addr)).strip("_") or "Offer"
     filename = f"HomeOfferFlow_Offer_{filename_safe_addr}.pdf"
     file_payload = [{"name": filename, "file_base64": base64.b64encode(pdf_bytes).decode()}]
 
-    fields = build_signwell_fields(offer, pdf_bytes)
+    fields = disclosure_packet.fields if disclosure_packet is not None else build_signwell_fields(offer, pdf_bytes)
 
     # SignWell recipient-facing branding:
     # - Keep the signing request branded as HomeOfferFlow.
@@ -1552,6 +1558,15 @@ def create_signwell_signature_request(offer, pdf_bytes, *, record=None, user_id=
         "Seller signatures, seller initials, counteroffers, amendments, and seller-side changes are handled separately by the seller or listing side.\n\n"
         )
 
+    if disclosure_packet is not None and disclosure_packet.plan is not None:
+        signing_scope_message = (
+            "Please review and sign your assigned fields. This package includes the seller's reviewed disclosure. "
+            "The Seller signs the disclosure; the Buyer acknowledges receipt. Other signatures follow the included documents. "
+            "All named signers receive invitations together and can sign independently.\n\n"
+        )
+    elif disclosure_packet is not None and disclosure_packet.pending:
+        signing_scope_message += "Seller's disclosure is not included and will be completed separately.\n\n"
+
     brokerage_name = first_present(
         offer.get("brokerageName"),
         offer.get("brokerage_name"),
@@ -1640,15 +1655,22 @@ def create_signwell_signature_request(offer, pdf_bytes, *, record=None, user_id=
         }
     }
 
+    if disclosure_packet is not None and disclosure_packet.plan is not None:
+        payload['metadata'].update(seller_disclosure_form='TREC-55-1',
+            seller_disclosure_review_revision=disclosure_packet.plan.binding['revision'],
+            debug_payload='bundle_v20_purchase_disclosure')
+
     try:
+        disclosure_options = {'disclosure_binding': disclosure_packet.plan.binding} if disclosure_packet is not None and disclosure_packet.plan is not None else {}
         delivered = deliver_offer_document(
             record, payload, offer, user_id=user_id, supabase_url=SUPABASE_URL,
-            supabase_key=SUPABASE_SERVICE_ROLE_KEY, signwell_key=SIGNWELL_API_KEY,
+            supabase_key=SUPABASE_SERVICE_ROLE_KEY, signwell_key=SIGNWELL_API_KEY, **disclosure_options,
         )
         data = delivered["document"]
         return {
             "enabled": True, "ok": True,
-            "mode": ("bundle_v19_seller_financing_multisigner" if seller_financing_parties else
+            "mode": ("bundle_v20_purchase_disclosure" if disclosure_packet is not None and disclosure_packet.plan is not None else
+                     "bundle_v19_seller_financing_multisigner" if seller_financing_parties else
                      "bundle_v18_assumption_multisigner" if assumption_parties else
                      "bundle_v17_environmental_multisigner" if environmental_parties else
                      "bundle_v16_mineral_multisigner" if mineral_parties else
@@ -2084,7 +2106,7 @@ Please comment or message me if you are available to help coordinate/show this p
         send_basic_email(buyer_email, "HomeOfferFlow Showing Request Received", customer_html)
 
 
-def prepare_offer_signing_record(offer, customer_email, *, user_id=None, checkout_session_id=None, packet_ready=True):
+def prepare_offer_signing_record(offer, customer_email, *, user_id=None, checkout_session_id=None, packet_ready=True, persist_draft=False):
     """Resolve a stable server-authorized row before any signature invitation."""
     if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
         raise RuntimeError("Your offer could not be saved for signing. Please try again shortly.")
@@ -2115,7 +2137,7 @@ def prepare_offer_signing_record(offer, customer_email, *, user_id=None, checkou
         return record
     if record and str(record.get("status") or '').lower() not in {'draft', 'generating', 'generated', 'generation failed'}:
         raise ValueError("This offer needs a signature status check before it can be sent again.")
-    if record and not packet_ready:
+    if record and not packet_ready and (not persist_draft or str(record.get('status') or '').lower() != 'draft'):
         return record  # Reserving a retry must never downgrade saved status.
     # Guest checkout replay uses its existing saved answers; never overwrite
     # a server-owned checkout record based on browser-supplied record IDs.
@@ -2159,10 +2181,80 @@ def render_subscribed_packet(offer, user_id, customer_email=""):
     return result['pdf_bytes'], record, result['usage']
 
 
+def render_subscribed_purchase_disclosure(offer, user_id, customer_email=''):
+    """Use existing owned persistence/allowance, with a server-only disclosure plan."""
+    from lib.purchase_disclosure_store import PurchaseDisclosureStore
+    from lib.purchase_disclosure_execution import DisclosureNotReady
+    from lib.purchase_disclosure_packet import RECIPE_KEY, compose_purchase_disclosure
+    # A browser may select an ID/version, but never supply a trusted inclusion recipe.
+    offer.pop(RECIPE_KEY, None)
+    offer.pop(signwell_delivery.JOURNAL_KEY, None)
+    record = prepare_offer_signing_record(offer, customer_email, user_id=user_id, packet_ready=False, persist_draft=True)
+    if record.get('id') is None or record.get('user_id') != user_id:
+        raise PacketGenerationPending('Your saved offer could not be confirmed.')
+    if record.get('signwell_document_id'):
+        raise PacketGenerationPending('This offer already has a signing request. Open My Offers to check or retry that same request.')
+    original = record.get('offer_data') or {}
+    without_recipe = lambda data: {key: value for key,value in data.items() if key != RECIPE_KEY}
+    if str(record.get('status') or '').lower() != 'draft' and packet_answers_hash(without_recipe(original)) != packet_answers_hash(offer):
+        raise PacketGenerationPending('This packet is already prepared. Save changes as a new draft before generating another.')
+    plan = None
+    try:
+        if any(doc.get('type') == 'seller_disclosure' for doc in offer.get('uploadedDisclosureDocs') or [] if isinstance(doc, dict)):
+            raise DisclosureNotReady('A disclosure is already attached separately.')
+        candidate = PurchaseDisclosureStore(supabase_url=SUPABASE_URL, service_key=SUPABASE_SERVICE_ROLE_KEY).prepare(
+            user_id=user_id, offer_id=record['id'], draft_id=offer.get('purchaseSellerDisclosureId'))
+        if (offer.get('purchaseSellerDisclosureRevision') != candidate.binding['revision']
+                or offer.get('purchaseSellerDisclosureFingerprint') != candidate.content_fingerprint):
+            raise DisclosureNotReady('The disclosure preview changed. Complete it separately when ready.')
+        plan = candidate
+    except (DisclosureNotReady, PermissionError, ValueError, RuntimeError, httpx.HTTPError):
+        # Never silently present a missing/stale optional disclosure as included.
+        # The response and signing invitation explicitly identify it as pending.
+        pass
+    recipe = {'version': 1, 'included': plan is not None}
+    if plan is not None:
+        recipe['binding'] = plan.binding
+    if original.get(RECIPE_KEY) and original[RECIPE_KEY] != recipe:
+        raise PacketGenerationPending('The prepared package has changed. Save it as a new draft to keep the original request unchanged.')
+    offer[RECIPE_KEY] = recipe
+    prepared = None
+    def render():
+        nonlocal prepared
+        prefix = fill_and_merge(offer)
+        prepared = compose_purchase_disclosure(prefix, build_signwell_fields(offer, prefix), plan, pending=plan is None)
+        return prepared.pdf
+    result = render_packet_with_usage(user_id=user_id, offer_id=record['id'], answers_hash=packet_answers_hash(offer),
+        render=render, store=PacketGenerationStore(supabase_url=SUPABASE_URL, service_key=SUPABASE_SERVICE_ROLE_KEY))
+    try:
+        record = prepare_offer_signing_record(offer, customer_email, user_id=user_id)
+    except Exception as error:
+        raise PacketGenerationPending('Your packet was prepared, but its saved status needs a check. Open My Offers before trying again.') from error
+    return result['pdf_bytes'], record, result['usage'], prepared
+
+
+def reconstruct_purchase_disclosure_packet(record, offer, user_id):
+    """Retry only the inclusion decision already recorded by the server."""
+    from lib.purchase_disclosure_store import PurchaseDisclosureStore
+    from lib.purchase_disclosure_packet import RECIPE_KEY, compose_purchase_disclosure
+    recipe = (record.get('offer_data') or {}).get(RECIPE_KEY)
+    if not isinstance(recipe, dict) or recipe.get('version') != 1:
+        raise ValueError('Check the saved package before retrying its signing request.')
+    plan = None
+    if recipe.get('included') is True:
+        plan = PurchaseDisclosureStore(supabase_url=SUPABASE_URL, service_key=SUPABASE_SERVICE_ROLE_KEY).prepare(
+            user_id=user_id, offer_id=record['id'], draft_id=offer.get('purchaseSellerDisclosureId'),
+            for_retry=bool(record.get('signwell_document_id')))
+        if recipe.get('binding') != plan.binding:
+            raise ValueError('The reviewed disclosure no longer matches the saved package.')
+    prefix = fill_and_merge(offer)
+    return compose_purchase_disclosure(prefix, build_signwell_fields(offer, prefix), plan, pending=plan is None)
+
+
 class PacketEmailPending(EmailDeliveryPending):
     """The packet/signing step finished, but document email is not confirmed."""
 
-    def __init__(self, *, record, signwell, needs_review=False, usage=None):
+    def __init__(self, *, record, signwell, needs_review=False, usage=None, pending_documents=()):
         super().__init__('Your packet is ready, but email delivery is not confirmed.')
         self.result = {
             'status': 'delivery_pending', 'code': 'document_email_unconfirmed',
@@ -2170,6 +2262,7 @@ class PacketEmailPending(EmailDeliveryPending):
             'message': str(self), 'signwell': signwell,
             'documentEmail': {'status': 'unconfirmed', 'needsReview': needs_review},
             'usage': usage,
+            'pendingDocuments': list(pending_documents),
         }
 
 
@@ -2216,11 +2309,17 @@ def handle_checkout(event, subscription_user_id=None):
     if not offer.get("buyerEmail") and customer_email:
         offer["buyerEmail"] = customer_email
 
+    offer.pop('purchaseDisclosurePacket', None)
+
     hydrate_paragraph4_sources(offer)
     validate_supported_offer(offer)
     usage = None
+    disclosure_packet = None
     if subscription_user_id:
-        pdf_bytes, record, usage = render_subscribed_packet(offer, subscription_user_id, customer_email)
+        if offer.get('purchaseSellerDisclosureId'):
+            pdf_bytes, record, usage, disclosure_packet = render_subscribed_purchase_disclosure(offer, subscription_user_id, customer_email)
+        else:
+            pdf_bytes, record, usage = render_subscribed_packet(offer, subscription_user_id, customer_email)
     else:
         pdf_bytes = fill_and_merge(offer)
         record = prepare_offer_signing_record(offer, customer_email, checkout_session_id=session.get("id"))
@@ -2237,7 +2336,8 @@ def handle_checkout(event, subscription_user_id=None):
         if not checkout_id.startswith("cs_") or len(checkout_id) <= 3:
             raise EmailDeliveryPending("The paid checkout could not be identified for email delivery.")
         email_identity = "checkout:" + checkout_id
-    signwell_info = create_signwell_signature_request(offer, pdf_bytes, record=record, user_id=subscription_user_id)
+    disclosure_options = {'disclosure_packet': disclosure_packet} if disclosure_packet is not None else {}
+    signwell_info = create_signwell_signature_request(offer, pdf_bytes, record=record, user_id=subscription_user_id, **disclosure_options)
 
     try:
         document_email = send_email(
@@ -2250,7 +2350,8 @@ def handle_checkout(event, subscription_user_id=None):
         )
     except EmailDeliveryPending as error:
         raise PacketEmailPending(record=record, signwell=signwell_info,
-                                 needs_review=isinstance(error, EmailDeliveryNeedsReview), usage=usage) from error
+                                 needs_review=isinstance(error, EmailDeliveryNeedsReview), usage=usage,
+                                 pending_documents=disclosure_packet.pending if disclosure_packet is not None else ()) from error
 
     # Internal admin alert. Do not let admin-email failure block buyer delivery.
     try:
@@ -2272,7 +2373,8 @@ def handle_checkout(event, subscription_user_id=None):
         "message": "PDF created. Document email accepted for delivery.",
         "documentEmail": document_email,
         "adminEmail": admin_email,
-        "signwell": signwell_info
+        "signwell": signwell_info,
+        "pendingDocuments": list(disclosure_packet.pending) if disclosure_packet is not None else []
     }
 
 
@@ -2308,7 +2410,11 @@ def retry_unsent_offer_signature(offer_id, user_id):
     offer.pop("backend_saved", None)
     hydrate_paragraph4_sources(offer)
     validate_supported_offer(offer)
-    signing = create_signwell_signature_request(offer, fill_and_merge(offer), record=record, user_id=user_id)
+    if isinstance(offer.get('purchaseDisclosurePacket'), dict):
+        prepared = reconstruct_purchase_disclosure_packet(record, offer, user_id)
+        signing = create_signwell_signature_request(offer, prepared.pdf, record=record, user_id=user_id, disclosure_packet=prepared)
+    else:
+        signing = create_signwell_signature_request(offer, fill_and_merge(offer), record=record, user_id=user_id)
     return {"ok": bool(signing.get("ok")), "signwell": signing,
             "documentId": extract_signwell_document_id(signing),
             "message": signing.get("message"), "error": signing.get("error"),
@@ -2448,13 +2554,18 @@ class handler(BaseHTTPRequestHandler):
                 offer = payload
 
             if offer:
+                offer.pop('purchaseDisclosurePacket', None)
                 user_id = self._verified_user()
                 if not user_id:
                     self._json(401, {"error": "Sign in again before generating a packet."})
                     return
                 hydrate_paragraph4_sources(offer)
                 validate_supported_offer(offer)
-                pdf_bytes, record, usage = render_subscribed_packet(offer, user_id)
+                if offer.get('purchaseSellerDisclosureId'):
+                    pdf_bytes, record, usage, disclosure_packet = render_subscribed_purchase_disclosure(offer, user_id)
+                else:
+                    pdf_bytes, record, usage = render_subscribed_packet(offer, user_id)
+                    disclosure_packet = None
                 filename_addr = re.sub(r"[^A-Za-z0-9]+", "_", str(offer.get("address", "offer")).strip()).strip("_") or "offer"
                 filename = f"HomeOfferFlow_Offer_{filename_addr}.pdf"
 
@@ -2462,6 +2573,9 @@ class handler(BaseHTTPRequestHandler):
                 self.send_header("Content-Type", "application/pdf")
                 self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
                 self.send_header("Content-Length", str(len(pdf_bytes)))
+                self.send_header('Cache-Control', 'private, no-store')
+                if disclosure_packet is not None and disclosure_packet.pending:
+                    self.send_header('X-HomeOfferFlow-Pending-Documents', 'seller_disclosure')
                 self.end_headers()
                 self.wfile.write(pdf_bytes)
                 return

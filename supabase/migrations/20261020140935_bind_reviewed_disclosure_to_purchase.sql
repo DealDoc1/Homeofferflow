@@ -7,6 +7,22 @@ alter table public.hof_seller_disclosure_drafts add column signature_offer_id uu
 create index hof_seller_disclosure_offer_idx on public.hof_seller_disclosure_drafts(signature_offer_id)
   where signature_offer_id is not null;
 
+create function public.hof_guard_purchase_disclosure_recipe()
+returns trigger language plpgsql security invoker set search_path=pg_catalog
+as $$
+begin
+  if current_user in ('anon','authenticated') then
+    new.offer_data := coalesce(new.offer_data,'{}'::jsonb)-'purchaseDisclosurePacket';
+    if tg_op='UPDATE' and old.offer_data ? 'purchaseDisclosurePacket' then
+      new.offer_data := new.offer_data || jsonb_build_object('purchaseDisclosurePacket',old.offer_data->'purchaseDisclosurePacket');
+    end if;
+  end if;
+  return new;
+end;
+$$;
+create trigger hof_offer_disclosure_recipe_guard before insert or update on public.hof_offers
+  for each row execute function public.hof_guard_purchase_disclosure_recipe();
+
 create function public.hof_keep_purchase_disclosure()
 returns trigger language plpgsql security invoker set search_path=pg_catalog
 as $$
@@ -183,8 +199,8 @@ end;
 $$;
 create trigger hof_purchase_disclosure_signature_guard before insert or update on public.hof_offers
   for each row execute function public.hof_bind_purchase_disclosure();
-revoke all on function public.hof_keep_purchase_disclosure(),public.hof_keep_purchase_disclosure_review(),public.hof_bind_purchase_disclosure() from public,anon,authenticated;
-grant execute on function public.hof_keep_purchase_disclosure(),public.hof_keep_purchase_disclosure_review(),public.hof_bind_purchase_disclosure() to service_role;
+revoke all on function public.hof_guard_purchase_disclosure_recipe(),public.hof_keep_purchase_disclosure(),public.hof_keep_purchase_disclosure_review(),public.hof_bind_purchase_disclosure() from public,anon,authenticated;
+grant execute on function public.hof_guard_purchase_disclosure_recipe(),public.hof_keep_purchase_disclosure(),public.hof_keep_purchase_disclosure_review(),public.hof_bind_purchase_disclosure() to service_role;
 -- Independent additive contract: neither existing disclosure v2 nor listing
 -- v3 readiness is replaced or made dependent on this unreleased work.
 create function public.hof_purchase_disclosure_schema_readiness()
@@ -208,7 +224,7 @@ begin
     and table_name='hof_seller_disclosure_drafts' and column_name='signature_offer_id') then
     missing := array_append(missing,'column:hof_seller_disclosure_drafts.signature_offer_id');
   end if;
-  foreach required_trigger in array array['hof_offer_disclosure_lock','hof_purchase_disclosure_review_guard','hof_purchase_disclosure_signature_guard'] loop
+  foreach required_trigger in array array['hof_offer_disclosure_lock','hof_purchase_disclosure_review_guard','hof_purchase_disclosure_signature_guard','hof_offer_disclosure_recipe_guard'] loop
     if not exists(select 1 from pg_trigger t join pg_class c on c.oid=t.tgrelid
       join pg_namespace n on n.oid=c.relnamespace where n.nspname='public'
       and c.relname=case required_trigger when 'hof_offer_disclosure_lock' then 'hof_seller_disclosure_drafts'

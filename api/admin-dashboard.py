@@ -4464,6 +4464,7 @@ def _preview_purchase_disclosure_execution(user, data):
     return {'ok': True, 'previewOnly': True, 'signatureRequestCreated': False,
         'pdfBase64': base64.b64encode(plan.pdf).decode('ascii'),
         'disclosureId': plan.binding['id'], 'reviewRevision': plan.binding['revision'],
+        'contentFingerprint': plan.content_fingerprint,
         'recipients': [{'name': row['name'], 'email': row['email'],
             'role': 'Buyer' if int(row['id']) < 3 else 'Seller'} for row in plan.recipients]}
 

@@ -50,7 +50,7 @@ def _names(offer):
     return [value for value in (first(('seller1Name','seller1','seller')), first(('seller2Name','seller2'))) if value]
 
 
-def prepare_execution(record, draft, review_links, *, user_id, source_pdf, water_pdf=None):
+def prepare_execution(record, draft, review_links, *, user_id, source_pdf, water_pdf=None, for_retry=False):
     """Prepare exact reviewed facts and roles from authoritative server reads.
 
     Missing/incomplete disclosure raises DisclosureNotReady. Wrong ownership
@@ -69,11 +69,18 @@ def prepare_execution(record, draft, review_links, *, user_id, source_pdf, water
     offer = record.get('offer_data')
     if not isinstance(offer, dict):
         raise ValueError('Review the saved offer before including a disclosure.')
-    if (record.get('signwell_document_id') or '_hof_signature_delivery' in offer
+    journal = offer.get('_hof_signature_delivery')
+    previous_binding = journal.get('seller_disclosure') if isinstance(journal, dict) else None
+    retry = bool(for_retry and record.get('signwell_document_id')
+        and isinstance(journal, dict) and journal.get('document_id') == record['signwell_document_id']
+        and draft.get('signature_offer_id') == offer_id and isinstance(previous_binding, dict)
+        and previous_binding.get('id') == draft_id and previous_binding.get('offer_id') == offer_id
+        and previous_binding.get('user_id') == user_id)
+    if not retry and (record.get('signwell_document_id') or '_hof_signature_delivery' in offer
             or str(record.get('status') or 'draft').lower() not in {'draft','generating','generated','generation failed'}):
         raise DisclosureNotReady('This offer has a signing request. Check its status before preparing another.')
     if (draft.get('status') != 'draft' or draft.get('signwell_document_id')
-            or draft.get('signature_packet_id') or draft.get('signature_offer_id')
+            or draft.get('signature_packet_id') or (draft.get('signature_offer_id') and not retry)
             or '_hof_signature_delivery' in (draft.get('response_data') or {})
             or draft.get('seller_review_attested') is not True
             or draft.get('seller_review_render_revision') != RENDER_REVISION):
@@ -168,7 +175,10 @@ def prepare_execution(record, draft, review_links, *, user_id, source_pdf, water
                 'recipients': recipients, 'proofs': proofs, 'fields': fields}
     fingerprint = hashlib.sha256(json.dumps(identity, sort_keys=True, ensure_ascii=False,
         separators=(',', ':'), allow_nan=False).encode()).hexdigest()
-    return PurchaseDisclosureExecution(pdf, fields, recipients, {**binding, 'fingerprint': fingerprint}, fingerprint,
+    binding = {**binding, 'fingerprint': fingerprint}
+    if retry and binding != previous_binding:
+        raise DisclosureNotReady('The saved disclosure no longer matches this signing request. Check the existing request instead.')
+    return PurchaseDisclosureExecution(pdf, fields, recipients, binding, fingerprint,
         hashlib.sha256(pdf).hexdigest(), tuple(pages))
 
 

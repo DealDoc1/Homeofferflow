@@ -14,7 +14,7 @@ module.exports=async function run(ctx) {
   await admin.query(fs.readFileSync(path.join(__dirname,'../../supabase/migrations/20260915203004_protect_offer_packet_autosave.sql'),'utf8'));
   await admin.query(fs.readFileSync(path.join(__dirname,'../../supabase/migrations/20261020140935_bind_reviewed_disclosure_to_purchase.sql'),'utf8'));
   check((await admin.query("select md5(pg_get_functiondef('public.hof_release_schema_readiness()'::regprocedure)) as hash")).rows[0].hash===baseline,'Existing readiness function unchanged');
-  for(const name of ['hof_keep_purchase_disclosure','hof_keep_purchase_disclosure_review','hof_bind_purchase_disclosure','hof_purchase_disclosure_schema_readiness']) {
+  for(const name of ['hof_guard_purchase_disclosure_recipe','hof_keep_purchase_disclosure','hof_keep_purchase_disclosure_review','hof_bind_purchase_disclosure','hof_purchase_disclosure_schema_readiness']) {
     const fn=(await admin.query('select prosecdef,proconfig from pg_proc where oid=$1::regprocedure',['public.'+name+'()'])).rows[0];
     check(!fn.prosecdef && fn.proconfig.includes('search_path=pg_catalog'),'Invoker-only fixed search path');
     for(const role of ['anon','authenticated'])
@@ -25,6 +25,11 @@ module.exports=async function run(ctx) {
   await admin.query('alter table public.hof_offers disable trigger hof_purchase_disclosure_signature_guard');
   check(!(await service.query('select public.hof_purchase_disclosure_schema_readiness() as result')).rows[0].result.ready,'Disabled send guard cannot report ready');
   await admin.query('alter table public.hof_offers enable trigger hof_purchase_disclosure_signature_guard');
+  const forged=randomUUID();
+  await actor.query(`insert into public.hof_offers(id,user_id,offer_data) values($1,$2,'{"purchaseDisclosurePacket":{"included":true},"address":"QA address"}')`,[forged,owner]);
+  check(!(await admin.query('select offer_data from public.hof_offers where id=$1',[forged])).rows[0].offer_data.purchaseDisclosurePacket,'Client cannot forge server inclusion recipe on insert');
+  await actor.query(`update public.hof_offers set offer_data='{"purchaseDisclosurePacket":{"included":true},"address":"Updated QA address"}' where id=$1`,[forged]);
+  check(!(await admin.query('select offer_data from public.hof_offers where id=$1',[forged])).rows[0].offer_data.purchaseDisclosurePacket,'Client cannot forge recipe on draft update');
   const ready=async(sellers=['QA Seller One'])=>{
     const draft=await createDraft(sellers),links=[];
     for(let i=1;i<=sellers.length;i++) {
