@@ -69,6 +69,15 @@ declare
   draft public.hof_seller_disclosure_drafts%rowtype;
   draft_id uuid;
 begin
+  -- Viewing/verification/session timestamps do not change the proof used by
+  -- a packet. Avoid parent locks for those routine updates, including while
+  -- a questionnaire save owns the parent and updates its own review link.
+  if tg_op='UPDATE' and row(new.draft_id,new.agent_user_id,new.brokerage_id,new.seller_index,new.seller_name,new.seller_email,
+    new.seller_attested_at,new.seller_attested_name,new.review_content_revision,new.review_render_revision,new.revoked_at)
+    is not distinct from row(old.draft_id,old.agent_user_id,old.brokerage_id,old.seller_index,old.seller_name,old.seller_email,
+    old.seller_attested_at,old.seller_attested_name,old.review_content_revision,old.review_render_revision,old.revoked_at) then
+    return new;
+  end if;
   draft_id := case when tg_op='DELETE' then old.draft_id else new.draft_id end;
   -- Parent row is the common lock for edits, attestations, retirement and send.
   -- No provider call occurs while this transaction is open.

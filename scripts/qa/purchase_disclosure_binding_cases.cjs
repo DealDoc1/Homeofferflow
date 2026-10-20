@@ -87,6 +87,12 @@ module.exports=async function run(ctx) {
   check((await row(foreign.id)).signature_offer_id===null,'Cross-account offer cannot bind private disclosure');
   const own=await ready(),ownOffer=await offer(own);
   await reject(()=>bind(actor,ownOffer,own),'55000');
+  await admin.query('alter table public.hof_seller_disclosure_review_links add column viewed_at timestamptz');
+  await a.query('begin');await a.query('select id from public.hof_seller_disclosure_drafts where id=$1 for update',[own.id]);
+  await b.query("set lock_timeout='250ms'");
+  check((await b.query('update public.hof_seller_disclosure_review_links set viewed_at=now() where id=$1 returning id',[own.links[0]])).rowCount===1,
+    'Routine viewed timestamp does not wait on a questionnaire parent lock');
+  await b.query("set lock_timeout='0'");await a.query('commit');
   const unicode=await ready(['Élodie QA 李']),unicodeOffer=await offer(unicode);
   await bind(service,unicodeOffer,unicode);
   check((await row(unicode.id)).signature_offer_id===unicodeOffer.id,'Unicode seller works without a brokerage seat check');

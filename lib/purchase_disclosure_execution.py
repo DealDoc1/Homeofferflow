@@ -117,7 +117,11 @@ def prepare_execution(record, draft, review_links, *, user_id, source_pdf, water
             continue
         if not name:
             raise ValueError('Enter each buyer name and signing email.')
-        recipients.append({'id': str(index), 'name': name, 'email': normalize_email(email)})
+        try:
+            signing_email = normalize_email(email)
+        except ValueError:
+            raise ValueError('Enter a valid signing email for each buyer.') from None
+        recipients.append({'id': str(index), 'name': name, 'email': signing_email})
         buyer_names.append(name)
 
     if not isinstance(review_links, list):

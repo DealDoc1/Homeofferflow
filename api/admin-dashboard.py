@@ -5334,7 +5334,7 @@ class handler(BaseHTTPRequestHandler):
                 rows = asyncio.run(_get(
                     "hof_seller_disclosure_drafts?"
                     f"agent_user_id=eq.{urllib.parse.quote(user['id'])}"
-                    "&select=id,listing_workspace_id,disclosure_source_id,water_source_id,property_address,seller_names,buyer_names,response_data,water_rights_data,status,signwell_status,signwell_document_id,sent_at,signed_at,disclosure_source_revision,water_source_revision,seller_review_attested,created_at,updated_at"
+                    "&select=id,listing_workspace_id,disclosure_source_id,water_source_id,property_address,seller_names,buyer_names,response_data,water_rights_data,status,signwell_status,signwell_document_id,signature_offer_id,sent_at,signed_at,disclosure_source_revision,water_source_revision,seller_review_attested,created_at,updated_at"
                     "&order=updated_at.desc&limit=100"
                 ))
                 review_links = asyncio.run(_get_optional(
