@@ -4,7 +4,19 @@ Future batches follow the [lean development protocol](LEAN_DEVELOPMENT_PROTOCOL.
 to reduce model context, repeated regression runs and Vercel usage without
 reducing verification standards.
 
-## Current integration status - October 19, 2026
+## Lease-listing local checkpoint - October 20, 2026
+
+TXR-1102 now has a source-backed answer contract and visually reviewed renderer
+(`ad829ac8`), plus locally tested private create/edit/reopen/preview and tracked
+signing API adapters. Focused affected-workflow checks pass 146 tests (four
+unrelated opt-in skips); an isolated real PostgreSQL migration check passes 36
+assertions without changing RLS or table grants. No live invitations, hosted SQL
+or deployment occurred. The lease-listing interview, actual related-document
+composition, coordinated release checks and completed-provider QA remain
+implementation work, not an owner/source authorization blocker. See
+[lease API/schema evidence and next steps](release-evidence/txr1102-private-api-local-2026-10-20.md).
+
+## Earlier integration status - October 19, 2026
 
 Production is `4bd1cce5` / shell v109 (PR #1351). Seller-owned questionnaires,
 corrected normal PDF access and saved seller-signed disclosure reuse in purchase
