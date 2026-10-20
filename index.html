@@ -4056,6 +4056,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <small style="display:block; margin-top:0.35rem; color:var(--muted);">PDF only. Add up to 5 files, 2MB each and 2.5MB combined. We suggest a label from each filename; confirm the labels and order before the packet is generated. Examples: seller disclosure, survey, T-47/T-47.1, HOA docs, PID/MUD notices.</small>
           </div>
           <div id="uploadedDocsList" class="notice gold" style="display:none;"></div>
+          <div id="purchaseDisclosureSelection" class="notice gold" hidden></div>
           <div id="uploadedDocsStatus" class="platform-status" role="status" aria-live="polite"></div>
           <div id="uploadedDocsResumeNotice" class="notice warn" style="display:none; margin-top:.75rem;" role="status"></div>
           <label id="uploadedDisclosureAckRow" class="terms-check" style="display:none; margin-top:.75rem;">
@@ -4283,6 +4284,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <p class="step-desc" id="reviewStepDescription">Check everything carefully. Use Back to correct any field before continuing.</p>
       <div class="notice sage" id="reviewReadyNotice" style="margin-bottom:1rem;">✅ Your Texas offer package is ready to review. When you continue, you’ll review the one-time $99 checkout. After payment, HomeOfferFlow generates the documents and sends the buyer-side signing request.</div>
       <div id="reviewSummary"></div>
+      <div id="purchaseDisclosureReview" class="notice gold" hidden></div>
       <div id="inlineAiOfferReview" class="ai-review-inline"></div>
       <div id="backupReviewWarning" class="notice warn" style="display:none; margin-top:1rem;"><strong>Back-up offer selected.</strong><br/>Confirm the listing agent has provided the first contract date and backup termination deadline before submitting.</div>
       <div class="review-section" style="margin-top:1rem;">
@@ -11572,7 +11574,8 @@ function routeAfterMagicLinkIfNeeded() {
     if (successHeading) successHeading.textContent = checkoutConfirmationPending
       ? 'We’re confirming your checkout'
       : options.packetGenerated === true ? 'Packet generated' : 'Your offer packet';
-    if (successMessage) successMessage.textContent = deliverySummary.message;
+    if (successMessage) successMessage.textContent = deliverySummary.message
+      + (Array.isArray(options.pendingDocuments) && options.pendingDocuments.length ? ' ' + options.pendingDocuments.join(' ') : '');
     if (successSignatureStep) {
       successSignatureStep.textContent = paragraph4Forms.length && options.signwell?.ok === true
         ? `2. Buyers and sellers receive signing invitations together. Sellers sign the included ${paragraph4Forms.join(' and ')}.`
@@ -11959,6 +11962,7 @@ function routeAfterMagicLinkIfNeeded() {
   }
 
   function renderUploadedDocsList() {
+    window.hofRenderPurchaseDisclosureSelection?.();
     const box = document.getElementById('uploadedDocsList');
     const ackRow = document.getElementById('uploadedDisclosureAckRow');
     const docs = window.hofUploadedDisclosureDocs || [];
@@ -13007,7 +13011,7 @@ function routeAfterMagicLinkIfNeeded() {
       await loadCurrentUsage();
 
       window.__hofSubscriptionPacketGenerated = true;
-      showPaymentSuccess(email, { packetGenerated: true, signwell: result.signwell, documentEmail: result.documentEmail });
+      showPaymentSuccess(email, { packetGenerated: true, signwell: result.signwell, documentEmail: result.documentEmail, pendingDocuments: result.pendingDocuments });
     } catch (err) {
       console.error('Subscribed packet generation failed:', err);
       const failure = packetGenerationFailureDetails(err);
@@ -24811,7 +24815,8 @@ function routeAfterMagicLinkIfNeeded() {
   const sellerReviewStatus = draft => {
     const progress = draft?.sellerReviewProgress || {};
     const links = Array.isArray(draft?.sellerReviewLinks) ? draft.sellerReviewLinks : [];
-    if (draft?.signature_packet_id) return 'Included in signing packet';
+    if (draft?.signature_offer_id) return 'Included in a purchase package';
+    if (draft?.signature_packet_id) return 'Included in a listing package';
     if (draft?.status === 'signed') return 'Signed';
     if (draft?.status === 'sent') return 'Sent for signature';
     if (draft?.seller_review_attested) return 'All seller reviews complete';
@@ -24931,7 +24936,7 @@ function routeAfterMagicLinkIfNeeded() {
         const progress = d.sellerReviewProgress || {};
         const reviewStatus = sellerReviewStatus(d);
         const followUp = progress.requested && !d.seller_review_attested ? '<button type="button" class="btn-secondary hof-seller-followup" data-id="' + escape(d.id) + '">Follow up</button>' : '';
-        const sendForSignature = d.status === 'draft' && d.seller_review_attested && !d.signature_packet_id && (!d.signwell_document_id || d.canRetrySavedRequest === true) ? '<button type="button" class="btn-primary hof-seller-send-signing" data-id="' + escape(d.id) + '">' + (d.canRetrySavedRequest ? 'Retry saved request' : 'Send for signature') + '</button>' : '';
+        const sendForSignature = !d.signature_offer_id && !d.signature_packet_id && d.status === 'draft' && d.seller_review_attested && (!d.signwell_document_id || d.canRetrySavedRequest === true) ? '<button type="button" class="btn-primary hof-seller-send-signing" data-id="' + escape(d.id) + '">' + (d.canRetrySavedRequest ? 'Retry saved request' : 'Send for signature') + '</button>' : '';
         const refreshSigning = d.signwell_document_id && d.status !== 'signed' ? '<button type="button" class="btn-secondary hof-seller-refresh-signing" data-id="' + escape(d.id) + '">Refresh signing status</button>' : '';
         const downloadSigned = d.signwell_document_id && d.status === 'signed' ? '<button type="button" class="btn-secondary hof-seller-download-signed" data-id="' + escape(d.id) + '">Download signed PDF</button>' : '';
         return '<li data-seller-draft-row data-search="' + escape([d.property_address, ...(d.seller_names || []), d.status, d.disclosure_source_revision, d.water_source_revision, reviewStatus].filter(Boolean).join(' ')) + '"><span><strong>' + escape(d.property_address) + '</strong><br><small>' + escape((d.seller_names || []).join(', ')) + ' · ' + escape(d.disclosure_source_revision || '') + (d.water_source_revision ? ' + TREC-61-0' : '') + ' · ' + escape(reviewStatus) + '</small></span><button type="button" class="btn-secondary hof-seller-load" data-id="' + escape(d.id) + '">Open</button>' + followUp + '<button type="button" class="btn-secondary hof-seller-preview" data-id="' + escape(d.id) + '">Preview PDF</button>' + refreshSigning + downloadSigned + sendForSignature + '</li>';

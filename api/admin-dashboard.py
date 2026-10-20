@@ -3785,11 +3785,11 @@ async def _update_seller_disclosure_draft(user, data):
         f"id=eq.{urllib.parse.quote(draft_uuid)}"
         f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
         f"&brokerage_id=eq.{urllib.parse.quote(str(brokerage_id))}"
-        "&status=eq.draft&select=id,signwell_document_id,response_data,signature_packet_id&limit=1"
+        "&status=eq.draft&select=id,signwell_document_id,response_data,signature_packet_id,signature_offer_id&limit=1"
     )
     if not existing:
         raise PermissionError("That private seller disclosure draft is unavailable.")
-    if existing[0].get("signature_packet_id"):
+    if existing[0].get("signature_packet_id") or existing[0].get("signature_offer_id"):
         raise PermissionError("This disclosure is included in a signing packet. Create a new draft to change it.")
     if existing[0].get("signwell_document_id") or signwell_delivery.JOURNAL_KEY in (existing[0].get("response_data") or {}):
         raise PermissionError("This disclosure already has a signing request. Create a new draft to change its answers.")
@@ -4072,7 +4072,7 @@ async def _create_seller_disclosure_review_link(user, data):
         f"id=eq.{urllib.parse.quote(draft_id)}"
         f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
         "&status=eq.draft"
-        "&signature_packet_id=is.null&select=id,brokerage_id,property_address,seller_names,review_content_revision&limit=1"
+        "&signature_packet_id=is.null&signature_offer_id=is.null&select=id,brokerage_id,property_address,seller_names,review_content_revision&limit=1"
     )
     if not drafts:
         raise PermissionError("That private seller disclosure draft is unavailable.")
@@ -4251,7 +4251,7 @@ async def _seller_review_context(session_token, *, allow_questionnaire=False):
         f"&brokerage_id=eq.{urllib.parse.quote(str(link['brokerage_id']))}"
         "&status=eq.draft"
         "&select=id,agent_user_id,brokerage_id,property_address,seller_names,buyer_names,response_data,water_rights_data,signwell_document_id,"
-        "disclosure_source_id,water_source_id,disclosure_source_revision,water_source_revision,review_content_revision,signature_packet_id"
+        "disclosure_source_id,water_source_id,disclosure_source_revision,water_source_revision,review_content_revision,signature_packet_id,signature_offer_id"
         "&limit=1"
     )
     if not drafts:
@@ -4264,7 +4264,7 @@ async def _seller_review_context(session_token, *, allow_questionnaire=False):
         names = draft.get("seller_names") or []
         if (link.get("agent_user_id") != draft.get("agent_user_id") or not isinstance(index, int)
                 or not 1 <= index <= len(names) or draft.get("signwell_document_id")
-                or draft.get('signature_packet_id')
+                or draft.get('signature_packet_id') or draft.get('signature_offer_id')
                 or signwell_delivery.JOURNAL_KEY in (draft.get("response_data") or {})
                 or not seller_review_access.is_active(link.get("expires_at"))
                 or not seller_review_access.seller_name_matches(link.get("seller_name"), [names[index - 1]])):
@@ -4587,6 +4587,21 @@ async def _render_seller_disclosure_draft_preview(user, draft_id, review_context
     return preview
 
 
+def _preview_purchase_disclosure_execution(user, data):
+    """Owner-only preview, reconstructed server-side; never sends or saves."""
+    if set(data) != {'action','offerId','draftId'}:
+        raise ValueError('Choose the saved offer and seller disclosure only.')
+    from lib.purchase_disclosure_store import PurchaseDisclosureStore
+    plan = PurchaseDisclosureStore(supabase_url=SUPABASE_URL, service_key=SUPABASE_SERVICE_ROLE_KEY).prepare(
+        user_id=user['id'], offer_id=data.get('offerId'), draft_id=data.get('draftId'))
+    return {'ok': True, 'previewOnly': True, 'signatureRequestCreated': False,
+        'pdfBase64': base64.b64encode(plan.pdf).decode('ascii'),
+        'disclosureId': plan.binding['id'], 'reviewRevision': plan.binding['revision'],
+        'contentFingerprint': plan.content_fingerprint,
+        'recipients': [{'name': row['name'], 'email': row['email'],
+            'role': 'Buyer' if int(row['id']) < 3 else 'Seller'} for row in plan.recipients]}
+
+
 def _seller_disclosure_signing_recipients(draft, signer_emails):
     """Build SignWell recipients in the exact order used by the PDF widgets."""
     seller_names = draft.get("seller_names") or []
@@ -4622,13 +4637,13 @@ async def _send_seller_disclosure_for_signature(user, data):
         f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
         "&status=eq.draft"
         "&seller_review_attested=is.true"
-        "&select=id,brokerage_id,agent_user_id,property_address,seller_names,buyer_names,water_source_id,disclosure_source_revision,water_source_revision,disclosure_source_id,response_data,water_rights_data,signwell_document_id,signature_packet_id,signwell_status,updated_at,sent_at,review_content_revision,seller_review_render_revision"
+        "&select=id,brokerage_id,agent_user_id,property_address,seller_names,buyer_names,water_source_id,disclosure_source_revision,water_source_revision,disclosure_source_id,response_data,water_rights_data,signwell_document_id,signature_packet_id,signature_offer_id,signwell_status,updated_at,sent_at,review_content_revision,seller_review_render_revision"
         "&limit=1"
     )
     if not drafts:
         raise PermissionError("That seller disclosure is unavailable, has already been sent, or still needs seller review.")
     draft = drafts[0]
-    if draft.get('signature_packet_id'):
+    if draft.get('signature_packet_id') or draft.get('signature_offer_id'):
         raise PermissionError('This disclosure is included in the transaction signing packet.')
     if draft.get("signwell_document_id") and not _tracked_signature_journal(draft, "response_data"):
         raise PermissionError("This signature request already exists. Refresh its status before sending again.")
@@ -4814,7 +4829,7 @@ async def _txr1101_notice_context(user):
         "hof_seller_disclosure_drafts?"
         f"agent_user_id=eq.{urllib.parse.quote(str(user['id']))}"
         "&status=eq.draft&signwell_document_id=is.null&seller_review_attested=is.true"
-        "&signature_packet_id=is.null&select=id,property_address,seller_names,water_source_id&order=updated_at.desc&limit=100")
+        "&signature_packet_id=is.null&signature_offer_id=is.null&select=id,property_address,seller_names,water_source_id&order=updated_at.desc&limit=100")
     return {"brokerage": {"name": name,
             "license_number": broker_license(name, brokerage.get("license_number"))},
             "noticeContacts": {key: str(brokerage.get(key) or "") for key in NOTICE_CONTACT_LIMITS},
@@ -4834,13 +4849,13 @@ async def _owned_listing_disclosure(user, answers, *, agreement_id=None):
         f"id=eq.{urllib.parse.quote(disclosure_id)}&agent_user_id=eq.{urllib.parse.quote(str(user['id']))}"
         '&select=id,agent_user_id,brokerage_id,property_address,seller_names,buyer_names,response_data,water_rights_data,'
         'disclosure_source_id,water_source_id,disclosure_source_revision,water_source_revision,review_content_revision,'
-        'seller_review_render_revision,status,signwell_document_id,signature_packet_id&limit=1')
+        'seller_review_render_revision,status,signwell_document_id,signature_packet_id,signature_offer_id&limit=1')
     if not rows:
         return None, 'Disclosure unavailable. You can complete it separately.'
     draft = rows[0]
     if draft.get('id') != disclosure_id or draft.get('agent_user_id') != user['id']:
         raise PermissionError('The private disclosure could not be confirmed for this account.')
-    if (draft.get('status') != 'draft' or draft.get('signwell_document_id')
+    if (draft.get('status') != 'draft' or draft.get('signwell_document_id') or draft.get('signature_offer_id')
             or (draft.get('signature_packet_id') and draft['signature_packet_id'] != agreement_id)
             or signwell_delivery.JOURNAL_KEY in (draft.get('response_data') or {})):
         return None, 'The disclosure has a separate signing request.'
@@ -5713,7 +5728,7 @@ class handler(BaseHTTPRequestHandler):
                 rows = asyncio.run(_get(
                     "hof_seller_disclosure_drafts?"
                     f"agent_user_id=eq.{urllib.parse.quote(user['id'])}"
-                    "&select=id,listing_workspace_id,disclosure_source_id,water_source_id,property_address,seller_names,buyer_names,response_data,water_rights_data,status,signwell_status,signwell_document_id,signature_packet_id,sent_at,signed_at,disclosure_source_revision,water_source_revision,seller_review_attested,created_at,updated_at"
+                    "&select=id,listing_workspace_id,disclosure_source_id,water_source_id,property_address,seller_names,buyer_names,response_data,water_rights_data,status,signwell_status,signwell_document_id,signature_packet_id,signature_offer_id,sent_at,signed_at,disclosure_source_revision,water_source_revision,seller_review_attested,created_at,updated_at"
                     "&order=updated_at.desc&limit=100"
                 ))
                 review_links = asyncio.run(_get_optional(
@@ -8498,6 +8513,10 @@ class handler(BaseHTTPRequestHandler):
             if data.get("action") == "create_seller_disclosure_draft":
                 draft = asyncio.run(_create_seller_disclosure_draft(user, data))
                 _json(self, 201, {"status": "ok", "draft": draft, "workflowActivated": False})
+                return
+            if data.get("action") == "preview_purchase_disclosure_execution":
+                result = _preview_purchase_disclosure_execution(user, data)
+                _json(self, 200, result)
                 return
             if data.get("action") == "update_seller_disclosure_draft":
                 draft = asyncio.run(_update_seller_disclosure_draft(user, data))

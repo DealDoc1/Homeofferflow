@@ -34,13 +34,13 @@ async function createDraft(sellers=['QA Seller One']) {
     values ($1,$2,$3,'100 Fictional QA Lane',$4,'[]',$5,'qa-source')`, [id,owner,brokerage,JSON.stringify(sellers),randomUUID()]);
   return row(id);
 }
-async function createLink(draft, index=1) {
+async function createLink(draft, index=1, email='qa@example.test') {
   const id=randomUUID();
   await admin.query(`insert into public.hof_seller_disclosure_review_links
     (id,draft_id,brokerage_id,agent_user_id,seller_email,seller_name,seller_index,token_hash,
       verification_code_hash,review_content_revision,review_render_revision)
-    values ($1,$2,$3,$4,'qa@example.test',$5,$6,$7,'fictional-code',$8,$9)`,
-  [id,draft.id,brokerage,owner,draft.seller_names[index-1],index,randomUUID(),draft.review_content_revision,render]);
+    values ($1,$2,$3,$4,$10,$5,$6,$7,'fictional-code',$8,$9)`,
+  [id,draft.id,brokerage,owner,draft.seller_names[index-1],index,randomUUID(),draft.review_content_revision,render,email]);
   return id;
 }
 const attest = (c,id,name='QA Seller One') => c.query(`update public.hof_seller_disclosure_review_links
@@ -193,14 +193,22 @@ async function main() {
     await reject(()=>rpc(service,q2,qChanged.reviewContentRevision),'42501');
     await admin.query('update public.hof_seller_disclosure_review_links set revoked_at=now() where id=$1',[q1]);
     await reject(()=>rpc(service,q1,qChanged.reviewContentRevision),'42501');
-    await admin.query(`create table public.hof_standalone_agreements (
+    const baselineBefore=(await admin.query("select md5(pg_get_functiondef('public.hof_release_schema_readiness()'::regprocedure)) as hash")).rows[0].hash;
+    const installListing=async()=>{
+      await admin.query(`create table public.hof_standalone_agreements (
       id uuid primary key,agent_user_id uuid not null,form_code text not null,
       client_names jsonb not null,agreement_data jsonb not null default '{}',signwell_document_id text);
       grant all on public.hof_standalone_agreements to service_role;
       grant select,update on public.hof_standalone_agreements to authenticated;`);
-    const baselineBefore=(await admin.query("select md5(pg_get_functiondef('public.hof_release_schema_readiness()'::regprocedure)) as hash")).rows[0].hash;
-    await admin.query(fs.readFileSync(path.resolve(__dirname,'../../supabase/migrations/20261017131634_add_txr1101_listing_drafts.sql'),'utf8'));
-    await admin.query(fs.readFileSync(path.resolve(__dirname,'../../supabase/migrations/20261019000034_bind_disclosure_to_listing_signature.sql'),'utf8'));
+      await admin.query(fs.readFileSync(path.resolve(__dirname,'../../supabase/migrations/20261017131634_add_txr1101_listing_drafts.sql'),'utf8'));
+      await admin.query(fs.readFileSync(path.resolve(__dirname,'../../supabase/migrations/20261019000034_bind_disclosure_to_listing_signature.sql'),'utf8'));
+    };
+    // Default mirrors the actual production upgrade; opt-in covers fresh order.
+    const listingFirst=process.argv.includes('--listing-first');
+    if(listingFirst)await installListing();
+    const purchase=await require('./purchase_disclosure_binding_cases.cjs')({admin,service,actor,a,b,owner,brokerage,render,
+      createDraft,createLink,attest,cache,row,blocked,check,reject,listingIntegration:true});
+    if(!listingFirst)await installListing();
     const listingReady=(await service.query('select public.hof_listing_package_schema_readiness() as result')).rows[0].result;
     check(listingReady.ready && listingReady.contract==='homeofferflow-release-schema-v3','Listing v3 composes the already deployed v2 readiness');
     check((await admin.query("select md5(pg_get_functiondef('public.hof_release_schema_readiness()'::regprocedure)) as hash")).rows[0].hash===baselineBefore,'Existing core readiness is never replaced');
@@ -248,7 +256,49 @@ async function main() {
     await a.query('begin');await bind(a,raceSendAgreement,raceSend);
     const lateEdit=b.query("update public.hof_seller_disclosure_drafts set response_data='{\"notes\":\"changed after checkpoint\"}' where id=$1",[raceSend.id]).then(()=>null,e=>e);
     await blocked(b);await a.query('commit');check((await lateEdit)?.code==='55000','Seller edit waiting behind checkpoint cannot alter included answers');
-    console.log(JSON.stringify({result:'PASS',checks,scope:'review, seller questionnaire and atomic combined-packet binding against isolated PostgreSQL',nothingSent:true,productionChanged:false}));
+    await reject(()=>service.query('delete from public.hof_seller_disclosure_drafts where id=$1',[ready.id]),'55000');
+    const protectedLink=(await admin.query('select id from public.hof_seller_disclosure_review_links where draft_id=$1',[ready.id])).rows[0].id;
+    await reject(()=>admin.query('update public.hof_seller_disclosure_review_links set revoked_at=now() where id=$1',[protectedLink]),'55000');
+    await reject(()=>admin.query('delete from public.hof_seller_disclosure_review_links where id=$1',[protectedLink]),'55000');
+    const direct=await packetReviewedDraft(),directAgreement=await agreement(direct);
+    await reject(()=>service.query('update public.hof_seller_disclosure_drafts set signature_packet_id=$2 where id=$1',[direct.id,directAgreement]),'42501');
+    for(const name of ['hof_keep_packet_disclosure','hof_bind_listing_disclosure','hof_keep_listing_disclosure_review']) {
+      const fn=(await admin.query('select prosecdef,proconfig from pg_proc where oid=$1::regprocedure',['public.'+name+'()'])).rows[0];
+      check(!fn.prosecdef && fn.proconfig.includes('search_path=pg_catalog'),'Listing guards stay invoker-only');
+      await reject(()=>actor.query('select public.'+name+'()'),'42501');
+    }
+    await admin.query('alter table public.hof_seller_disclosure_review_links disable trigger hof_listing_disclosure_review_guard');
+    check(!(await service.query('select public.hof_listing_package_schema_readiness() as result')).rows[0].result.ready,'Missing listing-proof guard blocks readiness');
+    await admin.query('alter table public.hof_seller_disclosure_review_links enable trigger hof_listing_disclosure_review_guard');
+    const purchased=await purchase.ready(),purchaseOffer=await purchase.offer(purchased);
+    await purchase.bind(service,purchaseOffer,purchased);
+    const cannotList=await agreement(purchased);await reject(()=>bind(service,cannotList,purchased),'55000');
+    const listed=await packetReviewedDraft(),listedAgreement=await agreement(listed);
+    await bind(service,listedAgreement,listed);
+    const cannotBuy=await purchase.offer(listed);await reject(()=>purchase.bind(service,cannotBuy,listed),'55000');
+    for(const listingFirst of [true,false]) {
+      const d=await purchase.ready(),p=await purchase.offer(d),l=await agreement(d);
+      await a.query('begin');
+      if(listingFirst)await bind(a,l,d);else await purchase.bind(a,p,d);
+      const competing=(listingFirst?purchase.bind(b,p,d):bind(b,l,d)).then(()=>null,e=>e);
+      await blocked(b);await a.query('commit');check((await competing)?.code==='55000','Listing/purchase race loses safely in either order');
+      const saved=await row(d.id);
+      check(Boolean(saved.signature_packet_id)!==Boolean(saved.signature_offer_id),'Exactly one signing association survives');
+    }
+    const retire=await purchase.ready(),retireAgreement=await agreement(retire);
+    await a.query('begin');await a.query('update public.hof_seller_disclosure_review_links set revoked_at=now() where id=$1',[retire.links[0]]);
+    const waitingListing=bind(b,retireAgreement,retire).then(()=>null,e=>e);
+    await blocked(b);await a.query('commit');check((await waitingListing)?.code==='55000','Listing cannot bind behind retired proof');
+    const freeze=await purchase.ready(),freezeAgreement=await agreement(freeze);
+    await a.query('begin');await bind(a,freezeAgreement,freeze);
+    const waitingRetirement=b.query('update public.hof_seller_disclosure_review_links set revoked_at=now() where id=$1',[freeze.links[0]]).then(()=>null,e=>e);
+    await blocked(b);await a.query('commit');check((await waitingRetirement)?.code==='55000','Listing checkpoint protects proof from waiting retirement');
+    await a.query('begin');await a.query('select id from public.hof_seller_disclosure_drafts where id=$1 for update',[freeze.id]);
+    await b.query("set lock_timeout='250ms'");
+    check((await b.query('update public.hof_seller_disclosure_review_links set viewed_at=now() where id=$1 returning id',[freeze.links[0]])).rowCount===1,'Routine listing view update needs no parent lock');
+    await b.query("set lock_timeout='0'");await a.query('commit');
+    check((await service.query('select public.hof_purchase_disclosure_schema_readiness() as result')).rows[0].result.ready,'Deployed purchase readiness remains valid after listing integration');
+    console.log(JSON.stringify({result:'PASS',checks,migrationOrder:listingFirst?'fresh-listing-first':'production-purchase-first',scope:'review, questionnaire, purchase and listing integration with real cross-package races against isolated PostgreSQL',nothingSent:true,productionChanged:false}));
   } finally {
     for(const c of clients) {try{await c.query('rollback');}catch{} try{await c.end();}catch{}}
     if(server && server.exitCode===null) {
@@ -257,4 +307,4 @@ async function main() {
     if(fs.existsSync(path.join(data,'postmaster.pid')))throw Error('Local PostgreSQL did not stop.');
   }
 }
-main().catch(e=>{console.error(e.message);process.exitCode=1;});
+main().catch(e=>{console.error(e.stack);process.exitCode=1;});

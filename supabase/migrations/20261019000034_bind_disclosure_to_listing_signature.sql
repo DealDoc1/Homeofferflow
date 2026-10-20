@@ -10,20 +10,32 @@ create function public.hof_keep_packet_disclosure()
 returns trigger language plpgsql security invoker set search_path=pg_catalog
 as $$
 begin
+  if tg_op='DELETE' then
+    if old.signature_packet_id is not null then
+      raise exception using errcode='55000',message='Retain the disclosure included in this signing packet.';
+    end if;
+    return old;
+  end if;
   if tg_op='INSERT' then
     if new.signature_packet_id is not null then
       raise exception using errcode='42501',message='Prepare the disclosure before including it in a signing packet.';
     end if;
     return new;
   end if;
-  if old.signature_packet_id is not null and (
-    new.signature_packet_id is distinct from old.signature_packet_id
-    or new.review_content_revision is distinct from old.review_content_revision
-    or new.signwell_document_id is distinct from old.signwell_document_id
-    or (new.response_data -> '_hof_signature_delivery') is distinct from (old.response_data -> '_hof_signature_delivery')) then
+  if new.signature_packet_id is not null and nullif(to_jsonb(new)->>'signature_offer_id','') is not null then
+    raise exception using errcode='55000',message='This disclosure already belongs to another signing package.';
+  end if;
+  if old.signature_packet_id is not null and row(new.signature_packet_id,new.agent_user_id,new.brokerage_id,
+    new.review_content_revision,new.seller_review_attested,new.seller_review_attested_at,
+    new.seller_review_attested_by,new.seller_review_render_revision,new.signwell_document_id,
+    new.response_data->'_hof_signature_delivery') is distinct from row(old.signature_packet_id,old.agent_user_id,old.brokerage_id,
+    old.review_content_revision,old.seller_review_attested,old.seller_review_attested_at,
+    old.seller_review_attested_by,old.seller_review_render_revision,old.signwell_document_id,
+    old.response_data->'_hof_signature_delivery') then
     raise exception using errcode='55000',message='This disclosure is included in a signing packet. Create a new draft to change it.';
   end if;
-  if new.signature_packet_id is distinct from old.signature_packet_id and current_user in ('anon','authenticated') then
+  if new.signature_packet_id is distinct from old.signature_packet_id
+    and (current_user in ('anon','authenticated') or pg_trigger_depth()<2) then
     raise exception using errcode='42501',message='Only the signing service can include a disclosure in a packet.';
   end if;
   return new;
@@ -31,7 +43,7 @@ end;
 $$;
 -- PostgreSQL fires same-kind row triggers alphabetically: the existing
 -- content guard rotates its revision first, then this guard detects changes.
-create trigger hof_packet_disclosure_lock before insert or update on public.hof_seller_disclosure_drafts
+create trigger hof_packet_disclosure_lock before insert or update or delete on public.hof_seller_disclosure_drafts
   for each row execute function public.hof_keep_packet_disclosure();
 
 create function public.hof_bind_listing_disclosure()
@@ -45,6 +57,7 @@ begin
   prior_binding := old.agreement_data -> '_hof_signature_delivery' -> 'seller_disclosure';
   binding := new.agreement_data -> '_hof_signature_delivery' -> 'seller_disclosure';
   if prior_binding is not null and (binding is distinct from prior_binding
+    or new.agent_user_id is distinct from old.agent_user_id
     or new.form_code is distinct from old.form_code
     or new.signwell_document_id is distinct from old.signwell_document_id) then
     raise exception using errcode='55000',message='Retain the disclosure attached to this signature request.';
@@ -56,6 +69,7 @@ begin
   select * into disclosure from public.hof_seller_disclosure_drafts d
     where d.id=(binding ->> 'id')::uuid and d.agent_user_id=new.agent_user_id for update;
   if not found or disclosure.status <> 'draft' or disclosure.signwell_document_id is not null
+    or nullif(to_jsonb(disclosure)->>'signature_offer_id','') is not null
     or disclosure.response_data ? '_hof_signature_delivery'
     or (disclosure.signature_packet_id is not null and disclosure.signature_packet_id <> new.id)
     or disclosure.review_content_revision::text is distinct from binding ->> 'revision'
@@ -88,6 +102,33 @@ create trigger hof_listing_disclosure_signature_guard before update on public.ho
   for each row execute function public.hof_bind_listing_disclosure();
 revoke all on function public.hof_keep_packet_disclosure(), public.hof_bind_listing_disclosure() from public,anon,authenticated;
 grant execute on function public.hof_keep_packet_disclosure(), public.hof_bind_listing_disclosure() to service_role;
+
+-- Share the same parent-row lock as purchase signing and questionnaire saves.
+-- Routine view/session timestamps do not change the proof and need no lock.
+create function public.hof_keep_listing_disclosure_review()
+returns trigger language plpgsql security invoker set search_path=pg_catalog
+as $$
+declare
+  disclosure public.hof_seller_disclosure_drafts%rowtype;
+begin
+  if tg_op='UPDATE' and row(new.draft_id,new.agent_user_id,new.brokerage_id,new.seller_index,new.seller_name,new.seller_email,
+    new.seller_attested_at,new.seller_attested_name,new.review_content_revision,new.review_render_revision,new.revoked_at)
+    is not distinct from row(old.draft_id,old.agent_user_id,old.brokerage_id,old.seller_index,old.seller_name,old.seller_email,
+    old.seller_attested_at,old.seller_attested_name,old.review_content_revision,old.review_render_revision,old.revoked_at) then
+    return new;
+  end if;
+  select * into disclosure from public.hof_seller_disclosure_drafts d
+    where d.id=case when tg_op='DELETE' then old.draft_id else new.draft_id end for update;
+  if disclosure.signature_packet_id is not null then
+    raise exception using errcode='55000',message='Retain the seller review used by this signing packet.';
+  end if;
+  return case when tg_op='DELETE' then old else new end;
+end;
+$$;
+create trigger hof_listing_disclosure_review_guard before insert or update or delete on public.hof_seller_disclosure_review_links
+  for each row execute function public.hof_keep_listing_disclosure_review();
+revoke all on function public.hof_keep_listing_disclosure_review() from public,anon,authenticated;
+grant execute on function public.hof_keep_listing_disclosure_review() to service_role;
 -- Extend, never replace, the already applied production readiness contracts.
 create function public.hof_listing_package_schema_readiness()
 returns jsonb language plpgsql stable security invoker set search_path=pg_catalog
@@ -117,10 +158,11 @@ begin
       and table_name='hof_seller_disclosure_drafts' and column_name='signature_packet_id') then
     missing := array_append(missing,'column:hof_seller_disclosure_drafts.signature_packet_id');
   end if;
-  foreach required_trigger in array array['hof_packet_disclosure_lock','hof_listing_disclosure_signature_guard'] loop
+  foreach required_trigger in array array['hof_packet_disclosure_lock','hof_listing_disclosure_signature_guard','hof_listing_disclosure_review_guard'] loop
     if not exists(select 1 from pg_trigger t join pg_class c on c.oid=t.tgrelid
       join pg_namespace n on n.oid=c.relnamespace where n.nspname='public'
-      and c.relname=case required_trigger when 'hof_packet_disclosure_lock' then 'hof_seller_disclosure_drafts' else 'hof_standalone_agreements' end
+      and c.relname=case required_trigger when 'hof_packet_disclosure_lock' then 'hof_seller_disclosure_drafts'
+        when 'hof_listing_disclosure_review_guard' then 'hof_seller_disclosure_review_links' else 'hof_standalone_agreements' end
       and t.tgname=required_trigger and not t.tgisinternal and t.tgenabled in ('O','A')) then
       missing := array_append(missing,'trigger:'||required_trigger);
     end if;

@@ -96,6 +96,21 @@ def fetch_readiness(url: str, service_key: str) -> dict:
         with urlopen(probe, timeout=30) as response:
             if json.load(response) != []:
                 raise ValueError("disclosure schema probe did not return an empty list")
+        purchase = Request(f"{url.rstrip('/')}/rest/v1/rpc/hof_purchase_disclosure_schema_readiness",
+                           data=b'{}', headers=request_headers(service_key), method='POST')
+        with urlopen(purchase, timeout=30) as response:
+            purchase_contract = json.load(response)
+        if not isinstance(purchase_contract, dict) or purchase_contract.get('contract') != 'homeofferflow-purchase-disclosure-v1':
+            raise ValueError('purchase disclosure readiness contract is unavailable')
+        if purchase_contract.get('ready') is not True:
+            payload['ready'] = False
+            payload['missing'] = [*(payload.get('missing') or []),
+                *purchase_contract.get('missing', []), 'purchase-disclosure:not-ready']
+        probe = Request(f"{url.rstrip('/')}/rest/v1/hof_seller_disclosure_drafts?select=signature_offer_id&limit=0",
+                        headers=request_headers(service_key), method='GET')
+        with urlopen(probe, timeout=30) as response:
+            if json.load(response) != []:
+                raise ValueError('purchase disclosure schema probe did not return an empty list')
     return payload
 
 

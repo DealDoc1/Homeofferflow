@@ -103,6 +103,7 @@ class ListingSellerDisclosureTests(unittest.TestCase):
     def test_missing_stale_already_sent_or_other_packet_remains_pending_without_rendering(self):
         row=disclosure();answers=sample_answers(addenda=['B'],disclosure_draft_id=row['id'])
         for rows,review in (([],True),([{**row,'signwell_document_id':'sent'}],True),
+                           ([{**row,'signature_offer_id':'purchase-request'}],True),
                            ([{**row,'signature_packet_id':'other-packet'}],True),([row],False),
                            ([{**row,'seller_review_render_revision':'old'}],True)):
             render=AsyncMock()

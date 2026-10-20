@@ -231,6 +231,19 @@ class Txr1101ApiTests(unittest.TestCase):
         self.assertEqual(other['noticeContacts']['address'],'')
         self.assertEqual(self.get('/api/admin-dashboard?scope=txr1101_context',token='bad')[0],401)
 
+    def test_listing_disclosure_choices_exclude_existing_purchase_and_listing_requests(self):
+        from tests.test_listing_seller_disclosure import disclosure
+        for binding,count in (({},1),({'signature_offer_id':'purchase-request'},0),
+                              ({'signature_packet_id':'listing-request'},0)):
+            with self.subTest(binding=binding):
+                self.store.disclosure=disclosure(agent_user_id=USER['id'],seller_review_attested=True,**binding)
+                status,result=self.get('/api/admin-dashboard?scope=txr1101_context')
+                self.assertEqual(status,200,result)
+                self.assertEqual(len(result['sellerDisclosures']),count)
+                request=next(r for r in reversed(self.store.requests) if r.url.path.endswith('/hof_seller_disclosure_drafts'))
+                self.assertEqual(request.url.params['signature_packet_id'],'is.null')
+                self.assertEqual(request.url.params['signature_offer_id'],'is.null')
+
     def test_notice_snapshot_is_saved_and_reopened_but_never_changes_the_signing_recipient(self):
         contacts={'address':'42 Fictional Road','city_state_zip':'Plano, TX 75024',
                   'phone':'214-555-0123','email':'notices@example.test','email_2':''}
