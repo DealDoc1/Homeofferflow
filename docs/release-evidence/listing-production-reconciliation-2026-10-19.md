@@ -7,7 +7,7 @@ made production progress: PR #1351 deployed completed-disclosure reuse in
 purchase offers. This batch makes the preserved TXR-1101/listing implementation
 compatible with that current production instead of replaying or replacing it.
 Production baseline is `4bd1cce57f052a587d6017d8782204ef521dfa41`, shell v109.
-The listing candidate reserves v110 and retains both listing assets plus the
+The listing candidate reserves v111 and retains both listing assets plus the
 new saved-disclosure component, PDF access, contrast and buyer receipt logic.
 
 ## Actual integration and schema correction
@@ -78,3 +78,13 @@ The successful upload exposed a disabled save button that never reset after
 success. Its local fix restores the label and busy state in finally, retaining
 duplicate-click protection and retaining input on failure. Fourteen focused
 upload/API/runtime tests pass. This admin correction is not yet deployed.
+
+The QA-only branch was merged separately as PR #1352 / `afc44a9b`, and its
+single production release is running as `39358689543`. Its exact-head CI passed
+2,822 tests, golden rendering, signer geometry and schema preflight. The full
+listing branch now incorporates that merged tree; its only merge conflict was
+the evidence note, resolved to the newer main note. No product conflict was
+resolved by discarding an implementation. Seventy-four focused actual-source,
+interview-runtime and PWA checks pass after merge. Its future customer release
+uses v111, distinct from the QA-only v110, so installed users receive the
+listing interview assets when that separately verified release is ready.
