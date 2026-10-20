@@ -883,6 +883,42 @@ async def _listing_lead_signing_qa(user, *, send=False):
     return await _purchase_signing_qa(user,send=send,_spec=qa)
 
 
+async def _listing_package_signing_qa(user, *, send=False):
+    """One ordinary fixed test; source and service credential stay on server."""
+    from types import SimpleNamespace
+    from lib import listing_package_signing_qa as qa
+
+    async def build():
+        sources = await _get(
+            f"hof_brokerage_form_sources?id=eq.{qa.SOURCE_ID}&form_code=eq.TXR-1101"
+            "&status=eq.approved&authorization_attested=is.true"
+            "&select=id,source_revision,source_sha256,storage_bucket,storage_path&limit=1"
+        )
+        if (len(sources or []) != 1 or sources[0].get('id') != qa.SOURCE_ID
+                or sources[0].get('source_revision') != '06-15-26'
+                or sources[0].get('source_sha256') != qa.SOURCE_SHA256):
+            raise ValueError('The reviewed listing source is unavailable. Nothing was sent.')
+        source = sources[0]
+        try:
+            async with httpx.AsyncClient(timeout=20) as client:
+                response = await client.get(
+                    f"{SUPABASE_URL}/storage/v1/object/"
+                    f"{urllib.parse.quote(str(source['storage_bucket']), safe='')}/"
+                    f"{urllib.parse.quote(str(source['storage_path']), safe='/')}", headers=_headers())
+        except Exception:
+            raise ValueError('The listing source could not be loaded. Nothing was sent.') from None
+        if response.status_code != 200 or not response.content.startswith(b'%PDF'):
+            raise ValueError('The listing source could not be loaded. Nothing was sent.')
+        return qa.build_packet(response.content)
+
+    spec = SimpleNamespace(**{key: getattr(qa, key) for key in (
+        'QA_OPERATOR_EMAILS', 'QA_REVISION', 'QA_SCENARIO', 'QA_RECIPIENTS',
+        'REVIEWED_SOURCE_COMMIT', 'DOCUMENT_PREFIX', 'QA_TITLE', 'QA_DESCRIPTION',
+        'RENDER_REVISION', 'TEST_LABEL', 'VERIFY_DRAFT', 'LAYOUT_SHA256')},
+        build_packet=build, build_payload=qa.build_payload)
+    return await _purchase_signing_qa(user, send=send, _spec=spec)
+
+
 async def _showing_signing_qa(user, *, send=False):
     """Reuse the fixed-test reservation/receipt path; never accept test inputs."""
     from types import SimpleNamespace
@@ -8579,6 +8615,12 @@ class handler(BaseHTTPRequestHandler):
                 if set(data) != {"action"}:
                     raise ValueError("The signing test does not accept custom recipients or document settings.")
                 result = asyncio.run(_listing_lead_signing_qa(user, send=data["action"] == "send_listing_lead_signing_test"))
+                _json(self, 200, {"ok": True, "signingTest": result})
+                return
+            if data.get("action") in {"send_listing_package_signing_test", "check_listing_package_signing_test"}:
+                if set(data) != {"action"}:
+                    raise ValueError("The signing test does not accept custom recipients or document settings.")
+                result = asyncio.run(_listing_package_signing_qa(user, send=data["action"] == "send_listing_package_signing_test"))
                 _json(self, 200, {"ok": True, "signingTest": result})
                 return
             if data.get("action") == "create_platform_partner_placement":
