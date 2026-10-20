@@ -5370,9 +5370,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const showing = scope === 'showing';
     const amendment = scope === 'amendment';
     const listingLead = scope === 'listing-lead';
-    const status = document.getElementById(listingLead ? 'adminListingLeadSigningTestStatus' : amendment ? 'adminAmendmentSigningTestStatus' : showing ? 'adminShowingSigningTestStatus' : 'adminPurchaseSigningTestStatus');
+    const listingPackage = scope === 'listing-package';
+    const status = document.getElementById(listingPackage ? 'adminListingPackageSigningTestStatus' : listingLead ? 'adminListingLeadSigningTestStatus' : amendment ? 'adminAmendmentSigningTestStatus' : showing ? 'adminShowingSigningTestStatus' : 'adminPurchaseSigningTestStatus');
     if (!status || !hofAuth.session) return;
-    const sendButton = document.getElementById(listingLead ? 'adminListingLeadSigningTestSend' : amendment ? 'adminAmendmentSigningTestSend' : showing ? 'adminShowingSigningTestSend' : 'adminPurchaseSigningTestSend');
+    const sendButton = document.getElementById(listingPackage ? 'adminListingPackageSigningTestSend' : listingLead ? 'adminListingLeadSigningTestSend' : amendment ? 'adminAmendmentSigningTestSend' : showing ? 'adminShowingSigningTestSend' : 'adminPurchaseSigningTestSend');
     const originalLabel = button?.textContent;
     if (button) { button.disabled = true; button.textContent = send ? 'Sending test…' : 'Checking…'; }
     if (sendButton) sendButton.disabled = true;
@@ -5381,7 +5382,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const response = await fetch('/api/admin-dashboard', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hofAuth.session.access_token}` },
-        body: JSON.stringify({ action: listingLead
+        body: JSON.stringify({ action: listingPackage
+          ? (send ? 'send_listing_package_signing_test' : 'check_listing_package_signing_test')
+          : listingLead
           ? (send ? 'send_listing_lead_signing_test' : 'check_listing_lead_signing_test')
           : amendment
           ? (send ? 'send_amendment_signing_test' : 'check_amendment_signing_test')
@@ -5894,6 +5897,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <button id="adminListingLeadSigningTestSend" type="button" class="admin-contact-action" style="min-height:44px" onclick="runPurchaseSigningTest(true, this, 'listing-lead')">Send one lead disclosure test</button>
             <button type="button" class="admin-contact-action" style="min-height:44px" onclick="runPurchaseSigningTest(false, this, 'listing-lead')">Check lead disclosure test</button>
             <div id="adminListingLeadSigningTestStatus" class="admin-empty" role="status" aria-live="polite">Check first. A recorded attempt cannot be sent again.</div>
+          </details><details style="margin-top:1rem;">
+            <summary>Ordinary listing package test</summary>
+            <p class="admin-muted">One fictional TXR-1101 listing agreement and lead disclosure. One seller and one associate use the two approved test inboxes. No client agreement is changed.</p>
+            <button id="adminListingPackageSigningTestSend" type="button" class="admin-contact-action" style="min-height:44px" onclick="runPurchaseSigningTest(true, this, 'listing-package')">Send one listing package test</button>
+            <button type="button" class="admin-contact-action" style="min-height:44px" onclick="runPurchaseSigningTest(false, this, 'listing-package')">Check listing package test</button>
+            <div id="adminListingPackageSigningTestStatus" class="admin-empty" role="status" aria-live="polite">Check first. Only the recorded attempt will be used.</div>
           </details>` : ''}
         </div>
 
@@ -24195,7 +24204,7 @@ function routeAfterMagicLinkIfNeeded() {
   .hof-platform-source-card p, .hof-platform-source-card small { color:var(--gray-light); line-height:1.48; }
   .hof-platform-source-grid { display:grid; grid-template-columns:1fr 1fr; gap:.7rem; margin:.8rem 0; }
   .hof-platform-source-grid label { display:grid; gap:.3rem; color:var(--gray-light); font-size:.82rem; font-weight:700; }
-  .hof-platform-source-grid input, .hof-platform-source-grid select { width:100%; }
+  .hof-platform-source-grid input, .hof-platform-source-grid select { width:100%; background:var(--navy-mid); color:var(--white); }
   @media (max-width:640px) { .hof-platform-source-grid { grid-template-columns:1fr; } }
 </style>
 <script id="hof-platform-source-intake-v1">
@@ -24268,7 +24277,8 @@ function routeAfterMagicLinkIfNeeded() {
         ? `${payload.source.formCode} ${payload.source.sourceRevision} saved privately and ready for the draft/signing queue.`
         : `${payload.source.formCode} ${payload.source.sourceRevision} saved privately. Its workflow is not released for signing yet.`;
       card.querySelector('#platformSourceFile').value = ''; card.querySelector('#platformSourceAttestation').checked = false;
-    } catch (error) { console.error('Platform form library save failed:', error); status.className = 'hof-iabs-status error'; status.textContent = window.hofCustomerActionError?.(error, 'We couldn’t save that form-library revision. Please try again.') || 'We couldn’t save that form-library revision. Please try again.'; uploadButton.disabled = false; uploadButton.setAttribute('aria-busy', 'false'); uploadButton.textContent = 'Save library revision'; }
+    } catch (error) { console.error('Platform form library save failed:', error); status.className = 'hof-iabs-status error'; status.textContent = window.hofCustomerActionError?.(error, 'We couldn’t save that form-library revision. Please try again.') || 'We couldn’t save that form-library revision. Please try again.'; }
+    finally { uploadButton.disabled = false; uploadButton.setAttribute('aria-busy', 'false'); uploadButton.textContent = 'Save library revision'; }
   }
   const priorDashboard = root.renderAccountDashboard;
   root.renderAccountDashboard = function renderAccountDashboardWithPlatformSourceIntake() { if (typeof priorDashboard === 'function') priorDashboard.apply(this, arguments); renderPlatformSourceIntake(); };
