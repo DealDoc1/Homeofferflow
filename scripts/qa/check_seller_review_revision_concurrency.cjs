@@ -34,13 +34,13 @@ async function createDraft(sellers=['QA Seller One']) {
     values ($1,$2,$3,'100 Fictional QA Lane',$4,'[]',$5,'qa-source')`, [id,owner,brokerage,JSON.stringify(sellers),randomUUID()]);
   return row(id);
 }
-async function createLink(draft, index=1) {
+async function createLink(draft, index=1, email='qa@example.test') {
   const id=randomUUID();
   await admin.query(`insert into public.hof_seller_disclosure_review_links
     (id,draft_id,brokerage_id,agent_user_id,seller_email,seller_name,seller_index,token_hash,
       verification_code_hash,review_content_revision,review_render_revision)
-    values ($1,$2,$3,$4,'qa@example.test',$5,$6,$7,'fictional-code',$8,$9)`,
-  [id,draft.id,brokerage,owner,draft.seller_names[index-1],index,randomUUID(),draft.review_content_revision,render]);
+    values ($1,$2,$3,$4,$10,$5,$6,$7,'fictional-code',$8,$9)`,
+  [id,draft.id,brokerage,owner,draft.seller_names[index-1],index,randomUUID(),draft.review_content_revision,render,email]);
   return id;
 }
 const attest = (c,id,name='QA Seller One') => c.query(`update public.hof_seller_disclosure_review_links
@@ -193,7 +193,9 @@ async function main() {
     await reject(()=>rpc(service,q2,qChanged.reviewContentRevision),'42501');
     await admin.query('update public.hof_seller_disclosure_review_links set revoked_at=now() where id=$1',[q1]);
     await reject(()=>rpc(service,q1,qChanged.reviewContentRevision),'42501');
-    console.log(JSON.stringify({result:'PASS',checks,scope:'review integrity plus seller questionnaire RPC against isolated PostgreSQL',nothingSent:true,productionChanged:false}));
+    await require('./purchase_disclosure_binding_cases.cjs')({admin,service,actor,a,b,owner,brokerage,render,
+      createDraft,createLink,attest,cache,row,blocked,check,reject});
+    console.log(JSON.stringify({result:'PASS',checks,scope:'review, questionnaire and purchase-disclosure binding against isolated PostgreSQL',nothingSent:true,productionChanged:false}));
   } finally {
     for(const c of clients) {try{await c.query('rollback');}catch{} try{await c.end();}catch{}}
     if(server && server.exitCode===null) {
@@ -202,4 +204,4 @@ async function main() {
     if(fs.existsSync(path.join(data,'postmaster.pid')))throw Error('Local PostgreSQL did not stop.');
   }
 }
-main().catch(e=>{console.error(e.message);process.exitCode=1;});
+main().catch(e=>{console.error(e.stack);process.exitCode=1;});

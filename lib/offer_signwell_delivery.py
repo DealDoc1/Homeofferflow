@@ -47,13 +47,18 @@ def stable_delivery_answers(offer, record):
     return current
 
 
-def deliver_offer_document(record, payload, offer, *, user_id, supabase_url, supabase_key, signwell_key):
+def deliver_offer_document(record, payload, offer, *, user_id, supabase_url, supabase_key, signwell_key, disclosure_binding=None):
     if not isinstance(record, dict) or not record.get('id') or record.get('user_id') != user_id:
         raise delivery.DeliveryMismatch('The saved offer could not be verified for this account. No invitation was requested.')
     current = copy.deepcopy(record)
     stored = current.get('offer_data') or {}
     journal = stored.get(delivery.JOURNAL_KEY)
     doc_id = str(current.get('signwell_document_id') or '')
+    if disclosure_binding is not None:
+        if (disclosure_binding.get('offer_id') != record['id'] or disclosure_binding.get('user_id') != user_id
+                or (offer.get('purchaseDisclosurePacket') or {}).get('binding') != disclosure_binding
+                or doc_id and (journal or {}).get('seller_disclosure') != disclosure_binding):
+            raise delivery.DeliveryMismatch('The reviewed disclosure does not match this saved offer. No new invitation was requested.')
     now = lambda: datetime.now(timezone.utc).isoformat()
     headers = {'apikey': supabase_key, 'Authorization': 'Bearer ' + supabase_key,
                'Content-Type': 'application/json', 'Prefer': 'return=representation'}
@@ -81,6 +86,8 @@ def deliver_offer_document(record, payload, offer, *, user_id, supabase_url, sup
         if not current.get('last_updated'):
             return False
         previous_id = current.get('signwell_document_id')
+        if disclosure_binding is not None:
+            attempt = {**attempt, 'seller_disclosure': copy.deepcopy(disclosure_binding)}
         rows = write({'status': 'Generated', 'signwell_document_id': document_id,
                       'last_updated': now(),
                       'offer_data': {**prepared, delivery.JOURNAL_KEY: attempt}},
@@ -131,6 +138,8 @@ def deliver_offer_document(record, payload, offer, *, user_id, supabase_url, sup
     source_bytes = offer.get('_paragraph4_source_pdf_bytes') or {}
     context = {'owner_id': user_id, 'offer_id': record['id'], 'offer': identity_answers,
                'paragraph4_sources': {key: hashlib.sha256(value).hexdigest() for key, value in source_bytes.items()}}
+    if disclosure_binding is not None:
+        context['seller_disclosure'] = disclosure_binding
     return asyncio.run(delivery.deliver_verified_document(
         payload=payload, context=context, document_id=doc_id, journal=journal,
         create=create, inspect=inspect, send=send, checkpoint=checkpoint, finish=finish,
