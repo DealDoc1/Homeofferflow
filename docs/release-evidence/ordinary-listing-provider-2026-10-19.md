@@ -4,6 +4,8 @@ Outcome: finish actual provider placement verification for the prepared listing
 agreement and corrected Seller lead disclosure, without sending another stress
 matrix or activating the customer listing workflow prematurely.
 
+## Approved source, authorization and signing plan
+
 Production baseline is `4bd1cce57f052a587d6017d8782204ef521dfa41` (v109).
 The already-authorized TXR-1101 source is registered privately as
 `02993d63-76de-4e7b-8c74-17c2c90b9443`, revision 06-15-26, SHA-256
@@ -33,6 +35,21 @@ and the corrected 18px provider text-line fields. Other unchanged branch layouts
 retain their earlier local evidence. Layout SHA-256:
 `49c620a7f1f61a21385b65085f53a218bc8b9f4f4214686b56a8a31c7cbe2533`.
 
+## Rendered signed-PDF QA and release authority
+
+Completed signature visual QA is the outstanding purpose of this protected
+test, not a claimed result. This release only enables the fixed owner test.
+Authenticated QA of the canonical owner control and exact provider draft will
+be recorded after deployment; no client TXR-1101 signing path is activated.
+The approved private source stays in the source vault, not Git or public cache.
+The owner's explicit source authorization is already recorded. No new agent
+attestation, source-owner approval or brokerage-seat requirement is introduced.
+The owner's standing implementation/push/merge/deployment authority covers this
+QA-enablement release and the fixed fictional invitations to the approved two
+inboxes. It does not authorize sending a business email to Tyler or customers.
+
+## Focused verification and regression boundary
+
 Focused checks: 34 pass in 2.790s, including actual source composition, fixed
 roles, layout tamper rejection, private-source checks, owner/admin restriction,
 existing generic reserved provider flow and admin upload runtime state.
@@ -43,3 +60,20 @@ Release boundary: keep Git deployments disabled, no preview or new paid service.
 Check current capacity before one intentional QA-enablement production release.
 Completed-provider PDF inspection and subsequent coordinated customer listing
 code/schema deployment remain outstanding until actual results are recorded.
+
+The isolated branch starts from exact production main, not the unfinished
+listing branch. Only pure unconnected renderer/composer modules, the fixed QA
+action/control, its focused tests, and the source upload busy-state fix are
+included. Customer listing API/interview, form allowlists, schema checker and
+both pending migrations are excluded. Existing main disclosure and purchase
+behavior is retained. Shell v110 invalidates the prior static admin UI cache;
+no private PDF or API response is cached.
+
+Frozen local regression ran 2,822 tests in 96.134s, with five skips. Its sole
+failure was one companion test still expecting old shell v109; the cache
+assertion is corrected to v110 without changing application code. Its focused
+companion/PWA run and the exact corrected-head CI provide the final result.
+The 103 actual-source focused checks passed in 13.978s. Approved signer geometry
+matches. Supabase preflight has 120 migration files and no errors; none is added
+or applied by this QA-only branch. Capacity run 39358028894 passed: three
+deployments/24h, $0.05 infrastructure usage, $19.95 unconsumed, $3 reserve.
