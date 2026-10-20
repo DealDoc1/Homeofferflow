@@ -2931,6 +2931,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 </style>
 
 <script defer src="/assets/uploaded-pdf-signing-placement.js"></script>
+<script defer src="/assets/saved-disclosure-attachment.js"></script>
 </head>
 
 <body>
@@ -4050,6 +4051,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <div class="field-group">
           <div class="field">
             <label>Upload PDF attachments</label>
+            <button type="button" id="useSavedSellerDisclosure" class="btn-secondary" onclick="window.hofChooseSavedDisclosure?.(this)">Use a saved seller disclosure</button>
             <input type="file" id="uploadedDisclosureDocs" accept="application/pdf,.pdf" multiple onchange="handleUploadedDisclosureDocs(this.files)"/>
             <small style="display:block; margin-top:0.35rem; color:var(--muted);">PDF only. Add up to 5 files, 2MB each and 2.5MB combined. We suggest a label from each filename; confirm the labels and order before the packet is generated. Examples: seller disclosure, survey, T-47/T-47.1, HOA docs, PID/MUD notices.</small>
           </div>
@@ -12776,6 +12778,7 @@ function routeAfterMagicLinkIfNeeded() {
         mimeType: d.mimeType || 'application/pdf',
         needsBuyerSignature: !!d.needsBuyerSignature,
         needsBuyerInitials: !!d.needsBuyerInitials,
+        ...(d.homeOfferFlowDisclosureReceipt ? {homeOfferFlowDisclosureReceipt:d.homeOfferFlowDisclosureReceipt} : {}),
         base64: d.base64
       }));
 
@@ -12923,6 +12926,7 @@ function routeAfterMagicLinkIfNeeded() {
           mimeType: d.mimeType || 'application/pdf',
           needsBuyerSignature: !!d.needsBuyerSignature,
           needsBuyerInitials: !!d.needsBuyerInitials,
+          ...(d.homeOfferFlowDisclosureReceipt ? {homeOfferFlowDisclosureReceipt:d.homeOfferFlowDisclosureReceipt} : {}),
           base64: d.base64
           })),
           ...(profileIabsDoc ? [profileIabsDoc] : [])
@@ -24544,12 +24548,13 @@ function routeAfterMagicLinkIfNeeded() {
 .hof-seller-disclosure-card .hof-seller-grid input,.hof-seller-disclosure-card .hof-seller-grid select{width:100%;min-width:0;max-width:100%;box-sizing:border-box}
 .hof-seller-disclosure-card label{display:flex;flex-direction:column;gap:5px}
 .hof-seller-disclosure-card input,.hof-seller-disclosure-card select{padding:9px;border:1px solid #cbd5e1;border-radius:8px}
+.hof-seller-disclosure-card input,.hof-seller-disclosure-card select,.hof-seller-disclosure-card textarea{background:var(--navy-mid);color:var(--white)}
 .hof-seller-disclosure-card details{margin-top:14px;border-top:1px solid #e2e8f0;padding-top:10px}
 .hof-seller-disclosure-card summary{cursor:pointer;font-weight:700}
-.hof-seller-disclosure-card .hof-seller-step{margin-top:14px;border:1px solid #e2e8f0;border-radius:10px;padding:0 14px 14px;background:#fff}
+.hof-seller-disclosure-card .hof-seller-step{margin-top:14px;border:1px solid rgba(255,255,255,.16);border-radius:10px;padding:0 14px 14px;background:rgba(255,255,255,.035);color:var(--white)}
 .hof-seller-disclosure-card .hof-seller-step summary{display:flex;align-items:center;gap:9px;padding:14px 0 4px}
-.hof-seller-disclosure-card .hof-seller-step summary small{display:block;font-weight:400;color:var(--muted);margin-top:2px}
-.hof-seller-step-number{display:inline-flex;align-items:center;justify-content:center;width:25px;height:25px;border-radius:50%;background:var(--primary);color:#fff;font-size:.82rem;flex:0 0 auto}
+.hof-seller-disclosure-card .hof-seller-step summary small{display:block;font-weight:400;color:var(--gray-light);margin-top:2px}
+.hof-seller-step-number{display:inline-flex;align-items:center;justify-content:center;width:25px;height:25px;border-radius:50%;background:var(--gold-light);color:var(--navy);font-size:.82rem;flex:0 0 auto}
 .hof-seller-step-copy{display:flex;flex-direction:column}
 .hof-seller-response-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;margin-top:10px}
 .hof-seller-response-row{display:grid;grid-template-columns:1fr 95px;align-items:center;gap:8px}

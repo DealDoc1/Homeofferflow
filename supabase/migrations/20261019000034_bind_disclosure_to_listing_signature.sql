@@ -1,5 +1,6 @@
 -- Coordinate with combined-packet code. No permission expansion or new queue.
 begin;
+set local lock_timeout = '5s';
 alter table public.hof_seller_disclosure_drafts add column signature_packet_id uuid
   references public.hof_standalone_agreements(id) on delete restrict;
 create index hof_seller_disclosure_packet_idx on public.hof_seller_disclosure_drafts(signature_packet_id)
@@ -87,4 +88,48 @@ create trigger hof_listing_disclosure_signature_guard before update on public.ho
   for each row execute function public.hof_bind_listing_disclosure();
 revoke all on function public.hof_keep_packet_disclosure(), public.hof_bind_listing_disclosure() from public,anon,authenticated;
 grant execute on function public.hof_keep_packet_disclosure(), public.hof_bind_listing_disclosure() to service_role;
+-- Extend, never replace, the already applied production readiness contracts.
+create function public.hof_listing_package_schema_readiness()
+returns jsonb language plpgsql stable security invoker set search_path=pg_catalog
+as $$
+declare
+  baseline jsonb;
+  missing text[];
+  constraint_definition text;
+  required_trigger text;
+begin
+  baseline := public.hof_seller_disclosure_schema_readiness();
+  select coalesce(array_agg(value),array[]::text[]) into missing
+    from jsonb_array_elements_text(coalesce(baseline->'missing','[]'::jsonb)) as value;
+  if baseline->>'contract' is distinct from 'homeofferflow-release-schema-v2' then
+    missing := array_append(missing,'contract:disclosure-v2');
+  end if;
+  if baseline->'ready' is distinct from 'true'::jsonb and cardinality(missing)=0 then
+    missing := array_append(missing,'baseline:not-ready');
+  end if;
+  select pg_get_constraintdef(c.oid) into constraint_definition from pg_constraint c
+    where c.conrelid=to_regclass('public.hof_standalone_agreements')
+      and c.conname='hof_standalone_agreements_form_code_check' and c.contype='c';
+  if constraint_definition is null or strpos(constraint_definition,quote_literal('TXR-1101'))=0 then
+    missing := array_append(missing,'form_code:hof_standalone_agreements.TXR-1101');
+  end if;
+  if not exists(select 1 from information_schema.columns where table_schema='public'
+      and table_name='hof_seller_disclosure_drafts' and column_name='signature_packet_id') then
+    missing := array_append(missing,'column:hof_seller_disclosure_drafts.signature_packet_id');
+  end if;
+  foreach required_trigger in array array['hof_packet_disclosure_lock','hof_listing_disclosure_signature_guard'] loop
+    if not exists(select 1 from pg_trigger t join pg_class c on c.oid=t.tgrelid
+      join pg_namespace n on n.oid=c.relnamespace where n.nspname='public'
+      and c.relname=case required_trigger when 'hof_packet_disclosure_lock' then 'hof_seller_disclosure_drafts' else 'hof_standalone_agreements' end
+      and t.tgname=required_trigger and not t.tgisinternal and t.tgenabled in ('O','A')) then
+      missing := array_append(missing,'trigger:'||required_trigger);
+    end if;
+  end loop;
+  return jsonb_build_object('contract','homeofferflow-release-schema-v3',
+    'ready',cardinality(missing)=0,'missing',to_jsonb(missing));
+end;
+$$;
+revoke all on function public.hof_listing_package_schema_readiness() from public,anon,authenticated;
+grant execute on function public.hof_listing_package_schema_readiness() to service_role;
+notify pgrst,'reload schema';
 commit;

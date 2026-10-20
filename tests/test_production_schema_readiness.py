@@ -23,19 +23,6 @@ SPEC.loader.exec_module(MODULE)
 
 
 class ProductionSchemaReadinessTests(unittest.TestCase):
-    def test_listing_release_requires_the_new_database_contract_even_if_old_readiness_is_true(self):
-        migration=(ROOT/'supabase/migrations/20261017131634_add_txr1101_listing_drafts.sql').read_text()
-        self.assertIn(MODULE.EXPECTED_CONTRACT,migration)
-        self.assertIn("'TXR-1101'",migration)
-        self.assertIn("'hof_standalone_agreements'",migration)
-        self.assertIn("'hof_brokerage_form_sources'",migration)
-        with patch.dict(MODULE.os.environ,{'SUPABASE_URL':'https://fixture.supabase.co',
-                                          'SUPABASE_SERVICE_ROLE_KEY':'fixture'},clear=True), \
-             patch.object(MODULE,'fetch_readiness',return_value={
-                 'contract':'homeofferflow-release-schema-v1','ready':True,'missing':[]}), \
-             redirect_stderr(io.StringIO()):
-            self.assertEqual(MODULE.main([]),1)
-
     def test_readiness_probes_new_public_profile_columns_without_reading_rows(self):
         import json
         from contextlib import contextmanager
@@ -48,13 +35,38 @@ class ProductionSchemaReadinessTests(unittest.TestCase):
         with patch.object(MODULE, 'urlopen', side_effect=open_fixture):
             result = MODULE.fetch_readiness('https://fixture.supabase.co', 'sb_secret_fixture')
         self.assertTrue(result['ready'])
-        self.assertEqual(len(requests), 3)
+        self.assertEqual(len(requests), 4)
+        self.assertTrue(requests[0].full_url.endswith('/rpc/hof_listing_package_schema_readiness'))
         self.assertEqual(requests[1].method, 'GET')
         self.assertIn('onboarding_public_contact_phone', requests[1].full_url)
         self.assertTrue(requests[1].full_url.endswith('&limit=0'))
         self.assertNotIn('contact_email', requests[1].full_url)
         self.assertIn('signature_packet_id', requests[2].full_url)
         self.assertTrue(requests[2].full_url.endswith('&limit=0'))
+        self.assertIn('questionnaire_enabled,review_content_revision,review_render_revision', requests[3].full_url)
+        self.assertTrue(requests[3].full_url.endswith('&limit=0'))
+        self.assertNotIn('seller_email', requests[3].full_url)
+
+    def test_questionnaire_readiness_matches_only_the_released_schema(self):
+        sql = (ROOT / 'supabase/migrations/20261018134817_seller_disclosure_questionnaire_access.sql').read_text()
+        self.assertIn('homeofferflow-release-schema-v2', sql)
+        self.assertIn('hof_save_seller_questionnaire', sql)
+        self.assertNotIn("'TXR-1101'", sql)
+        self.assertNotIn('drop index', sql.lower())
+        self.assertIn('create unique index hof_seller_questionnaire_active_idx', sql)
+        self.assertIn('create function public.hof_seller_disclosure_schema_readiness()', sql)
+        self.assertIn('baseline := public.hof_release_schema_readiness()', sql)
+        self.assertNotIn('create or replace function public.hof_release_schema_readiness()', sql)
+
+    def test_listing_readiness_extends_but_does_not_replace_applied_contracts(self):
+        listing=(ROOT/'supabase/migrations/20261017131634_add_txr1101_listing_drafts.sql').read_text()
+        binding=(ROOT/'supabase/migrations/20261019000034_bind_disclosure_to_listing_signature.sql').read_text()
+        self.assertEqual(MODULE.EXPECTED_CONTRACT,'homeofferflow-release-schema-v3')
+        self.assertIn(MODULE.EXPECTED_CONTRACT,binding)
+        self.assertIn('baseline := public.hof_seller_disclosure_schema_readiness()',binding)
+        self.assertIn("'TXR-1101'",listing)
+        self.assertIn('signature_packet_id',binding)
+        self.assertNotIn('create or replace function public.hof_release_schema_readiness()',listing+binding)
 
     def test_missing_public_profile_columns_cannot_be_silently_ignored(self):
         import json

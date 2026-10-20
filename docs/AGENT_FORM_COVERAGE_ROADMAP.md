@@ -4,6 +4,23 @@ Future batches follow the [lean development protocol](LEAN_DEVELOPMENT_PROTOCOL.
 to reduce model context, repeated regression runs and Vercel usage without
 reducing verification standards.
 
+## Current integration status - October 19, 2026
+
+Production is `4bd1cce5` / shell v109 (PR #1351). Seller-owned questionnaires,
+corrected normal PDF access and saved seller-signed disclosure reuse in purchase
+offers are deployed. Both v4 disclosure QA signers and the exact completed-PDF
+placement review are complete; do not request another v4 invitation or source
+authorization. New combined purchase signing is not inferred from that proof.
+
+The prepared TXR-1101 listing interview/composer is reconciled locally with this
+production revision, retaining the signed-disclosure reuse and contrast fixes.
+Already-applied questionnaire migrations remain byte-identical to production.
+The two unapplied listing migrations now extend, rather than replace, the live
+v1/v2 schema checks through a service-only listing v3 wrapper. Focused actual-
+source checks pass 147 tests; real isolated PostgreSQL passes 74 assertions.
+Production SQL is unchanged. Listing/TXR-1101 and corrected listing-lead provider
+checks, source registration and coordinated release remain in progress.
+
 ## Ordinary seller PDF access - October 19, 2026
 
 The normal seller browser flow now uses an actual four-page API-rendered
@@ -12,8 +29,9 @@ retains the edited answer; all four normal pages were reviewed. This exposed
 and corrected a blank embedded-preview problem: the customer page now provides
 Open PDF/Download PDF and a collapsed optional embedded viewer, with stale
 links removed after edits. Thirty-one focused checks pass, with desktop and
-390px mobile review. **Implemented locally, not deployed.** Production data and
-delivery acceptance remain separate from this isolated browser fixture. See
+390px mobile review. **Deployed through PR #1348/#1349/#1350.** Canonical owner
+draft saving and normal four-page download were verified; a new full signing
+roundtrip remains separate. See
 [normal seller-flow evidence](release-evidence/normal-seller-review-flow-2026-10-19.md).
 
 ## Completed v4 disclosure placement review - October 19, 2026
@@ -24,9 +42,9 @@ signature/date/initial rows, sole-Seller blanks, Unicode continuations and
 Unknown preservation pass this exact completed-provider check. No second
 invitation or new consent is needed. The owner correctly objected to the
 confusing technical test bundle: it combines four cases and is not a complete
-or acceptable customer packet. Normal customer-shaped end-to-end acceptance,
-v2 listing-lead QA and the coordinated release remain; this is not deployment
-or a full Seller-suite pass. See [completed review and limitations](release-evidence/seller-disclosure-v4-completed-review-2026-10-19.md).
+or acceptable customer packet. The normal questionnaire/PDF flow has since
+deployed; full combined listing signing and v2 listing-lead QA remain separate.
+This is not a full Seller-suite pass. See [completed review and limitations](release-evidence/seller-disclosure-v4-completed-review-2026-10-19.md).
 
 ## Reviewed disclosure in the listing signing package - October 18, 2026
 
@@ -39,9 +57,10 @@ The affected run passes 230 checks; isolated PostgreSQL passes 67 assertions.
 Actual-source 14/16/17-page cases and the desktop/390px mobile selector were
 visually reviewed. The supplied and current official TREC disclosure sources
 render identically; no source authorization or replacement is needed.
-**Not deployed.** Retained v4 completed-provider PDF review, v2 listing-lead
-provider QA and the coordinated code/schema release remain. Purchase-offer
-combined-packet inclusion is not implemented by this listing-only adapter.
+**Not deployed.** The retained v4 completed-provider PDF review is complete.
+TXR-1101/listing-lead provider QA and the coordinated code/schema release remain.
+Completed seller-signed purchase reuse is separately deployed; unsigned
+purchase/disclosure execution is not implemented by this listing-only adapter.
 See [combined disclosure checkpoint](release-evidence/listing-disclosure-packet-2026-10-18.md).
 
 ## Seller-owned disclosure questionnaire - October 18, 2026
@@ -52,9 +71,9 @@ existing separate SignWell send path with saved recipients only. Existing
 review-only links stay read-only. The focused run passes 155 checks; real local
 PostgreSQL passes 52 assertions. Desktop/390px phone UI and unavailable-preview
 recovery were checked with fictional data; no customer email was sent.
-**Not deployed.** The listing-packet inclusion and source differential check
-were completed locally in the checkpoint above. Retained v4 signed-provider
-visual QA and the coordinated release remain; no new owner authorization is required.
+**Questionnaire deployed through PR #1348/#1349.** Listing-packet inclusion
+remains local, and the retained v4 signed-provider visual QA is complete.
+The listing release remains separate; no new owner authorization is required.
 See [seller-owned questionnaire checkpoint](release-evidence/seller-owned-questionnaire-2026-10-18.md).
 
 ## Combined listing-package integration - October 18, 2026

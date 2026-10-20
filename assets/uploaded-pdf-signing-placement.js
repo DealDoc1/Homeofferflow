@@ -84,6 +84,15 @@
       const index = Number(row.dataset.uploadedIndex);
       const doc = docs[index];
       if (!doc) return;
+      if (doc.homeOfferFlowDisclosureReceipt) {
+        const label = row.querySelector('.uploaded-doc-type');
+        if (label) label.disabled = true;
+        row.querySelector('.hof-upload-sign-fields')?.remove();
+        let receipt = row.querySelector('.hof-upload-sign-count');
+        if (!receipt) { receipt = document.createElement('small'); receipt.className = 'hof-upload-sign-count'; row.appendChild(receipt); }
+        receipt.textContent = 'Buyer acknowledgments included automatically';
+        return;
+      }
       let button = row.querySelector('.hof-upload-sign-fields');
       if (!button) {
         button = document.createElement('button');
@@ -244,7 +253,9 @@
     if (!Array.isArray(payload?.uploadedDisclosureDocs)) return;
     payload.uploadedDisclosureDocs = payload.uploadedDisclosureDocs.map(upload => {
       const source = docs.find(doc => doc && upload && String(doc.name) === String(upload.name));
-      if (!source || !Array.isArray(source.signaturePlacements) || !source.signaturePlacements.length) return upload;
+      if (!source) return upload;
+      if (source.homeOfferFlowDisclosureReceipt) return {...upload, homeOfferFlowDisclosureReceipt:source.homeOfferFlowDisclosureReceipt};
+      if (!Array.isArray(source.signaturePlacements) || !source.signaturePlacements.length) return upload;
       return {...upload,signaturePlacements:source.signaturePlacements.map(({type,page,xRatio,yRatio}) => ({type,page,xRatio,yRatio}))};
     });
   }
