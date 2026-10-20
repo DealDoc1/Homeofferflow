@@ -19,7 +19,8 @@ The two unapplied listing migrations now extend, rather than replace, the live
 v1/v2 schema checks through a service-only listing v3 wrapper. Focused actual-
 source checks pass 147 tests; real isolated PostgreSQL passes 74 assertions.
 Production SQL is unchanged. Listing/TXR-1101 and corrected listing-lead provider
-checks, source registration and coordinated release remain in progress.
+checks and coordinated release remain in progress. The exact authorized
+TXR-1101 source is now registered and verified in private production storage.
 
 ## Ordinary seller PDF access - October 19, 2026
 

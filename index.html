@@ -24280,7 +24280,7 @@ function routeAfterMagicLinkIfNeeded() {
   .hof-platform-source-card p, .hof-platform-source-card small { color:var(--gray-light); line-height:1.48; }
   .hof-platform-source-grid { display:grid; grid-template-columns:1fr 1fr; gap:.7rem; margin:.8rem 0; }
   .hof-platform-source-grid label { display:grid; gap:.3rem; color:var(--gray-light); font-size:.82rem; font-weight:700; }
-  .hof-platform-source-grid input, .hof-platform-source-grid select { width:100%; }
+  .hof-platform-source-grid input, .hof-platform-source-grid select { width:100%; background:var(--navy-mid); color:var(--white); }
   @media (max-width:640px) { .hof-platform-source-grid { grid-template-columns:1fr; } }
 </style>
 <script id="hof-platform-source-intake-v1">
@@ -24353,7 +24353,8 @@ function routeAfterMagicLinkIfNeeded() {
         ? `${payload.source.formCode} ${payload.source.sourceRevision} saved privately and ready for the draft/signing queue.`
         : `${payload.source.formCode} ${payload.source.sourceRevision} saved privately. Its workflow is not released for signing yet.`;
       card.querySelector('#platformSourceFile').value = ''; card.querySelector('#platformSourceAttestation').checked = false;
-    } catch (error) { console.error('Platform form library save failed:', error); status.className = 'hof-iabs-status error'; status.textContent = window.hofCustomerActionError?.(error, 'We couldn’t save that form-library revision. Please try again.') || 'We couldn’t save that form-library revision. Please try again.'; uploadButton.disabled = false; uploadButton.setAttribute('aria-busy', 'false'); uploadButton.textContent = 'Save library revision'; }
+    } catch (error) { console.error('Platform form library save failed:', error); status.className = 'hof-iabs-status error'; status.textContent = window.hofCustomerActionError?.(error, 'We couldn’t save that form-library revision. Please try again.') || 'We couldn’t save that form-library revision. Please try again.'; }
+    finally { uploadButton.disabled = false; uploadButton.setAttribute('aria-busy', 'false'); uploadButton.textContent = 'Save library revision'; }
   }
   const priorDashboard = root.renderAccountDashboard;
   root.renderAccountDashboard = function renderAccountDashboardWithPlatformSourceIntake() { if (typeof priorDashboard === 'function') priorDashboard.apply(this, arguments); renderPlatformSourceIntake(); };

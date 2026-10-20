@@ -63,3 +63,18 @@ deployment. Unsigned combined purchase execution and TXR-1102 remain separate.
 
 Broad goal stays active. This is verified integration progress, not a customer
 deployment, completed whole Seller suite, or request for blanket approval.
+
+## Private source registration completed
+
+The authenticated owner used the existing canonical admin upload once. Live
+readback confirmed source `02993d63-76de-4e7b-8c74-17c2c90b9443`, TXR-1101
+revision `06-15-26`, status approved, authorization attested, and SHA-256
+`eeec91ef481059834262cf7f842afc045bf17c09b5be9e79fe2508112310b068`.
+The storage bucket remains private. The UI explicitly reported that the
+workflow was not released for signing. No packet or invitation was created.
+Source registration above is resolved, not an owner dependency.
+
+The successful upload exposed a disabled save button that never reset after
+success. Its local fix restores the label and busy state in finally, retaining
+duplicate-click protection and retaining input on failure. Fourteen focused
+upload/API/runtime tests pass. This admin correction is not yet deployed.
