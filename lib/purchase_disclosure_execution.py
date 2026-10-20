@@ -45,10 +45,9 @@ def _identifier(value):
 
 
 def _names(offer):
-    return [str(value).strip() for value in (
-        offer.get('seller1Name') or offer.get('seller1') or offer.get('seller'),
-        offer.get('seller2Name') or offer.get('seller2'),
-    ) if value and str(value).strip()]
+    def first(keys):
+        return next((str(offer[key]).strip() for key in keys if str(offer.get(key) or '').strip()), '')
+    return [value for value in (first(('seller1Name','seller1','seller')), first(('seller2Name','seller2'))) if value]
 
 
 def prepare_execution(record, draft, review_links, *, user_id, source_pdf, water_pdf=None):
@@ -70,7 +69,8 @@ def prepare_execution(record, draft, review_links, *, user_id, source_pdf, water
     offer = record.get('offer_data')
     if not isinstance(offer, dict):
         raise ValueError('Review the saved offer before including a disclosure.')
-    if record.get('signwell_document_id') or '_hof_signature_delivery' in offer:
+    if (record.get('signwell_document_id') or '_hof_signature_delivery' in offer
+            or str(record.get('status') or 'draft').lower() not in {'draft','generating','generated','generation failed'}):
         raise DisclosureNotReady('This offer has a signing request. Check its status before preparing another.')
     if (draft.get('status') != 'draft' or draft.get('signwell_document_id')
             or draft.get('signature_packet_id') or draft.get('signature_offer_id')
@@ -168,7 +168,7 @@ def prepare_execution(record, draft, review_links, *, user_id, source_pdf, water
                 'recipients': recipients, 'proofs': proofs, 'fields': fields}
     fingerprint = hashlib.sha256(json.dumps(identity, sort_keys=True, ensure_ascii=False,
         separators=(',', ':'), allow_nan=False).encode()).hexdigest()
-    return PurchaseDisclosureExecution(pdf, fields, recipients, binding, fingerprint,
+    return PurchaseDisclosureExecution(pdf, fields, recipients, {**binding, 'fingerprint': fingerprint}, fingerprint,
         hashlib.sha256(pdf).hexdigest(), tuple(pages))
 
 

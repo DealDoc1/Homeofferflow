@@ -88,3 +88,63 @@ this local work does not complete the customer feature or whole roadmap.
 The separate ordinary listing test is unchanged and still waits for its
 existing final electronic-consent answer/completion. No repeat request or
 replacement packet was made. No further email to Tyler was sent.
+
+## Read-only preview API and atomic binding implemented locally
+
+The next continuation adds the authenticated
+`preview_purchase_disclosure_execution` action to the existing API. It accepts
+only saved offer/disclosure IDs, uses the verified session, and reconstructs
+the plan from owner-scoped offer/draft reads and exact current review records.
+`PurchaseDisclosureStore` verifies approved source ID, form, revision, status
+and authorization readback before private server-side downloads. It makes no
+write or provider call. The response is no-store, preview-only, with role/name/
+email details for review; no service key, source-storage URL, raw review token
+or browser-authoritative field plan is returned. Signed-out and cross-account
+requests are refused; no brokerage-seat/admin gate is added. This endpoint is
+not yet deployed or linked from the customer interview.
+
+The pinned official CLI generated local migration
+`20261020140935_bind_reviewed_disclosure_to_purchase.sql`. It is NOT applied
+to production. It adds one FK/index and invoker-only private trigger functions,
+without new client grants or replacing deployed readiness functions. At the
+existing offer journal checkpoint it locks and verifies the exact disclosure,
+current review/render version, property, sellers and approved recipient emails,
+then binds the disclosure to that offer in the same transaction. A competing
+offer, stale answers/proof or changed recipient cannot claim it. Bound facts,
+review destinations/evidence and association cannot be edited or removed;
+ordinary dashboard soft-delete retains the history. Optional listing binding
+is detected without depending on its separate migration being applied first.
+
+The new private `hof_purchase_disclosure_schema_readiness()` delegates the
+unchanged deployed disclosure-v2 baseline and checks its own column and three
+enabled guards. A disabled send guard reports not ready. No core/listing
+readiness function was replaced. This contract still needs to be connected to
+the coordinated release checker when customer sending is activated.
+
+Verification: 74 focused Python/API/delivery regression methods passed in
+0.554 seconds. They exercise the real HTTP handler dispatch, read-only store,
+owner/auth refusal, browser override rejection, no-store response, source
+readback and existing send/retry coordinator behavior using fictional services.
+These are not live HTTP/provider results. The updated actual PostgreSQL runner
+passed 105 assertions, including independent row-lock races for edit-first,
+send-first, competing offers and both review-retirement orderings; private
+grants/invoker/search-path checks; Unicode Seller; reversed parties; soft-delete;
+and mutual exclusion with the listing association. The fresh cluster had no TCP
+listener and stopped successfully in finally. No production advisors/schema
+change is claimed from this isolated test.
+
+The first added PostgreSQL fixture tried changing an immutable review email
+after creating the link. The real existing guard correctly refused it. The
+fixture now inserts the intended email initially; no guard was relaxed.
+Official Supabase changelog/functions guidance was checked; this work uses no
+new external feature, authentication flow, public grant or paid integration.
+The CLI's normal configuration write needed filesystem escalation; only local
+migration generation occurred. No production database connection was used.
+
+No PDF source or field rectangle changed in this continuation, so the earlier
+actual-source composition and changed-page visual review are reused rather
+than repeated. No full suite, CI, push, hosted migration, deployment or new
+signature request has been run for this still-incomplete customer batch.
+Remaining: connect the purchase picker, save/preview/generate flow, existing
+delivery journal and same-document retry reconstruction; nonblocking pending
+document messaging; exact-head regression and coordinated release verification.

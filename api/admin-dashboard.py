@@ -4454,6 +4454,20 @@ async def _render_seller_disclosure_draft_preview(user, draft_id, review_context
     return preview
 
 
+def _preview_purchase_disclosure_execution(user, data):
+    """Owner-only preview, reconstructed server-side; never sends or saves."""
+    if set(data) != {'action','offerId','draftId'}:
+        raise ValueError('Choose the saved offer and seller disclosure only.')
+    from lib.purchase_disclosure_store import PurchaseDisclosureStore
+    plan = PurchaseDisclosureStore(supabase_url=SUPABASE_URL, service_key=SUPABASE_SERVICE_ROLE_KEY).prepare(
+        user_id=user['id'], offer_id=data.get('offerId'), draft_id=data.get('draftId'))
+    return {'ok': True, 'previewOnly': True, 'signatureRequestCreated': False,
+        'pdfBase64': base64.b64encode(plan.pdf).decode('ascii'),
+        'disclosureId': plan.binding['id'], 'reviewRevision': plan.binding['revision'],
+        'recipients': [{'name': row['name'], 'email': row['email'],
+            'role': 'Buyer' if int(row['id']) < 3 else 'Seller'} for row in plan.recipients]}
+
+
 def _seller_disclosure_signing_recipients(draft, signer_emails):
     """Build SignWell recipients in the exact order used by the PDF widgets."""
     seller_names = draft.get("seller_names") or []
@@ -8102,6 +8116,10 @@ class handler(BaseHTTPRequestHandler):
             if data.get("action") == "create_seller_disclosure_draft":
                 draft = asyncio.run(_create_seller_disclosure_draft(user, data))
                 _json(self, 201, {"status": "ok", "draft": draft, "workflowActivated": False})
+                return
+            if data.get("action") == "preview_purchase_disclosure_execution":
+                result = _preview_purchase_disclosure_execution(user, data)
+                _json(self, 200, result)
                 return
             if data.get("action") == "update_seller_disclosure_draft":
                 draft = asyncio.run(_update_seller_disclosure_draft(user, data))

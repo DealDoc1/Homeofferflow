@@ -98,6 +98,7 @@ class PurchaseDisclosureExecutionTests(unittest.TestCase):
                             if field['type'] == 'date':
                                 self.assertEqual(field['height'], 18)
                         self.assertEqual(plan.binding['offer_id'], OFFER)
+                        self.assertEqual(plan.binding['fingerprint'], plan.content_fingerprint)
 
     def test_reversed_sellers_follow_offer_ids_and_verified_review_email_not_alias(self):
         record, draft, links = fixture(sellers=2)
@@ -130,6 +131,9 @@ class PurchaseDisclosureExecutionTests(unittest.TestCase):
             self.prepare(({**record, 'signwell_document_id': 'already-sent'}, draft, links))
         tracked = {**record, 'offer_data': {**record['offer_data'], '_hof_signature_delivery': {}}}
         with self.assertRaises(module.DisclosureNotReady): self.prepare((tracked, draft, links))
+        for status in ('Deleted','Buyer Signed','Rejected'):
+            with self.subTest(status=status), self.assertRaises(module.DisclosureNotReady):
+                self.prepare(({**record, 'status': status}, draft, links))
 
     def test_current_attestation_is_required_for_each_exact_seller(self):
         record, draft, links = fixture(sellers=2)
