@@ -23,9 +23,15 @@ from lib.txr1501_answers import render_continuation, continuation_fields, INITIA
 
 SOURCE_SHA256='eb8bdfb943cafbe8402e6b44fe44d73eb66d6acd6a99f31f73498f938fd76e6c'
 OFFICIAL_FILLABLE_SHA256='515bda0aa4b834e55b0fe894378e8ce200c9c3547c81fcb11bf1019107dbf868'
-REVISION='listing-lead-disclosure-56-0-2026-05-04-v1'
+REVISION='listing-lead-disclosure-56-0-2026-05-04-v2'
 MAX_DETAIL=4000
 LIVE_DETAIL_LIMIT=200
+# SignWell uses a text field's initial height to choose its type size, then
+# grows vertically for wrapped text. A paragraph-area-sized initial field
+# produced oversized type in the actual v1 signer. Keep line size and the
+# reserved printed answer region separate; completed-provider QA is required.
+LIVE_TEXT_LINE_HEIGHT=13.5
+LIVE_DETAIL_BOX_HEIGHT=95
 
 
 def validate_answers(data=None):
@@ -125,11 +131,12 @@ def prepare_listing_lead(source, listing):
             y=475 if key=='knowledge' else 305
             canvas.setFont('Helvetica-Bold',11)
             canvas.drawString(48,y+78,'Known lead-based paint or hazards' if key=='knowledge' else 'Records and reports provided to purchaser')
-            canvas.setFont('Helvetica',9);canvas.drawString(48,y+63,f'Briefly explain (up to {LIVE_DETAIL_LIMIT} characters). Supply supporting reports separately.')
-            canvas.setLineWidth(.5);canvas.rect(48,y,504,55)
-            text_id=field(key+'_explanation','text',page_number,48,y,504,55,required=not conditional,
+            canvas.setFont('Helvetica',9);canvas.drawString(48,y+63,f'Use one paragraph, up to {LIVE_DETAIL_LIMIT} characters. Supply supporting reports separately.')
+            top=y+55
+            canvas.setLineWidth(.5);canvas.rect(48,top-LIVE_DETAIL_BOX_HEIGHT,504,LIVE_DETAIL_BOX_HEIGHT)
+            text_id=field(key+'_explanation','text',page_number,48,top-LIVE_TEXT_LINE_HEIGHT,504,LIVE_TEXT_LINE_HEIGHT,required=not conditional,
                 label=f'Brief Seller explanation (up to {LIVE_DETAIL_LIMIT} characters)',fixed_width=True,validation='custom',
-                validation_regex=rf'^[\s\S]{{1,{LIVE_DETAIL_LIMIT}}}$',validation_regex_error_message=f'Use up to {LIVE_DETAIL_LIMIT} characters; provide longer details and reports separately.')
+                validation_regex=rf'^[^\r\n]{{1,{LIVE_DETAIL_LIMIT}}}$',validation_regex_error_message=f'Use one paragraph up to {LIVE_DETAIL_LIMIT} characters; provide longer details and reports separately.')
             if conditional:
                 rules.append({'target_id':positive_id,'action_type':'require','action_field_ids':[text_id],
                     'conditions':[{'condition_type':'all_of','status':'completed','field_api_ids':[positive_id],'position':1}]})

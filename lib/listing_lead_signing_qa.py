@@ -16,16 +16,16 @@ from pypdf import PdfReader, PdfWriter
 from lib.listing_lead_disclosure import prepare_listing_lead, SOURCE_SHA256, REVISION
 from lib.purchase_signing_qa import QA_RECIPIENTS, QA_OPERATOR_EMAILS
 
-QA_REVISION='listing-lead-56-0-provider-2026-10-17-v1'
+QA_REVISION='listing-lead-56-0-provider-2026-10-18-v2'
 QA_SCENARIO='listing-lead-disclosure-provider-placement'
-REVIEWED_SOURCE_COMMIT='fcbf606c19662af45793eb662df6329f44ee43ab'
+REVIEWED_SOURCE_COMMIT='0bc9f5d342b670df631d9dd478e53834fc68d010'
 RENDER_REVISION=REVISION
 DOCUMENT_PREFIX='QA ONLY - listing lead disclosure - '
 QA_TITLE='Listing lead disclosure completion and placement'
 QA_DESCRIPTION='Fixed fictional Seller choices, conditional details, one/two Sellers, broker/associate and Unicode continuation.'
 TEST_LABEL='listing lead disclosure'
 VERIFY_DRAFT=True
-LAYOUT_SHA256='30f9711e64bff16ecbb44fb7031ed8e6f845afb0bf149629e84a13c65992e8e1'
+LAYOUT_SHA256='9ec04b6fd1e282f8f1e04a2d89d70c7468cb8fe75d19115f60cfa36e80e1d1bd'
 
 
 def cases():
