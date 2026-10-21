@@ -873,6 +873,58 @@ async def _listing_lead_signing_qa(user, *, send=False):
     return await _purchase_signing_qa(user,send=send,_spec=qa)
 
 
+async def _lease_listing_signing_qa(user, *, send=False):
+    """Fixed ordinary lease QA, using private reviewed sources and one journal."""
+    from types import SimpleNamespace
+    from lib import lease_listing_signing_qa as qa
+    from lib.lease_disclosures import SOURCES
+
+    async def build():
+        specs = {'TXR-1102': {'revision': '01-05-26', 'sha256': qa.SOURCE_SHA256}, **SOURCES}
+        payloads = {}
+        for code, expected in specs.items():
+            query = ('hof_brokerage_form_sources?'
+                f'form_code=eq.{code}&source_revision=eq.{expected["revision"]}'
+                '&status=eq.approved&authorization_attested=is.true'
+                '&select=id,brokerage_id,form_code,source_revision,status,authorization_attested,source_sha256,storage_bucket,storage_path'
+                '&order=updated_at.desc,id.desc&limit=1')
+            if code == 'TXR-1102': query += '&id=eq.' + qa.SOURCE_ID
+            rows = await _get(query)
+            if len(rows or []) != 1:
+                raise ValueError('The reviewed lease QA sources are not yet installed. Nothing was sent.')
+            source = rows[0]; path = source.get('storage_path')
+            try: source_id = str(uuid.UUID(str(source.get('id'))))
+            except (ValueError, TypeError, AttributeError):
+                raise ValueError('The lease QA source could not be confirmed.') from None
+            if (code == 'TXR-1102' and source_id != qa.SOURCE_ID
+                    or source.get('form_code') != code or source.get('source_revision') != expected['revision']
+                    or source.get('status') != 'approved' or source.get('authorization_attested') is not True
+                    or source.get('source_sha256') != expected['sha256']
+                    or source.get('storage_bucket') != 'brokerage-form-sources'
+                    or not isinstance(path, str) or len(path) > 500 or not source.get('brokerage_id')
+                    or not path.startswith(str(source['brokerage_id']) + '/') or not path.endswith('.pdf')
+                    or any(part in {'', '.', '..'} for part in path.split('/'))):
+                raise ValueError('The lease QA source differs from the reviewed private revision.')
+            try:
+                async with httpx.AsyncClient(timeout=20) as client:
+                    response = await client.get(f'{SUPABASE_URL}/storage/v1/object/brokerage-form-sources/'
+                        f'{urllib.parse.quote(path, safe="/")}', headers=_headers())
+            except Exception:
+                raise ValueError('The private lease QA source could not be loaded. Nothing was sent.') from None
+            if (response.status_code != 200 or len(response.content) > 10_485_760
+                    or hashlib.sha256(response.content).hexdigest() != expected['sha256']):
+                raise ValueError('The downloaded lease QA source differs from the reviewed PDF. Nothing was sent.')
+            payloads[code] = response.content
+        return qa.build_packet(payloads)
+
+    spec = SimpleNamespace(**{key: getattr(qa, key) for key in (
+        'QA_OPERATOR_EMAILS', 'QA_REVISION', 'QA_SCENARIO', 'QA_RECIPIENTS',
+        'REVIEWED_SOURCE_COMMIT', 'DOCUMENT_PREFIX', 'QA_TITLE', 'QA_DESCRIPTION',
+        'RENDER_REVISION', 'TEST_LABEL', 'VERIFY_DRAFT', 'LAYOUT_SHA256')},
+        build_packet=build, build_payload=qa.build_payload)
+    return await _purchase_signing_qa(user, send=send, _spec=spec)
+
+
 async def _listing_package_signing_qa(user, *, send=False):
     """One ordinary fixed test; source and service credential stay on server."""
     from types import SimpleNamespace
@@ -8236,6 +8288,12 @@ class handler(BaseHTTPRequestHandler):
                 if set(data) != {"action"}:
                     raise ValueError("The signing test does not accept custom recipients or document settings.")
                 result = asyncio.run(_listing_package_signing_qa(user, send=data["action"] == "send_listing_package_signing_test"))
+                _json(self, 200, {"ok": True, "signingTest": result})
+                return
+            if data.get("action") in {"send_lease_listing_signing_test", "check_lease_listing_signing_test"}:
+                if set(data) != {"action"}:
+                    raise ValueError("The signing test does not accept custom recipients or document settings.")
+                result = asyncio.run(_lease_listing_signing_qa(user, send=data["action"] == "send_lease_listing_signing_test"))
                 _json(self, 200, {"ok": True, "signingTest": result})
                 return
             if data.get("action") == "create_platform_partner_placement":

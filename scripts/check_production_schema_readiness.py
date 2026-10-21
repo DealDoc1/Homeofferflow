@@ -105,6 +105,16 @@ def fetch_readiness(url: str, service_key: str) -> dict:
         with urlopen(probe, timeout=30) as response:
             if json.load(response) != []:
                 raise ValueError('purchase disclosure schema probe did not return an empty list')
+        rental = Request(f"{url.rstrip('/')}/rest/v1/rpc/hof_rental_source_schema_readiness",
+                         data=b'{}', headers=request_headers(service_key), method='POST')
+        with urlopen(rental, timeout=30) as response:
+            rental_contract = json.load(response)
+        if not isinstance(rental_contract, dict) or rental_contract.get('contract') != 'homeofferflow-rental-source-schema-v1':
+            raise ValueError('rental source readiness contract is unavailable')
+        if rental_contract.get('ready') is not True or rental_contract.get('missing') != []:
+            payload['ready'] = False
+            payload['missing'] = [*(payload.get('missing') or []),
+                *(rental_contract.get('missing') or []), 'rental-source:not-ready']
     return payload
 
 

@@ -61,6 +61,16 @@ class PlatformFormSourceUploadTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "not a PDF"):
             module._parse_payload(json.dumps(self._payload(content)).encode())
 
+    def test_rental_sources_match_schema_without_activating_customer_workflows(self):
+        import re
+        sql=(ROOT/'supabase/migrations/20261021113432_allow_rental_disclosure_sources_for_qa.sql').read_text()
+        codes=sql.split('check (form_code in (',1)[1].split('));',1)[0]
+        self.assertEqual(set(re.findall(r"'([^']+)'",codes)),module.FORM_CODES)
+        for code in ('TXR-1101','TXR-1102','TXR-2008','TXR-2015'):
+            self.assertIn(code,module.FORM_CODES)
+            self.assertFalse(module._workflow_activation_status(code))
+        self.assertNotIn('hof_standalone_agreements',sql)
+
     def test_parser_rejects_fingerprint_mismatch(self):
         payload = self._payload()
         payload["sourceSha256"] = "0" * 64
