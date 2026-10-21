@@ -31,8 +31,14 @@ TXR-1102 is registered in the private hosted library with an exact fingerprint
 and verified object; no migration or code deployment occurred. There is no
 remaining source-login or TXR-1102 registration dependency. See
 [source retrieval and registration evidence](release-evidence/lease-source-registration-2026-10-20.md).
-Real rental flood and lease lead disclosure adapters, final coordinated release
-verification and completed-provider QA remain implementation work, not a new TXR-1102
+Exact-source rental flood and lease lead adapters are now implemented locally:
+48 affected tests pass (one unrelated skip), and nine ordinary/single-landlord/
+Unicode proof pages were reviewed. The review corrected the lower TXR-2008
+signature boxes, with an original-text overlap regression check. These pure
+adapters are not yet wired to hosted source lookup or live sends. See the
+[rental disclosure adapter checkpoint](release-evidence/lease-disclosure-adapters-local-2026-10-20.md).
+API/source-intake integration, final coordinated release verification and
+completed-provider QA remain implementation work, not a new TXR-1102
 owner/source authorization blocker. See the
 [package composition evidence](release-evidence/lease-listing-packet-local-2026-10-20.md) and
 [lease API/schema evidence and next steps](release-evidence/txr1102-private-api-local-2026-10-20.md).
