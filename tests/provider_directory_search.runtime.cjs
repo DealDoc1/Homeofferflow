@@ -9,7 +9,7 @@ const profile = fs.readFileSync(path.join(root, 'assets/partner-profile.js'), 'u
 const fixture = {id:'22222222-2222-4222-8222-222222222222',partner_type:'roofing',partner_name:'Test Roofing',partner_program:'beta',placement_tier:'founding',market_area:'Test market',website_url:'https://example.com/',logo_url:'https://example.com/logo.jpg',public_contact_name:'Test Contact',public_contact_phone:'+19725550123',public_description:'First approved sentence. Second approved sentence. '+ 'More approved details. '.repeat(15)};
 const tick = () => new Promise(resolve => setImmediate(resolve));
 function deferred() { let resolve, reject; const promise = new Promise((a,b) => {resolve=a;reject=b;}); return {promise,resolve,reject}; }
-function setup() {
+function setup({legacyProfile=false,strictPortrait=false}={}) {
   const requests=[], events=[], timers=new Map(), elements={};
   let timerId=0;
   for(const id of ['category','market','filters','status','results']) {
@@ -32,12 +32,23 @@ function setup() {
       if(options.method==='POST'){events.push(JSON.parse(options.body));return Promise.resolve({ok:true,json:async()=>({ok:true})});}
       const pending=deferred();requests.push({url,options,...pending});return pending.promise;
     }});
-  vm.runInContext(profile,context);vm.runInContext(source,context);
+  vm.runInContext(profile,context);
+  if(legacyProfile)context.window.hofPartnerProfile={...context.window.hofPartnerProfile,portrait:undefined};
+  const renderSource=strictPortrait?source.replace('(window.hofPartnerProfile.portrait?.(provider, esc) || "")','window.hofPartnerProfile.portrait(provider, esc)'):source;
+  vm.runInContext(renderSource,context);
   const respond=(index,partners=[fixture],ok=true)=>requests[index].resolve({ok,json:async()=>({ok,partners})});
   const search=category=>{elements.category.value=category;return elements.category.listeners.change({preventDefault(){}});};
   return {requests,events,timers,elements,button,respond,search};
 }
 async function run() {
+  {
+    const broken=setup({legacyProfile:true,strictPortrait:true});broken.respond(0);await tick();
+    assert(broken.elements.results.innerHTML.includes('data-directory-retry'));
+    const fixed=setup({legacyProfile:true});fixed.respond(0);await tick();
+    assert(fixed.elements.results.innerHTML.includes('Test Roofing'));
+    assert(fixed.elements.results.innerHTML.includes('tel:+19725550123'));
+    assert(!fixed.elements.results.innerHTML.includes('data-directory-retry'));
+  }
   {
     const s=setup();s.respond(0);await tick();
     assert(s.elements.results.classList.contains('single-provider'));
@@ -111,6 +122,6 @@ async function run() {
     assert(result.includes('&lt;img'));assert(!result.includes('<script>'));
     assert(!result.includes('javascript:'));assert(!result.includes('user:password'));
   }
-  console.log('10 actual-source provider search cases passed');
+  console.log('12 actual-source provider search cases passed, including cached-library reproduction and recovery');
 }
 run().catch(error=>{console.error(error);process.exitCode=1;});
