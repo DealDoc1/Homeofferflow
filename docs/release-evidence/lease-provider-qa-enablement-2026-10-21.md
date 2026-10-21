@@ -123,6 +123,16 @@ freeze; do not infer their result from focused checks. Source files and QA
 operator UI are unchanged from the previously reviewed local output; no new
 PDF geometry or invitation is introduced during release preparation.
 
+The frozen local run at `cf9dae0b` finished 2,914 tests in 107.456 seconds with
+two optional-source skips. Its only failure was the companion's stale v112
+assertion after the intentional v113 cache bump. That one test assertion was
+corrected without changing application code or maps. Focused PWA/companion
+checks and exact corrected-head CI provide the final result; the failed run is
+not reported as a full pass. PR 1355 is the isolated release; PR 1353 remains
+the separate unfinished customer candidate. No second local full run is needed
+for that test-only correction. The earlier superseded CI run is cancelled to
+avoid spending runner time on a known stale assertion.
+
 ## Deployment decision
 
 Ready scope: owner-only fictional provider QA and private source registration,
