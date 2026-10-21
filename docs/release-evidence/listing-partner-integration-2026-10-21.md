@@ -52,3 +52,26 @@ four customer migrations with the verified application release and canonical
 customer-flow checks. Do not resend existing packets or equate green local
 tests with provider completion. No preview, deployment, usage poll, third-party
 message, real transaction or billing change was performed in this batch.
+
+## Exact-head CI and signing checkpoint
+
+The existing draft PR 1353 was fast-forwarded to 45ff824b; it is still draft.
+CI 39676225172 completed successfully at that exact commit on October 21 at
+21:11:23 UTC. Unit suite: 3,039 tests, 29 private-source opt-in skips,
+181.126 seconds. Approved golden packet rendering, standalone TXR signer
+geometry, all 127 migration-file preflight checks and whitespace also passed.
+The earlier statement that there is no full current CI result is superseded
+by this result; no local full-suite rerun or deployment was needed.
+
+The existing ordinary sale packet's associate invitation was opened once,
+with only its nonbinding test-mode notice dismissed. It already has all
+required fields prepared and is at Agree & Finish; no signature field was
+changed. This confirms both sale roles and both lease roles are at final
+electronic-disclosure consent. The latest action-time request batches the
+four final clicks across the two named fictional packets. No final click,
+completed PDF download, source-map edit or duplicate invitation occurred.
+The screenshot remains private outside Git at
+`../lease-listing-2026-10-20/ordinary-provider-qa/sale-associate-final-step-live.jpg`.
+
+Only this final evidence changes after tested application head 45ff824b.
+Do not deploy or trigger another CI run merely for this documentation receipt.

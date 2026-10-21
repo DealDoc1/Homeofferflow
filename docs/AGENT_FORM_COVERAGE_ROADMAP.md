@@ -17,6 +17,13 @@ poll occurred. Existing lease QA signers remain visibly at Agree & Finish;
 final consent and completed-PDF review are still pending. See the
 [production integration checkpoint](release-evidence/listing-partner-integration-2026-10-21.md).
 
+Draft PR 1353 now contains application head 45ff824b, with exact-head CI
+39676225172 green: 3,039 tests, 29 opt-in skips, approved golden rendering,
+standalone signer geometry, migration preflight and whitespace. Both sale QA
+roles are also confirmed at final Agree & Finish. The current request batches
+final electronic-disclosure acceptance for the four QA roles across both
+packets. This is not a completed-provider PDF pass or a customer deployment.
+
 ## Owner-only lease QA enablement - October 21, 2026
 
 PR 1355 is deployed as production `24d619eb` / shell v113, with green CI and
