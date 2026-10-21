@@ -14,7 +14,8 @@ The customer candidate is reconciled locally with that production revision;
 shell v114 is reserved, both readiness contracts retained, and applied source
 SQL remains byte-identical. Focused reconciliation and actual-source tests
 pass. Isolated PostgreSQL passes 71 assertions in production source-first
-order and 70 in chronological order. No new hosted SQL or customer deployment
+order and 70 in chronological order. The exact reconciled candidate 8efaf936
+passes 3,029 tests with two optional-source skips. No new hosted SQL or customer deployment
 occurred. See the [current reconciliation checkpoint](release-evidence/lease-customer-reconciliation-2026-10-21.md)
 and [bounded QA release evidence](release-evidence/lease-provider-qa-enablement-2026-10-21.md).
 

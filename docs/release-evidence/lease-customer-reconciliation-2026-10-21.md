@@ -75,3 +75,15 @@ Remaining release evidence: final QA completion and actual completed-PDF
 placement review, separate ordinary sale-listing completion, coordinated
 customer schema/application release, then canonical customer-flow verification.
 These are implementation/verification tasks, not source authorization gates.
+
+## Reconciled full-candidate result
+
+At `8efaf9360a6b`, the exact reconciled code passed **3,029 tests, two optional
+source skips, exit 0**, in 115.405 seconds. Source opt-ins used the same exact
+private TXR-1101, TXR-1102 and rental originals as the preceding full run. The
+retained log is outside Git at
+`../lease-listing-2026-10-20/ordinary-provider-qa/reconciled-regression-2026-10-21.log`.
+The intentional Invalid fixture PDF message is a passing negative-path test.
+No application or mapping changes followed this result. Only this evidence
+and the roadmap are updated before fast-forwarding the existing draft PR.
+Git automatic deployments remain disabled; a PR push is not a deployment.
