@@ -76,12 +76,12 @@ and the viewport override reset.
 
 ## Remaining release requirements
 
-1. Obtain current official TXR-2008/TXR-2015 sources through the existing member
-   library session and implement their actual landlord-completion adapters.
-   The library was signed out at the focused check; one sign-in request is
-   outstanding. No new source-owner authorization is required for TXR-1102.
-2. Wire the existing additive lease schema readiness probe into the coordinated
-   release check; register the exact lease source in the central private library.
+1. Implement actual TXR-2008/TXR-2015 landlord-completion adapters. Subsequent
+   normal saved-credential sign-in and official downloads resolved source
+   access; see `lease-source-registration-2026-10-20.md`. No owner action remains.
+2. The additive lease schema readiness probe is now connected to the release
+   check and TXR-1102 is registered privately. Coordinate its unapplied migration
+   with the finished code release; do not claim hosted readiness from local tests.
 3. Complete the changed signing/provider-rendering QA, full exact-head regression
    and CI, then the coordinated code/schema release and canonical smoke checks.
 

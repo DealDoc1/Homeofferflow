@@ -48,7 +48,9 @@ provider, dependency or migration change was required. Automatic Git deployments
 remain disabled. No messages, invitations, billing changes or hosted writes.
 
 Still required for the complete lease-listing release: actual rental flood and
-lease lead source adapters, central exact-source registration, changed provider
+lease lead source adapters and their private intake support, changed provider
 rendering QA, final exact-head regression/CI, coordinated migrations and one
 intentional production release with canonical checks. This checkpoint is not a
 claim that the live site already has the new lease workflow.
+The subsequent source-registration checkpoint resolves TXR-1102 registration
+and source-login access; both related official PDFs are now available locally.
