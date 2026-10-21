@@ -22,8 +22,11 @@ The shared composer now appends the actual owner's saved IABS, shows missing
 lease documents as pending, and binds send review to the actual package.
 The composition checkpoint passes 159 affected tests (three unrelated skips),
 plus desktop/390px review and selected ordinary/single-broker/Unicode PDF pages.
-Real rental flood and lease lead disclosure adapters, coordinated release checks
-and completed-provider QA remain implementation work, not a new TXR-1102
+The additive lease database probe is now connected to the existing release
+checker; 19 focused release/schema tests pass, with no hosted SQL changes. See
+[release-check evidence](release-evidence/lease-listing-release-check-local-2026-10-20.md).
+Real rental flood and lease lead disclosure adapters, final coordinated release
+verification and completed-provider QA remain implementation work, not a new TXR-1102
 owner/source authorization blocker. See the
 [package composition evidence](release-evidence/lease-listing-packet-local-2026-10-20.md) and
 [lease API/schema evidence and next steps](release-evidence/txr1102-private-api-local-2026-10-20.md).

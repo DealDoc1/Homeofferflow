@@ -13,6 +13,7 @@ from urllib.request import Request, urlopen
 
 
 EXPECTED_CONTRACT = "homeofferflow-release-schema-v3"
+LEASE_CONTRACT = "homeofferflow-lease-listing-schema-v1"
 URL_KEYS = ("SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL", "VITE_SUPABASE_URL")
 SERVICE_KEY_KEYS = (
     "SUPABASE_SERVICE_ROLE_KEY",
@@ -111,6 +112,22 @@ def fetch_readiness(url: str, service_key: str) -> dict:
         with urlopen(probe, timeout=30) as response:
             if json.load(response) != []:
                 raise ValueError('purchase disclosure schema probe did not return an empty list')
+        # This is additive to the sale/purchase contracts, not a replacement.
+        # The RPC inspects catalog capabilities only; no transaction rows or
+        # document contents are read, and it cannot be called by public users.
+        lease = Request(f"{url.rstrip('/')}/rest/v1/rpc/hof_lease_listing_schema_readiness",
+                        data=b'{}', headers=request_headers(service_key), method='POST')
+        with urlopen(lease, timeout=30) as response:
+            lease_contract = json.load(response)
+        if (not isinstance(lease_contract, dict) or lease_contract.get('contract') != LEASE_CONTRACT
+                or type(lease_contract.get('ready')) is not bool
+                or not isinstance(lease_contract.get('missing'), list)
+                or any(not isinstance(item, str) for item in lease_contract['missing'])):
+            raise ValueError('lease listing readiness contract is unavailable or invalid')
+        if lease_contract['ready'] is not True or lease_contract['missing']:
+            payload['ready'] = False
+            payload['missing'] = [*(payload.get('missing') or []),
+                *lease_contract['missing'], 'lease-listing:not-ready']
     return payload
 
 

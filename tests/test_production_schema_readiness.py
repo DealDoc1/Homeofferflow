@@ -33,11 +33,13 @@ class ProductionSchemaReadinessTests(unittest.TestCase):
             body = {"contract": MODULE.EXPECTED_CONTRACT, "ready": True, "missing": []} if len(requests) == 1 else []
             if request.full_url.endswith('/rpc/hof_purchase_disclosure_schema_readiness'):
                 body = {'contract':'homeofferflow-purchase-disclosure-v1','ready':True,'missing':[]}
+            if request.full_url.endswith('/rpc/hof_lease_listing_schema_readiness'):
+                body = {'contract':MODULE.LEASE_CONTRACT,'ready':True,'missing':[]}
             yield io.StringIO(json.dumps(body))
         with patch.object(MODULE, 'urlopen', side_effect=open_fixture):
             result = MODULE.fetch_readiness('https://fixture.supabase.co', 'sb_secret_fixture')
         self.assertTrue(result['ready'])
-        self.assertEqual(len(requests), 6)
+        self.assertEqual(len(requests), 7)
         self.assertTrue(requests[0].full_url.endswith('/rpc/hof_listing_package_schema_readiness'))
         self.assertEqual(requests[1].method, 'GET')
         self.assertIn('onboarding_public_contact_phone', requests[1].full_url)
@@ -51,6 +53,11 @@ class ProductionSchemaReadinessTests(unittest.TestCase):
         self.assertNotIn('seller_email', requests[2].full_url)
         self.assertTrue(requests[4].full_url.endswith('/rpc/hof_purchase_disclosure_schema_readiness'))
         self.assertIn('select=signature_offer_id&limit=0', requests[5].full_url)
+        self.assertTrue(requests[6].full_url.endswith('/rpc/hof_lease_listing_schema_readiness'))
+        self.assertEqual(requests[6].method, 'POST')
+        self.assertEqual(requests[6].data, b'{}')
+        self.assertEqual(requests[6].get_header('Apikey'), 'sb_secret_fixture')
+        self.assertIsNone(requests[6].get_header('Authorization'))
 
     def test_disabled_purchase_binding_guard_cannot_pass_release_readiness(self):
         import json
@@ -62,11 +69,66 @@ class ProductionSchemaReadinessTests(unittest.TestCase):
                 body = {'contract':MODULE.EXPECTED_CONTRACT,'ready':True,'missing':[]}
             if request.full_url.endswith('/rpc/hof_purchase_disclosure_schema_readiness'):
                 body = {'contract':'homeofferflow-purchase-disclosure-v1','ready':False,'missing':['trigger:hof_purchase_disclosure_signature_guard']}
+            if request.full_url.endswith('/rpc/hof_lease_listing_schema_readiness'):
+                body = {'contract':MODULE.LEASE_CONTRACT,'ready':True,'missing':[]}
             yield io.StringIO(json.dumps(body))
         with patch.object(MODULE, 'urlopen', side_effect=open_fixture):
             result = MODULE.fetch_readiness('https://fixture.supabase.co', 'sb_secret_fixture')
         self.assertFalse(result['ready'])
         self.assertIn('trigger:hof_purchase_disclosure_signature_guard', result['missing'])
+
+    def lease_fixture(self, result):
+        import json
+        from contextlib import contextmanager
+        from urllib.error import HTTPError
+        @contextmanager
+        def open_fixture(request, timeout):
+            body = []
+            if request.full_url.endswith('/rpc/hof_listing_package_schema_readiness'):
+                body = {'contract':MODULE.EXPECTED_CONTRACT,'ready':True,'missing':[]}
+            elif request.full_url.endswith('/rpc/hof_purchase_disclosure_schema_readiness'):
+                body = {'contract':'homeofferflow-purchase-disclosure-v1','ready':True,'missing':[]}
+            elif request.full_url.endswith('/rpc/hof_lease_listing_schema_readiness'):
+                if isinstance(result, int):
+                    raise HTTPError(request.full_url, result, 'fictional unavailable lease RPC', {}, None)
+                body = result
+            yield io.StringIO(json.dumps(body))
+        return patch.object(MODULE, 'urlopen', side_effect=open_fixture)
+
+    def test_lease_constraint_failure_or_inconsistent_ready_flag_cannot_pass(self):
+        missing = ['form_code:hof_standalone_agreements.TXR-1102']
+        for ready, failures in ((False, missing), (False, []), (True, missing)):
+            with self.subTest(ready=ready, failures=failures), self.lease_fixture(
+                    {'contract':MODULE.LEASE_CONTRACT,'ready':ready,'missing':failures}):
+                result = MODULE.fetch_readiness('https://fixture.supabase.co', 'sb_secret_fixture')
+                self.assertFalse(result['ready'])
+                self.assertIn('lease-listing:not-ready', result['missing'])
+                for failure in failures:
+                    self.assertIn(failure, result['missing'])
+
+    def test_missing_or_inaccessible_lease_rpc_cannot_be_silently_ignored(self):
+        from urllib.error import HTTPError
+        for status in (401, 403, 404, 503):
+            with self.subTest(status=status), self.lease_fixture(status), self.assertRaises(HTTPError):
+                MODULE.fetch_readiness('https://fixture.supabase.co', 'sb_secret_fixture')
+
+    def test_malformed_or_wrong_lease_contract_never_claims_readiness(self):
+        good = {'contract':MODULE.LEASE_CONTRACT,'ready':True,'missing':[]}
+        for payload in (None, [], {}, {**good,'contract':'wrong'}, {**good,'ready':'true'},
+                        {**good,'ready':1}, {**good,'missing':None}, {**good,'missing':'missing'},
+                        {**good,'missing':[{'unsafe':'object'}]}):
+            with self.subTest(payload=payload), self.lease_fixture(payload), self.assertRaises(ValueError):
+                MODULE.fetch_readiness('https://fixture.supabase.co', 'sb_secret_fixture')
+
+    def test_lease_wrapper_remains_separate_service_only_and_additive(self):
+        sql = (ROOT/'supabase/migrations/20261020231654_add_txr1102_lease_listing_drafts.sql').read_text()
+        self.assertIn(MODULE.LEASE_CONTRACT, sql)
+        self.assertIn('baseline := public.hof_release_schema_readiness()', sql)
+        self.assertNotIn('create or replace function public.hof_release_schema_readiness()', sql)
+        self.assertIn('security invoker set search_path=pg_catalog', sql)
+        self.assertIn('revoke all on function public.hof_lease_listing_schema_readiness() from public,anon,authenticated', sql)
+        self.assertIn('grant execute on function public.hof_lease_listing_schema_readiness() to service_role', sql)
+        self.assertIn('and c.contype=\'c\' and c.convalidated', sql)
 
     def test_questionnaire_readiness_matches_only_the_released_schema(self):
         sql = (ROOT / 'supabase/migrations/20261018134817_seller_disclosure_questionnaire_access.sql').read_text()
