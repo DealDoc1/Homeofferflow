@@ -35,6 +35,18 @@ service credentials and signed-document access links are not committed.
 
 ## Signing plan
 
+### Authenticated QA boundary
+
+The canonical owner/admin session and authenticated TXR-1102 private source
+registration were verified before this release preparation; hosted SQL also
+confirms the source vault remains private. The existing reserved operator
+signing path is already deployed for ordinary sale-listing QA. Focused tests
+prove the added lease action requires both the approved owner identity and
+platform-admin status before any source read, with all source downloads kept
+server-side. This does **not** claim an authenticated invocation of the new
+lease control before its deployment: that canonical check remains an explicit
+post-deploy step before provider output can be called verified.
+
 One ordinary fictional transaction uses the real TXR-1102/2015/2008 maps and
 composer: 14 pages, 44 fields, four landlord exact-one choice groups and two
 conditional explanations. Landlord QA Signer A uses andrewchri@gmail.com;
