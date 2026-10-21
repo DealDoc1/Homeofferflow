@@ -23897,7 +23897,7 @@ function routeAfterMagicLinkIfNeeded() {
       const submit = event.currentTarget.querySelector('button[type="submit"]');
       submit.disabled = true; status.textContent = 'Sending securely…';
       try {
-        const response = await fetch('/api/admin-dashboard', { method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${token()}`}, body:JSON.stringify({ action:'send_txr_agreement_for_signature', agreementId:agreement.id, clientEmails, confirmedRecipients, brokerSigner, ...(agreement.form_code === 'TXR-1101' ? {confirmedPacketFingerprint:listingPacketFingerprint} : {}) }) });
+        const response = await fetch('/api/admin-dashboard', { method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${token()}`}, body:JSON.stringify({ action:'send_txr_agreement_for_signature', agreementId:agreement.id, clientEmails, confirmedRecipients, brokerSigner, ...(['TXR-1101','TXR-1102'].includes(agreement.form_code) ? {confirmedPacketFingerprint:listingPacketFingerprint} : {}) }) });
         const result = await response.json().catch(() => ({}));
         if (!viewerIsCurrent(actor) || !modal.isConnected) { modal.remove(); return; }
         if (!response.ok) {
@@ -23946,7 +23946,7 @@ function routeAfterMagicLinkIfNeeded() {
       if (!Array.isArray(result.recipients) || !result.recipients.length) throw new Error('This document has no signing recipients.');
       signers = result.recipients;
       listingPacketFingerprint = result.packetFingerprint || '';
-      modal.querySelector('#hofStandalonePacketSummary').innerHTML = agreement.form_code === 'TXR-1101' ? listingPacketSummary(result.packet) : '';
+      modal.querySelector('#hofStandalonePacketSummary').innerHTML = ['TXR-1101','TXR-1102'].includes(agreement.form_code) ? listingPacketSummary(result.packet) : '';
       modal.querySelector('#hofStandaloneSigningRecipients').innerHTML = signers.map(signer => signer.nameEditable
         ? `<div class="hof-agreement-grid hof-agreement-wide" style="margin:0"><label>Broker's name<input name="signerName${escape(signer.id)}" required maxlength="120" autocomplete="off" value="${escape(signer.name || '')}"></label><label>Broker's email<input name="clientEmail${escape(signer.id)}" required type="email" maxlength="254" autocomplete="off" value="${escape(signer.email || '')}"></label></div>`
         : `<label>${escape(signer.label)}: ${escape(signer.name)}<input ${signer.emailEditable ? `name="clientEmail${escape(signer.id)}" required autocomplete="email"` : 'readonly'} type="email" maxlength="254" value="${escape(signer.email || '')}"></label>`).join('');

@@ -108,10 +108,10 @@ class LeaseListingTests(unittest.TestCase):
         self.assertEqual(result['pool_other'],'No pool at property')
 
     def test_selected_related_documents_are_requests_not_fake_attachments(self):
-        self.assertEqual(form.validate_answers(sample(addenda=[]))['addenda'],['C'])
-        self.assertEqual(form.validate_answers(sample(built_before_1978='unanswered',addenda=[]))['addenda'],['C'])
-        self.assertEqual(form.validate_answers(sample(built_before_1978='no',addenda=[]))['addenda'],[])
-        self.assertEqual(form.validate_answers(sample(built_before_1978='no',addenda=[],other_documents='Fictional notice'))['addenda'],['L'])
+        self.assertEqual(form.validate_answers(sample(addenda=[]))['addenda'],['B','C'])
+        self.assertEqual(form.validate_answers(sample(built_before_1978='unanswered',addenda=[]))['addenda'],['B','C'])
+        self.assertEqual(form.validate_answers(sample(built_before_1978='no',addenda=[]))['addenda'],['B'])
+        self.assertEqual(form.validate_answers(sample(built_before_1978='no',addenda=[],other_documents='Fictional notice'))['addenda'],['B','L'])
         for selected in (['A','A'],['M'],['L'],[{}],'ABC'):
             with self.subTest(selected=selected),self.assertRaises(ValueError):form.validate_answers(sample(addenda=selected))
 

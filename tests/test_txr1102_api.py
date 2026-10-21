@@ -60,7 +60,7 @@ class LeaseListingApiTests(unittest.TestCase):
     def send_body(self):
         preview=asyncio.run(api._standalone_signing_recipient_preview(USER,AGREEMENT_ID))
         return {'action':'send_txr_agreement_for_signature','agreementId':AGREEMENT_ID,
-                'confirmedRecipients':preview['recipients']}
+                'confirmedRecipients':preview['recipients'],'confirmedPacketFingerprint':preview['packetFingerprint']}
 
     def test_save_uses_actual_login_owner_and_lease_revision_without_seat_lookup(self):
         row=self.create()
@@ -145,7 +145,8 @@ class LeaseListingApiTests(unittest.TestCase):
         self.assertEqual(data['client_names'],sample()['client_names'])
         self.assertNotIn('client_emails',data); self.assertNotIn('compensation',data)
         self.assertEqual(broker['email'],'saved-office@example.test'); self.assertEqual(context['render_revision'],REVISION)
-        self.assertNotIn('listing_packet',context)
+        self.assertEqual(context['listing_packet']['included'][0]['code'],'TXR-1102')
+        self.assertNotIn('seller_disclosure',context['listing_packet'])
 
     def test_recipient_preview_uses_landlords_saved_emails_and_associate(self):
         self.create(); result=asyncio.run(api._standalone_signing_recipient_preview(USER,AGREEMENT_ID))
@@ -207,6 +208,68 @@ class LeaseListingApiTests(unittest.TestCase):
         status,result=self.post(body); self.assertEqual(status,200,result)
         self.assertEqual([r['id'] for r in self.store.provider['recipients']],['1','broker'])
         self.assertEqual({f['recipient_id'] for f in self.store.provider['fields'][0]},{'1','broker'})
+
+    def add_iabs(self):
+        sale_api_tests.Txr1101ApiTests.add_iabs(self)
+
+    def test_actual_saved_iabs_is_included_once_without_fabricated_disclosures_or_extra_signers(self):
+        self.add_iabs();self.create()
+        preview=asyncio.run(api._standalone_signing_recipient_preview(USER,AGREEMENT_ID))
+        self.assertEqual(preview['packet']['pageCount'],12)
+        self.assertEqual(preview['packet']['included'],['Lease listing agreement','Information About Brokerage Services'])
+        self.assertTrue(any('Rental flood disclosure' in row for row in preview['packet']['pending']))
+        self.assertTrue(any('Lead-based paint disclosure for a lease' in row for row in preview['packet']['pending']))
+        self.assertFalse(any('Seller’s Disclosure' in row for row in preview['packet']['pending']))
+        body=self.send_body();status,result=self.post(body);self.assertEqual(status,200,result)
+        request=self.store.provider
+        reader=PdfReader(BytesIO(base64.b64decode(request['files'][0]['file_base64'])))
+        self.assertEqual(len(reader.pages),12);self.assertIn('Fictional saved IABS',reader.pages[-1].extract_text())
+        self.assertEqual(len(request['files']),1);self.assertEqual(len(request['fields']),1)
+        self.assertLessEqual(max(f['page'] for f in request['fields'][0]),11)
+        self.assertEqual({r['id'] for r in request['recipients']},{'1','2','associate'})
+        self.assertEqual(self.post(body)[0],200)
+        self.assertEqual((self.store.provider_creates,self.store.provider_sends),(1,1))
+
+    def test_missing_saved_iabs_remains_pending_and_does_not_stop_other_documents(self):
+        self.add_iabs();self.store.iabs_bytes=None;self.store.iabs_error=404;self.create()
+        preview=asyncio.run(api._standalone_signing_recipient_preview(USER,AGREEMENT_ID))
+        self.assertEqual(preview['packet']['pageCount'],11)
+        self.assertEqual(preview['packet']['included'],['Lease listing agreement'])
+        self.assertIn('Information About Brokerage Services',preview['packet']['pending'])
+        self.assertEqual(self.post(self.send_body())[0],200)
+        self.assertEqual(self.store.provider_sends,1)
+
+    def test_changed_or_unconfirmed_package_cannot_be_sent_until_actual_contents_are_reviewed(self):
+        self.create();body=self.send_body()
+        for value in (None,'','browser-chosen-value'):
+            status,result=self.post({**body,'confirmedPacketFingerprint':value})
+            self.assertEqual(status,400,result)
+        self.add_iabs()
+        self.assertEqual(self.post(body)[0],400)
+        self.assertEqual((self.store.provider_creates,self.store.provider_sends),(0,0))
+        status,result=self.post(self.send_body());self.assertEqual(status,200,result)
+        self.assertEqual((self.store.provider_creates,self.store.provider_sends),(1,1))
+
+    def test_wrong_account_iabs_row_is_rejected_before_private_storage_download(self):
+        self.add_iabs();self.store.iabs['user_id']=SHARED_PROFILE_ID;self.store.iabs['storage_path']=SHARED_PROFILE_ID+'/iabs.pdf'
+        self.store.iabs_wrong_row=True;self.create()
+        with self.assertRaises(PermissionError):
+            asyncio.run(api._standalone_signing_recipient_preview(USER,AGREEMENT_ID))
+        self.assertFalse(any('/agent-documents/' in r.url.path for r in self.store.requests))
+        self.assertEqual(self.store.provider_creates,0)
+
+    def test_temporary_saved_file_error_is_not_misreported_as_a_missing_document(self):
+        self.add_iabs();self.store.iabs_bytes=None;self.store.iabs_error=503;self.create()
+        with self.assertRaisesRegex(RuntimeError,'IABS PDF could not be loaded'):
+            asyncio.run(api._standalone_signing_recipient_preview(USER,AGREEMENT_ID))
+        self.assertEqual(self.store.provider_creates,0)
+
+    def test_saved_iabs_content_change_cannot_create_a_second_provider_request(self):
+        self.add_iabs();self.create();body=self.send_body()
+        self.assertEqual(self.post(body)[0],200)
+        self.store.iabs_bytes+=b'\nchanged stored file'
+        self.assertEqual(self.post(body)[0],400)
+        self.assertEqual((self.store.provider_creates,self.store.provider_sends),(1,1))
 
     @unittest.skipUnless(os.environ.get('HOF_TXR1102_SOURCE'),'Exact private source is opt-in; no provider traffic.')
     def test_actual_private_source_preview_and_delivery_preserve_lease_terms(self):

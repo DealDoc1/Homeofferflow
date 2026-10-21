@@ -4914,6 +4914,50 @@ async def _owned_listing_disclosure(user, answers, *, agreement_id=None):
         return None, 'Disclosure not ready to include. You can complete it separately.'
 
 
+async def _owned_listing_iabs(user):
+    """Return the acting account's verified saved file, or an explicit absence."""
+    from lib.listing_packet import PreparedDocument
+    rows = await _get(
+        "hof_agent_documents?"
+        f"user_id=eq.{urllib.parse.quote(str(user['id']),safe='')}&document_type=eq.iabs"
+        "&select=user_id,document_type,storage_bucket,storage_path,mime_type&limit=1")
+    if not rows:
+        return None
+    document = rows[0]
+    expected_path = str(user["id"])+"/iabs.pdf"
+    if (document.get("user_id") != user["id"] or document.get("document_type") != "iabs"
+            or document.get("storage_bucket") != "agent-documents"
+            or document.get("storage_path") != expected_path or document.get("mime_type") != "application/pdf"):
+        raise PermissionError("Your saved IABS document could not be confirmed.")
+    async with httpx.AsyncClient(timeout=20) as client:
+        response = await client.get(
+            f"{SUPABASE_URL}/storage/v1/object/agent-documents/"
+            f"{urllib.parse.quote(expected_path,safe='/')}",headers=_headers())
+    if response.status_code == 404:
+        return None
+    if response.status_code != 200 or not response.content.startswith(b"%PDF") or len(response.content)>10_485_760:
+        raise RuntimeError("Your saved IABS PDF could not be loaded. The listing draft remains saved.")
+    return PreparedDocument("A",response.content,[],{},hashlib.sha256(response.content).hexdigest())
+
+
+async def _assemble_owned_lease_listing_packet(user, render_data, listing_pdf):
+    from lib.listing_packet import assemble_lease_listing_packet
+    from lib.txr_1102 import build_signwell_fields_txr1102
+    documents=[]
+    pending_reasons={}
+    if 'A' in render_data['addenda']:
+        iabs=await _owned_listing_iabs(user)
+        if iabs is not None: documents.append(iabs)
+    if 'B' in render_data['addenda']:
+        pending_reasons['B']='Landlord-completed rental flood disclosure to follow.'
+    if 'C' in render_data['addenda']:
+        pending_reasons['C']=('Lease lead disclosure to be completed by the landlord.' if render_data['built_before_1978']=='yes'
+                              else 'Confirm the home’s age and complete the lease disclosure if applicable.')
+    count=len(PdfReader(BytesIO(listing_pdf)).pages)
+    fields=build_signwell_fields_txr1102(render_data,client_count=len(render_data['client_names']),page_count=count)
+    return assemble_lease_listing_packet(render_data,listing_pdf,fields,documents=documents,pending_reasons=pending_reasons)
+
+
 async def _assemble_owned_listing_packet(user, render_data, listing_pdf, *, agreement_id=None):
     """Reuse the actual login's saved IABS, never source-host/private aliases.
 
@@ -4930,31 +4974,8 @@ async def _assemble_owned_listing_packet(user, render_data, listing_pdf, *, agre
         if disclosure is not None: documents.append(disclosure)
         elif reason: pending_reasons['B'] = reason
     if "A" in render_data["addenda"]:
-        rows = await _get(
-            "hof_agent_documents?"
-            f"user_id=eq.{urllib.parse.quote(str(user['id']),safe='')}&document_type=eq.iabs"
-            "&select=user_id,document_type,storage_bucket,storage_path,mime_type&limit=1"
-        )
-        if rows:
-            document = rows[0]
-            expected_path = str(user["id"])+"/iabs.pdf"
-            if (document.get("user_id") != user["id"] or document.get("document_type") != "iabs"
-                    or document.get("storage_bucket") != "agent-documents"
-                    or document.get("storage_path") != expected_path
-                    or document.get("mime_type") != "application/pdf"):
-                raise PermissionError("Your saved IABS document could not be confirmed.")
-            async with httpx.AsyncClient(timeout=20) as client:
-                response = await client.get(
-                    f"{SUPABASE_URL}/storage/v1/object/agent-documents/"
-                    f"{urllib.parse.quote(expected_path,safe='/')}",headers=_headers())
-            if response.status_code == 404:
-                # A stale saved-file row must not prevent preparing/sending the
-                # documents that exist. The manifest shows IABS as pending.
-                response = None
-            elif response.status_code != 200 or not response.content.startswith(b"%PDF") or len(response.content)>10_485_760:
-                raise RuntimeError("Your saved IABS PDF could not be loaded. The listing draft remains saved.")
-            if response is not None:
-                documents.append(PreparedDocument("A",response.content,[],{},hashlib.sha256(response.content).hexdigest()))
+        iabs = await _owned_listing_iabs(user)
+        if iabs is not None: documents.append(iabs)
     base_count = len(PdfReader(BytesIO(listing_pdf)).pages)
     if "C" in render_data["addenda"]:
         from pathlib import Path
@@ -5074,7 +5095,15 @@ async def _render_owned_representation_agreement(user, agreement, *, for_signing
         return packet.pdf
     if agreement.get("form_code") == TXR_1102_FORM_CODE:
         from lib.txr_1102 import render_txr_1102
-        return render_txr_1102(response.content, render_data, brokerage, profile)
+        listing_pdf = render_txr_1102(response.content, render_data, brokerage, profile)
+        packet = await _assemble_owned_lease_listing_packet(user,render_data,listing_pdf)
+        if fingerprint_context is not None:
+            fingerprint_context["listing_packet"] = packet.manifest
+            fingerprint_context["listing_packet_fingerprint"] = packet.content_fingerprint
+            fingerprint_context["listing_packet_fields"] = packet.fields
+            fingerprint_context["listing_packet_checkbox_groups"] = packet.checkbox_groups
+            fingerprint_context["listing_packet_conditional_rules"] = packet.conditional_rules
+        return packet.pdf
     if agreement.get("form_code") == TXR_1507_FORM_CODE:
         from lib.txr_1507 import render_txr_1507
         return render_txr_1507(response.content, render_data, brokerage, profile)
@@ -5366,7 +5395,7 @@ async def _standalone_signing_recipient_preview(user, agreement_id):
             recipient["emailEditable"] = True
             recipient["nameEditable"] = True
     result = {"agreementId": agreement_uuid, "recipients": recipients}
-    if agreement.get("form_code") == TXR_1101_FORM_CODE:
+    if agreement.get("form_code") in {TXR_1101_FORM_CODE, TXR_1102_FORM_CODE}:
         packet_context = {}
         await _render_owned_representation_agreement(user,agreement,
             fingerprint_context=packet_context,professional_context=professional_context or None)
@@ -5612,14 +5641,14 @@ async def _send_txr_agreement_for_signature(user, data):
     rendered = await _render_owned_representation_agreement(
         user, agreement, for_signing=True, fingerprint_context=render_context,
         professional_context=professional_context or None)
-    if form_code == TXR_1101_FORM_CODE:
+    if form_code in {TXR_1101_FORM_CODE, TXR_1102_FORM_CODE}:
         expected_packet = _listing_packet_confirmation(user,agreement,render_context)
         confirmed_packet = data.get("confirmedPacketFingerprint")
         if not isinstance(confirmed_packet,str) or not secrets.compare_digest(expected_packet,confirmed_packet):
             raise ValueError("The document package changed. Reopen Send for signature to review its current contents. Nothing was sent.")
     # The listing renderer has already composed related documents and shifted
     # their fields. Never mistake appended pages for primary continuations.
-    fields = (render_context["listing_packet_fields"] if form_code == TXR_1101_FORM_CODE
+    fields = (render_context["listing_packet_fields"] if form_code in {TXR_1101_FORM_CODE, TXR_1102_FORM_CODE}
               else _txr_signwell_fields(form_code, {"client_names": client_names, **agreement_data}, client_count,
                                        rendered_pdf=rendered))
     address_label = form_code.replace("-", " ")
@@ -5654,7 +5683,7 @@ async def _send_txr_agreement_for_signature(user, data):
             "test_mode": str(SIGNWELL_TEST_MODE).lower(),
         },
     }
-    if form_code == TXR_1101_FORM_CODE:
+    if form_code in {TXR_1101_FORM_CODE, TXR_1102_FORM_CODE}:
         for name in ("checkbox_groups","conditional_rules"):
             if render_context.get("listing_packet_"+name):
                 payload[name]=render_context["listing_packet_"+name]

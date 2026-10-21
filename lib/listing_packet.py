@@ -1,4 +1,4 @@
-"""Compose a sale-listing packet from server-verified prepared documents.
+"""Compose a sale or lease listing packet from server-verified documents.
 
 This is not a source resolver, upload endpoint or authorization boundary. The
 caller must load owner-scoped records and verify each source/revision before
@@ -193,15 +193,33 @@ def assemble_listing_packet(answers, listing_pdf, listing_fields, *, documents=(
     Caller authorization and source validation cannot be replaced by this API.
     """
     data = validate_answers(answers)
+    return _compose_listing_packet(data,listing_pdf,listing_fields,documents=documents,pending_reasons=pending_reasons,
+        document_choices=DOCUMENT_CHOICES,primary_code='TXR-1101',primary_label='Sale listing agreement',
+        revision=REVISION,allow_seller_disclosure=True)
+
+
+def assemble_lease_listing_packet(answers, listing_pdf, listing_fields, *, documents=(), pending_reasons=None):
+    """Use the lease's own answers/checklist; never relabel a sale disclosure."""
+    from lib.txr_1102 import validate_answers as validate_lease, DOCUMENT_CHOICES as LEASE_DOCUMENT_CHOICES
+    return _compose_listing_packet(validate_lease(answers),listing_pdf,listing_fields,
+        documents=documents,pending_reasons=pending_reasons,document_choices=LEASE_DOCUMENT_CHOICES,
+        primary_code='TXR-1102',primary_label='Lease listing agreement',
+        revision='lease-listing-packet-composition-v1',allow_seller_disclosure=False)
+
+
+def _compose_listing_packet(data, listing_pdf, listing_fields, *, documents, pending_reasons,
+                            document_choices, primary_code, primary_label, revision, allow_seller_disclosure):
     if not isinstance(documents, (tuple,list)):
         raise ValueError('Choose prepared related documents.')
     selected = data['addenda']
-    labels = dict(DOCUMENT_CHOICES)
+    labels = dict(document_choices)
     by_code = {}
     contained_by = {}
     for document in documents:
         if not isinstance(document, PreparedDocument) or document.code not in selected or document.code in by_code:
             raise ValueError('Add each selected related document only once.')
+        if not allow_seller_disclosure and document.disclosure_binding:
+            raise ValueError('Use lease-specific related documents, not a sale disclosure.')
         if not isinstance(document.content_fingerprint,str) or not re.fullmatch(r'[a-f0-9]{64}',document.content_fingerprint):
             raise ValueError('The prepared document’s saved content could not be confirmed.')
         by_code[document.code] = document
@@ -228,7 +246,7 @@ def assemble_listing_packet(answers, listing_pdf, listing_fields, *, documents=(
     if primary.get_fields(): primary.add_form_topname('hof_listing_primary')
     writer.append(primary,import_outline=False)
     page_count = len(primary.pages)
-    included = [{'code':'TXR-1101','label':'Sale listing agreement','status':'included',
+    included = [{'code':primary_code,'label':primary_label,'status':'included',
                  'start_page':1,'end_page':page_count}]
     pending = []
     for code in selected:
@@ -265,9 +283,9 @@ def assemble_listing_packet(answers, listing_pdf, listing_fields, *, documents=(
     if len({field['api_id'] for field in fields}) != len(fields):
         raise ValueError('The listing packet contains conflicting signing fields.')
     output = BytesIO();writer.write(output)
-    manifest = {'revision':REVISION,'page_count':page_count,'included':included,'pending':pending,
+    manifest = {'revision':revision,'page_count':page_count,'included':included,'pending':pending,
                 'other_documents':data['other_documents'],'has_pending_documents':bool(pending or data['other_documents'])}
-    if by_code.get('B') and by_code['B'].disclosure_binding:
+    if allow_seller_disclosure and by_code.get('B') and by_code['B'].disclosure_binding:
         manifest['seller_disclosure'] = deepcopy(by_code['B'].disclosure_binding)
     # Stable content identity, not a volatile renderer timestamp. The existing
     # delivery layer additionally binds primary source/revision, identity and

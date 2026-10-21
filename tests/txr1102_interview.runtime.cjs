@@ -27,9 +27,9 @@ test('all conditional core terms are cleared when their authority or fee basis c
   assert.equal(a.mls_delay_days,'');assert.equal(a.make_ready_limit,'');assert.equal(a.make_ready_service_fee,'');
 });
 test('unknown age requests a lease lead document but never claims it is attached',()=>{
-  assert.deepEqual(model.collect(values({built_before_1978:''})).agreementData.addenda,['A','C']);
-  assert.deepEqual(model.collect(values({built_before_1978:'yes',addenda:['A','C','C']})).agreementData.addenda,['A','C']);
-  assert.deepEqual(model.collect(values()).agreementData.addenda,['A']);
+  assert.deepEqual(model.collect(values({built_before_1978:''})).agreementData.addenda,['A','B','C']);
+  assert.deepEqual(model.collect(values({built_before_1978:'yes',addenda:['A','C','C']})).agreementData.addenda,['A','B','C']);
+  assert.deepEqual(model.collect(values()).agreementData.addenda,['A','B']);
 });
 test('optional preference branches do not carry stale amounts, contacts or animal permissions',()=>{
   const a=model.collect(values({include_rental_preferences:'on',rent_due:'first',rent_due_other:'old',animals:'not_permitted',
@@ -51,7 +51,7 @@ test('saved snapshots, including blank office contacts and preference zeroes, ov
 });
 test('new workspaces supply identity and property, never unagreed fees or lease preferences',()=>{
   const a=model.prefill({property_address:'QA property',seller_names:['QA Landlord'],listing_price:'9999'});
-  assert.equal(a.property_address,'QA property');assert.equal(a.seller_one,'QA Landlord');assert.deepEqual(a.addenda,['A']);
+  assert.equal(a.property_address,'QA property');assert.equal(a.seller_one,'QA Landlord');assert.deepEqual(a.addenda,['A','B']);
   assert.ok(!('listing_price' in a));assert.ok(!('fee_amount' in a));
 });
 test('current-step checks surface rent, chronology, negotiated fees and delay errors before proceeding',()=>{

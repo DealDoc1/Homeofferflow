@@ -18,8 +18,14 @@ seven shared sale-dialog regression checks. Conditional preferences, explicit
 zeroes, saved snapshots and ambiguous-save recovery pass; phone visual review
 also corrected the optional checkbox and sticky footer. See the
 [interview checkpoint and local screenshots](release-evidence/txr1102-interview-local-2026-10-20.md).
-Actual related-document composition, coordinated release checks and completed-provider QA remain
-implementation work, not an owner/source authorization blocker. See
+The shared composer now appends the actual owner's saved IABS, shows missing
+lease documents as pending, and binds send review to the actual package.
+The composition checkpoint passes 159 affected tests (three unrelated skips),
+plus desktop/390px review and selected ordinary/single-broker/Unicode PDF pages.
+Real rental flood and lease lead disclosure adapters, coordinated release checks
+and completed-provider QA remain implementation work, not a new TXR-1102
+owner/source authorization blocker. See the
+[package composition evidence](release-evidence/lease-listing-packet-local-2026-10-20.md) and
 [lease API/schema evidence and next steps](release-evidence/txr1102-private-api-local-2026-10-20.md).
 
 ## Earlier integration status - October 19, 2026

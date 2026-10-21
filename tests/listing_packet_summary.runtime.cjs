@@ -21,6 +21,14 @@ test('unknown legacy packets render no invented summary and complete packets hav
   const view=root.formatListingPacket({pageCount:10,included:['Sale listing agreement'],pending:[]});
   assert.doesNotMatch(view,/Still to prepare|complete the remaining items/);
 });
+test('lease packet lists actual IABS and pending rental disclosures without blocking prepared documents',()=>{
+  const view=root.formatListingPacket({pageCount:12,included:['Lease listing agreement','Information About Brokerage Services'],
+    pending:['Rental flood disclosure — Landlord completion to follow.','Lead-based paint disclosure for a lease — Confirm the home’s age.']});
+  assert.match(view,/<strong>Included:<\/strong> Lease listing agreement · Information About Brokerage Services/);
+  assert.match(view,/<strong>Still to prepare:<\/strong> Rental flood disclosure/);
+  assert.match(view,/You can send the prepared documents now/);
+  assert.doesNotMatch(view,/Seller’s Disclosure Notice|Sale listing agreement/);
+});
 test('document labels and additional notes are escaped, never injected as markup',()=>{
   const view=root.formatListingPacket({pageCount:11,included:['<img src=x onerror=alert(1)>'],pending:['<script>bad()</script>'],otherDocuments:'<iframe>private</iframe>'});
   assert.doesNotMatch(view,/<img|<script|<iframe/);

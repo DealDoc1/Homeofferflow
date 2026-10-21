@@ -206,7 +206,9 @@ def validate_answers(data):
     # An unknown construction year is not an assertion that the property is
     # newer. Keep the lead document requested until age is confirmed; the
     # package adapter must distinguish requested/pending from actually included.
-    result['addenda']=sorted(set(addenda)|({'C'} if age!='no' else set())|({'L'} if result['other_documents'] else set()))
+    # Rental flood disclosure is requested for every rental, without guessing
+    # the landlord's flood answers. The composer still proves actual inclusion.
+    result['addenda']=sorted(set(addenda)|{'B'}|({'C'} if age!='no' else set())|({'L'} if result['other_documents'] else set()))
     include=data.get('include_rental_preferences',False)
     if not isinstance(include,bool):raise ValueError('Choose whether to include rental preferences.')
     result['include_rental_preferences']=include

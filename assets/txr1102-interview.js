@@ -51,7 +51,7 @@
     if(a.mls_filing==='none')a.internet_display='not_applicable';
     if(a.make_ready==='not_authorized'){a.make_ready_limit='';a.make_ready_service_fee='';}
     a.built_before_1978=get('built_before_1978')||'unanswered';
-    a.addenda=[...new Set(values.getAll('addenda'))];
+    a.addenda=[...new Set([...values.getAll('addenda'),'B'])];
     if(a.built_before_1978!=='no'&&!a.addenda.includes('C'))a.addenda.push('C');
     if(a.other_documents&&!a.addenda.includes('L'))a.addenda.push('L');
     a.addenda.sort();a.broker_notice_contacts=Object.fromEntries(noticeKeys.map(key=>[key,get('broker_notice_'+key)]));
@@ -71,7 +71,7 @@
   }
   function prefill(workspace,saved,context){
     const initial=saved?{...saved.agreement_data,seller_one:saved.client_names?.[0]||'',seller_two:saved.client_names?.[1]||''}
-      :{property_address:workspace?.property_address||'',seller_one:workspace?.seller_names?.[0]||'',seller_two:workspace?.seller_names?.[1]||'',addenda:['A']};
+      :{property_address:workspace?.property_address||'',seller_one:workspace?.seller_names?.[0]||'',seller_two:workspace?.seller_names?.[1]||'',addenda:['A','B']};
     const contacts=saved?.agreement_data?.broker_notice_contacts??context?.noticeContacts;
     if(contacts)for(const key of noticeKeys)initial['broker_notice_'+key]=String(contacts[key]||'');
     return initial;
@@ -167,6 +167,7 @@
     }
     // Evaluate ancestors as well, so a nested preference cannot re-enable itself.
     for(const control of form.querySelectorAll('input,select,textarea'))control.disabled=busy||uncertain||Boolean(control.closest('[data-condition][hidden]'));
+    form.querySelector('[name="addenda"][value="B"]').checked=true;
     const lead=form.querySelector('[name="addenda"][value="C"]');if(get('built_before_1978')!=='no')lead.checked=true;
     for(const name of ['mls_delay_purpose','fee_other','renewal_other','sale_fee_other','pool_other','initial_late_amount','tenant_replacement_amount','landlord_replacement_amount']){
       const control=form.elements.namedItem(name);control.required=!control.disabled;
