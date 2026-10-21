@@ -60,7 +60,8 @@ console.log(JSON.stringify(m.collect({get:k=>a[k]??'',getAll:k=>a[k]||[]})));'''
         html=(ROOT/'index.html').read_text()
         self.assertLess(html.index('src="/assets/txr1102-interview.js"'),html.index('src="/assets/txr1101-interview.js"'))
         self.assertIn("openRelationshipDraft('hofOpenTxr1102Draft'",html)
-        self.assertIn("window.hofOpenAgentPackageInterview('lease_listing')",html)
+        self.assertTrue("window.hofOpenAgentPackageInterview?.('lease_listing', { directPackage: 'listing_agreement' })" in html,
+                        'Lease entry must open the landlord interview without a redundant task question.')
         self.assertIn("['TXR-1101','TXR-1102'].includes(agreement.form_code)",html)
         self.assertIn("const open = agreement?.form_code === 'TXR-1102'",html)
         self.assertIn("'/assets/txr1102-interview.js'",(ROOT/'service-worker.js').read_text())

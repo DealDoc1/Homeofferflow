@@ -117,3 +117,28 @@ test('tenant representation skips the redundant package question and opens the a
   assert.equal(page.window.hofAgentWorkflowContext, 'lease_representation');
   assert.equal(page.storage.get('hof_agent_workflow_choice'), 'lease_representation');
 });
+
+test('lease listing opens the landlord interview directly without also opening a workspace', () => {
+  const page = setup();
+  const opened = [];
+  page.window.hofOpenAgentPackageInterview = (kind, options) => {
+    opened.push([kind, options]);
+    return true;
+  };
+  page.window.startAgentWorkflow('lease_listing');
+  assert.deepEqual(JSON.parse(JSON.stringify(opened)), [
+    ['lease_listing', {directPackage: 'listing_agreement'}],
+  ]);
+  assert.equal(page.calls.filter(call => call[0] === 'tab').length, 0);
+  assert.equal(page.timers.length, 0);
+  assert.equal(page.storage.get('hof_agent_workflow_choice'), 'lease_listing');
+  assert.equal(page.calls.filter(call => call[1] === 'agent_form_package_started').length, 0);
+});
+
+test('lease listing falls back to its own workspace if the package helper declines', () => {
+  const page = setup();
+  page.window.hofOpenAgentPackageInterview = () => false;
+  page.window.startAgentWorkflow('lease_listing');
+  assert.deepEqual(page.calls.filter(call => call[0] === 'tab'), [['tab', 'seller']]);
+  assert.equal(page.timers.length, 1);
+});

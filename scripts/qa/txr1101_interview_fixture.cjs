@@ -3,9 +3,14 @@
 const fs=require('node:fs'),path=require('node:path');
 const root=path.resolve(__dirname,'../..'),out=path.resolve(process.argv[2] || '/private/tmp/hof-listing-interview-qa-20261017');
 const lease=process.argv.includes('--lease'),formCode=lease?'TXR-1102':'TXR-1101';
+const entry=process.argv.includes('--transaction-entry');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const queue=html.match(/<script id="hof-standalone-agreement-signing-v1">([\s\S]*?)<\/script>/)?.[1];
 if(!queue)throw new Error('Prepared-document queue was not found');
+const entryStart=html.indexOf('  window.hofOpenAgentPackageInterview = function');
+const entryEnd=html.indexOf('  const HOF_OFFER_WORKSPACE_PAGE_SIZE',entryStart);
+if(entry&&(entryStart<0||entryEnd<=entryStart))throw new Error('Transaction entry was not found');
+const entryScript=entry?html.slice(entryStart,entryEnd):'';
 const styles=[...html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/g)].map(match=>match[1]).join('\n');
 const model=require(path.join(root,lease?'assets/txr1102-interview.js':'assets/txr1101-interview.js'));
 const seedValues={seller_one:'José 李 QA Seller',seller_two:'Zoë QA Seller',property_address:'100 Fictional Lane, Plano, TX',term_start:'2026-10-17',term_end:'2027-04-17',listing_price:'350000',
@@ -17,7 +22,7 @@ const seedRecord={id:'cccccccc-cccc-4ccc-8ccc-cccccccccccc',form_code:formCode,f
 fs.mkdirSync(path.join(out,'assets'),{recursive:true});
 for(const file of ['txr1101-interview.js','txr1102-interview.js','txr1101-interview.css'])fs.copyFileSync(path.join(root,'assets',file),path.join(out,'assets',file));
 fs.writeFileSync(path.join(out,'index.html'),`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; font-src 'self'"><title>Local QA — sale listing interview</title><style>${styles}</style><link rel="stylesheet" href="/assets/txr1101-interview.css"></head><body>
-<main style="max-width:760px;margin:3rem auto;padding:1rem"><h1>Local listing interview QA</h1><p>Fictional data only. No documents or messages are sent.</p><button class="btn-primary" id="start">Prepare listing agreement</button><button class="btn-secondary" id="edit" hidden>Edit saved listing</button><p id="qaStatus" role="status"></p><section id="accountPanelDashboard"></section><pre id="qaRequests" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></main>
+<main style="max-width:760px;margin:3rem auto;padding:1rem"><h1>Local listing interview QA</h1><p>Fictional data only. No documents or messages are sent.</p><button class="btn-primary" id="start">${entry?'Lease listing':'Prepare listing agreement'}</button><button class="btn-secondary" id="edit" hidden>Edit saved listing</button><p id="qaStatus" role="status"></p><p id="agentWorkflowStartStatus" role="status"></p><section id="accountPanelRelationships"></section><section id="accountPanelDashboard"></section><pre id="qaRequests" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></main>
 <script>
 window.hofAuth={role:'agent',session:{user:{id:'qa-agent'},access_token:'fictional-qa-token'}};
 window.hofLoadApprovedBrokerageSource=async()=>({id:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'});
@@ -42,10 +47,11 @@ window.fetch=async(url,options={})=>{
  return {ok:true,status:body.action.startsWith('update')?200:201,json:async()=>({agreement:record})};
 };
 window.showAccountTab=()=>{};
+window.logOfferEvent=(_id,event,status,message,data)=>{(window.qaEntryEvents ||= []).push({event,status,data});};
 window.announceWorkspaceStatus=message=>{document.getElementById('qaStatus').textContent=message;};
-</script><script>${queue}</script><script src="/assets/txr1102-interview.js"></script><script src="/assets/txr1101-interview.js"></script><script>
+</script><script>${queue}</script><script src="/assets/txr1102-interview.js"></script><script src="/assets/txr1101-interview.js"></script><script>${entryScript}</script><script>
 const openListing=${lease?'hofOpenTxr1102Draft':'hofOpenTxr1101Draft'};
-document.getElementById('start').onclick=()=>openListing({workspace:{property_address:'100 Fictional Lane, Plano, TX',seller_names:['José 李 QA Seller','Zoë QA Seller']}});
+document.getElementById('start').onclick=()=>${entry?"startAgentWorkflow('lease_listing')":"openListing({workspace:{property_address:'100 Fictional Lane, Plano, TX',seller_names:['José 李 QA Seller','Zoë QA Seller']}})"};
 document.getElementById('edit').onclick=()=>openListing({agreementId:record.id});
 </script></body></html>`);
 console.log(out);

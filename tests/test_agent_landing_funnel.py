@@ -346,32 +346,32 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("openExistingPrivateDraft", INDEX)
 
     def test_lease_listing_does_not_offer_purchase_contract_lease_addenda(self):
-        start = INDEX.index("lease_listing: {")
+        start = INDEX.index("lease_listing: {", INDEX.index("window.hofOpenAgentPackageInterview = function"))
         end = INDEX.index("lease_representation: {", start)
         lease_listing = INDEX[start:end]
-        self.assertIn("Next, add the landlord and property details for this lease listing.", lease_listing)
-        self.assertIn("action: () => openListingWorkspaceDirectly('lease_listing')", lease_listing)
-        launcher = INDEX[INDEX.index("const openListingWorkspaceDirectly = (workflow) =>"):start]
-        self.assertIn("showAccountTab('seller');", launcher)
-        self.assertIn("document.getElementById('listingWorkspaceAddress')", launcher)
-        self.assertIn("agent_form_package_started", launcher)
-        self.assertIn("Lease listing workspace", launcher)
-        self.assertNotIn("hofOpenAgentPackageInterview('lease_listing')", lease_listing)
+        self.assertIn("Prepare a lease listing agreement", lease_listing)
+        self.assertIn("openRelationshipDraft('hofOpenTxr1102Draft'", lease_listing)
         self.assertNotIn("openRelationshipPackage('lease_addendum')", lease_listing)
         self.assertNotIn("openRelationshipPackage('purchase_addendum')", lease_listing)
         self.assertNotIn("hofOpenTxr1953Draft", lease_listing)
         self.assertNotIn("hofOpenTxr1954Draft", lease_listing)
 
-    def test_sale_and_lease_listings_continue_directly_to_the_property_workspace(self):
+    def test_sale_workspace_and_lease_agreement_skip_redundant_task_selection(self):
         launcher_start = INDEX.index("window.startAgentWorkflow = function startAgentWorkflow(kind)")
         launcher_end = INDEX.index("const HOF_OFFER_WORKSPACE_PAGE_SIZE", launcher_start)
         launcher = INDEX[launcher_start:launcher_end]
         self.assertIn("const openListingWorkspaceDirectly = (workflow) =>", launcher)
         self.assertIn("action: () => openListingWorkspaceDirectly('sale_listing')", launcher)
-        self.assertIn("action: () => openListingWorkspaceDirectly('lease_listing')", launcher)
+        self.assertIn("hofOpenAgentPackageInterview?.('lease_listing', { directPackage: 'listing_agreement' }) || openListingWorkspaceDirectly('lease_listing')", launcher)
         self.assertNotIn("hofOpenAgentPackageInterview('sale_listing')", launcher)
         self.assertIn("agent_form_package_direct_started", launcher)
         self.assertIn("Agent opened the listing workspace directly after choosing the transaction.", launcher)
+        interview = INDEX[INDEX.index("window.hofOpenAgentPackageInterview = function"):launcher_start]
+        direct = interview[interview.index("if (kind === 'lease_listing' && directPackage === 'listing_agreement')"):]
+        direct = direct[:direct.index('    // This is aggregate workflow telemetry only:')]
+        self.assertIn('choice.action();', direct)
+        self.assertIn('recordPackageWorkspaceStart(choice);', direct)
+        self.assertNotIn('document.createElement', direct)
 
     def test_tenant_representation_goes_directly_to_the_agreement_choice(self):
         interview_start = INDEX.index("window.hofOpenAgentPackageInterview = function")

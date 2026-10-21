@@ -6,6 +6,13 @@ reducing verification standards.
 
 ## Lease-listing local checkpoint - October 20, 2026
 
+Release regression on October 21 identified an unnecessary extra lease-entry
+question. It is corrected locally: Lease listing now opens the landlord
+interview directly, with the existing workspace fallback. Sixty-nine focused
+checks pass; desktop/390px local browser checks confirm one real interview,
+no task-choice dialog, no phone overflow or JavaScript errors. See the
+[entry repair and release-regression evidence](release-evidence/lease-entry-release-regression-2026-10-21.md).
+
 TXR-1102 now has a source-backed answer contract and visually reviewed renderer
 (`ad829ac8`), plus locally tested private create/edit/reopen/preview and tracked
 signing API adapters. Focused affected-workflow checks pass 146 tests (four

@@ -8208,9 +8208,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     window.setTimeout(focusComparison, 0);
   };
 
-  // After Question 1, ask one small need-specific question before opening a
-  // workspace. This keeps the agent experience an interview that assembles a
-  // relevant working package rather than a form catalog to search through.
+  // After Question 1, open the selected document directly when its task is
+  // already known; ask a need-specific choice only when it changes the work.
   window.hofOpenAgentPackageInterview = function hofOpenAgentPackageInterview(kind, options = {}) {
     const directPackage = String(options?.directPackage || '');
     const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -8294,6 +8293,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         if (choice.isWorkspaceOpen?.()) {
           setPackageHandoffStatus(choice, 'opened');
           window.logOfferEvent?.(null, 'agent_form_package_started', 'started', 'Agent opened the selected guided package workspace.', { workflow: kind, package: choice.label });
+          if (choice.directStart) {
+            window.logOfferEvent?.(null, 'agent_form_package_direct_started', 'started', 'Agent opened a document workspace directly after choosing the transaction.', { workflow: kind, package_type: 'listing_agreement' });
+          }
           return;
         }
         attempts += 1;
@@ -8505,6 +8507,14 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       openRelationshipPackage('representation', { direct: true });
       return true;
     }
+    if (kind === 'lease_listing' && directPackage === 'listing_agreement') {
+      const choice = { ...interview.choices[0], directStart: true };
+      document.getElementById('hofAgentPackageInterview')?.remove();
+      setPackageHandoffStatus(choice);
+      choice.action();
+      recordPackageWorkspaceStart(choice);
+      return true;
+    }
     // This is aggregate workflow telemetry only: it lets operations see
     // whether Question 2 is useful without retaining a client, property, or
     // document record before the agent intentionally starts a package.
@@ -8579,7 +8589,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       lease_listing: {
         event: 'agent_workflow_lease_listing_selected',
         message: 'Next, add the landlord and property details for this lease listing.',
-        action: () => window.hofOpenAgentPackageInterview('lease_listing') || openListingWorkspaceDirectly('lease_listing')
+        action: () => window.hofOpenAgentPackageInterview?.('lease_listing', { directPackage: 'listing_agreement' }) || openListingWorkspaceDirectly('lease_listing')
       },
       lease_representation: {
         event: 'agent_workflow_lease_representation_selected',
