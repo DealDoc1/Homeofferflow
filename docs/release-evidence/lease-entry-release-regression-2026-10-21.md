@@ -63,5 +63,24 @@ substituted by the entry fix. The current ordinary sale QA invitation remains
 at its final SignWell completion step, not completed. No duplicate invitation
 was created.
 
-A full exact-candidate rerun follows this material UI repair; its result will
-be appended here rather than launching repeated suites after documentation.
+## Full candidate result
+
+At `993963cc3fab8fe082167d6ec59925705b84b220`, the repaired candidate's full
+regression rerun finished **3,027 tests, two optional-source skips, exit 0** in
+114.800 seconds. The optional-source skips are not provider proof. The fixture's
+intentional `ERROR: Invalid fixture PDF` log is from a passing negative-path
+test, not a suite failure. The command used the existing actual-source opt-ins:
+
+```sh
+HOF_TXR1101_SOURCE='../listing-source-2026-10-17/sources/TXR-1101-2026-06-15.pdf' \
+HOF_TXR1102_SOURCE='../listing-source-2026-10-17/sources/TXR-1102-2026-01-05.pdf' \
+HOF_LEASE_DISCLOSURE_SOURCES='../lease-listing-2026-10-20/sources' \
+  ../txr1101-runtime/bin/python -m unittest discover -s tests -q
+```
+
+Output is retained outside Git at
+`../lease-listing-2026-10-20/ordinary-provider-qa/full-regression-2026-10-21.log`.
+No additional code change followed this full result. The existing draft PR 1353
+was fast-forwarded, not force-pushed, from `a23885e4` to `993963cc`. GitHub CI run
+`39590140951` started for that exact candidate; its result remains separately
+tracked. Do not mark the customer release complete from local regression alone.
