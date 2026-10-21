@@ -179,7 +179,7 @@ class PartnerPublicProfileTests(unittest.TestCase):
         self.assertIn('/assets/partner-profile.js',(ROOT/'service-worker.js').read_text())
         for source in (directory, html, (ROOT/'assets/inspection-partners.js').read_text(),
                        (ROOT/'assets/insurance-partners.js').read_text()):
-            self.assertIn('hofPartnerProfile.portrait(',source)
+            self.assertIn('hofPartnerProfile.portrait?.(',source)
         self.assertIn('/assets/partner-profile.css',(ROOT/'service-worker.js').read_text())
         self.assertIn('Use a photo you approve for public display.',html)
         self.assertIn("document.getElementById('partnerSetupHeadshotRemove').checked = false",html)

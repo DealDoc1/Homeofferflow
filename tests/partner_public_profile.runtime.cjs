@@ -48,11 +48,11 @@ test('all completion actions use existing privacy-safe tracking markers',()=>{
   assert.equal((markup.match(/data-offer-completion-partner-link/g)||[]).length,2);
   assert.doesNotMatch(markup,/email|message|offer_id|customer/);
 });
-function completionMarkup(row) {
+function completionMarkup(row,sharedProfile=profile) {
   const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
   const code=html.slice(html.indexOf('  function renderNowWhatDirectory('),html.indexOf('  async function renderNowWhatPartnerJourney('));
   const target={innerHTML:''};
-  const sandbox={window:{hofPartnerProfile:profile},document:{getElementById:id=>id==='nowWhatPartnerDirectory'?target:{value:''}},
+  const sandbox={window:{hofPartnerProfile:sharedProfile},document:{getElementById:id=>id==='nowWhatPartnerDirectory'?target:{value:''}},
     NOW_WHAT_GROUPS:[{types:['roofing'],title:'Roofing',detail:'Home needs',neutral:false}],
     NOW_WHAT_REGULATED_TYPES:new Set(),NOW_WHAT_PARTNER_LABELS:{roofing:'Roofing'},nowWhatPartnerSort:()=>0,
     nowWhatEscape:esc,bindOfferCompletionPartnerClicks:()=>{},trackPartnerDirectoryImpressions:()=>{}};
@@ -82,4 +82,8 @@ test('actual offer-follow-up places an optional portrait without changing contac
   assert.match(html,/now-what-partner has-portrait/); assert.match(html,/hof-partner-headshot/);
   assert.match(html,/tel:\+19728376378/); assert.match(html,/href="https:\/\/example.com\/"/);
   assert.doesNotMatch(completionMarkup(provider),/has-portrait|hof-partner-headshot/);
+});
+test('cached pre-portrait helper still renders follow-up cards and contact links',()=>{
+  const markup=completionMarkup({...provider,partner_name:'Cached helper QA'},{...profile,portrait:undefined});
+  assert.match(markup,/Cached helper QA/);assert.match(markup,/tel:\+19728376378/);assert.doesNotMatch(markup,/has-portrait/);
 });

@@ -8,7 +8,7 @@ test('optional public portrait leaves insurance choice and contact routing intac
  assert.match(p.target.innerHTML,/has-portrait/);assert.match(p.target.innerHTML,/hof-partner-headshot/);
  assert.match(p.target.innerHTML,/tel:\+19034362470/);assert.match(p.target.innerHTML,/not shared automatically/);
 });
-function setup({active=true,open=true,providers=[provider],fail=false,deferred=false,missing=false}={}) {
+function setup({active=true,open=true,providers=[provider],fail=false,deferred=false,missing=false,legacyProfile=false}={}) {
   let activeStep=active, resolveRequest, observer, toggle;
   const calls=[], handlers=[];
   const target={hidden:true,innerHTML:'',querySelectorAll(){return [...this.innerHTML.matchAll(/<a\b[^>]*>/g)].map(match=>{
@@ -23,9 +23,15 @@ function setup({active=true,open=true,providers=[provider],fail=false,deferred=f
       if(deferred)return new Promise(resolve=>{resolveRequest=()=>resolve({ok:true,json:async()=>({ok:true,partners:providers})});});
       return {ok:true,json:async()=>({ok:true,partners:providers})};
     }};
-  vm.createContext(sandbox);vm.runInContext(profileSource,sandbox);vm.runInContext(source,sandbox);
+  vm.createContext(sandbox);vm.runInContext(profileSource,sandbox);
+  if(legacyProfile)sandbox.window.hofPartnerProfile={...sandbox.window.hofPartnerProfile,portrait:undefined};
+  vm.runInContext(source,sandbox);
   return {target,calls,handlers,open:value=>{planner.open=value;toggle();},active:value=>{activeStep=value;observer();},resolve:()=>resolveRequest(),flush:()=>new Promise(resolve=>setImmediate(resolve))};
 }
+test('cached pre-portrait helper preserves insurance planning and contact routing',async()=>{
+ const p=setup({legacyProfile:true});await p.flush();assert.equal(p.target.hidden,false);
+ assert.match(p.target.innerHTML,/Fictional QA Insurance/);assert.match(p.target.innerHTML,/tel:\+19034362470/);
+});
 test('renders approved central insurance profile with separate website and call actions and choice',async()=>{
   const p=setup();await p.flush();assert.equal(p.target.hidden,false);
   for(const text of ['Fictional QA Insurance','Home insurance · Beta partner','North Texas','excluding coastal','tel:+19034362470','Visit website','Optional service providers','not shared automatically']){

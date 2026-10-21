@@ -13,7 +13,7 @@ test('optional public portrait is available with or without a company logo',asyn
  }
 });
 
-function setup({active = true, providers = [provider], fail = false, deferred = false} = {}) {
+function setup({active = true, providers = [provider], fail = false, deferred = false,legacyProfile=false} = {}) {
   let isActive = active, now = 1000, resolveRequest;
   const calls = [], handlers = [];
   const target = {hidden:true,innerHTML:'',querySelectorAll(){
@@ -35,10 +35,17 @@ function setup({active = true, providers = [provider], fail = false, deferred = 
       return {ok:true,json:async()=>({ok:true,partners:providers})};
     },
   };
-  vm.createContext(sandbox);vm.runInContext(profileSource,sandbox);vm.runInContext(bannerSource,sandbox);
+  vm.createContext(sandbox);vm.runInContext(profileSource,sandbox);
+  if(legacyProfile)sandbox.window.hofPartnerProfile={...sandbox.window.hofPartnerProfile,portrait:undefined};
+  vm.runInContext(bannerSource,sandbox);
   return {sandbox,target,calls,handlers,setActive:value=>{isActive=value;observer();},resolve:()=>resolveRequest(),setTime:value=>{now=value;},
     flush:()=>new Promise(resolve=>setImmediate(resolve))};
 }
+
+test('cached pre-portrait helper cannot hide an otherwise valid roofing banner',async()=>{
+ const p=setup({legacyProfile:true});await p.flush();assert.equal(p.target.hidden,false);
+ assert.match(p.target.innerHTML,/Fictional QA Roofing/);assert.match(p.target.innerHTML,/tel:\+19728376378/);
+});
 
 test('active inspection step uses central public profile, correct logo and separate website/call actions',async()=>{
   const p=setup();await p.flush();
