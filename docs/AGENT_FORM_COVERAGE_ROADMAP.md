@@ -44,6 +44,14 @@ skips); real isolated PostgreSQL passes 68 assertions. Desktop/390px review
 shows included documents separately from remaining tenant receipt/pamphlet
 steps, and newer-home answers clear stale lead selection. See the
 [connected API and database checkpoint](release-evidence/lease-disclosure-api-local-2026-10-20.md).
+One ordinary lease provider-QA specimen and its fixed admin-only tracker adapter
+are now implemented locally: 40 focused tests pass without skips. The exact
+14-page/44-field layout is pinned after offline review of the four execution/
+disclosure pages. It reuses the existing one-attempt journal, private sources,
+parallel recipients and server signing credential; no invitations, hosted
+changes or deployment occurred. The GitHub login works when network access is
+allowed; no new runner credential is required. See the
+[provider preparation checkpoint](release-evidence/ordinary-lease-provider-preparation-local-2026-10-20.md).
 Final coordinated release verification, hosted component-source installation and
 completed-provider QA remain implementation work, not a new TXR-1102
 owner/source authorization blocker. See the
