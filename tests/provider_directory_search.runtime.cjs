@@ -24,7 +24,7 @@ function setup() {
   const store=new Map();
   const window={location:{search:'',href:'https://www.homeofferflow.com/directory',origin:'https://www.homeofferflow.com'},va(){}};
   const context=vm.createContext({window,URL,URLSearchParams,AbortController,
-    document:{getElementById:id=>elements[id],querySelectorAll:()=>[]},
+    document:{addEventListener(){},getElementById:id=>elements[id],querySelectorAll:()=>[]},
     sessionStorage:{getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v)},
     history:{replaceState(){}},
     setTimeout(fn){const id=++timerId;timers.set(id,fn);return id;},clearTimeout:id=>timers.delete(id),

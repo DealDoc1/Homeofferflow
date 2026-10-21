@@ -26,6 +26,10 @@ message is sent. No new partner is published and no person's photo is inferred.
   descriptions/actions. Desktop placements reserve only necessary photo space.
   Setup includes an optional native file picker and an accessible removal
   control; field help remains readable and the checkbox does not stretch.
+- Setup status messages now become visible whenever nonempty. Browser review
+  found that the pre-existing base CSS hid save/error feedback despite the
+  correct response. Actual mobile save confirmation and an expired-link error
+  are now visibly verified; the status role is retained.
 - Reset stale file selections when another setup record opens. Existing
   website/call links, provider choice, aggregate analytics and beta terms stay
   unchanged. No customer information is automatically shared.
@@ -94,3 +98,16 @@ can remain safely installed; do not delete partner creative or remove grants
 as a rollback shortcut. After deployment, verify canonical profile assets and
 public API, existing partner routing/labels and unchanged no-photo placements.
 Do not claim measured lead, revenue or conversion improvement from this UI work.
+
+## Frozen regression checkpoint
+
+Local frozen run at b01bd10b: 2,921 tests, two source opt-in skips, one failure
+in the directory-search DOM fixture, which lacked the newly used image-error
+listener API. This is not reported as a full pass. The same fixture correction
+already used in both contextual banner tests is now applied to the directory
+fixture. Its actual directory race/timeout/profile tests pass without weakening
+any assertion. The only subsequent product change is the scoped setup status
+visibility CSS described above; no API behavior, database, source or map changed.
+Forty-eight final affected tests pass, and mobile save/error visibility is
+visually verified. Exact-final-head CI supplies the complete final regression,
+golden-rendering, signer-geometry, schema-preflight and whitespace result.

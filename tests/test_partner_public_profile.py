@@ -183,3 +183,4 @@ class PartnerPublicProfileTests(unittest.TestCase):
         self.assertIn('/assets/partner-profile.css',(ROOT/'service-worker.js').read_text())
         self.assertIn('Use a photo you approve for public display.',html)
         self.assertIn("document.getElementById('partnerSetupHeadshotRemove').checked = false",html)
+        self.assertIn('#partnerOnboardingStatus:not(:empty){display:block}',(ROOT/'assets/partner-profile.css').read_text())
