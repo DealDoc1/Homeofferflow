@@ -5,6 +5,22 @@ vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../assets/partner-profil
 const profile = context.window.hofPartnerProfile;
 const esc = text => String(text || '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const provider = {id:'fixture',partner_type:'roofing',placement_tier:'founding',website_url:'https://example.com',public_contact_phone:'+19728376378',public_contact_name:'Tedd Hansen'};
+test('optional portrait exposes only the explicit public image and escapes its identity',()=>{
+  assert.equal(profile.portrait({...provider,avatar_url:'https://private.example/photo.jpg'},esc),'');
+  for(const url of ['javascript:evil','data:image/svg+xml,evil','http://example.com/photo.jpg','https://user:pass@example.com/photo.jpg'])
+    assert.equal(profile.portrait({...provider,public_headshot_url:url},esc),'');
+  const html=profile.portrait({...provider,public_headshot_url:'https://example.com/headshot.jpg',public_contact_name:'<QA Contact>'},esc);
+  assert.match(html,/width="64" height="64"/); assert.match(html,/referrerpolicy="no-referrer"/);
+  assert.match(html,/&lt;QA Contact&gt;/); assert.doesNotMatch(html,/<QA Contact>/);
+});
+test('failed portrait is hidden without breaking links or company branding',()=>{
+  let onError, removed=false;
+  const sandbox={window:{},URL,document:{addEventListener:(name,fn,capture)=>{assert.equal(name,'error');assert.equal(capture,true);onError=fn;}}};
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../assets/partner-profile.js'),'utf8'),sandbox);
+  const slot={hidden:false};
+  onError({target:{matches:()=>true,parentElement:slot,closest:()=>({classList:{remove:name=>{assert.equal(name,'has-portrait');removed=true;}}})}});
+  assert.equal(slot.hidden,true); assert.equal(removed,true);
+});
 test('website and telephone have distinct destinations and labels',()=>{
   const markup=profile.actions(provider,esc,'data-partner-link');
   assert.match(markup,/href="https:\/\/example.com\/"/);
@@ -32,11 +48,11 @@ test('all completion actions use existing privacy-safe tracking markers',()=>{
   assert.equal((markup.match(/data-offer-completion-partner-link/g)||[]).length,2);
   assert.doesNotMatch(markup,/email|message|offer_id|customer/);
 });
-function completionMarkup(row) {
+function completionMarkup(row,sharedProfile=profile) {
   const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
   const code=html.slice(html.indexOf('  function renderNowWhatDirectory('),html.indexOf('  async function renderNowWhatPartnerJourney('));
   const target={innerHTML:''};
-  const sandbox={window:{hofPartnerProfile:profile},document:{getElementById:id=>id==='nowWhatPartnerDirectory'?target:{value:''}},
+  const sandbox={window:{hofPartnerProfile:sharedProfile},document:{getElementById:id=>id==='nowWhatPartnerDirectory'?target:{value:''}},
     NOW_WHAT_GROUPS:[{types:['roofing'],title:'Roofing',detail:'Home needs',neutral:false}],
     NOW_WHAT_REGULATED_TYPES:new Set(),NOW_WHAT_PARTNER_LABELS:{roofing:'Roofing'},nowWhatPartnerSort:()=>0,
     nowWhatEscape:esc,bindOfferCompletionPartnerClicks:()=>{},trackPartnerDirectoryImpressions:()=>{}};
@@ -60,4 +76,14 @@ test('offer follow-up uses the concise approved service summary rather than repe
   assert.match(markup,/We serve DFW homeowners/);
   assert.match(markup,/storm damage/);
   assert.doesNotMatch(markup,/Our mission/);
+});
+test('actual offer-follow-up places an optional portrait without changing contact destinations',()=>{
+  const html=completionMarkup({...provider,public_headshot_url:'https://example.com/headshot.jpg'});
+  assert.match(html,/now-what-partner has-portrait/); assert.match(html,/hof-partner-headshot/);
+  assert.match(html,/tel:\+19728376378/); assert.match(html,/href="https:\/\/example.com\/"/);
+  assert.doesNotMatch(completionMarkup(provider),/has-portrait|hof-partner-headshot/);
+});
+test('cached pre-portrait helper still renders follow-up cards and contact links',()=>{
+  const markup=completionMarkup({...provider,partner_name:'Cached helper QA'},{...profile,portrait:undefined});
+  assert.match(markup,/Cached helper QA/);assert.match(markup,/tel:\+19728376378/);assert.doesNotMatch(markup,/has-portrait/);
 });

@@ -3,7 +3,12 @@ const {test} = require('node:test'), assert = require('node:assert/strict');
 const profileSource = fs.readFileSync(path.join(__dirname,'../assets/partner-profile.js'),'utf8');
 const source = fs.readFileSync(path.join(__dirname,'../assets/insurance-partners.js'),'utf8');
 const provider = {id:'22222222-2222-4222-8222-222222222222',partner_type:'insurance',placement_tier:'founding',partner_program:'beta',partner_name:'Fictional QA Insurance',website_url:'https://example.com/agent',logo_url:'https://example.com/logo.jpg',market_area:'North Texas; Texas excluding coastal areas',public_contact_name:'QA Agent',public_contact_phone:'+19034362470'};
-function setup({active=true,open=true,providers=[provider],fail=false,deferred=false,missing=false}={}) {
+test('optional public portrait leaves insurance choice and contact routing intact',async()=>{
+ const p=setup({providers:[{...provider,public_headshot_url:'https://example.com/portrait.jpg'}]});await p.flush();
+ assert.match(p.target.innerHTML,/has-portrait/);assert.match(p.target.innerHTML,/hof-partner-headshot/);
+ assert.match(p.target.innerHTML,/tel:\+19034362470/);assert.match(p.target.innerHTML,/not shared automatically/);
+});
+function setup({active=true,open=true,providers=[provider],fail=false,deferred=false,missing=false,legacyProfile=false}={}) {
   let activeStep=active, resolveRequest, observer, toggle;
   const calls=[], handlers=[];
   const target={hidden:true,innerHTML:'',querySelectorAll(){return [...this.innerHTML.matchAll(/<a\b[^>]*>/g)].map(match=>{
@@ -11,16 +16,22 @@ function setup({active=true,open=true,providers=[provider],fail=false,deferred=f
     return {dataset:{partnerId:id,insuranceBrand:brand},addEventListener:(_,fn)=>handlers.push({markup,fn})};
   });}};
   const step={classList:{contains:()=>activeStep}}, planner={open,addEventListener:(_,fn)=>{toggle=fn;}};
-  const sandbox={window:{},URL,Date,Promise,Set,document:{readyState:'complete',getElementById:id=>missing?null:({step4:step,paymentCalcCard:planner,hofInsurancePartners:target}[id])},
+  const sandbox={window:{},URL,Date,Promise,Set,document:{readyState:'complete',addEventListener(){},getElementById:id=>missing?null:({step4:step,paymentCalcCard:planner,hofInsurancePartners:target}[id])},
     MutationObserver:class{constructor(fn){observer=fn;}observe(){}},fetch:async(url,options)=>{
       calls.push({url,options}); if(options) return {ok:true,json:async()=>({ok:true})};
       if(fail)throw Error('unavailable');
       if(deferred)return new Promise(resolve=>{resolveRequest=()=>resolve({ok:true,json:async()=>({ok:true,partners:providers})});});
       return {ok:true,json:async()=>({ok:true,partners:providers})};
     }};
-  vm.createContext(sandbox);vm.runInContext(profileSource,sandbox);vm.runInContext(source,sandbox);
+  vm.createContext(sandbox);vm.runInContext(profileSource,sandbox);
+  if(legacyProfile)sandbox.window.hofPartnerProfile={...sandbox.window.hofPartnerProfile,portrait:undefined};
+  vm.runInContext(source,sandbox);
   return {target,calls,handlers,open:value=>{planner.open=value;toggle();},active:value=>{activeStep=value;observer();},resolve:()=>resolveRequest(),flush:()=>new Promise(resolve=>setImmediate(resolve))};
 }
+test('cached pre-portrait helper preserves insurance planning and contact routing',async()=>{
+ const p=setup({legacyProfile:true});await p.flush();assert.equal(p.target.hidden,false);
+ assert.match(p.target.innerHTML,/Fictional QA Insurance/);assert.match(p.target.innerHTML,/tel:\+19034362470/);
+});
 test('renders approved central insurance profile with separate website and call actions and choice',async()=>{
   const p=setup();await p.flush();assert.equal(p.target.hidden,false);
   for(const text of ['Fictional QA Insurance','Home insurance · Beta partner','North Texas','excluding coastal','tel:+19034362470','Visit website','Optional service providers','not shared automatically']){

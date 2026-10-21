@@ -1,5 +1,22 @@
 # HomeOfferFlow — Agent Form Coverage Roadmap
 
+## Listing candidate integration with current production - October 21, 2026
+
+The customer listing candidate now incorporates production `0b50b3b5`
+(PRs 1356/1357), including optional partner portraits, visible setup feedback
+and versioned/cached-helper compatibility. Shell v116 is reserved for the next
+customer release; production remains v115. All reviewed sale/lease renderers
+and provider maps are unchanged. Both applied source/headshot migrations are
+preserved byte-for-byte; the four customer migrations remain unapplied.
+
+Focused PWA checks pass 69 tests. Affected integration checks pass 148 tests
+with seven private-source opt-in skips; supplying the exact private originals
+passes 37 form/QA checks without skips (overlapping coverage, not additive).
+No full-suite rerun, new invitation, hosted SQL, customer deployment or usage
+poll occurred. Existing lease QA signers remain visibly at Agree & Finish;
+final consent and completed-PDF review are still pending. See the
+[production integration checkpoint](release-evidence/listing-partner-integration-2026-10-21.md).
+
 ## Owner-only lease QA enablement - October 21, 2026
 
 PR 1355 is deployed as production `24d619eb` / shell v113, with green CI and

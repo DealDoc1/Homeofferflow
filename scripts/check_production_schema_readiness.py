@@ -79,7 +79,7 @@ def fetch_readiness(url: str, service_key: str) -> dict:
         raise ValueError("readiness RPC returned a non-object response")
     if payload.get("ready") is True:
         # Probe columns without reading any application row or exposing contacts.
-        columns = "onboarding_public_contact_name,onboarding_public_contact_phone,onboarding_public_description"
+        columns = "onboarding_public_contact_name,onboarding_public_contact_phone,onboarding_public_description,onboarding_public_headshot_url"
         probe = Request(f"{url.rstrip('/')}/rest/v1/hof_partner_leads?select={columns}&limit=0",
                         headers=request_headers(service_key), method="GET")
         with urlopen(probe, timeout=30) as response:

@@ -1,11 +1,30 @@
 """Explicit public creative, never fallback to a partner's internal contacts."""
 import re
+from urllib.parse import urlsplit
 
 PUBLIC_PROFILE_COLUMNS = (
     "onboarding_public_contact_name",
     "onboarding_public_contact_phone",
     "onboarding_public_description",
+    "onboarding_public_headshot_url",
 )
+
+
+def public_headshot(value):
+    """An explicitly public image only; no fallback to private account photos."""
+    value = str(value or '').strip()
+    if not value:
+        return None
+    try:
+        url = urlsplit(value)
+        valid = (len(value) <= 500 and url.scheme == 'https' and url.hostname
+                 and not url.username and not url.password and url.port in (None, 443)
+                 and not any(c.isspace() or c in '<>\"\\' for c in value))
+    except ValueError:
+        valid = False
+    if not valid:
+        raise ValueError('Choose a secure public headshot image.')
+    return value
 
 
 def public_phone(value):
@@ -35,6 +54,8 @@ def public_profile_update(data, previous=None):
         result[column] = value or None
     column = "onboarding_public_contact_phone"
     result[column] = public_phone(data.get("public_contact_phone", previous.get(column)))
+    column = 'onboarding_public_headshot_url'
+    result[column] = public_headshot(data.get('public_headshot_url', previous.get(column)))
     return result
 
 
@@ -44,9 +65,14 @@ def approved_public_profile(lead):
         phone = public_phone(lead.get("onboarding_public_contact_phone"))
     except ValueError:
         phone = None
+    try:
+        headshot = public_headshot(lead.get('onboarding_public_headshot_url'))
+    except ValueError:
+        headshot = None
     return {
         "partner_program": "beta" if str(lead.get("partner_program") or "").lower() == "beta" else "commercial",
         "public_contact_name": str(lead.get("onboarding_public_contact_name") or "").strip()[:80],
         "public_contact_phone": phone or "",
         "public_description": str(lead.get("onboarding_public_description") or "").strip()[:600],
+        "public_headshot_url": headshot or '',
     }

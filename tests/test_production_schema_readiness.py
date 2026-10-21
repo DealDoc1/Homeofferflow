@@ -45,6 +45,7 @@ class ProductionSchemaReadinessTests(unittest.TestCase):
         self.assertTrue(requests[0].full_url.endswith('/rpc/hof_listing_package_schema_readiness'))
         self.assertEqual(requests[1].method, 'GET')
         self.assertIn('onboarding_public_contact_phone', requests[1].full_url)
+        self.assertIn('onboarding_public_headshot_url', requests[1].full_url)
         self.assertTrue(requests[1].full_url.endswith('&limit=0'))
         self.assertNotIn('contact_email', requests[1].full_url)
         self.assertIn('signature_packet_id', requests[2].full_url)
