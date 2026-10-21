@@ -31,8 +31,8 @@ class Txr1101InterviewRuntimeTests(unittest.TestCase):
 
     def test_asset_and_saved_queue_are_connected_to_the_sale_path(self):
         html = (ROOT / 'index.html').read_text()
-        self.assertIn('src="/assets/txr1101-interview.js"', html)
-        self.assertIn('href="/assets/txr1101-interview.css"', html)
+        self.assertIn('src="/assets/txr1101-interview.js?v=', html)
+        self.assertIn('href="/assets/txr1101-interview.css?v=', html)
         start = html.index('      sale_listing: {', html.index('    const packages = {'))
         end = html.index('      lease_representation:', start)
         self.assertIn("openRelationshipDraft('hofOpenTxr1101Draft'", html[start:end])

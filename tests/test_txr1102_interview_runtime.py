@@ -58,13 +58,13 @@ console.log(JSON.stringify(m.collect({get:k=>a[k]??'',getAll:k=>a[k]||[]})));'''
 
     def test_shared_engine_and_prepared_queue_are_wired_for_both_listing_types(self):
         html=(ROOT/'index.html').read_text()
-        self.assertLess(html.index('src="/assets/txr1102-interview.js"'),html.index('src="/assets/txr1101-interview.js"'))
+        self.assertLess(html.index('src="/assets/txr1102-interview.js?v='),html.index('src="/assets/txr1101-interview.js?v='))
         self.assertIn("openRelationshipDraft('hofOpenTxr1102Draft'",html)
         self.assertTrue("window.hofOpenAgentPackageInterview?.('lease_listing', { directPackage: 'listing_agreement' })" in html,
                         'Lease entry must open the landlord interview without a redundant task question.')
         self.assertIn("['TXR-1101','TXR-1102'].includes(agreement.form_code)",html)
         self.assertIn("const open = agreement?.form_code === 'TXR-1102'",html)
-        self.assertIn("'/assets/txr1102-interview.js'",(ROOT/'service-worker.js').read_text())
+        self.assertIn("'/assets/txr1102-interview.js?v=",(ROOT/'service-worker.js').read_text())
 
     def test_interview_uses_the_existing_google_address_observer_and_companions(self):
         js=(ROOT/'assets/txr1102-interview.js').read_text()

@@ -1,5 +1,20 @@
 # HomeOfferFlow — Agent Form Coverage Roadmap
 
+## Listing asset version hardening - October 21, 2026
+
+Implemented and locally tested: the three sale/lease interview JS/CSS references
+now carry content-derived versions in both HTML and the shell prewarm list.
+Eighteen affected tests and 69 PWA tests pass. Actual local browser checks open
+both interviews with the new URLs; server logs show successful loads/cache reuse.
+No interview logic, PDF maps, caching policy or production behavior changed.
+This prevents a future update mismatch; the files are new to the unreleased
+candidate, so no current stale-listing-script incident is claimed.
+
+The later checkpoint is not yet pushed or full-CI verified; PR 1353's green
+3,039-test result remains tied to 45ff824b. Existing QA consent/completed PDF
+review is still the next customer-release dependency. See
+[asset-version evidence](release-evidence/listing-interview-asset-versions-2026-10-21.md).
+
 ## Listing candidate integration with current production - October 21, 2026
 
 The customer listing candidate now incorporates production `0b50b3b5`
