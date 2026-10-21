@@ -22,6 +22,8 @@ async function connect(role){
 const owner='11111111-1111-4111-8111-111111111111',other='22222222-2222-4222-8222-222222222222';
 const migration=name=>fs.readFileSync(path.resolve(__dirname,'../../supabase/migrations/'+name),'utf8');
 const readiness=async c=>(await c.query('select public.hof_lease_listing_schema_readiness() as result')).rows[0].result;
+const sourceReadiness=async c=>(await c.query('select public.hof_rental_source_schema_readiness() as result')).rows[0].result;
+const sourceFirst=process.argv.includes('--source-first');
 async function main(){
   try{
     execFileSync(path.join(bin,'initdb'),['-D',data,'-U','hof_qa','--auth-local=trust','--auth-host=reject','--no-locale','-E','UTF8','--no-sync'],{stdio:'pipe'});
@@ -63,7 +65,14 @@ async function main(){
     await admin.query(migration('20261005110000_expand_trec_39_11_source_code.sql'));
     const sourceBefore=(await admin.query("select relacl,relrowsecurity from pg_class where oid='public.hof_brokerage_form_sources'::regclass")).rows[0];
     await reject(()=>admin.query("insert into public.hof_brokerage_form_sources values('TXR-2008')"),'23514');
+    if(sourceFirst){
+      // Production installed this source-only migration before customer drafts.
+      await admin.query(migration('20261021113432_allow_rental_disclosure_sources_for_qa.sql'));
+      check((await sourceReadiness(admin)).ready,'Deployed source-only catalog ready before pending customer extension');
+    }
     await admin.query(migration('20261021034227_add_lease_disclosure_source_codes.sql'));
+    if(!sourceFirst)await admin.query(migration('20261021113432_allow_rental_disclosure_sources_for_qa.sql'));
+    check((await sourceReadiness(admin)).ready,'Customer extension retains deployed rental source contract');
     check(JSON.stringify(sourceBefore)===JSON.stringify((await admin.query("select relacl,relrowsecurity from pg_class where oid='public.hof_brokerage_form_sources'::regclass")).rows[0]),'Source privileges and RLS unchanged');
     for(const code of ['TXR-1501','TXR-1506','TXR-1507','TXR-1508','TXR-1905','TXR-1914','TXR-1917','TXR-1919','TXR-1948','TXR-1953','TXR-1954','TXR-1101','TXR-1102','TXR-1406','TXR-1418','TXR-2008','TXR-2015','TREC-55-1','TREC-61-0','TREC-62-0','TREC-38-8','TREC-39-11']){
       await admin.query('insert into public.hof_brokerage_form_sources values($1)',[code]);checks++;
@@ -101,11 +110,12 @@ async function main(){
     check(!(await readiness(service)).ready,'Unvalidated source constraint fails readiness');
     await admin.query(migration('20261021034227_add_lease_disclosure_source_codes.sql'));
     check((await readiness(service)).ready,'Validated complete source catalog restores readiness');
+    check((await sourceReadiness(service)).ready,'Both rental contracts recover together');
     await admin.query('alter table public.hof_standalone_agreements drop constraint hof_standalone_agreements_form_code_check');
     check((await readiness(service)).missing.includes('form_code:hof_standalone_agreements.TXR-1102'),'Missing constraint is not ready');
     await admin.query("alter table public.hof_standalone_agreements add constraint hof_standalone_agreements_form_code_check check(form_code in ('TXR-1102')) not valid");
     check(!(await readiness(service)).ready,'Unvalidated constraint is not ready');
-    console.log(JSON.stringify({ok:true,assertions:checks,network:'none',provider_sends:0}));
+    console.log(JSON.stringify({ok:true,assertions:checks,source_first:sourceFirst,network:'none',provider_sends:0}));
   }finally{
     await Promise.allSettled(clients.map(c=>c.end()));
     if(server && server.exitCode===null){server.kill('SIGTERM');await new Promise(resolve=>server.once('exit',resolve));}
