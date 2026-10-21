@@ -59,6 +59,12 @@ parallel recipients and server signing credential; no invitations, hosted
 changes or deployment occurred. The GitHub login works when network access is
 allowed; no new runner credential is required. See the
 [provider preparation checkpoint](release-evidence/ordinary-lease-provider-preparation-local-2026-10-20.md).
+The preceding candidate `993963cc` subsequently passed full GitHub CI (run
+39590140951), including golden rendering and signer geometry. Its operator
+lease-test control is now wired locally as well, with explicit action-scope
+isolation so an unknown scope cannot send a purchase test. Twenty-six focused
+checks pass, and the actual check-first control was exercised in an offline
+browser fixture. See the [operator control checkpoint](release-evidence/lease-operator-control-local-2026-10-21.md).
 Final coordinated release verification, hosted component-source installation and
 completed-provider QA remain implementation work, not a new TXR-1102
 owner/source authorization blocker. See the

@@ -5376,13 +5376,19 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   }
 
   async function runPurchaseSigningTest(send, button, scope = 'purchase') {
-    const showing = scope === 'showing';
-    const amendment = scope === 'amendment';
-    const listingLead = scope === 'listing-lead';
-    const listingPackage = scope === 'listing-package';
-    const status = document.getElementById(listingPackage ? 'adminListingPackageSigningTestStatus' : listingLead ? 'adminListingLeadSigningTestStatus' : amendment ? 'adminAmendmentSigningTestStatus' : showing ? 'adminShowingSigningTestStatus' : 'adminPurchaseSigningTestStatus');
+    const controls = {
+      purchase: ['Purchase', 'send_purchase_signing_test', 'check_purchase_signing_test'],
+      showing: ['Showing', 'send_showing_signing_test', 'check_showing_signing_test'],
+      amendment: ['Amendment', 'send_amendment_signing_test', 'check_amendment_signing_test'],
+      'listing-lead': ['ListingLead', 'send_listing_lead_signing_test', 'check_listing_lead_signing_test'],
+      'listing-package': ['ListingPackage', 'send_listing_package_signing_test', 'check_listing_package_signing_test'],
+      'lease-listing': ['LeaseListing', 'send_lease_listing_signing_test', 'check_lease_listing_signing_test']
+    };
+    if (!Object.prototype.hasOwnProperty.call(controls, scope)) return;
+    const [widget, sendAction, checkAction] = controls[scope];
+    const status = document.getElementById(`admin${widget}SigningTestStatus`);
     if (!status || !hofAuth.session) return;
-    const sendButton = document.getElementById(listingPackage ? 'adminListingPackageSigningTestSend' : listingLead ? 'adminListingLeadSigningTestSend' : amendment ? 'adminAmendmentSigningTestSend' : showing ? 'adminShowingSigningTestSend' : 'adminPurchaseSigningTestSend');
+    const sendButton = document.getElementById(`admin${widget}SigningTestSend`);
     const originalLabel = button?.textContent;
     if (button) { button.disabled = true; button.textContent = send ? 'Sending test…' : 'Checking…'; }
     if (sendButton) sendButton.disabled = true;
@@ -5391,15 +5397,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const response = await fetch('/api/admin-dashboard', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hofAuth.session.access_token}` },
-        body: JSON.stringify({ action: listingPackage
-          ? (send ? 'send_listing_package_signing_test' : 'check_listing_package_signing_test')
-          : listingLead
-          ? (send ? 'send_listing_lead_signing_test' : 'check_listing_lead_signing_test')
-          : amendment
-          ? (send ? 'send_amendment_signing_test' : 'check_amendment_signing_test')
-          : showing
-          ? (send ? 'send_showing_signing_test' : 'check_showing_signing_test')
-          : (send ? 'send_purchase_signing_test' : 'check_purchase_signing_test') })
+        body: JSON.stringify({ action: send ? sendAction : checkAction })
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || 'The test could not be checked. Use Check test status before trying anything else.');
@@ -5912,6 +5910,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <button id="adminListingPackageSigningTestSend" type="button" class="admin-contact-action" style="min-height:44px" onclick="runPurchaseSigningTest(true, this, 'listing-package')">Send one listing package test</button>
             <button type="button" class="admin-contact-action" style="min-height:44px" onclick="runPurchaseSigningTest(false, this, 'listing-package')">Check listing package test</button>
             <div id="adminListingPackageSigningTestStatus" class="admin-empty" role="status" aria-live="polite">Check first. Only the recorded attempt will be used.</div>
+          </details><details style="margin-top:1rem;">
+            <summary>Lease listing package test</summary>
+            <p class="admin-muted">One fictional TXR-1102 lease listing with rental flood and lead disclosures. One landlord and one associate use the same two approved test inboxes. Tenant signing and delivery acknowledgements remain separate; no client document is changed.</p>
+            <button id="adminLeaseListingSigningTestSend" type="button" class="admin-contact-action" style="min-height:44px" onclick="runPurchaseSigningTest(true, this, 'lease-listing')" disabled>Send one lease listing test</button>
+            <button type="button" class="admin-contact-action" style="min-height:44px" onclick="runPurchaseSigningTest(false, this, 'lease-listing')">Check lease listing test</button>
+            <div id="adminLeaseListingSigningTestStatus" class="admin-empty" role="status" aria-live="polite">Check first. Only the recorded attempt will be used.</div>
           </details>` : ''}
         </div>
 

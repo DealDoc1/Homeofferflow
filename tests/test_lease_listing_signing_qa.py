@@ -148,6 +148,12 @@ class FixedLeaseOperatorTests(unittest.IsolatedAsyncioTestCase):
         start = code.index('if data.get("action") in {"send_lease_listing_signing_test", "check_lease_listing_signing_test"}')
         self.assertLess(code.index('if not asyncio.run(_is_platform_admin(user)):', code.index('def do_POST')), start)
         self.assertIn('if set(data) != {"action"}', code[start:start + 500])
+        html = (Path(__file__).resolve().parents[1] / 'index.html').read_text()
+        owner = html.index("${['andrewchri@gmail.com', 'andrew@ondemanddfw.com'].includes")
+        self.assertGreater(html.index('<summary>Lease listing package test</summary>'), owner)
+        control = html[html.index('<button id="adminLeaseListingSigningTestSend"'):]
+        self.assertIn('disabled>', control[:control.index('</button>')])
+        self.assertIn("runPurchaseSigningTest(false, this, 'lease-listing')", html)
 
     @unittest.skipUnless(os.environ.get('HOF_TXR1102_SOURCE') and os.environ.get('HOF_LEASE_DISCLOSURE_SOURCES'),
                          'private reviewed sources supplied for local QA')
