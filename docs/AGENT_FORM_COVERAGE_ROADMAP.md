@@ -37,7 +37,14 @@ Unicode proof pages were reviewed. The review corrected the lower TXR-2008
 signature boxes, with an original-text overlap regression check. These pure
 adapters are not yet wired to hosted source lookup or live sends. See the
 [rental disclosure adapter checkpoint](release-evidence/lease-disclosure-adapters-local-2026-10-20.md).
-API/source-intake integration, final coordinated release verification and
+Both adapters are now connected locally to private source lookup, preview,
+review-bound signing and tracked retries. The matching intake/catalog migration
+is generated but unapplied. The affected run passes 201 tests (three unrelated
+skips); real isolated PostgreSQL passes 68 assertions. Desktop/390px review
+shows included documents separately from remaining tenant receipt/pamphlet
+steps, and newer-home answers clear stale lead selection. See the
+[connected API and database checkpoint](release-evidence/lease-disclosure-api-local-2026-10-20.md).
+Final coordinated release verification, hosted component-source installation and
 completed-provider QA remain implementation work, not a new TXR-1102
 owner/source authorization blocker. See the
 [package composition evidence](release-evidence/lease-listing-packet-local-2026-10-20.md) and

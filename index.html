@@ -23086,7 +23086,7 @@ function routeAfterMagicLinkIfNeeded() {
   // Source approval never activates a workflow by itself; release support is
   // still configured separately. Released shared-library forms remain
   // available to every signed-in agent without a brokerage seat.
-  const FORM_CODES = ['TXR-1507', 'TXR-1501', 'TXR-1508', 'TXR-1506', 'TXR-1905', 'TXR-1914', 'TXR-1917', 'TXR-1919', 'TXR-1948', 'TXR-1953', 'TXR-1954', 'TXR-1101', 'TXR-1102', 'TXR-1406', 'TXR-1418', 'TREC-55-1', 'TREC-61-0', 'TREC-62-0', 'TREC-38-8', 'TREC-39-11'];
+  const FORM_CODES = ['TXR-1507', 'TXR-1501', 'TXR-1508', 'TXR-1506', 'TXR-1905', 'TXR-1914', 'TXR-1917', 'TXR-1919', 'TXR-1948', 'TXR-1953', 'TXR-1954', 'TXR-1101', 'TXR-1102', 'TXR-1406', 'TXR-1418', 'TXR-2008', 'TXR-2015', 'TREC-55-1', 'TREC-61-0', 'TREC-62-0', 'TREC-38-8', 'TREC-39-11'];
   const escape = value => String(value ?? '').replace(/[&<>\"]/g, char => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'
   }[char]));
@@ -23852,7 +23852,8 @@ function routeAfterMagicLinkIfNeeded() {
     if (!packet || !Array.isArray(packet.included) || !Array.isArray(packet.pending)) return '';
     const included = packet.included.map(escape).join(' · ');
     const pending = packet.pending.map(escape).join(' · ');
-    return `<details class="hof-listing-note"><summary>Your packet${Number.isInteger(packet.pageCount) ? ' · '+packet.pageCount+' pages' : ''}</summary><p><strong>Included:</strong> ${included || 'None prepared'}</p>${pending ? `<p><strong>Still to prepare:</strong> ${pending}</p>` : ''}${packet.otherDocuments ? `<p><strong>Other documents noted:</strong> ${escape(packet.otherDocuments)}</p>` : ''}${pending || packet.otherDocuments ? '<p>You can send the prepared documents now and complete the remaining items separately.</p>' : ''}</details>`;
+    const followUp = Array.isArray(packet.followUp) ? packet.followUp.map(escape).join(' · ') : '';
+    return `<details class="hof-listing-note"><summary>Your packet${Number.isInteger(packet.pageCount) ? ' · '+packet.pageCount+' pages' : ''}</summary><p><strong>Included:</strong> ${included || 'None prepared'}</p>${pending ? `<p><strong>Still to prepare:</strong> ${pending}</p>` : ''}${followUp ? `<p><strong>Before the lease is signed:</strong> ${followUp}</p>` : ''}${packet.otherDocuments ? `<p><strong>Other documents noted:</strong> ${escape(packet.otherDocuments)}</p>` : ''}${pending || packet.otherDocuments ? '<p>You can send the prepared documents now and complete the remaining items separately.</p>' : ''}</details>`;
   }
 
   async function openSendDialog(agreement, refresh) {
@@ -23864,7 +23865,7 @@ function routeAfterMagicLinkIfNeeded() {
     modal.id = 'hofStandaloneSendDialog';
     modal.className = 'hof-agreement-modal';
     modal.innerHTML = `<form class="hof-agreement-dialog" id="hofStandaloneSendForm">
-      <h3>Send ${escape(agreement.form_code === 'TXR-1101' ? 'sale listing packet' : agreement.form_code === 'TXR-1102' ? 'lease listing agreement' : agreement.form_code)} for signature</h3>
+      <h3>Send ${escape(agreement.form_code === 'TXR-1101' ? 'sale listing packet' : agreement.form_code === 'TXR-1102' ? 'lease listing packet' : agreement.form_code)} for signature</h3>
       <p>Review everyone who will receive this document. Each signer needs a different email address.</p>
       <div id="hofStandalonePacketSummary"></div>
       <div class="hof-agreement-grid" id="hofStandaloneSigningRecipients"></div>
@@ -24312,7 +24313,7 @@ function routeAfterMagicLinkIfNeeded() {
 <script id="hof-platform-source-intake-v1">
 (function () {
   const root = window;
-  const FORM_CODES = ['TXR-1507', 'TXR-1501', 'TXR-1508', 'TXR-1506', 'TXR-1905', 'TXR-1914', 'TXR-1917', 'TXR-1919', 'TXR-1948', 'TXR-1953', 'TXR-1954', 'TXR-1101', 'TXR-1102', 'TXR-1406', 'TXR-1418', 'TREC-62-0', 'TREC-38-8', 'TREC-39-11'];
+  const FORM_CODES = ['TXR-1507', 'TXR-1501', 'TXR-1508', 'TXR-1506', 'TXR-1905', 'TXR-1914', 'TXR-1917', 'TXR-1919', 'TXR-1948', 'TXR-1953', 'TXR-1954', 'TXR-1101', 'TXR-1102', 'TXR-1406', 'TXR-1418', 'TXR-2008', 'TXR-2015', 'TREC-62-0', 'TREC-38-8', 'TREC-39-11'];
   const BUCKET_LIMIT = 10 * 1024 * 1024;
   const escape = value => String(value ?? '').replace(/[&<>\"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[char]));
   const isPlatformAdmin = () => typeof root.isCurrentAdmin === 'function' && root.isCurrentAdmin();
@@ -24375,7 +24376,9 @@ function routeAfterMagicLinkIfNeeded() {
       const response = await fetch('/api/admin-dashboard', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` }, body:JSON.stringify({ action:'upload_platform_form_source', brokerageId, formCode, sourceRevision, originalFilename:file.name, sourceSha256:await sourceFingerprint(file), contentBase64:toBase64(bytes), authorizationAttested }) });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || 'Could not save the private source.');
-      status.className = 'hof-iabs-status ready'; status.textContent = payload.source.workflowActivated
+      status.className = 'hof-iabs-status ready'; status.textContent = payload.source.relatedWorkflow === 'lease_listing'
+        ? `${payload.source.formCode} ${payload.source.sourceRevision} saved privately for lease-listing packages.`
+        : payload.source.workflowActivated
         ? `${payload.source.formCode} ${payload.source.sourceRevision} saved privately and ready for the draft/signing queue.`
         : `${payload.source.formCode} ${payload.source.sourceRevision} saved privately. Its workflow is not released for signing yet.`;
       card.querySelector('#platformSourceFile').value = ''; card.querySelector('#platformSourceAttestation').checked = false;

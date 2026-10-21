@@ -1,6 +1,8 @@
 """Lease-listing API boundaries; all HTTP is isolated, no email or cloud writes."""
 import asyncio
 import base64
+from copy import deepcopy
+import hashlib
 from contextlib import ExitStack
 from io import BytesIO
 import os
@@ -211,6 +213,139 @@ class LeaseListingApiTests(unittest.TestCase):
 
     def add_iabs(self):
         sale_api_tests.Txr1101ApiTests.add_iabs(self)
+
+    def add_rental_sources(self):
+        """Synthetic pinned one-page sources; actual-source coupling is separate."""
+        from lib import lease_disclosures as rental
+        from tests.test_listing_packet import pdf
+        specs=deepcopy(rental.SOURCES)
+        for index,code in enumerate(('TXR-2008','TXR-2015'),1):
+            raw=pdf('Fictional '+code+' API source')
+            specs[code]['sha256']=hashlib.sha256(raw).hexdigest()
+            path='component-source-host/'+code+'.pdf'
+            self.store.related_sources.append({'id':f'11111111-1111-4111-8111-{index:012d}',
+                'brokerage_id':'component-source-host','form_code':code,'source_revision':specs[code]['revision'],
+                'status':'approved','authorization_attested':True,'source_sha256':specs[code]['sha256'],
+                'storage_bucket':'brokerage-form-sources','storage_path':path})
+            self.store.related_files['/storage/v1/object/brokerage-form-sources/'+path]=(200,raw)
+        self.stack.enter_context(patch.dict(rental.SOURCES,specs))
+        # The synthetic page has no supplier imprint. All remaining answer,
+        # rendering, completion-control, merging and delivery code is real.
+        self.stack.enter_context(patch('lib.lease_disclosures._remove_member_footer'))
+
+    def test_rental_sources_are_loaded_privately_and_delivered_in_one_bound_packet(self):
+        self.add_rental_sources();self.create(addenda=['B','C'])
+        preview=asyncio.run(api._standalone_signing_recipient_preview(USER,AGREEMENT_ID))
+        self.assertEqual(preview['packet']['pageCount'],14)
+        self.assertEqual(preview['packet']['included'],['Lease listing agreement','Rental flood disclosure','Lead-based paint disclosure for a lease'])
+        self.assertEqual(preview['packet']['pending'],[])
+        self.assertTrue(any('Tenant receipt' in row for row in preview['packet']['followUp']))
+        self.assertTrue(any('lead pamphlet' in row for row in preview['packet']['followUp']))
+        self.assertNotIn('storage_path',str(preview));self.assertNotIn('component-source-host',str(preview))
+        body=self.send_body();status,result=self.post(body);self.assertEqual(status,200,result)
+        request=self.store.provider
+        reader=PdfReader(BytesIO(base64.b64decode(request['files'][0]['file_base64'])))
+        self.assertEqual(len(reader.pages),14);self.assertEqual(len(request['files']),1)
+        self.assertEqual({r['id'] for r in request['recipients']},{'1','2','associate'})
+        self.assertNotIn('signing_order',request);self.assertEqual(len(request['checkbox_groups']),4)
+        self.assertEqual(len(request['conditional_rules']),2)
+        fields=request['fields'][0];ids={f['api_id'] for f in fields}
+        self.assertEqual({f['page'] for f in fields if f['api_id'].startswith('listing_B_')},{12})
+        self.assertEqual({f['page'] for f in fields if f['api_id'].startswith('listing_C_')},{13,14})
+        self.assertFalse(any('tenant' in f['api_id'] for f in fields))
+        for group in request['checkbox_groups']:self.assertTrue(set(group['checkbox_ids'])<=ids)
+        self.assertEqual(self.post(body)[0],200)
+        self.assertEqual((self.store.provider_creates,self.store.provider_sends),(1,1))
+
+    def test_unconfirmed_age_defers_lead_but_does_not_block_the_listing_and_flood(self):
+        self.add_rental_sources();self.create(addenda=['B','C'],built_before_1978='unanswered')
+        preview=asyncio.run(api._standalone_signing_recipient_preview(USER,AGREEMENT_ID))
+        self.assertEqual(preview['packet']['pageCount'],12)
+        self.assertEqual(preview['packet']['included'],['Lease listing agreement','Rental flood disclosure'])
+        self.assertTrue(any('Confirm the home’s age' in row for row in preview['packet']['pending']))
+        self.assertFalse(any(r.url.params.get('form_code')=='eq.TXR-2008' for r in self.store.requests))
+        self.assertEqual(self.post(self.send_body())[0],200)
+
+    def test_confirmed_newer_home_clears_a_stale_lead_check_without_loading_it(self):
+        self.add_rental_sources();self.create(addenda=['B','C'],built_before_1978='no')
+        self.assertEqual(self.store.record['agreement_data']['addenda'],['B'])
+        preview=asyncio.run(api._standalone_signing_recipient_preview(USER,AGREEMENT_ID))
+        self.assertEqual(preview['packet']['pending'],[])
+        self.assertFalse(any(r.url.params.get('form_code')=='eq.TXR-2008' for r in self.store.requests))
+
+    def test_wrong_source_metadata_or_private_path_is_rejected_before_component_download(self):
+        self.add_rental_sources();self.create(addenda=['B'])
+        source=self.store.related_sources[1]
+        for key,value in [('source_sha256','0'*64),('storage_bucket','public-files'),
+                          ('storage_path','component-source-host/../another/private.pdf'),('id','not-an-id')]:
+            original=source[key];source[key]=value
+            with self.subTest(key=key),self.assertRaises(ValueError):
+                asyncio.run(api._standalone_signing_recipient_preview(USER,AGREEMENT_ID))
+            source[key]=original
+        self.assertFalse(any('/component-source-host/' in r.url.path for r in self.store.requests))
+        self.assertEqual(self.store.provider_creates,0)
+
+    def test_unapproved_or_changed_source_revision_remains_pending_not_falsely_included(self):
+        self.add_rental_sources();self.create(addenda=['B'],built_before_1978='no')
+        source=self.store.related_sources[1]
+        for key,value in [('status','retired'),('authorization_attested',False),('source_revision','changed')]:
+            original=source[key];source[key]=value
+            preview=asyncio.run(api._standalone_signing_recipient_preview(USER,AGREEMENT_ID))
+            self.assertEqual(preview['packet']['included'],['Lease listing agreement'])
+            self.assertTrue(any('Rental flood disclosure' in row for row in preview['packet']['pending']))
+            source[key]=original
+
+    def test_missing_storage_is_pending_but_transient_errors_or_changed_bytes_are_visible(self):
+        self.add_rental_sources();self.create(addenda=['B'],built_before_1978='no')
+        path='/storage/v1/object/brokerage-form-sources/'+self.store.related_sources[1]['storage_path']
+        saved=self.store.related_files[path];self.store.related_files[path]=(404,b'')
+        preview=asyncio.run(api._standalone_signing_recipient_preview(USER,AGREEMENT_ID))
+        self.assertEqual(preview['packet']['included'],['Lease listing agreement'])
+        self.assertEqual(self.post(self.send_body())[0],200)
+        # Separate untracked draft, not a request to send another provider document.
+        self.create(addenda=['B'],built_before_1978='no')
+        self.store.related_files[path]=(503,b'')
+        with self.assertRaises(RuntimeError):asyncio.run(api._standalone_signing_recipient_preview(USER,AGREEMENT_ID))
+        self.store.related_files[path]=(200,saved[1]+b'\naltered')
+        with self.assertRaises(ValueError):asyncio.run(api._standalone_signing_recipient_preview(USER,AGREEMENT_ID))
+        self.assertEqual(self.store.provider_creates,1)
+
+    def test_a_newly_available_or_reapproved_component_invalidates_previous_review(self):
+        self.create(addenda=['B','C']);old=self.send_body();self.add_rental_sources()
+        self.assertEqual(self.post(old)[0],400)
+        current=self.send_body();self.store.related_sources[0]['id']='22222222-2222-4222-8222-222222222222'
+        self.assertEqual(self.post(current)[0],400)
+        self.assertEqual((self.store.provider_creates,self.store.provider_sends),(0,0))
+
+    def test_component_controls_must_survive_provider_readback_before_any_invitation(self):
+        self.add_rental_sources();self.create(addenda=['B','C']);self.store.bad_completion_controls=True
+        status,result=self.post(self.send_body());self.assertEqual(status,400,result)
+        self.assertEqual(self.store.provider_sends,0)
+
+    @unittest.skipUnless(os.environ.get('HOF_LEASE_DISCLOSURE_SOURCES'),'Exact private component sources are opt-in.')
+    def test_actual_component_sources_flow_through_preview_and_same_provider_retry(self):
+        from lib.lease_disclosures import SOURCES
+        if os.environ.get('HOF_TXR1102_SOURCE'):
+            self.store.storage_bytes=Path(os.environ['HOF_TXR1102_SOURCE']).read_bytes()
+            self.render.side_effect=ACTUAL_RENDER
+        files={'TXR-2008':'TXR-2008-2003-10-14.pdf','TXR-2015':'TXR-2015-2025-09-01.pdf'}
+        for index,(code,filename) in enumerate(files.items(),1):
+            spec=SOURCES[code];path='component-source-host/'+code+'.pdf'
+            self.store.related_sources.append({'id':f'11111111-1111-4111-8111-{index:012d}',
+                'brokerage_id':'component-source-host','form_code':code,'source_revision':spec['revision'],'status':'approved',
+                'authorization_attested':True,'source_sha256':spec['sha256'],'storage_bucket':'brokerage-form-sources','storage_path':path})
+            self.store.related_files['/storage/v1/object/brokerage-form-sources/'+path]=(200,(Path(os.environ['HOF_LEASE_DISCLOSURE_SOURCES'])/filename).read_bytes())
+        self.create(addenda=['B','C'],client_names=['QA Sole Landlord'],client_email_2='',signer_plan='clients_and_broker')
+        body=self.send_body();broker={'name':'QA Broker','email':'broker@example.test'}
+        body['brokerSigner']=broker;body['confirmedRecipients'][-1]={'id':'broker',**broker}
+        self.store.fail_inspect_once=True
+        status,result=self.post(body);self.assertEqual(status,409,result)
+        self.assertEqual((self.store.provider_creates,self.store.provider_sends),(1,0))
+        status,result=self.post(self.send_body());self.assertEqual(status,200,result)
+        self.assertEqual((self.store.provider_creates,self.store.provider_sends),(1,1))
+        self.assertEqual({r['id'] for r in self.store.provider['recipients']},{'1','broker'})
+        reader=PdfReader(BytesIO(base64.b64decode(self.store.provider['files'][0]['file_base64'])))
+        self.assertIn('ADDENDUM REGARDING',reader.pages[11].extract_text())
 
     def test_actual_saved_iabs_is_included_once_without_fabricated_disclosures_or_extra_signers(self):
         self.add_iabs();self.create()

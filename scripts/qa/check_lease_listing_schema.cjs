@@ -45,6 +45,9 @@ async function main(){
       grant usage on sequence public.hof_standalone_agreements_id_seq to authenticated;
       grant all on public.hof_standalone_agreements to service_role;
       grant usage on sequence public.hof_standalone_agreements_id_seq to service_role;
+      create table public.hof_brokerage_form_sources(form_code text not null);
+      alter table public.hof_brokerage_form_sources enable row level security;
+      grant all on public.hof_brokerage_form_sources to service_role;
       -- Fixture isolates the new wrapper's contract propagation, not the core probe's implementation.
       create function public.hof_release_schema_readiness() returns jsonb language sql stable
         security invoker set search_path=pg_catalog as $$
@@ -57,13 +60,22 @@ async function main(){
     const policies=(await admin.query("select * from pg_policies where tablename='hof_standalone_agreements'")).rows;
     await reject(()=>admin.query("insert into public.hof_standalone_agreements(agent_user_id,form_code) values($1,'TXR-1102')",[owner]),'23514');
     await admin.query(migration('20261020231654_add_txr1102_lease_listing_drafts.sql'));
+    await admin.query(migration('20261005110000_expand_trec_39_11_source_code.sql'));
+    const sourceBefore=(await admin.query("select relacl,relrowsecurity from pg_class where oid='public.hof_brokerage_form_sources'::regclass")).rows[0];
+    await reject(()=>admin.query("insert into public.hof_brokerage_form_sources values('TXR-2008')"),'23514');
+    await admin.query(migration('20261021034227_add_lease_disclosure_source_codes.sql'));
+    check(JSON.stringify(sourceBefore)===JSON.stringify((await admin.query("select relacl,relrowsecurity from pg_class where oid='public.hof_brokerage_form_sources'::regclass")).rows[0]),'Source privileges and RLS unchanged');
+    for(const code of ['TXR-1501','TXR-1506','TXR-1507','TXR-1508','TXR-1905','TXR-1914','TXR-1917','TXR-1919','TXR-1948','TXR-1953','TXR-1954','TXR-1101','TXR-1102','TXR-1406','TXR-1418','TXR-2008','TXR-2015','TREC-55-1','TREC-61-0','TREC-62-0','TREC-38-8','TREC-39-11']){
+      await admin.query('insert into public.hof_brokerage_form_sources values($1)',[code]);checks++;
+    }
+    await reject(()=>admin.query("insert into public.hof_brokerage_form_sources values('TXR-unknown')"),'23514');
     const after=(await admin.query("select relacl,relrowsecurity from pg_class where oid='public.hof_standalone_agreements'::regclass")).rows[0];
     check(JSON.stringify(before)===JSON.stringify(after),'Table privileges and RLS are unchanged');
     check(JSON.stringify(policies)===JSON.stringify((await admin.query("select * from pg_policies where tablename='hof_standalone_agreements'")).rows),'Ownership policies unchanged');
     for(const code of ['TXR-1101','TXR-1102','TXR-1501','TXR-1506','TXR-1507','TXR-1508','TXR-1905','TXR-1914','TXR-1917','TXR-1919','TXR-1948','TXR-1953','TXR-1954','TREC-62-0','TREC-38-8','TREC-39-11']){
       await admin.query('insert into public.hof_standalone_agreements(agent_user_id,form_code) values($1,$2)',[owner,code]);checks++;
     }
-    for(const code of ['TXR-1406','unknown','TXR-1102-injected'])await reject(()=>admin.query('insert into public.hof_standalone_agreements(agent_user_id,form_code) values($1,$2)',[owner,code]),'23514');
+    for(const code of ['TXR-1406','unknown','TXR-1102-injected','TXR-2008','TXR-2015'])await reject(()=>admin.query('insert into public.hof_standalone_agreements(agent_user_id,form_code) values($1,$2)',[owner,code]),'23514');
     const service=await connect('service_role'),actor=await connect('authenticated'),anonymous=await connect('anon');
     await actor.query("select set_config('request.jwt.claim.sub',$1,false)",[owner]);
     await actor.query("insert into public.hof_standalone_agreements(agent_user_id,form_code) values($1,'TXR-1102')",[owner]);checks++;
@@ -74,6 +86,7 @@ async function main(){
     const proof=await readiness(service);
     check(proof.ready && proof.contract==='homeofferflow-lease-listing-schema-v1' && proof.missing.length===0,'Lease schema ready');
     for(const c of [actor,anonymous])await reject(()=>readiness(c),'42501');
+    for(const c of [actor,anonymous])await reject(()=>c.query('select * from public.hof_brokerage_form_sources'),'42501');
     const fn=(await admin.query("select prosecdef,proconfig from pg_proc where oid='public.hof_lease_listing_schema_readiness()'::regprocedure")).rows[0];
     check(!fn.prosecdef && fn.proconfig.includes('search_path=pg_catalog'),'Invoker-only and fixed search path');
     for(const baseline of [{contract:'homeofferflow-release-schema-v1',ready:false,missing:['existing:missing']},
@@ -82,6 +95,12 @@ async function main(){
       check(!(await readiness(service)).ready,'Baseline failures propagate');
     }
     await service.query("select set_config('hof.qa_baseline','',false)");
+    await admin.query('alter table public.hof_brokerage_form_sources drop constraint hof_brokerage_form_sources_form_code_check');
+    check((await readiness(service)).missing.includes('form_code:hof_brokerage_form_sources.TXR-2008'),'Missing source constraint fails readiness');
+    await admin.query("alter table public.hof_brokerage_form_sources add constraint hof_brokerage_form_sources_form_code_check check(form_code in ('TXR-2008','TXR-2015')) not valid");
+    check(!(await readiness(service)).ready,'Unvalidated source constraint fails readiness');
+    await admin.query(migration('20261021034227_add_lease_disclosure_source_codes.sql'));
+    check((await readiness(service)).ready,'Validated complete source catalog restores readiness');
     await admin.query('alter table public.hof_standalone_agreements drop constraint hof_standalone_agreements_form_code_check');
     check((await readiness(service)).missing.includes('form_code:hof_standalone_agreements.TXR-1102'),'Missing constraint is not ready');
     await admin.query("alter table public.hof_standalone_agreements add constraint hof_standalone_agreements_form_code_check check(form_code in ('TXR-1102')) not valid");

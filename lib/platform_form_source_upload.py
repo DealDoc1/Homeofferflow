@@ -41,10 +41,10 @@ FORM_CODES = {
     "TXR-1501", "TXR-1506", "TXR-1507", "TXR-1508",
     "TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919",
     "TXR-1948", "TXR-1953", "TXR-1954",
-    "TXR-1101", "TXR-1102", "TXR-1406", "TXR-1418",
+    "TXR-1101", "TXR-1102", "TXR-1406", "TXR-1418", "TXR-2008", "TXR-2015",
     "TREC-55-1", "TREC-61-0", "TREC-62-0", "TREC-38-8", "TREC-39-11",
 }
-RESTRICTED_TXR_SIGNING_CODES = {"TXR-1101", "TXR-1501", "TXR-1506", "TXR-1507", "TXR-1508", "TREC-62-0", "TREC-38-8", "TREC-39-11"}
+RESTRICTED_TXR_SIGNING_CODES = {"TXR-1101", "TXR-1102", "TXR-1501", "TXR-1506", "TXR-1507", "TXR-1508", "TREC-62-0", "TREC-38-8", "TREC-39-11"}
 TXR_SIGNING_ENABLED = str(os.environ.get("HOF_TXR_SIGNING_ENABLED", "false")).lower() in {"1", "true", "yes", "on"}
 REVISION_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,47}$")
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -278,6 +278,7 @@ async def _upload_source(user, data):
         "sourceSha256": parsed["source_sha256"],
         "status": "approved",
         "workflowActivated": _workflow_activation_status(parsed["form_code"]),
+        "relatedWorkflow": "lease_listing" if parsed["form_code"] in {"TXR-2008","TXR-2015"} else None,
     }
 
 

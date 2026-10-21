@@ -44,7 +44,7 @@ class PlatformFormSourceUploadTests(unittest.TestCase):
             self.assertEqual(parsed["form_code"], form_code)
 
     def test_parser_accepts_every_new_shared_txr_source_code(self):
-        for form_code in ("TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919", "TXR-1948", "TXR-1953", "TXR-1954"):
+        for form_code in ("TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919", "TXR-1948", "TXR-1953", "TXR-1954", "TXR-2008", "TXR-2015"):
             payload = self._payload()
             payload["formCode"] = form_code
             payload["originalFilename"] = f"{form_code.replace('-', '')}.pdf"
@@ -55,6 +55,17 @@ class PlatformFormSourceUploadTests(unittest.TestCase):
         migration = (ROOT / "supabase" / "migrations" / "20260822151500_expand_shared_txr_source_codes.sql").read_text()
         for form_code in ("TXR-1905", "TXR-1914", "TXR-1917", "TXR-1919", "TXR-1948", "TXR-1953", "TXR-1954"):
             self.assertIn(f"'{form_code}'", migration)
+
+    def test_lease_component_source_codes_match_the_full_database_and_ui_contract(self):
+        import re
+        migration=(ROOT/'supabase/migrations/20261021034227_add_lease_disclosure_source_codes.sql').read_text()
+        check=migration.split('check (form_code in (',1)[1].split('));',1)[0]
+        self.assertEqual(set(re.findall(r"'([^']+)'",check)),module.FORM_CODES)
+        html=(ROOT/'index.html').read_text()
+        for code in ('TXR-2008','TXR-2015'):
+            self.assertIn("'"+code+"'",html)
+        self.assertIn('relatedWorkflow === \'lease_listing\'',html)
+        self.assertIn('"relatedWorkflow": "lease_listing"', (ROOT/'lib/platform_form_source_upload.py').read_text())
 
     def test_parser_rejects_non_pdf_even_with_valid_base64(self):
         content = b"not a pdf"
@@ -88,7 +99,9 @@ class PlatformFormSourceUploadTests(unittest.TestCase):
             module.TXR_SIGNING_ENABLED = True
             self.assertTrue(module._workflow_activation_status("TXR-1507"))
             self.assertTrue(module._workflow_activation_status("TXR-1101"))
-            self.assertFalse(module._workflow_activation_status("TXR-1102"))
+            self.assertTrue(module._workflow_activation_status("TXR-1102"))
+            self.assertFalse(module._workflow_activation_status("TXR-2008"))
+            self.assertFalse(module._workflow_activation_status("TXR-2015"))
         finally:
             module.TXR_SIGNING_ENABLED = previous
         self.assertIn("Platform-admin access is required", source)

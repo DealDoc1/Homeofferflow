@@ -217,4 +217,4 @@ def prepare_lease_disclosure(form_code, source, listing, answers=None):
         sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode()).hexdigest()
     output=BytesIO();writer.write(output)
     return LeaseDisclosure(output.getvalue(),[fields],groups,rules,fingerprint,form_code,spec['render_revision'],
-        ('Tenant receipt and signature must be completed when a tenant participates.',))
+        ('Tenant receipt and signature remain to be completed.',))

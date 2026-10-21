@@ -34,6 +34,13 @@ test('document labels and additional notes are escaped, never injected as markup
   assert.doesNotMatch(view,/<img|<script|<iframe/);
   assert.match(view,/&lt;img/);assert.match(view,/&lt;iframe/);
 });
+test('included rental disclosures still show tenant receipt and pamphlet follow-up without a send gate',()=>{
+  const view=root.formatListingPacket({pageCount:14,included:['Lease listing agreement','Rental flood disclosure','Lead-based paint disclosure for a lease'],pending:[],
+    followUp:['Tenant receipt and signature remain to be completed.','Provide the lead pamphlet.','<img src=x onerror=attack()>']});
+  assert.match(view,/Before the lease is signed/);assert.match(view,/Tenant receipt and signature/);
+  assert.match(view,/Provide the lead pamphlet/);assert.match(view,/&lt;img/);
+  assert.doesNotMatch(view,/<img|disabled|approval required|Still to prepare/);
+});
 test('send confirmation uses the server delivery state rather than claiming every retry sent invitations',()=>{
   const expression=script.match(/status\.textContent = (result\.signwell\?\.message[^;]+);/)?.[1];
   assert.ok(expression);

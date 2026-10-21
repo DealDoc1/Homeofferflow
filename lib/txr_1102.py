@@ -208,7 +208,10 @@ def validate_answers(data):
     # package adapter must distinguish requested/pending from actually included.
     # Rental flood disclosure is requested for every rental, without guessing
     # the landlord's flood answers. The composer still proves actual inclusion.
-    result['addenda']=sorted(set(addenda)|{'B'}|({'C'} if age!='no' else set())|({'L'} if result['other_documents'] else set()))
+    selected=set(addenda)|{'B'}|({'L'} if result['other_documents'] else set())
+    if age=='no':selected.discard('C')
+    else:selected.add('C')
+    result['addenda']=sorted(selected)
     include=data.get('include_rental_preferences',False)
     if not isinstance(include,bool):raise ValueError('Choose whether to include rental preferences.')
     result['include_rental_preferences']=include

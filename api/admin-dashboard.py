@@ -4940,6 +4940,49 @@ async def _owned_listing_iabs(user):
     return PreparedDocument("A",response.content,[],{},hashlib.sha256(response.content).hexdigest())
 
 
+async def _approved_lease_disclosure(form_code, render_data):
+    """Resolve one reviewed universal source privately; never inherit its office."""
+    from lib.lease_disclosures import SOURCES, prepare_lease_disclosure
+    from lib.listing_packet import PreparedDocument
+    spec=SOURCES[form_code]
+    rows=await _get('hof_brokerage_form_sources?'
+        f'form_code=eq.{form_code}&source_revision=eq.{spec["revision"]}'
+        '&status=eq.approved&authorization_attested=is.true'
+        '&select=id,brokerage_id,form_code,source_revision,status,authorization_attested,source_sha256,storage_bucket,storage_path'
+        '&order=updated_at.desc,id.desc&limit=1')
+    if not rows:return None
+    source=rows[0]
+    path=source.get('storage_path')
+    try: source_id=str(uuid.UUID(str(source.get('id'))))
+    except (ValueError,TypeError,AttributeError): raise ValueError('The rental disclosure source could not be confirmed.')
+    if (source.get('form_code')!=form_code or source.get('source_revision')!=spec['revision']
+            or source.get('status')!='approved' or source.get('authorization_attested') is not True
+            or source.get('source_sha256')!=spec['sha256'] or source.get('storage_bucket')!='brokerage-form-sources'
+            or not isinstance(path,str) or len(path)>500 or not source.get('brokerage_id')
+            or not path.startswith(str(source['brokerage_id'])+'/') or not path.endswith('.pdf')
+            or any(part in {'','.','..'} for part in path.split('/'))):
+        raise ValueError('The rental disclosure source differs from the reviewed revision.')
+    async with httpx.AsyncClient(timeout=20) as client:
+        response=await client.get(f'{SUPABASE_URL}/storage/v1/object/brokerage-form-sources/'
+            f'{urllib.parse.quote(path,safe="/")}',headers=_headers())
+    if response.status_code==404:return None
+    if response.status_code!=200 or len(response.content)>10_485_760:
+        raise RuntimeError('The rental disclosure could not be loaded. Your listing remains saved.')
+    if hashlib.sha256(response.content).hexdigest()!=spec['sha256']:
+        raise ValueError('The rental disclosure PDF differs from the reviewed source.')
+    prepared=prepare_lease_disclosure(form_code,response.content,render_data)
+    role='associate' if render_data['signer_plan']=='clients_and_associate' else 'broker'
+    mapping={str(n):str(n) for n in range(1,len(render_data['client_names'])+1)}
+    if form_code=='TXR-2008':mapping[role]=role
+    fingerprint=hashlib.sha256(json.dumps({'source_id':source_id,'source_revision':spec['revision'],
+        'prepared':prepared.content_fingerprint},sort_keys=True,separators=(',',':')).encode()).hexdigest()
+    actions=prepared.remaining_actions
+    if form_code=='TXR-2008':
+        actions+=('Give the tenant the lead pamphlet and any listed reports.',)
+    return PreparedDocument('C' if form_code=='TXR-2008' else 'B',prepared.pdf,prepared.fields,mapping,
+        fingerprint,prepared.checkbox_groups,prepared.conditional_rules,remaining_actions=actions)
+
+
 async def _assemble_owned_lease_listing_packet(user, render_data, listing_pdf):
     from lib.listing_packet import assemble_lease_listing_packet
     from lib.txr_1102 import build_signwell_fields_txr1102
@@ -4949,10 +4992,15 @@ async def _assemble_owned_lease_listing_packet(user, render_data, listing_pdf):
         iabs=await _owned_listing_iabs(user)
         if iabs is not None: documents.append(iabs)
     if 'B' in render_data['addenda']:
-        pending_reasons['B']='Landlord-completed rental flood disclosure to follow.'
+        flood=await _approved_lease_disclosure('TXR-2015',render_data)
+        if flood is not None:documents.append(flood)
+        else:pending_reasons['B']='Rental flood disclosure to follow.'
     if 'C' in render_data['addenda']:
-        pending_reasons['C']=('Lease lead disclosure to be completed by the landlord.' if render_data['built_before_1978']=='yes'
-                              else 'Confirm the home’s age and complete the lease disclosure if applicable.')
+        if render_data['built_before_1978']=='yes':
+            lead=await _approved_lease_disclosure('TXR-2008',render_data)
+            if lead is not None:documents.append(lead)
+            else:pending_reasons['C']='Lease lead disclosure to follow.'
+        else:pending_reasons['C']='Confirm the home’s age and complete the lease disclosure if applicable.'
     count=len(PdfReader(BytesIO(listing_pdf)).pages)
     fields=build_signwell_fields_txr1102(render_data,client_count=len(render_data['client_names']),page_count=count)
     return assemble_lease_listing_packet(render_data,listing_pdf,fields,documents=documents,pending_reasons=pending_reasons)
@@ -5404,6 +5452,8 @@ async def _standalone_signing_recipient_preview(user, agreement_id):
             "included":[row["label"] for row in manifest["included"]],
             "pending":[row["label"] + (' — '+row['reason'] if row.get('reason') else '') for row in manifest["pending"]],
             "otherDocuments":manifest["other_documents"]}
+        follow_up=list(dict.fromkeys(action for row in manifest['included'] for action in row.get('remaining_actions',[])))
+        if follow_up:result['packet']['followUp']=follow_up
         result["packetFingerprint"] = _listing_packet_confirmation(user,agreement,packet_context)
     return result
 

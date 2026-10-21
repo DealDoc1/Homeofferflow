@@ -60,6 +60,7 @@ class Store:
         self.bad_provider_fields=False
         self.fail_inspect_once=False
         self.storage_bytes=b'%PDF-private-source-fixture'
+        self.related_sources=[];self.related_files={}
         self.empty_update=False;self.race_update=False;self.normalize_timestamp=False
 
     def handle(self,request):
@@ -72,11 +73,15 @@ class Store:
                 if token=='Bearer other-token':return httpx.Response(200,json={**USER,'id':'other-owner'})
                 return httpx.Response(401,json={})
             if path.startswith('/storage/v1/object/'):
+                if path in self.related_files:
+                    status,content=self.related_files[path]
+                    return httpx.Response(status,content=content)
                 if '/agent-documents/' in path:
                     return httpx.Response(200,content=self.iabs_bytes) if self.iabs_bytes else httpx.Response(self.iabs_error,content=b'')
                 return httpx.Response(200,content=self.storage_bytes)
             if request.method=='GET':
-                if path.endswith('/hof_brokerage_form_sources'):row=self.source
+                if path.endswith('/hof_brokerage_form_sources'):
+                    return httpx.Response(200,json=[deepcopy(row) for row in [self.source,*self.related_sources] if matches(row,params)])
                 elif path.endswith('/hof_standalone_agreements'):row=self.record
                 elif path.endswith('/hof_agent_profile_aliases'):
                     row=self.alias

@@ -111,6 +111,7 @@ class LeaseListingTests(unittest.TestCase):
         self.assertEqual(form.validate_answers(sample(addenda=[]))['addenda'],['B','C'])
         self.assertEqual(form.validate_answers(sample(built_before_1978='unanswered',addenda=[]))['addenda'],['B','C'])
         self.assertEqual(form.validate_answers(sample(built_before_1978='no',addenda=[]))['addenda'],['B'])
+        self.assertEqual(form.validate_answers(sample(built_before_1978='no',addenda=['C']))['addenda'],['B'])
         self.assertEqual(form.validate_answers(sample(built_before_1978='no',addenda=[],other_documents='Fictional notice'))['addenda'],['B','L'])
         for selected in (['A','A'],['M'],['L'],[{}],'ABC'):
             with self.subTest(selected=selected),self.assertRaises(ValueError):form.validate_answers(sample(addenda=selected))

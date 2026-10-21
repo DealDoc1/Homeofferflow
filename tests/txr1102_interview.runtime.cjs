@@ -30,6 +30,7 @@ test('unknown age requests a lease lead document but never claims it is attached
   assert.deepEqual(model.collect(values({built_before_1978:''})).agreementData.addenda,['A','B','C']);
   assert.deepEqual(model.collect(values({built_before_1978:'yes',addenda:['A','C','C']})).agreementData.addenda,['A','B','C']);
   assert.deepEqual(model.collect(values()).agreementData.addenda,['A','B']);
+  assert.deepEqual(model.collect(values({built_before_1978:'no',addenda:['A','C']})).agreementData.addenda,['A','B']);
 });
 test('optional preference branches do not carry stale amounts, contacts or animal permissions',()=>{
   const a=model.collect(values({include_rental_preferences:'on',rent_due:'first',rent_due_other:'old',animals:'not_permitted',

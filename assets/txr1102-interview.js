@@ -52,7 +52,8 @@
     if(a.make_ready==='not_authorized'){a.make_ready_limit='';a.make_ready_service_fee='';}
     a.built_before_1978=get('built_before_1978')||'unanswered';
     a.addenda=[...new Set([...values.getAll('addenda'),'B'])];
-    if(a.built_before_1978!=='no'&&!a.addenda.includes('C'))a.addenda.push('C');
+    if(a.built_before_1978==='no')a.addenda=a.addenda.filter(code=>code!=='C');
+    else if(!a.addenda.includes('C'))a.addenda.push('C');
     if(a.other_documents&&!a.addenda.includes('L'))a.addenda.push('L');
     a.addenda.sort();a.broker_notice_contacts=Object.fromEntries(noticeKeys.map(key=>[key,get('broker_notice_'+key)]));
     a.include_rental_preferences=values.get('include_rental_preferences')==='on';
@@ -167,8 +168,8 @@
     }
     // Evaluate ancestors as well, so a nested preference cannot re-enable itself.
     for(const control of form.querySelectorAll('input,select,textarea'))control.disabled=busy||uncertain||Boolean(control.closest('[data-condition][hidden]'));
-    form.querySelector('[name="addenda"][value="B"]').checked=true;
-    const lead=form.querySelector('[name="addenda"][value="C"]');if(get('built_before_1978')!=='no')lead.checked=true;
+    const flood=form.querySelector('[name="addenda"][value="B"]');flood.checked=true;flood.disabled=true;
+    const lead=form.querySelector('[name="addenda"][value="C"]');lead.checked=get('built_before_1978')!=='no';lead.disabled=true;
     for(const name of ['mls_delay_purpose','fee_other','renewal_other','sale_fee_other','pool_other','initial_late_amount','tenant_replacement_amount','landlord_replacement_amount']){
       const control=form.elements.namedItem(name);control.required=!control.disabled;
     }

@@ -93,6 +93,18 @@ class LeaseListingPacketTests(unittest.TestCase):
         changed=self.build(sample(listing_price='2600'),listing_pdf=listing)
         self.assertNotEqual(original.content_fingerprint,changed.content_fingerprint)
 
+    def test_follow_up_is_bound_to_the_actual_component_without_changing_legacy_sale_shape(self):
+        from dataclasses import replace
+        document=component('B')
+        plain=self.build(documents=[document])
+        changed=self.build(documents=[replace(document,remaining_actions=('Tenant receipt remains pending.',))])
+        self.assertNotEqual(plain.content_fingerprint,changed.content_fingerprint)
+        self.assertEqual(changed.manifest['included'][1]['remaining_actions'],['Tenant receipt remains pending.'])
+        self.assertNotIn('remaining_actions',plain.manifest['included'][1])
+        for bad in ('not-a-list',(None,),('x'*301,)):
+            with self.subTest(bad=bad),self.assertRaises(ValueError):
+                self.build(documents=[replace(document,remaining_actions=bad)])
+
     @unittest.skipUnless(os.environ.get('HOF_TXR1102_SOURCE'),'Exact private lease source is opt-in.')
     def test_actual_source_continuations_and_single_broker_stay_before_appended_iabs(self):
         source=Path(os.environ['HOF_TXR1102_SOURCE']).read_bytes()

@@ -61,6 +61,7 @@ class PreparedDocument:
     conditional_rules: list = data_field(default_factory=list)
     contained_documents: dict = data_field(default_factory=dict)
     disclosure_binding: dict = data_field(default_factory=dict)
+    remaining_actions: tuple = ()
 
 
 @dataclass(frozen=True)
@@ -220,6 +221,9 @@ def _compose_listing_packet(data, listing_pdf, listing_fields, *, documents, pen
             raise ValueError('Add each selected related document only once.')
         if not allow_seller_disclosure and document.disclosure_binding:
             raise ValueError('Use lease-specific related documents, not a sale disclosure.')
+        if (not isinstance(document.remaining_actions,(tuple,list)) or len(document.remaining_actions)>10
+                or any(not isinstance(action,str) or not action.strip() or len(action)>300 for action in document.remaining_actions)):
+            raise ValueError('Review the remaining document steps.')
         if not isinstance(document.content_fingerprint,str) or not re.fullmatch(r'[a-f0-9]{64}',document.content_fingerprint):
             raise ValueError('The prepared document’s saved content could not be confirmed.')
         by_code[document.code] = document
@@ -279,6 +283,8 @@ def _compose_listing_packet(data, listing_pdf, listing_fields, *, documents, pen
         included.append({'code':code,'label':labels[code],'status':'included',
                          'start_page':page_count+1,'end_page':page_count+len(reader.pages),
                          'content_fingerprint':prepared.content_fingerprint})
+        if prepared.remaining_actions:
+            included[-1]['remaining_actions']=list(prepared.remaining_actions)
         page_count += len(reader.pages)
     if len({field['api_id'] for field in fields}) != len(fields):
         raise ValueError('The listing packet contains conflicting signing fields.')
