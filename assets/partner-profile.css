@@ -1,0 +1,22 @@
+.hof-partner-portrait-slot{float:right;display:block;width:64px;height:64px;margin:0 0 .65rem .8rem;flex:none}
+.hof-partner-portrait-slot .hof-partner-headshot{display:block;width:64px;height:64px;max-width:100%;object-fit:cover;border-radius:12px;background:rgba(255,255,255,.08);padding:0;margin:0;float:none;border:1px solid rgba(255,255,255,.22)}
+.hof-partner-portrait-slot:not([hidden])+img{max-width:calc(100% - 80px)}
+.now-what-partner.has-portrait>div:first-child{min-width:0;flex:1 1 240px}
+.hof-partner-portrait-slot[hidden]{display:none}
+.card.has-portrait{position:relative}
+.card.has-portrait .hof-partner-portrait-slot{position:absolute;top:18px;right:18px;margin:0}
+.card.has-portrait.no-logo .provider-copy>h2,.card.has-portrait.no-logo .provider-copy>.meta{padding-right:80px}
+.card.has-portrait>img{max-width:calc(100% - 80px)}
+@media(min-width:721px){.grid.single-provider .card.has-portrait>img{max-width:100%}.grid.single-provider .card.has-portrait .provider-copy>h2,.grid.single-provider .card.has-portrait .provider-copy>.meta{padding-right:80px}}
+.hof-inspection-partner-copy::after{content:"";display:table;clear:both}
+.hof-inspection-partner.has-portrait{position:relative}
+.hof-inspection-partner.has-portrait.no-logo{grid-template-columns:minmax(0,1fr)}
+.hof-inspection-partner.has-portrait .hof-partner-portrait-slot{position:absolute;top:0;right:0;margin:0}
+.hof-inspection-partner.has-portrait .hof-inspection-partner-copy{padding-right:80px}
+@media(max-width:600px){.hof-inspection-partner.has-portrait .hof-inspection-partner-logo{max-width:calc(100% - 80px)}.hof-inspection-partner.has-portrait .hof-inspection-partner-copy{padding-right:0}}
+.hof-inspection-partner.has-portrait.no-logo .hof-inspection-partner-copy{padding-right:80px}
+#partnerOnboardingFields .hof-partner-photo-remove{display:flex;align-items:center;gap:.5rem;min-height:44px;margin:.35rem 0 0;text-transform:none;letter-spacing:normal;font-size:.82rem}
+#partnerSetupHeadshotRemove{width:18px;height:18px;min-height:18px;flex:0 0 auto;padding:0;margin:0;appearance:auto;border-radius:3px;accent-color:var(--gold,#d4a84b)}
+#partnerOnboardingFields small{display:block;color:var(--gray-light,#b6c4d5);font-size:.78rem;line-height:1.5;margin-top:.4rem}
+#partnerOnboardingModal h2{color:var(--white,#fff)}
+@media(max-width:360px){.hof-partner-portrait-slot{width:56px;height:56px;margin-left:.6rem}.hof-partner-portrait-slot .hof-partner-headshot{width:56px;height:56px}}

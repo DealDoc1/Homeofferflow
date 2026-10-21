@@ -27,6 +27,7 @@
   <meta name="twitter:image:alt" content="HomeOfferFlow Texas offer workflow" />
   <title>Write a Texas Real Estate Offer | HomeOfferFlow</title>
   <script src="/assets/partner-profile.js"></script>
+  <link rel="stylesheet" href="/assets/partner-profile.css">
   <link rel="stylesheet" href="/assets/inspection-partners.css">
   <script src="/assets/inspection-partners.js" defer></script>
   <script src="/assets/insurance-partners.js" defer></script>
@@ -11459,11 +11460,12 @@ function routeAfterMagicLinkIfNeeded() {
       const cards = matches.length ? matches.map(partner => {
         const regulated = NOW_WHAT_REGULATED_TYPES.has(partner.partner_type);
         const logo = window.hofPartnerProfile.websiteUrl(partner.logo_url);
+        const portrait = window.hofPartnerProfile.portrait(partner, nowWhatEscape);
         const fullDescription = String(partner.public_description || '').trim().slice(0, 600);
         const description = fullDescription.length > 260 ? fullDescription.split(/(?<=[.!?])\s+/).slice(0, 2).join(' ') : fullDescription;
         const tierLabel = partner.partner_program === 'beta' ? 'Beta partner' : partner.placement_tier === 'exclusive_market' ? 'Sponsored · Premier Partner' : partner.placement_tier === 'premier' ? 'Sponsored · Featured Partner' : 'Sponsored · Core Partner';
-        return `<div class="now-what-partner">
-          <div>${logo ? `<img class="now-what-partner-logo" src="${nowWhatEscape(logo)}" alt="${nowWhatEscape(partner.partner_name)} logo" loading="lazy" decoding="async">` : ''}<div class="now-what-partner-name">${nowWhatEscape(partner.partner_name || 'Local provider')}</div><div class="now-what-partner-meta">${nowWhatEscape(NOW_WHAT_PARTNER_LABELS[partner.partner_type] || 'Local service')} · ${nowWhatEscape(partner.market_area || 'Local market')}</div>${description ? `<p class="now-what-partner-description">${nowWhatEscape(description)}</p>` : ''}${regulated ? '' : `<span class="now-what-badge">${tierLabel}</span>`}</div>
+        return `<div class="now-what-partner${portrait ? ' has-portrait' : ''}">
+          <div>${portrait}${logo ? `<img class="now-what-partner-logo" src="${nowWhatEscape(logo)}" alt="${nowWhatEscape(partner.partner_name)} logo" loading="lazy" decoding="async">` : ''}<div class="now-what-partner-name">${nowWhatEscape(partner.partner_name || 'Local provider')}</div><div class="now-what-partner-meta">${nowWhatEscape(NOW_WHAT_PARTNER_LABELS[partner.partner_type] || 'Local service')} · ${nowWhatEscape(partner.market_area || 'Local market')}</div>${description ? `<p class="now-what-partner-description">${nowWhatEscape(description)}</p>` : ''}${regulated ? '' : `<span class="now-what-badge">${tierLabel}</span>`}</div>
           ${window.hofPartnerProfile.actions(partner, nowWhatEscape, 'data-offer-completion-partner-link')}
         </div>`;
       }).join('') : `<div class="now-what-empty">No active HomeOfferFlow provider profiles are available here yet. You may choose any qualified provider independently.</div>`;
@@ -18685,6 +18687,7 @@ function routeAfterMagicLinkIfNeeded() {
     modal.style.display = 'none';
     modal.innerHTML = `<div class="wizard-panel" style="max-width:680px"><button type="button" class="close-btn" aria-label="Close" onclick="closePartnerOnboarding()">×</button><div class="wizard-body"><h2>Partner setup</h2><p class="step-desc">Complete your public-facing details. This prepares review only; it does not activate advertising or replace the required written agreement.</p><div id="partnerOnboardingStatus" class="platform-status" role="status" aria-live="polite" aria-atomic="true"></div><div id="partnerOnboardingFields" style="display:none"><input id="partnerSetupLogo" type="hidden"><div class="platform-grid"><div class="field"><label>Company</label><input id="partnerSetupCompany" disabled></div><div class="field"><label>Category</label><input id="partnerSetupCategory" disabled></div><div class="field"><label for="partnerSetupMarket">Primary market area</label><input id="partnerSetupMarket" placeholder="Market area" required aria-required="true"></div><div class="field"><label for="partnerSetupWebsite">Website (https, optional)</label><input id="partnerSetupWebsite" placeholder="https://example.com"></div><div class="field"><label for="partnerSetupLogoFile">Logo image (optional)</label><input id="partnerSetupLogoFile" type="file" accept="image/png,image/jpeg,image/webp"><small>PNG, JPEG, or WebP; up to 2 MB. Leave this blank to keep your current logo.</small></div><div class="field"><label for="partnerSetupCta">Directory button text (optional)</label><input id="partnerSetupCta" maxlength="80" placeholder="Visit our website"></div></div><div class="notice sage" style="margin-top:.8rem"><strong>What is required?</strong> Your primary market area is the only setup field required. A website, logo, and button text can be added now or later during review.</div><div class="account-actions-row" style="margin-top:1rem"><button type="button" class="btn-primary" onclick="submitPartnerOnboarding()">Save setup details</button></div></div></div></div>`;
     modal.querySelector('.platform-grid').insertAdjacentHTML('beforeend', `
+      <div class="field"><input id="partnerSetupHeadshot" type="hidden"><label for="partnerSetupHeadshotFile">Contact headshot (optional)</label><input id="partnerSetupHeadshotFile" type="file" accept="image/png,image/jpeg,image/webp" aria-describedby="partnerSetupHeadshotHelp"><small id="partnerSetupHeadshotHelp">Use a photo you approve for public display. PNG, JPEG, or WebP; up to 2 MB. Leave blank to keep the current photo.</small><label class="hof-partner-photo-remove" for="partnerSetupHeadshotRemove"><input id="partnerSetupHeadshotRemove" type="checkbox"> Remove current headshot</label></div>
       <div class="field"><label for="partnerSetupPublicName">Public contact name (optional)</label><input id="partnerSetupPublicName" maxlength="80" autocomplete="name" placeholder="Who should customers call?"></div>
       <div class="field"><label for="partnerSetupPublicPhone">Public phone (optional)</label><input id="partnerSetupPublicPhone" type="tel" inputmode="tel" maxlength="30" autocomplete="tel" aria-describedby="partnerSetupPublicPhoneHelp"><small id="partnerSetupPublicPhoneHelp">Displayed as a call button on your public profile. Leave blank to keep your contact number private.</small></div>
       <div class="field" style="grid-column:1/-1"><label for="partnerSetupPublicDescription">Company description (optional)</label><textarea id="partnerSetupPublicDescription" rows="4" maxlength="600" aria-describedby="partnerSetupPublicDescriptionHelp"></textarea><small id="partnerSetupPublicDescriptionHelp">Tell customers what you offer and where you work. Up to 600 characters.</small></div>`);
@@ -18727,21 +18730,33 @@ function routeAfterMagicLinkIfNeeded() {
       const response = await fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({request_type:'partner_onboarding_get', onboarding_token:token})});
       const result = await response.json().catch(() => ({})); if (!response.ok || !result.partner) throw new Error(result.error || 'This setup link is unavailable.');
       const partner = result.partner; document.getElementById('partnerSetupCompany').value = partner.company_name || ''; document.getElementById('partnerSetupCategory').value = String(partner.partner_type || '').replace(/_/g, ' '); document.getElementById('partnerSetupMarket').value = partner.onboarding_market_area || partner.market_area || ''; document.getElementById('partnerSetupWebsite').value = partner.onboarding_website_url || ''; document.getElementById('partnerSetupLogo').value = partner.onboarding_logo_url || ''; document.getElementById('partnerSetupCta').value = partner.onboarding_cta_label || ''; document.getElementById('partnerSetupPublicName').value = partner.onboarding_public_contact_name || ''; document.getElementById('partnerSetupPublicPhone').value = partner.onboarding_public_contact_phone || ''; document.getElementById('partnerSetupPublicDescription').value = partner.onboarding_public_description || ''; document.getElementById('partnerOnboardingFields').style.display = 'block'; status.textContent = '';
+      document.getElementById('partnerSetupHeadshot').value = partner.onboarding_public_headshot_url || '';
+      document.getElementById('partnerSetupLogoFile').value = '';
+      document.getElementById('partnerSetupHeadshotFile').value = '';
+      document.getElementById('partnerSetupHeadshotRemove').checked = false;
+      document.getElementById('partnerSetupHeadshotRemove').parentElement.hidden = !partner.onboarding_public_headshot_url;
     } catch (error) { status.textContent = window.hofCustomerActionError(error, 'This setup link is unavailable. Request a fresh link from support if needed.'); status.className = 'platform-status err'; }
   };
-  async function uploadPartnerOnboardingLogo(token) {
-    const file = document.getElementById('partnerSetupLogoFile')?.files?.[0];
-    if (!file) return {logo_url:value('partnerSetupLogo'), logo_path:''};
+  async function uploadPartnerOnboardingImage(token, imageKind) {
+    const headshot = imageKind === 'headshot';
+    const field = headshot ? 'partnerSetupHeadshot' : 'partnerSetupLogo';
+    const file = document.getElementById(field + 'File')?.files?.[0];
+    if (headshot && document.getElementById('partnerSetupHeadshotRemove')?.checked) return {url:'', path:''};
+    if (!file) return {url:value(field), path:''};
     const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) throw new Error('Choose a PNG, JPEG, or WebP logo image.');
-    if (!file.size || file.size > 2 * 1024 * 1024) throw new Error('Choose a logo image smaller than 2 MB.');
-    const prepared = await fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({request_type:'partner_onboarding_logo_upload', onboarding_token:token, content_type:file.type, size_bytes:file.size})});
-    const upload = await prepared.json().catch(() => ({})); if (!prepared.ok || !upload.upload) throw new Error(upload.error || 'Could not prepare the logo upload.');
+    if (!allowedTypes.includes(file.type)) throw new Error(`Choose a PNG, JPEG, or WebP ${imageKind} image.`);
+    if (!file.size || file.size > 2 * 1024 * 1024) throw new Error(`Choose a ${imageKind} image smaller than 2 MB.`);
+    const prepared = await fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({request_type:'partner_onboarding_logo_upload', onboarding_token:token, image_kind:imageKind, content_type:file.type, size_bytes:file.size})});
+    const upload = await prepared.json().catch(() => ({})); if (!prepared.ok || !upload.upload) throw new Error(upload.error || `Could not prepare the ${imageKind} upload.`);
     const storage = window.hofAuth?.client?.storage?.from(upload.upload.bucket);
-    if (!storage) throw new Error('Could not prepare the logo upload. Please try again.');
+    if (!storage) throw new Error(`Could not prepare the ${imageKind} upload. Please try again.`);
     const result = await storage.uploadToSignedUrl(upload.upload.path, upload.upload.token, file, {contentType:file.type, cacheControl:'3600'});
-    if (result.error) throw new Error('Could not upload the logo image. Please try again.');
-    return {logo_url:'', logo_path:upload.upload.path};
+    if (result.error) throw new Error(`Could not upload the ${imageKind} image. Please try again.`);
+    return {url:'', path:upload.upload.path};
+  }
+  async function uploadPartnerOnboardingLogo(token) {
+    const image = await uploadPartnerOnboardingImage(token, 'logo');
+    return {logo_url:image.url, logo_path:image.path};
   }
   window.submitPartnerOnboarding = async function(){
     const status = document.getElementById('partnerOnboardingStatus');
@@ -18750,7 +18765,15 @@ function routeAfterMagicLinkIfNeeded() {
     if (!market) { status.textContent = 'Enter the primary market area before saving setup details.'; status.className = 'platform-status err'; document.getElementById('partnerSetupMarket')?.focus(); return; }
     if (saveButton) { saveButton.disabled = true; saveButton.setAttribute('aria-busy', 'true'); saveButton.textContent = 'Saving setup…'; }
     if (status) { status.textContent = 'Saving setup details…'; status.className = 'platform-status'; status.setAttribute('aria-busy', 'true'); }
-    try { const token = onboardingToken(); const logo = await uploadPartnerOnboardingLogo(token); const response = await fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({request_type:'partner_onboarding_submit', onboarding_token:token, market_area:market, website_url:value('partnerSetupWebsite'), logo_url:logo.logo_url, logo_path:logo.logo_path, cta_label:value('partnerSetupCta'), public_contact_name:value('partnerSetupPublicName'), public_contact_phone:value('partnerSetupPublicPhone'), public_description:value('partnerSetupPublicDescription')})}); const result = await response.json().catch(() => ({})); if (!response.ok) throw new Error(result.error || 'Could not save setup details.'); clearPartnerOnboardingToken(); document.getElementById('partnerOnboardingFields').style.display = 'none'; status.innerHTML = '<strong>Setup details saved — you are all set for now.</strong><br>Next, HomeOfferFlow reviews your details with the written placement agreement. We will only publish a placement after that review is complete.'; status.className = 'platform-status ok'; status.setAttribute('aria-busy', 'false'); } catch (error) { status.textContent = window.hofCustomerActionError(error, 'We couldn’t save your setup details. Please try again.'); status.className = 'platform-status err'; status.setAttribute('aria-busy', 'false'); if (saveButton) { saveButton.disabled = false; saveButton.setAttribute('aria-busy', 'false'); saveButton.textContent = 'Save setup details'; } }
+    try {
+      const token = onboardingToken();
+      const logo = await uploadPartnerOnboardingLogo(token);
+      const headshot = await uploadPartnerOnboardingImage(token, 'headshot');
+      const response = await fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({request_type:'partner_onboarding_submit', onboarding_token:token, market_area:market, website_url:value('partnerSetupWebsite'), logo_url:logo.logo_url, logo_path:logo.logo_path, headshot_path:headshot.path, public_headshot_url:headshot.url, cta_label:value('partnerSetupCta'), public_contact_name:value('partnerSetupPublicName'), public_contact_phone:value('partnerSetupPublicPhone'), public_description:value('partnerSetupPublicDescription')})});
+      const result = await response.json().catch(() => ({})); if (!response.ok) throw new Error(result.error || 'Could not save setup details.');
+      clearPartnerOnboardingToken(); document.getElementById('partnerOnboardingFields').style.display = 'none';
+      status.innerHTML = '<strong>Setup details saved — you are all set for now.</strong><br>Next, HomeOfferFlow reviews your details with the written placement agreement. We will only publish a placement after that review is complete.'; status.className = 'platform-status ok'; status.setAttribute('aria-busy', 'false');
+    } catch (error) { status.textContent = window.hofCustomerActionError(error, 'We couldn’t save your setup details. Please try again.'); status.className = 'platform-status err'; status.setAttribute('aria-busy', 'false'); if (saveButton) { saveButton.disabled = false; saveButton.setAttribute('aria-busy', 'false'); saveButton.textContent = 'Save setup details'; } }
   };
   async function recoverPartnerCheckoutSetup(sessionId, attempt = 0){
     const confirmation = document.getElementById('foundingPartnerCheckoutConfirmation');

@@ -4,6 +4,14 @@ const profileSource = fs.readFileSync(path.join(__dirname,'../assets/partner-pro
 const bannerSource = fs.readFileSync(path.join(__dirname,'../assets/inspection-partners.js'),'utf8');
 const provider = {id:'22222222-2222-4222-8222-222222222222',partner_type:'roofing',placement_tier:'founding',partner_program:'beta',
   partner_name:'Fictional QA Roofing',website_url:'https://example.com',logo_url:'https://example.com/logo.jpg',market_area:'DFW',public_contact_name:'QA Contact',public_contact_phone:'+19728376378'};
+test('optional public portrait is available with or without a company logo',async()=>{
+ for(const logo_url of [provider.logo_url,'']){
+  const p=setup({providers:[{...provider,logo_url,public_headshot_url:'https://example.com/portrait.jpg'}]});await p.flush();
+  assert.match(p.target.innerHTML,/has-portrait/);assert.match(p.target.innerHTML,/hof-partner-headshot/);
+  assert.match(p.target.innerHTML,/tel:\+19728376378/);
+  if(!logo_url)assert.match(p.target.innerHTML,/no-logo/);
+ }
+});
 
 function setup({active = true, providers = [provider], fail = false, deferred = false} = {}) {
   let isActive = active, now = 1000, resolveRequest;
@@ -17,7 +25,7 @@ function setup({active = true, providers = [provider], fail = false, deferred = 
   const step = {classList:{contains:()=>isActive}};
   let observer;
   const sandbox = {window:{},URL,Date:{now:()=>now},Promise,Set,
-    document:{readyState:'complete',getElementById:id=>id==='step6'?step:target},
+    document:{readyState:'complete',addEventListener(){},getElementById:id=>id==='step6'?step:target},
     MutationObserver:class {constructor(fn){observer=fn;}observe(){}},
     fetch:async(url, options)=>{
       calls.push({url,options});

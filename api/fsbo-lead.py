@@ -1096,19 +1096,22 @@ def _secure_url(value, field):
     return value
 
 
-def _partner_branding_logo_url(lead_id, path):
+def _partner_branding_logo_url(lead_id, path, label='logo'):
     """Build the one public branding URL an onboarding upload may save."""
     if not LEAD_ID_RE.match(str(lead_id or "")) or not PARTNER_LOGO_PATH_RE.match(str(path or "")):
-        raise ValueError("This logo upload is invalid.")
+        raise ValueError(f"This {label} upload is invalid.")
     expected_prefix = f"partners/{lead_id}/"
     if not path.startswith(expected_prefix):
-        raise ValueError("This logo upload is unavailable.")
+        raise ValueError(f"This {label} upload is unavailable.")
     return f"{SUPABASE_URL}/storage/v1/object/public/brokerage-branding/{path}"
 
 
 def _create_partner_logo_upload(token, data):
     """Authorize one short-lived direct image upload without exposing a service key."""
     lead = _get_partner_onboarding(token)
+    image_kind = data.get('image_kind', 'logo')
+    if not isinstance(image_kind, str) or image_kind not in {'logo', 'headshot'}:
+        raise ValueError('Choose a logo or headshot image.')
     content_type = _text(data.get("content_type"), 80).lower()
     extension = PARTNER_LOGO_TYPES.get(content_type)
     try:
@@ -1116,9 +1119,9 @@ def _create_partner_logo_upload(token, data):
     except (TypeError, ValueError):
         size_bytes = 0
     if not extension:
-        raise ValueError("Choose a PNG, JPEG, or WebP logo image.")
+        raise ValueError(f"Choose a PNG, JPEG, or WebP {image_kind} image.")
     if size_bytes < 1 or size_bytes > PARTNER_LOGO_MAX_BYTES:
-        raise ValueError("Choose a logo image smaller than 2 MB.")
+        raise ValueError(f"Choose a {image_kind} image smaller than 2 MB.")
     lead_id = str(lead.get("id") or "")
     if not LEAD_ID_RE.match(lead_id):
         raise LookupError("This onboarding link is unavailable.")
@@ -1135,11 +1138,11 @@ def _create_partner_logo_upload(token, data):
             json={"upsert": False},
         )
     if response.status_code >= 300:
-        raise RuntimeError("Could not prepare the logo upload.")
+        raise RuntimeError(f"Could not prepare the {image_kind} upload.")
     result = response.json() if response.text else {}
     signed_token = _text(result.get("token"), 1000)
     if not signed_token:
-        raise RuntimeError("Could not prepare the logo upload.")
+        raise RuntimeError(f"Could not prepare the {image_kind} upload.")
     return {"bucket": "brokerage-branding", "path": path, "token": signed_token}
 
 
@@ -1237,7 +1240,11 @@ def _complete_partner_onboarding(token, data):
     logo_path = _text(data.get("logo_path"), 300)
     logo_url = _partner_branding_logo_url(lead.get("id"), logo_path) if logo_path else _secure_url(data.get("logo_url"), "Logo URL")
     payload = {"onboarding_website_url": _secure_url(data.get("website_url"), "Website"), "onboarding_logo_url": logo_url, "onboarding_cta_label": _text(data.get("cta_label"), 80), "onboarding_market_area": market, "onboarding_status": "complete", "onboarding_completed_at": now, "onboarding_token_hash": None, "onboarding_token_expires_at": None, "updated_at": now}
-    payload.update(public_profile_update(data, lead))
+    profile_data = dict(data)
+    headshot_path = _text(data.get('headshot_path'), 300)
+    if headshot_path:
+        profile_data['public_headshot_url'] = _partner_branding_logo_url(lead.get('id'), headshot_path, 'headshot')
+    payload.update(public_profile_update(profile_data, lead))
     headers = {"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}", "Content-Type": "application/json", "Prefer": "return=representation"}
     with httpx.Client(timeout=12) as client:
         response = client.patch(f"{SUPABASE_URL}/rest/v1/hof_partner_leads?id=eq.{lead['id']}&onboarding_token_hash=eq.{_onboarding_token_hash(token)}", headers=headers, json=payload)

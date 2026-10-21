@@ -3,6 +3,11 @@ const {test} = require('node:test'), assert = require('node:assert/strict');
 const profileSource = fs.readFileSync(path.join(__dirname,'../assets/partner-profile.js'),'utf8');
 const source = fs.readFileSync(path.join(__dirname,'../assets/insurance-partners.js'),'utf8');
 const provider = {id:'22222222-2222-4222-8222-222222222222',partner_type:'insurance',placement_tier:'founding',partner_program:'beta',partner_name:'Fictional QA Insurance',website_url:'https://example.com/agent',logo_url:'https://example.com/logo.jpg',market_area:'North Texas; Texas excluding coastal areas',public_contact_name:'QA Agent',public_contact_phone:'+19034362470'};
+test('optional public portrait leaves insurance choice and contact routing intact',async()=>{
+ const p=setup({providers:[{...provider,public_headshot_url:'https://example.com/portrait.jpg'}]});await p.flush();
+ assert.match(p.target.innerHTML,/has-portrait/);assert.match(p.target.innerHTML,/hof-partner-headshot/);
+ assert.match(p.target.innerHTML,/tel:\+19034362470/);assert.match(p.target.innerHTML,/not shared automatically/);
+});
 function setup({active=true,open=true,providers=[provider],fail=false,deferred=false,missing=false}={}) {
   let activeStep=active, resolveRequest, observer, toggle;
   const calls=[], handlers=[];
@@ -11,7 +16,7 @@ function setup({active=true,open=true,providers=[provider],fail=false,deferred=f
     return {dataset:{partnerId:id,insuranceBrand:brand},addEventListener:(_,fn)=>handlers.push({markup,fn})};
   });}};
   const step={classList:{contains:()=>activeStep}}, planner={open,addEventListener:(_,fn)=>{toggle=fn;}};
-  const sandbox={window:{},URL,Date,Promise,Set,document:{readyState:'complete',getElementById:id=>missing?null:({step4:step,paymentCalcCard:planner,hofInsurancePartners:target}[id])},
+  const sandbox={window:{},URL,Date,Promise,Set,document:{readyState:'complete',addEventListener(){},getElementById:id=>missing?null:({step4:step,paymentCalcCard:planner,hofInsurancePartners:target}[id])},
     MutationObserver:class{constructor(fn){observer=fn;}observe(){}},fetch:async(url,options)=>{
       calls.push({url,options}); if(options) return {ok:true,json:async()=>({ok:true})};
       if(fail)throw Error('unavailable');
