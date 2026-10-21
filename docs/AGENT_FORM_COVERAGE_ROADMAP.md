@@ -1,5 +1,16 @@
 # HomeOfferFlow — Agent Form Coverage Roadmap
 
+## Owner-only lease QA enablement - October 21, 2026
+
+An isolated QA branch from production bfd03d99 prepares the fixed nonbinding
+TXR-1102/rental flood/lead specimen and owner controls without customer lease
+interview/API activation. Only the private source catalog migration is applied:
+22 source codes, unchanged customer standalone codes/grants/RLS, and verified
+customer v2 readiness. Thirty-six isolated PostgreSQL assertions and focused
+source/operator/PWA checks pass. Full candidate CI and the intentional QA code
+release remain pending; actual provider completion is not claimed. See the
+[bounded release evidence](release-evidence/lease-provider-qa-enablement-2026-10-21.md).
+
 Future batches follow the [lean development protocol](LEAN_DEVELOPMENT_PROTOCOL.md)
 to reduce model context, repeated regression runs and Vercel usage without
 reducing verification standards.

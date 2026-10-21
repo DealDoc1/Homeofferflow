@@ -33,11 +33,13 @@ class ProductionSchemaReadinessTests(unittest.TestCase):
             body = {"contract": MODULE.EXPECTED_CONTRACT, "ready": True, "missing": []} if len(requests) == 1 else []
             if request.full_url.endswith('/rpc/hof_purchase_disclosure_schema_readiness'):
                 body = {'contract':'homeofferflow-purchase-disclosure-v1','ready':True,'missing':[]}
+            if request.full_url.endswith('/rpc/hof_rental_source_schema_readiness'):
+                body = {'contract':'homeofferflow-rental-source-schema-v1','ready':True,'missing':[]}
             yield io.StringIO(json.dumps(body))
         with patch.object(MODULE, 'urlopen', side_effect=open_fixture):
             result = MODULE.fetch_readiness('https://fixture.supabase.co', 'sb_secret_fixture')
         self.assertTrue(result['ready'])
-        self.assertEqual(len(requests), 5)
+        self.assertEqual(len(requests), 6)
         self.assertTrue(requests[0].full_url.endswith('/rpc/hof_seller_disclosure_schema_readiness'))
         self.assertEqual(requests[1].method, 'GET')
         self.assertIn('onboarding_public_contact_phone', requests[1].full_url)
@@ -48,6 +50,7 @@ class ProductionSchemaReadinessTests(unittest.TestCase):
         self.assertNotIn('seller_email', requests[2].full_url)
         self.assertTrue(requests[3].full_url.endswith('/rpc/hof_purchase_disclosure_schema_readiness'))
         self.assertIn('select=signature_offer_id&limit=0', requests[4].full_url)
+        self.assertTrue(requests[5].full_url.endswith('/rpc/hof_rental_source_schema_readiness'))
 
     def test_disabled_purchase_binding_guard_cannot_pass_release_readiness(self):
         import json
@@ -59,11 +62,37 @@ class ProductionSchemaReadinessTests(unittest.TestCase):
                 body = {'contract':MODULE.EXPECTED_CONTRACT,'ready':True,'missing':[]}
             if request.full_url.endswith('/rpc/hof_purchase_disclosure_schema_readiness'):
                 body = {'contract':'homeofferflow-purchase-disclosure-v1','ready':False,'missing':['trigger:hof_purchase_disclosure_signature_guard']}
+            if request.full_url.endswith('/rpc/hof_rental_source_schema_readiness'):
+                body = {'contract':'homeofferflow-rental-source-schema-v1','ready':True,'missing':[]}
             yield io.StringIO(json.dumps(body))
         with patch.object(MODULE, 'urlopen', side_effect=open_fixture):
             result = MODULE.fetch_readiness('https://fixture.supabase.co', 'sb_secret_fixture')
         self.assertFalse(result['ready'])
         self.assertIn('trigger:hof_purchase_disclosure_signature_guard', result['missing'])
+
+    def test_rental_source_probe_requires_validated_complete_catalog(self):
+        import json
+        from contextlib import contextmanager
+        for rental in ({'contract':'wrong','ready':True,'missing':[]},
+                       {'contract':'homeofferflow-rental-source-schema-v1','ready':False,'missing':['source-code:TXR-2008']},
+                       {'contract':'homeofferflow-rental-source-schema-v1','ready':True,'missing':['source-code:TXR-2015']}):
+            @contextmanager
+            def open_fixture(request, timeout):
+                body = []
+                if request.full_url.endswith('/rpc/hof_seller_disclosure_schema_readiness'):
+                    body = {'contract':MODULE.EXPECTED_CONTRACT,'ready':True,'missing':[]}
+                elif request.full_url.endswith('/rpc/hof_purchase_disclosure_schema_readiness'):
+                    body = {'contract':'homeofferflow-purchase-disclosure-v1','ready':True,'missing':[]}
+                elif request.full_url.endswith('/rpc/hof_rental_source_schema_readiness'):
+                    body = rental
+                yield io.StringIO(json.dumps(body))
+            with self.subTest(rental=rental), patch.object(MODULE,'urlopen',side_effect=open_fixture):
+                if rental['contract']=='wrong':
+                    with self.assertRaises(ValueError): MODULE.fetch_readiness('https://fixture.supabase.co','fixture')
+                else:
+                    result=MODULE.fetch_readiness('https://fixture.supabase.co','fixture')
+                    self.assertFalse(result['ready'])
+                    self.assertIn('rental-source:not-ready',result['missing'])
 
     def test_questionnaire_readiness_matches_only_the_released_schema(self):
         sql = (ROOT / 'supabase/migrations/20261018134817_seller_disclosure_questionnaire_access.sql').read_text()
