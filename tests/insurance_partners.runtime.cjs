@@ -2,7 +2,7 @@ const fs = require('node:fs'), path = require('node:path'), vm = require('node:v
 const {test} = require('node:test'), assert = require('node:assert/strict');
 const profileSource = fs.readFileSync(path.join(__dirname,'../assets/partner-profile.js'),'utf8');
 const source = fs.readFileSync(path.join(__dirname,'../assets/insurance-partners.js'),'utf8');
-const provider = {id:'22222222-2222-4222-8222-222222222222',partner_type:'insurance',placement_tier:'founding',partner_program:'beta',partner_name:'Fictional QA Insurance',website_url:'https://example.com/agent',logo_url:'https://example.com/logo.jpg',market_area:'North Texas; Texas excluding coastal areas',public_contact_name:'QA Agent',public_contact_phone:'+19034362470'};
+const provider = {id:'22222222-2222-4222-8222-222222222222',partner_type:'insurance',placement_tier:'exclusive_market',partner_program:'beta',partner_name:'Fictional QA Insurance',website_url:'https://example.com/agent',logo_url:'https://example.com/logo.jpg',market_area:'North Texas; Texas excluding coastal areas',public_contact_name:'QA Agent',public_contact_phone:'+19034362470'};
 test('optional public portrait leaves insurance choice and contact routing intact',async()=>{
  const p=setup({providers:[{...provider,public_headshot_url:'https://example.com/portrait.jpg'}]});await p.flush();
  assert.match(p.target.innerHTML,/has-portrait/);assert.match(p.target.innerHTML,/hof-partner-headshot/);
@@ -34,7 +34,7 @@ test('cached pre-portrait helper preserves insurance planning and contact routin
 });
 test('renders approved central insurance profile with separate website and call actions and choice',async()=>{
   const p=setup();await p.flush();assert.equal(p.target.hidden,false);
-  for(const text of ['Fictional QA Insurance','Home insurance · Beta partner','North Texas','excluding coastal','tel:+19034362470','Visit website','Optional service providers','not shared automatically']){
+  for(const text of ['Fictional QA Insurance','Home insurance · Beta partner · Premier Partner','North Texas','excluding coastal','tel:+19034362470','Visit website','Optional service providers','not shared automatically']){
     assert.ok(p.target.innerHTML.includes(text),text);
   }
   assert.equal(p.calls.filter(c=>!c.options).length,1);

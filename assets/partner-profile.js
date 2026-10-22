@@ -25,6 +25,33 @@
     const name = String(provider.public_contact_name || '').trim().slice(0, 80);
     return `<div class="hof-partner-actions">${website ? `<a href="${esc(website)}" ${attrs} target="_blank" rel="noopener noreferrer">${esc(websiteLabel(provider))} ↗</a>` : ''}${phone ? `<a href="${esc(phone)}" ${attrs} aria-label="${esc((name ? 'Call ' + name : 'Call') + ' at ' + provider.public_contact_phone)}">${esc(name ? 'Call ' + name : 'Call')} →</a>` : ''}</div>`;
   };
+  const placementRank = Object.freeze({exclusive_market: 0, premier: 1, founding: 2});
+  const comparePlacement = (left, right) =>
+    (placementRank[left?.placement_tier] ?? 9) - (placementRank[right?.placement_tier] ?? 9) ||
+    String(left?.partner_name || '').localeCompare(String(right?.partner_name || ''));
+  const selectDirectoryPartners = partners => {
+    const groups = new Map();
+    for (const partner of Array.isArray(partners) ? partners : []) {
+      const category = String(partner?.partner_type || '').trim();
+      if (!category) continue;
+      if (!groups.has(category)) groups.set(category, []);
+      groups.get(category).push(partner);
+    }
+    return [...groups.keys()].sort().flatMap(category => groups.get(category).sort(comparePlacement).slice(0, 3));
+  };
+  const selectWorkflowPartners = partners => {
+    const premierByCategory = new Map();
+    for (const partner of Array.isArray(partners) ? partners : []) {
+      const category = String(partner?.partner_type || '').trim();
+      if (!category || partner?.placement_tier !== 'exclusive_market') continue;
+      const current = premierByCategory.get(category);
+      if (!current || comparePlacement(partner, current) < 0) premierByCategory.set(category, partner);
+    }
+    return [...premierByCategory.keys()].sort().map(category => premierByCategory.get(category));
+  };
+  const placementLabel = partner => partner?.placement_tier === 'exclusive_market' ? 'Premier Partner'
+    : partner?.placement_tier === 'premier' ? 'Featured Partner'
+    : partner?.placement_tier === 'founding' ? 'Core Partner' : 'Partner';
   let directoryRequest, directoryExpiresAt = 0;
   if (typeof document !== 'undefined') document.addEventListener('error', event => {
     if (!event.target?.matches?.('.hof-partner-headshot')) return;
@@ -43,5 +70,5 @@
     }
     return directoryRequest;
   };
-  window.hofPartnerProfile = Object.freeze({ websiteUrl, phoneUrl, websiteLabel, portrait, actions, load });
+  window.hofPartnerProfile = Object.freeze({ websiteUrl, phoneUrl, websiteLabel, placementLabel, portrait, actions, load, selectDirectoryPartners, selectWorkflowPartners });
 }());

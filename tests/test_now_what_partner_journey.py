@@ -22,15 +22,14 @@ class NowWhatPartnerJourneyTests(unittest.TestCase):
         self.assertIn("No active HomeOfferFlow provider profiles are available here yet.", self.html)
         self.assertIn("You are free to choose any provider or none.", self.html)
 
-    def test_regulated_categories_are_neutral_and_not_sponsored(self):
-        self.assertIn("NOW_WHAT_REGULATED_TYPES = new Set(['lender', 'title', 'inspection', 'surveyor'])", self.html)
-        self.assertIn("HomeOfferFlow does not rank or preselect providers in these categories.", self.html)
-        self.assertIn("regulated ? ''", self.html)
+    def test_completion_directory_only_mentions_one_premier_partner_per_category(self):
+        self.assertIn('selectWorkflowPartners(window.__hofPartnerDirectoryRows)', self.html)
+        self.assertIn('window.hofPartnerProfile.placementLabel(partner)', self.html)
 
-    def test_unregulated_partners_have_explicit_sponsored_label(self):
+    def test_premier_partners_have_explicit_tier_label(self):
         self.assertIn("Premier Partner", self.html)
         self.assertIn("Featured Partner", self.html)
-        self.assertIn("Sponsored · Core Partner", self.html)
+        self.assertIn("placementLabel(partner)", self.html)
 
     def test_directory_supports_local_search_category_filter_and_click_attribution(self):
         self.assertIn('id="nowWhatPartnerSearch"', self.html)

@@ -2,7 +2,7 @@ const fs = require('node:fs'), path = require('node:path'), vm = require('node:v
 const {test} = require('node:test'), assert = require('node:assert/strict');
 const profileSource = fs.readFileSync(path.join(__dirname,'../assets/partner-profile.js'),'utf8');
 const bannerSource = fs.readFileSync(path.join(__dirname,'../assets/inspection-partners.js'),'utf8');
-const provider = {id:'22222222-2222-4222-8222-222222222222',partner_type:'roofing',placement_tier:'founding',partner_program:'beta',
+const provider = {id:'22222222-2222-4222-8222-222222222222',partner_type:'roofing',placement_tier:'exclusive_market',partner_program:'beta',
   partner_name:'Fictional QA Roofing',website_url:'https://example.com',logo_url:'https://example.com/logo.jpg',market_area:'DFW',public_contact_name:'QA Contact',public_contact_phone:'+19728376378'};
 test('optional public portrait is available with or without a company logo',async()=>{
  for(const logo_url of [provider.logo_url,'']){
@@ -52,7 +52,7 @@ test('active inspection step uses central public profile, correct logo and separ
   assert.equal(p.target.hidden,false);
   assert.match(p.target.innerHTML,/Fictional QA Roofing/);
   assert.match(p.target.innerHTML,/logo\.jpg/);
-  assert.match(p.target.innerHTML,/Roofing · Beta partner/);
+  assert.match(p.target.innerHTML,/Roofing · Beta partner · Premier Partner/);
   assert.match(p.target.innerHTML,/tel:\+19728376378/);
   assert.match(p.target.innerHTML,/Visit website/);
   assert.match(p.target.innerHTML,/Optional service providers/);
@@ -97,7 +97,7 @@ test('impression and clicks carry only allowed aggregate placement metadata, nev
     assert.deepEqual(Object.keys(event).sort(),['directory_surface','event_type','partner_id','partner_type','placement_tier','request_type'].sort());
     assert.equal(event.directory_surface,'inspection_interview');
     assert.equal(event.partner_id,provider.id);
-    assert.equal(event.placement_tier,'founding');
+    assert.equal(event.placement_tier,'exclusive_market');
   }
   p.setActive(false);p.setActive(true);await p.flush();
   assert.equal(p.calls.filter(c=>c.options).length,2);

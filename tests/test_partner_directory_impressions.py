@@ -42,14 +42,14 @@ class PartnerDirectoryImpressionTests(unittest.TestCase):
         self.assertIn('${esc(websiteLabel(provider))} ↗', helper)
         self.assertIn("/texas-home-service-partner-guide?utm_source=provider_directory", PUBLIC_DIRECTORY)
 
-    def test_public_directory_gives_non_regulated_paid_placements_visible_order_without_ranking_regulated_services(self):
-        self.assertIn("neutralProviderTypes = new Set(['lender','title','inspection','surveyor'])", PUBLIC_DIRECTORY)
-        self.assertIn("placementRank = {exclusive_market:0,premier:1,founding:2}", PUBLIC_DIRECTORY)
-        self.assertIn('const sortDirectoryRows = rows =>', PUBLIC_DIRECTORY)
-        self.assertIn('const rows = sortDirectoryRows(Array.isArray(data.partners) ? data.partners : []);', PUBLIC_DIRECTORY)
-        self.assertIn('if (!leftNeutral && !rightNeutral)', PUBLIC_DIRECTORY)
+    def test_public_directory_caps_each_category_at_three_and_exposes_premier_label_for_every_category(self):
+        helper = (ROOT / 'assets' / 'partner-profile.js').read_text(encoding='utf-8')
+        self.assertIn('selectDirectoryPartners(Array.isArray(data.partners) ? data.partners : [])', PUBLIC_DIRECTORY)
+        self.assertIn('groups.get(category).sort(comparePlacement).slice(0, 3)', helper)
+        self.assertIn("partner?.placement_tier === 'exclusive_market' ? 'Premier Partner'", helper)
+        self.assertIn('selectWorkflowPartners', helper)
         self.assertIn("placementLabels = {exclusive_market:'Premier Partner',premier:'Featured Partner',founding:'Core Partner'}", PUBLIC_DIRECTORY)
-        self.assertIn("const placement = neutral ? 'Sponsored profile' : provider.partner_program === 'beta' ? 'Beta partner' : `Sponsored · ${placementLabels[provider.placement_tier] || 'Partner'}`;", PUBLIC_DIRECTORY)
+        self.assertIn("provider.partner_program === 'beta' ? `Beta partner · ${placementLabels[provider.placement_tier] || 'Partner'}`", PUBLIC_DIRECTORY)
 
     def test_admin_metrics_can_report_aggregate_paid_directory_value(self):
         api = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")

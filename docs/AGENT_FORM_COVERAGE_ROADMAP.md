@@ -1,5 +1,19 @@
 # HomeOfferFlow — Agent Form Coverage Roadmap
 
+## Partner directory and Premier visibility — October 22, 2026
+
+Partner visibility now follows one cross-category rule: one top Premier partner
+may appear in the workflow and offer-completion page, while the public directory
+shows that Premier partner and at most two additional profiles per category.
+Title, lender, inspection and survey categories use the same explicit
+placement-label rule. Beta profiles say “Beta partner” alongside their
+placement, keeping the free beta status clear. Focused directory, workflow,
+completion, insurance, and inspection tests pass (33 JavaScript cases and 29
+Python checks). Actual-source render tests cover Premier-only workflow surfaces,
+the three-profile directory cap, and title-provider completion. **Implemented,
+tested, and reviewed locally; not deployed.** See
+[partner visibility evidence](release-evidence/partner-premier-visibility-2026-10-22.md).
+
 ## Purchase packet pending-disclosure guidance — October 22, 2026
 
 When a seller disclosure cannot be included in a generated purchase packet, the
