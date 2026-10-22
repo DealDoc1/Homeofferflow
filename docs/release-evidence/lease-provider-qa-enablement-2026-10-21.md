@@ -144,12 +144,15 @@ completed and inspected and the separate customer release is verified.
 
 The owner approved completing the existing SignWell QA-only ordinary lease
 listing packet (`3d912b0c837d`, document `940f1c1a-d5be-4fff-bad3-a66d55765841`)
-with the prepared fictional signer. The final `Agree & Finish` has not yet been
-executed. The current Codex browser-control session reports that the Mac is
-locked and cannot open the signer view; the required dependency is unlocking
-the Mac and resuming the same invitation. No replacement packet, resend or
-customer signature was created. Provider completion and signed-PDF review
-remain unverified.
+with the prepared fictional signer. After the Mac became available, the
+original invitation opened the exact packet and SignWell displayed “Thanks for
+filling out your document,” “Required fields complete,” and “This is Not
+Legally Binding” / test mode. The current recipient is complete; SignWell says
+the final copy will be emailed after everyone completes the document. The other
+recipient and whole-document completion are not verified, and completed signed-
+PDF visual QA is still outstanding. No new signature was applied in this
+session because the existing signer view already showed completion. No
+replacement packet or resend was created.
 
 Keep Git deployments disabled. No routine previews or repeated usage checks.
 Use the existing prebuilt workflow's one capacity/spend safety check immediately
