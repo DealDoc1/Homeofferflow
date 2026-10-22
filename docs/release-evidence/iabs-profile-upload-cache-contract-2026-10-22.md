@@ -25,6 +25,9 @@ numeric cache lifetime, and could make an otherwise valid PDF upload fail.
 - Two upload runtime suites — 20 passed.
 - Uploaded-disclosure workflow plus six focused PWA/under-contract suites — 75
   passed.
+- Full regression suite — 2,925 passed, 23 skipped. Updated the existing
+  inline-feedback assertion to check the shared status wrapper introduced by
+  the IABS routing, rather than requiring the old direct setter call.
 - `git diff --check` — passed.
 - Supabase's current JavaScript upload guide documents `cacheControl` as a
   file option and uses a numeric lifetime string such as `'3600'`:
