@@ -13,12 +13,12 @@
     if (!step?.classList.contains('active') || !target || loaded || loading) return;
     loading = true;
     try {
-      const providers = (await window.hofPartnerProfile.load()).filter(p => p.partner_type === 'roofing' && window.hofPartnerProfile.websiteUrl(p.website_url));
+      const providers = window.hofPartnerProfile.selectWorkflowPartners(await window.hofPartnerProfile.load()).filter(p => p.partner_type === 'roofing' && window.hofPartnerProfile.websiteUrl(p.website_url));
       if (!step.classList.contains('active') || document.getElementById('hofInspectionPartners') !== target) return;
       if (!providers.length) { loaded = true; return; }
       target.innerHTML = providers.map(provider => {
         const website = window.hofPartnerProfile.websiteUrl(provider.website_url), logo = window.hofPartnerProfile.websiteUrl(provider.logo_url);
-        const label = provider.partner_program === 'beta' ? 'Beta partner' : 'Sponsored partner';
+        const label = provider.partner_program === 'beta' ? 'Beta partner · Premier Partner' : 'Sponsored · Premier Partner';
         const portrait = (window.hofPartnerProfile.portrait?.(provider, esc) || "");
         return `<div class="hof-inspection-partner${logo ? "" : " no-logo"}${portrait ? ' has-portrait' : ''}">${logo ? `<a class="hof-inspection-partner-logo" href="${esc(website)}" target="_blank" rel="noopener noreferrer" data-inspection-brand="${esc(provider.id)}"><img src="${esc(logo)}" alt="${esc(provider.partner_name)} logo" loading="lazy" decoding="async"></a>` : ''}<div class="hof-inspection-partner-copy">${portrait}<div class="hof-inspection-label">Roofing · ${label}</div><strong>${esc(provider.partner_name)}</strong><p>${esc(provider.market_area || 'Local service')} · Roof inspections, replacement and storm-damage support.</p>${window.hofPartnerProfile.actions(provider, esc, 'data-inspection-partner-link')}</div></div>`;
       }).join('') + '<p class="hof-inspection-choice">Optional service providers. You can choose any provider or none.</p>';

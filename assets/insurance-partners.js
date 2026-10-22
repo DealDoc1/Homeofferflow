@@ -16,12 +16,12 @@
       if (!visible() || loaded || loading) return;
       loading = true;
       try {
-        const providers = (await window.hofPartnerProfile.load()).filter(p => p.partner_type === 'insurance' && window.hofPartnerProfile.websiteUrl(p.website_url));
+        const providers = window.hofPartnerProfile.selectWorkflowPartners(await window.hofPartnerProfile.load()).filter(p => p.partner_type === 'insurance' && window.hofPartnerProfile.websiteUrl(p.website_url));
         if (!visible()) return;
         if (!providers.length) { loaded = true; return; }
         target.innerHTML = providers.map(provider => {
           const website = window.hofPartnerProfile.websiteUrl(provider.website_url), logo = window.hofPartnerProfile.websiteUrl(provider.logo_url);
-          const label = provider.partner_program === 'beta' ? 'Beta partner' : 'Sponsored partner';
+          const label = provider.partner_program === 'beta' ? 'Beta partner · Premier Partner' : 'Sponsored · Premier Partner';
           const portrait = (window.hofPartnerProfile.portrait?.(provider, esc) || "");
           return `<div class="hof-inspection-partner${logo ? "" : " no-logo"}${portrait ? ' has-portrait' : ''}">${logo ? `<a class="hof-inspection-partner-logo" href="${esc(website)}" target="_blank" rel="noopener noreferrer" data-insurance-brand="${esc(provider.id)}"><img src="${esc(logo)}" alt="${esc(provider.partner_name)} logo" loading="lazy" decoding="async"></a>` : ''}<div class="hof-inspection-partner-copy">${portrait}<div class="hof-inspection-label">Home insurance · ${label}</div><strong>${esc(provider.partner_name)}</strong><p>${esc(provider.market_area || 'Contact for service area')}.</p><p>Explore coverage and request a quote directly with the agent.</p>${window.hofPartnerProfile.actions(provider, esc, 'data-partner-link')}</div></div>`;
         }).join('') + '<p class="hof-inspection-choice">Optional service providers. Choose any provider or none. Your information is not shared automatically.</p>';

@@ -60,7 +60,7 @@
     </main>
     <footer>Beta and sponsored profiles are optional placements, not endorsements. Choose any provider independently and confirm services, availability, and pricing directly. HomeOfferFlow does not provide legal, brokerage, lending, inspection, insurance, or home-service advice.</footer>
   </div>
-  <script src="/assets/partner-profile.js?v=20261021-portrait1"></script>
+  <script src="/assets/partner-profile.js?v=20261022-partner-cap1"></script>
   <link rel="stylesheet" href="/assets/partner-profile.css?v=20261021-portrait1">
   <style>
     main{padding:1.7rem 0 2rem}h1{font-size:clamp(2rem,4vw,3.2rem)}.filters{margin:1.25rem 0 1rem}.grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}.card{min-width:0}.card img{width:220px;max-width:100%;height:96px;float:none;margin:0 0 .8rem;padding:.3rem}.card h2{font-size:1.2rem;overflow-wrap:anywhere}.card p{margin:.65rem 0}.provider-description summary,.directory-about summary{min-height:44px;cursor:pointer;color:var(--gl);font-weight:700;padding:.6rem 0}.provider-description p{margin-top:0}.placement-label{display:inline-block;padding:.2rem .5rem;border:1px solid rgba(232,184,109,.35);border-radius:999px;color:var(--gl);font-size:.75rem;font-weight:700}.grid.single-provider .card{display:grid;grid-template-columns:220px minmax(0,1fr);gap:1.2rem}.grid.single-provider .card img{margin:0}.directory-about{margin-top:1.5rem;max-width:760px}.directory-business{max-width:none;margin-top:1rem}.hof-partner-actions{display:flex;flex-wrap:wrap;gap:.7rem 1rem;margin-top:.8rem}.hof-partner-actions a{min-height:44px;display:inline-flex;align-items:center}input:focus-visible,select:focus-visible,button:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var(--gl);outline-offset:3px}@media(max-width:720px){.grid.single-provider .card{grid-template-columns:1fr}.filters input,.filters select{min-width:0;width:100%}}
@@ -71,11 +71,6 @@
       const $ = id => document.getElementById(id);
       const labels = {title:'Title company / fee attorney',lender:'Mortgage lender',inspection:'Home inspection',surveyor:'Property surveyor',home_warranty:'Home warranty',insurance:'Home insurance',roofing:'Roofing',hvac:'HVAC',plumbing:'Plumbing',electrical:'Electrical',foundation_structural:'Foundation / structural',general_contractor:'General contractor / remodeling',pest_termite:'Pest control / termite',septic_well:'Septic / well service',restoration:'Restoration',photography_video:'Photography / video',staging:'Home staging',repairs_handyman:'Repairs / handyman',cleaning:'Cleaning',moving_storage:'Moving / storage',lawn_pool:'Lawn / pool',security_smart_home:'Security / smart home',other:'Real-estate service'};
       const allowedCategories = new Set(Object.keys(labels));
-      // Regulated provider types stay neutral: neither a paid tier nor a
-      // sponsored label changes their ordering.  Other service categories can
-      // display the transparent placement benefit promised to partners.
-      const neutralProviderTypes = new Set(['lender','title','inspection','surveyor']);
-      const placementRank = {exclusive_market:0,premier:1,founding:2};
       const placementLabels = {exclusive_market:'Premier Partner',premier:'Featured Partner',founding:'Core Partner'};
       // Only retain one allowlisted surface label for aggregate placement
       // reporting. Query text, market input, identity, and other campaign
@@ -166,21 +161,11 @@
         const description = String(provider.public_description || '').trim().slice(0, 600);
         const sentences = description.match(/[^.!?]+[.!?]+(?:\s|$)/g);
         const introduction = description.length > 260 && sentences?.length > 2 ? sentences.slice(0, 2).join('').trim() : description;
-        const neutral = neutralProviderTypes.has(provider.partner_type);
-        const placement = neutral ? 'Sponsored profile' : provider.partner_program === 'beta' ? 'Beta partner' : `Sponsored · ${placementLabels[provider.placement_tier] || 'Partner'}`;
+        const placement = provider.partner_program === 'beta' ? `Beta partner · ${placementLabels[provider.placement_tier] || 'Partner'}` : `Sponsored · ${placementLabels[provider.placement_tier] || 'Partner'}`;
         const logo = window.hofPartnerProfile.websiteUrl(provider.logo_url);
         const portrait = (window.hofPartnerProfile.portrait?.(provider, esc) || "");
         return `<article class="card${logo ? '' : ' no-logo'}${portrait ? ' has-portrait' : ''}">${logo ? `<img src="${esc(logo)}" alt="${esc(provider.partner_name)} logo" loading="lazy" decoding="async">` : ''}<div class="provider-copy">${portrait}<h2>${esc(provider.partner_name)}</h2><div class="meta">${esc(labels[provider.partner_type] || 'Local service')} · ${esc(provider.market_area || 'Texas')}</div>${introduction ? `<p>${esc(introduction)}</p>` : ''}<span class="placement-label">${esc(placement)}</span>${window.hofPartnerProfile.actions(provider, esc, 'data-partner-link')}${introduction !== description ? `<details class="provider-description"><summary>About this company</summary><p>${esc(description)}</p></details>` : ''}</div></article>`;
       };
-      const sortDirectoryRows = rows => [...rows].sort((left, right) => {
-        const leftNeutral = neutralProviderTypes.has(left?.partner_type);
-        const rightNeutral = neutralProviderTypes.has(right?.partner_type);
-        if (!leftNeutral && !rightNeutral) {
-          const difference = (placementRank[left?.placement_tier] ?? 9) - (placementRank[right?.placement_tier] ?? 9);
-          if (difference) return difference;
-        }
-        return String(left?.partner_name || '').localeCompare(String(right?.partner_name || ''));
-      });
       const bindOutboundClicks = () => document.querySelectorAll('[data-partner-link]').forEach(link => link.addEventListener('click', () => { const provider = {id:link.dataset.partnerId || '', partner_type:link.dataset.partnerType || '', placement_tier:link.dataset.placementTier || ''}; track('Partner Directory Outbound Click', {partnerId:provider.id, partnerType:provider.partner_type, placementTier:provider.placement_tier}); recordDirectoryEvent('partner_directory_outbound_click', provider); }));
       const bindPartnerCtas = () => document.querySelectorAll('[data-directory-partner-cta]').forEach(link => {
         if (link.dataset.trackingBound) return;
@@ -265,7 +250,7 @@
           const data = await response.json();
           if (searchRevision !== latestSearch) return;
           if (!response.ok || !data.ok) throw Error();
-          const rows = sortDirectoryRows(Array.isArray(data.partners) ? data.partners : []);
+        const rows = window.hofPartnerProfile.selectDirectoryPartners(Array.isArray(data.partners) ? data.partners : []);
           $('results').classList.toggle('single-provider', rows.length === 1);
           $('status').textContent = rows.length ? `${rows.length} active provider profile${rows.length === 1 ? '' : 's'} found.` : 'No active profiles match this search.';
           $('results').innerHTML = rows.length ? rows.map(card).join('') : `<div class="empty">${empty(category)}</div>`;

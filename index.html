@@ -26,11 +26,11 @@
   <meta name="twitter:image" content="https://www.homeofferflow.com/assets/homeofferflow-social-preview-v2.jpg" />
   <meta name="twitter:image:alt" content="HomeOfferFlow Texas offer workflow" />
   <title>Write a Texas Real Estate Offer | HomeOfferFlow</title>
-  <script src="/assets/partner-profile.js?v=20261021-portrait1"></script>
+  <script src="/assets/partner-profile.js?v=20261022-partner-cap1"></script>
   <link rel="stylesheet" href="/assets/partner-profile.css?v=20261021-portrait1">
   <link rel="stylesheet" href="/assets/inspection-partners.css">
-  <script src="/assets/inspection-partners.js?v=20261021-portrait1" defer></script>
-  <script src="/assets/insurance-partners.js?v=20261021-portrait1" defer></script>
+  <script src="/assets/inspection-partners.js?v=20261022-partner-cap1" defer></script>
+  <script src="/assets/insurance-partners.js?v=20261022-partner-cap1" defer></script>
   <script id="hof-agent-route-primer-v1">
   // Keep only the four declared agent-route labels during this page load.
   // This contains no customer, property, account, or campaign information.
@@ -11323,13 +11323,11 @@ function routeAfterMagicLinkIfNeeded() {
     staging: 'Staging', repairs_handyman: 'Repairs / handyman', cleaning: 'Cleaning',
     moving_storage: 'Moving / storage', lawn_pool: 'Lawn / pool', security_smart_home: 'Security / smart home', other: 'Other local service'
   };
-  const NOW_WHAT_REGULATED_TYPES = new Set(['lender', 'title', 'inspection', 'surveyor']);
   const NOW_WHAT_GROUPS = [
     {
       title: 'Choose settlement providers independently',
-      detail: 'Compare lender, title/closing, survey, and inspection options directly. HomeOfferFlow does not rank or preselect providers in these categories.',
+      detail: 'Compare lender, title/closing, survey, and inspection providers directly. Confirm qualifications, availability, pricing, and terms with each company.',
       types: ['lender', 'title', 'inspection', 'surveyor'],
-      neutral: true
     },
     {
       title: 'During the option period and repair planning',
@@ -11406,16 +11404,6 @@ function routeAfterMagicLinkIfNeeded() {
     window.setTimeout(() => URL.revokeObjectURL(url), 0);
   };
 
-  function nowWhatPartnerSort(left, right) {
-    const rank = { exclusive_market: 0, premier: 1, founding: 2 };
-    const leftRegulated = NOW_WHAT_REGULATED_TYPES.has(left.partner_type);
-    const rightRegulated = NOW_WHAT_REGULATED_TYPES.has(right.partner_type);
-    if (!leftRegulated && !rightRegulated && (rank[left.placement_tier] ?? 9) !== (rank[right.placement_tier] ?? 9)) {
-      return (rank[left.placement_tier] ?? 9) - (rank[right.placement_tier] ?? 9);
-    }
-    return String(left.partner_name || '').localeCompare(String(right.partner_name || ''));
-  }
-
   function renderNowWhatTimeline(data = {}) {
     const target = document.getElementById('nowWhatTimeline');
     if (!target) return;
@@ -11451,26 +11439,25 @@ function routeAfterMagicLinkIfNeeded() {
     window.__hofPartnerDirectoryRows = Array.isArray(partners) ? partners : [];
     const search = String(document.getElementById('nowWhatPartnerSearch')?.value || '').trim().toLowerCase();
     const category = String(document.getElementById('nowWhatPartnerCategory')?.value || '').trim();
-    const visiblePartners = window.__hofPartnerDirectoryRows.filter(partner => {
+    const visiblePartners = window.hofPartnerProfile.selectWorkflowPartners(window.__hofPartnerDirectoryRows).filter(partner => {
       const text = [partner.partner_name, partner.market_area, partner.partner_type].filter(Boolean).join(' ').toLowerCase();
       return (!search || text.includes(search)) && (!category || partner.partner_type === category);
     });
     const groupsToShow = NOW_WHAT_GROUPS.filter(group => visiblePartners.some(partner => group.types.includes(partner.partner_type)));
     target.innerHTML = groupsToShow.length ? groupsToShow.map(group => {
-      const matches = visiblePartners.filter(partner => group.types.includes(partner.partner_type)).sort(nowWhatPartnerSort);
+      const matches = visiblePartners.filter(partner => group.types.includes(partner.partner_type));
       const cards = matches.length ? matches.map(partner => {
-        const regulated = NOW_WHAT_REGULATED_TYPES.has(partner.partner_type);
         const logo = window.hofPartnerProfile.websiteUrl(partner.logo_url);
         const portrait = (window.hofPartnerProfile.portrait?.(partner, nowWhatEscape) || "");
         const fullDescription = String(partner.public_description || '').trim().slice(0, 600);
         const description = fullDescription.length > 260 ? fullDescription.split(/(?<=[.!?])\s+/).slice(0, 2).join(' ') : fullDescription;
-        const tierLabel = partner.partner_program === 'beta' ? 'Beta partner' : partner.placement_tier === 'exclusive_market' ? 'Sponsored · Premier Partner' : partner.placement_tier === 'premier' ? 'Sponsored · Featured Partner' : 'Sponsored · Core Partner';
+        const tierLabel = partner.partner_program === 'beta' ? `Beta partner · ${window.hofPartnerProfile.placementLabel(partner)}` : `Sponsored · ${window.hofPartnerProfile.placementLabel(partner)}`;
         return `<div class="now-what-partner${portrait ? ' has-portrait' : ''}">
-          <div>${portrait}${logo ? `<img class="now-what-partner-logo" src="${nowWhatEscape(logo)}" alt="${nowWhatEscape(partner.partner_name)} logo" loading="lazy" decoding="async">` : ''}<div class="now-what-partner-name">${nowWhatEscape(partner.partner_name || 'Local provider')}</div><div class="now-what-partner-meta">${nowWhatEscape(NOW_WHAT_PARTNER_LABELS[partner.partner_type] || 'Local service')} · ${nowWhatEscape(partner.market_area || 'Local market')}</div>${description ? `<p class="now-what-partner-description">${nowWhatEscape(description)}</p>` : ''}${regulated ? '' : `<span class="now-what-badge">${tierLabel}</span>`}</div>
+          <div>${portrait}${logo ? `<img class="now-what-partner-logo" src="${nowWhatEscape(logo)}" alt="${nowWhatEscape(partner.partner_name)} logo" loading="lazy" decoding="async">` : ''}<div class="now-what-partner-name">${nowWhatEscape(partner.partner_name || 'Local provider')}</div><div class="now-what-partner-meta">${nowWhatEscape(NOW_WHAT_PARTNER_LABELS[partner.partner_type] || 'Local service')} · ${nowWhatEscape(partner.market_area || 'Local market')}</div>${description ? `<p class="now-what-partner-description">${nowWhatEscape(description)}</p>` : ''}<span class="now-what-badge">${tierLabel}</span></div>
           ${window.hofPartnerProfile.actions(partner, nowWhatEscape, 'data-offer-completion-partner-link')}
         </div>`;
       }).join('') : `<div class="now-what-empty">No active HomeOfferFlow provider profiles are available here yet. You may choose any qualified provider independently.</div>`;
-      return `<section class="now-what-category"><div class="now-what-category-head"><div><h5>${nowWhatEscape(group.title)}</h5><p>${nowWhatEscape(group.detail)}</p></div>${group.neutral ? '<span class="now-what-neutral">Neutral directory</span>' : ''}</div><div class="now-what-partners">${cards}</div></section>`;
+      return `<section class="now-what-category"><div class="now-what-category-head"><div><h5>${nowWhatEscape(group.title)}</h5><p>${nowWhatEscape(group.detail)}</p></div></div><div class="now-what-partners">${cards}</div></section>`;
     }).join('') : '<div class="now-what-empty">No active HomeOfferFlow provider profiles are available here yet. You may choose any qualified provider independently.</div>';
     bindOfferCompletionPartnerClicks(target);
     trackPartnerDirectoryImpressions(visiblePartners);

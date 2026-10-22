@@ -57,7 +57,7 @@ async function run() {
     assert(result.includes('<details class="provider-description">'));
     assert(result.includes(fixture.public_description.trim()));
     assert(result.includes('tel:+19725550123'));
-    assert(result.includes('Beta partner'));
+    assert(result.includes('Beta partner · Core Partner'));
     assert.equal(s.button.disabled,false);assert.equal(s.timers.size,0);
   }
   {

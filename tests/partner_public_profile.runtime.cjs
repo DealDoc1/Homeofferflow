@@ -43,47 +43,74 @@ test('website cannot be misleadingly labeled Call while approved custom labels s
   assert.equal(profile.websiteLabel({cta_label:'Call Tedd'}),'Visit website');
   assert.equal(profile.websiteLabel({cta_label:'Request a roof inspection'}),'Request a roof inspection');
 });
+test('directory shows at most three per category with Premier first, and workflow exposes only one Premier per category',()=>{
+  const rows=[
+    {partner_name:'Core A',partner_type:'title',placement_tier:'founding'},
+    {partner_name:'Premier B',partner_type:'title',placement_tier:'exclusive_market'},
+    {partner_name:'Featured',partner_type:'title',placement_tier:'premier'},
+    {partner_name:'Core B',partner_type:'title',placement_tier:'founding'},
+    {partner_name:'Premier A',partner_type:'title',placement_tier:'exclusive_market'},
+    {partner_name:'Insurance Core',partner_type:'insurance',placement_tier:'founding'},
+    {partner_name:'Insurance Premier',partner_type:'insurance',placement_tier:'exclusive_market'},
+  ];
+  assert.deepEqual(Array.from(profile.selectDirectoryPartners(rows),p=>p.partner_name),[
+    'Insurance Premier','Insurance Core','Premier A','Premier B','Featured'
+  ]);
+  assert.deepEqual(Array.from(profile.selectWorkflowPartners(rows),p=>p.partner_name),['Insurance Premier','Premier A']);
+  assert.equal(profile.placementLabel(rows[1]),'Premier Partner');
+});
 test('all completion actions use existing privacy-safe tracking markers',()=>{
   const markup=profile.actions(provider,esc,'data-offer-completion-partner-link');
   assert.equal((markup.match(/data-offer-completion-partner-link/g)||[]).length,2);
   assert.doesNotMatch(markup,/email|message|offer_id|customer/);
 });
-function completionMarkup(row,sharedProfile=profile) {
+function completionMarkup(rows,sharedProfile=profile) {
   const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
   const code=html.slice(html.indexOf('  function renderNowWhatDirectory('),html.indexOf('  async function renderNowWhatPartnerJourney('));
   const target={innerHTML:''};
   const sandbox={window:{hofPartnerProfile:sharedProfile},document:{getElementById:id=>id==='nowWhatPartnerDirectory'?target:{value:''}},
-    NOW_WHAT_GROUPS:[{types:['roofing'],title:'Roofing',detail:'Home needs',neutral:false}],
-    NOW_WHAT_REGULATED_TYPES:new Set(),NOW_WHAT_PARTNER_LABELS:{roofing:'Roofing'},nowWhatPartnerSort:()=>0,
+    NOW_WHAT_GROUPS:[{types:['roofing','title'],title:'Providers',detail:'Home needs',neutral:false}],
+    NOW_WHAT_PARTNER_LABELS:{roofing:'Roofing',title:'Title'},
     nowWhatEscape:esc,bindOfferCompletionPartnerClicks:()=>{},trackPartnerDirectoryImpressions:()=>{}};
-  vm.runInNewContext(code+'\nrenderNowWhatDirectory(input);',{...sandbox,input:[row]});
+  vm.runInNewContext(code+'\nrenderNowWhatDirectory(input);',{...sandbox,input:Array.isArray(rows)?rows:[rows]});
   return target.innerHTML;
 }
 test('actual offer-follow-up renderer carries logo, escaped description, beta label and both actions',()=>{
-  const markup=completionMarkup({...provider,partner_name:'Integrity First',partner_program:'beta',
+  const markup=completionMarkup({...provider,placement_tier:'exclusive_market',partner_name:'Integrity First',partner_program:'beta',
     public_description:'Roofing <script>unsafe</script>',logo_url:'https://example.com/logo.jpg'});
-  assert.match(markup,/alt="Integrity First logo"/); assert.match(markup,/Beta partner/);
+  assert.match(markup,/alt="Integrity First logo"/); assert.match(markup,/Beta partner · Premier Partner/);
   assert.match(markup,/&lt;script&gt;/); assert.doesNotMatch(markup,/<script>/);
   assert.match(markup,/tel:\+19728376378/); assert.match(markup,/Visit website/);
 });
 test('actual offer-follow-up renderer never uses private contacts or unsafe website',()=>{
-  const markup=completionMarkup({id:'fixture',partner_type:'roofing',contact_phone:'+19728376378',contact_name:'Private',website_url:'javascript:evil'});
+  const markup=completionMarkup({id:'fixture',partner_type:'roofing',placement_tier:'exclusive_market',contact_phone:'+19728376378',contact_name:'Private',website_url:'javascript:evil'});
   assert.doesNotMatch(markup,/tel:|javascript:|Private/);
 });
 test('offer follow-up uses the concise approved service summary rather than repeating the whole company biography',()=>{
-  const markup=completionMarkup({...provider,partner_name:'QA Roofing',partner_program:'beta',public_description:
+  const markup=completionMarkup({...provider,placement_tier:'exclusive_market',partner_name:'QA Roofing',partner_program:'beta',public_description:
     'We serve DFW homeowners. We handle roof inspections, replacements and storm damage. '+ 'Our mission is careful, dependable service. '.repeat(8)});
   assert.match(markup,/We serve DFW homeowners/);
   assert.match(markup,/storm damage/);
   assert.doesNotMatch(markup,/Our mission/);
 });
 test('actual offer-follow-up places an optional portrait without changing contact destinations',()=>{
-  const html=completionMarkup({...provider,public_headshot_url:'https://example.com/headshot.jpg'});
+  const html=completionMarkup({...provider,placement_tier:'exclusive_market',public_headshot_url:'https://example.com/headshot.jpg'});
   assert.match(html,/now-what-partner has-portrait/); assert.match(html,/hof-partner-headshot/);
   assert.match(html,/tel:\+19728376378/); assert.match(html,/href="https:\/\/example.com\/"/);
-  assert.doesNotMatch(completionMarkup(provider),/has-portrait|hof-partner-headshot/);
+  assert.doesNotMatch(completionMarkup({...provider,placement_tier:'exclusive_market'}),/has-portrait|hof-partner-headshot/);
+});
+test('completion shows only the single Premier provider per category, including title partners',()=>{
+  const rows=[
+    {...provider,partner_type:'title',placement_tier:'founding',partner_name:'Title Core'},
+    {...provider,partner_type:'title',placement_tier:'exclusive_market',partner_name:'Premier Title'},
+    {...provider,partner_type:'title',placement_tier:'exclusive_market',partner_name:'Second Premier Title'},
+  ];
+  const markup=completionMarkup(rows);
+  assert.match(markup,/Premier Title/);
+  assert.doesNotMatch(markup,/Title Core|Second Premier Title/);
+  assert.match(markup,/Premier Partner/);
 });
 test('cached pre-portrait helper still renders follow-up cards and contact links',()=>{
-  const markup=completionMarkup({...provider,partner_name:'Cached helper QA'},{...profile,portrait:undefined});
+  const markup=completionMarkup({...provider,placement_tier:'exclusive_market',partner_name:'Cached helper QA'},{...profile,portrait:undefined});
   assert.match(markup,/Cached helper QA/);assert.match(markup,/tel:\+19728376378/);assert.doesNotMatch(markup,/has-portrait/);
 });
