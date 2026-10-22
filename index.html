@@ -22909,6 +22909,7 @@ function routeAfterMagicLinkIfNeeded() {
     const user = root.hofAuth?.session?.user;
     const input = document.getElementById('agentIabsFile');
     const status = document.getElementById('agentIabsStatus');
+    const button = document.getElementById('agentIabsUploadButton');
     const file = input?.files?.[0];
     const showError = message => { if (status) { status.className = 'hof-iabs-status error'; status.textContent = message; } else window.announceWorkspaceStatus?.(message); };
     if (!client || !user) return showError('Please sign in again before uploading your IABS PDF.');
@@ -22919,18 +22920,22 @@ function routeAfterMagicLinkIfNeeded() {
     const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name || '');
     if (!isPdf) return showError('Only PDF files can be used for your IABS.');
     if (!file.size || file.size > MAX_BYTES) return showError('Your IABS PDF must be 10 MB or smaller.');
+    if (button?.disabled) return;
+    if (button) { button.disabled = true; button.setAttribute('aria-busy', 'true'); }
     try {
-      const signatureBytes = new Uint8Array(await file.slice(0, 4).arrayBuffer());
-      if (String.fromCharCode(...signatureBytes) !== '%PDF') {
-        return showError('This file is not a readable PDF. Choose the original brokerage-approved IABS PDF.');
+      try {
+        const signatureBytes = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+        if (String.fromCharCode(...signatureBytes) !== '%PDF') {
+          showError('This file is not a readable PDF. Choose the original brokerage-approved IABS PDF.');
+          return;
+        }
+      } catch (_) {
+        showError('We couldn’t read this PDF. Choose the original brokerage-approved IABS PDF and try again.');
+        return;
       }
-    } catch (_) {
-      return showError('We couldn’t read this PDF. Choose the original brokerage-approved IABS PDF and try again.');
-    }
-    if (!isCurrent()) return;
-    if (status) { status.className = 'hof-iabs-status'; status.textContent = 'Uploading your private IABS PDF…'; }
-    const path = filePath(user.id);
-    try {
+      if (!isCurrent()) return;
+      if (status) { status.className = 'hof-iabs-status'; status.textContent = 'Uploading your private IABS PDF…'; }
+      const path = filePath(user.id);
       const { error: uploadError } = await client.storage.from(BUCKET).upload(path, file, {
         contentType: 'application/pdf', upsert: true, cacheControl: '0'
       });
@@ -22959,6 +22964,8 @@ function routeAfterMagicLinkIfNeeded() {
       if (!isCurrent()) return;
       console.error('IABS upload failed:', error);
       if (status) { status.className = 'hof-iabs-status error'; status.textContent = window.hofCustomerActionError?.(error, 'We couldn’t upload your IABS PDF. Please try again.') || 'We couldn’t upload your IABS PDF. Please try again.'; }
+    } finally {
+      if (button) { button.disabled = false; button.removeAttribute('aria-busy'); }
     }
   };
 

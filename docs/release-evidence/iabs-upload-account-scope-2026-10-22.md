@@ -15,16 +15,20 @@ document into the newly active profile.
 - After successful metadata upsert, the handler applies the exact saved payload
   to the current profile state and mounts the optional offer IABS control. It
   no longer waits for a second read that could fail after a successful save.
+- The upload button is disabled from PDF-header validation through completion.
+  Repeated clicks during the pending request cannot start a second Storage or
+  metadata write; the button and its busy state recover in `finally` on success,
+  validation failure, upload failure, or an account change.
 - Actual-source runtime checks: `node --test tests/agent_iabs_upload.runtime.cjs
   tests/profile_load_isolation.runtime.cjs tests/attachment_upload_isolation.runtime.cjs`
-  — 45 passed. They cover the saved-profile success state, account switch while
-  Storage is pending, file-signature rejection, upload routing and stale profile
-  reads.
+  — 46 passed. They cover the saved-profile success state, duplicate-click
+  suppression, account switch while Storage is pending, file-signature
+  rejection, upload routing and stale profile reads.
 - Focused Python checks: `../txr1101-runtime/bin/python -m unittest
   tests.test_agent_iabs_profile tests.test_attachment_upload_isolation_runtime
   tests.test_uploaded_disclosure_workflow tests.test_saved_disclosure_attachment
   -q` — 24 passed.
-- The PWA shell advanced to v124 so installed clients receive the updated
+- The PWA shell advanced to v125 so installed clients receive the updated
   account-scoped flow. `git diff --check` passed.
 - Runtime fixture review confirms the saved profile card receives the persisted
   filename and the offer's optional IABS control mounts after success. No real
