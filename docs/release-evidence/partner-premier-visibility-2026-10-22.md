@@ -37,5 +37,10 @@ public contact links, and existing analytics payload limits. The partner UI
 fixtures confirm that view-specific lookups share their cache and retain the
 existing labels and contact actions.
 
+The public directory was also reviewed with fictional profiles at desktop and
+390×844 mobile. Three profiles per category display with Premier first; the
+partner tier, beta label, contact actions, filters, and category links wrap
+without horizontal overflow. This is local UI evidence only.
+
 **Not deployed or production-verified.** No production release or deployment was
 attempted in this checkpoint.

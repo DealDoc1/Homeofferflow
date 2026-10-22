@@ -6,6 +6,41 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class SavedDisclosureAttachmentTests(unittest.TestCase):
+    def test_selection_helper_cache_bust_reaches_installed_shell(self):
+        html=(ROOT/'index.html').read_text()
+        worker=(ROOT/'service-worker.js').read_text()
+        asset='/assets/saved-disclosure-attachment.js?v=20261022-summary1'
+        self.assertIn(asset,html)
+        self.assertIn("'"+asset+"'",worker)
+        self.assertIn("homeofferflow-shell-v123",worker)
+
+    def test_selected_reviewed_disclosure_shows_bound_parties_without_exposing_email(self):
+        script = r'''
+const vm=require('node:vm'),fs=require('node:fs'),assert=require('node:assert/strict');
+function element(){return {children:[],hidden:true,style:{},dataset:{},replaceChildren(){this.children=[]},appendChild(child){this.children.push(child);return child},addEventListener(){},setAttribute(){}}}
+const boxes=new Map([['purchaseDisclosureSelection',element()],['purchaseDisclosureReview',element()]]);
+const state={data:{_hofOfferId:'offer',address:'123 QA Road',city:'Dallas',state:'TX',zip:'75201',purchaseSellerDisclosureId:'draft',purchaseSellerDisclosureFingerprint:'a'.repeat(64),purchaseSellerDisclosureSummary:{ownerId:'owner',propertyAddress:'123 QA Road, Dallas, TX 75201',recipients:[{role:'Seller',name:'<img src=x>',email:'seller@example.test'},{role:'Buyer',name:'QA Buyer',email:'buyer@example.test'}]}}};
+const window={hofAuth:{session:{user:{id:'owner'}}}};
+const document={getElementById:id=>boxes.get(id),createElement:tag=>({...element(),tag})};
+const context={window,document,state};vm.runInNewContext(fs.readFileSync('assets/saved-disclosure-attachment.js','utf8'),context);
+window.hofRenderPurchaseDisclosureSelection();
+for(const box of boxes.values()){
+  assert.equal(box.hidden,false);
+  const paragraphs=box.children.filter(child=>child.tag==='p');
+  assert.equal(paragraphs.length,2);
+  assert.match(paragraphs[0].textContent,/123 QA Road, Dallas, TX 75201/);
+  assert.match(paragraphs[1].textContent,/<img src=x>/);
+  assert.match(paragraphs[1].textContent,/Buyer receipt acknowledgment: QA Buyer/);
+  assert.doesNotMatch(paragraphs.map(child=>child.textContent).join(' '),/@example\.test/);
+  assert.equal(paragraphs[0].innerHTML,undefined,'untrusted summary text is assigned as text, never markup');
+}
+state.data.purchaseSellerDisclosureSummary.ownerId='another-owner';
+window.hofRenderPurchaseDisclosureSelection();
+for(const box of boxes.values()){assert.equal(box.hidden,true);assert.equal(box.children.length,0)}
+'''
+        result=subprocess.run(['node','-e',script],cwd=ROOT,capture_output=True,text=True,timeout=20)
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+
     def test_reviewed_choice_and_preview_contract_never_imply_signature_completion(self):
         script = r'''
 const vm=require('node:vm'),fs=require('node:fs'),assert=require('node:assert/strict'),ctx={window:{}};

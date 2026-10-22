@@ -59,7 +59,20 @@
       const box=document.getElementById(id);if(!box)return;
       box.replaceChildren();box.hidden=!data?.purchaseSellerDisclosureId
         ||data.purchaseSellerDisclosureSummary?.ownerId&&data.purchaseSellerDisclosureSummary.ownerId!==context().user;if(box.hidden)return;
-      const text=document.createElement('p');text.textContent="Seller's disclosure selected. Sellers sign; buyers acknowledge receipt.";box.appendChild(text);
+      const summary=data.purchaseSellerDisclosureSummary||{};
+      const address=String(summary.propertyAddress||'').trim();
+      const text=document.createElement('p');
+      text.textContent=address?`Seller-reviewed disclosure selected for ${address}.`:'Seller-reviewed disclosure selected.';
+      box.appendChild(text);
+      const recipients=Array.isArray(summary.recipients)?summary.recipients:[];
+      const namesFor=role=>recipients.filter(row=>row?.role===role).map(row=>String(row.name||'').trim().slice(0,180)).filter(Boolean);
+      const sellers=namesFor('Seller'),buyers=namesFor('Buyer');
+      const parties=document.createElement('p');
+      parties.textContent=[
+        sellers.length?`Seller signing: ${sellers.join(', ')}.`:'Sellers sign the disclosure.',
+        buyers.length?`Buyer receipt acknowledgment: ${buyers.join(', ')}.`:'Buyers acknowledge receipt.'
+      ].join(' ');
+      box.appendChild(parties);
       const preview=document.createElement('button');preview.type='button';preview.className='btn-secondary';preview.textContent='Review disclosure PDF';
       preview.style.marginRight='0.5rem';
       preview.addEventListener('click',async()=>{
