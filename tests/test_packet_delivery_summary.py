@@ -55,7 +55,8 @@ class PacketDeliverySummaryTests(unittest.TestCase):
         harness = '''
           const elements = Object.fromEntries(['successEmail', 'successEmailLabel',
             'successMessage', 'successHeading', 'successDeliveryStep',
-            'successSignatureStep', 'successRevisionStep', 'successPrimaryAction'].map(id => [id, {textContent:''}]));
+            'successSignatureStep', 'successRevisionStep', 'successPrimaryAction',
+            'successPendingDocuments'].map(id => [id, {textContent:'', hidden:id === 'successPendingDocuments'}]));
           const document = {getElementById: id => elements[id] || null};
           const window = {__hofSubscriptionPacketGenerated:true, setTimeout:()=>{}};
           const removed = [];
@@ -116,6 +117,26 @@ class PacketDeliverySummaryTests(unittest.TestCase):
         self.assertIn('My Offers', fields['successDeliveryStep']['textContent'])
         self.assertEqual(fields['successPrimaryAction']['textContent'], 'View My Offers')
         self.assertIn('has sent', fields['successSignatureStep']['textContent'])
+
+    def test_pending_seller_disclosure_gets_separate_actionable_notice(self):
+        rendered = self.render_success({'packetGenerated': True,
+            'documentEmail': {'status': 'accepted'}, 'signwell': {'ok': True},
+            'pendingDocuments': ["Seller's disclosure is not included."]})
+        fields = rendered['elements']
+        notice = fields['successPendingDocuments']
+        self.assertFalse(notice['hidden'])
+        self.assertIn('was left out', notice['textContent'])
+        self.assertIn('Listing Tools', notice['textContent'])
+        self.assertIn('send it separately', notice['textContent'])
+        self.assertIn('can’t be added to this packet after generation', notice['textContent'])
+        self.assertNotIn('wasn’t included', fields['successMessage']['textContent'])
+
+    def test_no_pending_document_keeps_notice_hidden_and_empty(self):
+        rendered = self.render_success({'packetGenerated': True,
+            'documentEmail': {'status': 'accepted'}})
+        notice = rendered['elements']['successPendingDocuments']
+        self.assertTrue(notice['hidden'])
+        self.assertEqual(notice['textContent'], '')
 
     def test_confirmed_email_clears_draft(self):
         rendered = self.render_success({'packetGenerated': True, 'documentEmail': {'status': 'accepted'}})
