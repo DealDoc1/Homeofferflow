@@ -1485,7 +1485,7 @@ def _create_partner_checkout(lead_id, headers, source=None):
 
 
 def _select_partner_placements_for_view(rows, view):
-    """Apply the reusable public partner-placement contract by category."""
+    """Apply the shared directory and single-Premier workflow contract."""
     if view not in PARTNER_DIRECTORY_VIEWS:
         return rows
     rank = {"exclusive_market": 0, "premier": 1, "founding": 2}
@@ -1495,6 +1495,21 @@ def _select_partner_placements_for_view(rows, view):
         if category:
             groups.setdefault(category, []).append(row)
     selected = []
+    if view == "workflow":
+        premier = sorted(
+            (
+                partner
+                for partners in groups.values()
+                for partner in partners
+                if partner.get("placement_tier") == "exclusive_market"
+            ),
+            key=lambda item: (
+                str(item.get("partner_type") or "").casefold(),
+                str(item.get("partner_name") or "").casefold(),
+                str(item.get("id") or ""),
+            ),
+        )
+        return premier[:1]
     for category in sorted(groups):
         partners = sorted(
             groups[category],
@@ -1504,10 +1519,7 @@ def _select_partner_placements_for_view(rows, view):
                 str(item.get("id") or ""),
             ),
         )
-        if view == "workflow":
-            partners = [partner for partner in partners if partner.get("placement_tier") == "exclusive_market"][:1]
-        else:
-            partners = partners[:3]
+        partners = partners[:3]
         selected.extend(partners)
     return selected
 
@@ -1526,7 +1538,9 @@ def _list_public_partner_placements(category=None, market=None, view=None):
         "order": "partner_name.asc",
         "limit": "1000",
     }
-    if category in ALLOWED_PARTNER_TYPES:
+    # Workflow selection is platform-wide: choose its single Premier before
+    # callers filter by category. Directory results retain category scoping.
+    if category in ALLOWED_PARTNER_TYPES and view == "directory":
         params["partner_type"] = f"eq.{category}"
     if market:
         safe_market = re.sub(r"[^a-zA-Z0-9 ,.&/-]", "", market)[:100]
@@ -1547,6 +1561,8 @@ def _list_public_partner_placements(category=None, market=None, view=None):
     if not isinstance(rows, list):
         return []
     rows = _select_partner_placements_for_view(rows, view)
+    if category in ALLOWED_PARTNER_TYPES and view == "workflow":
+        rows = [row for row in rows if row.get("partner_type") == category]
     lead_ids = {
         str(row.get("source_lead_id") or "").strip()
         for row in rows
