@@ -46,8 +46,8 @@ async def publish(supabase_url, service_key, lead_id, authorized_by):
         if not name or len(name) > 250 or not market or len(market) > 300 or not profile['public_description']:
             raise ValueError('Save the company, market and public description before publishing.')
         website, logo = _https_url(lead.get('onboarding_website_url')), _https_url(lead.get('onboarding_logo_url'))
-        if lead.get('partner_type') not in {'roofing', 'general_contractor', 'hvac', 'plumbing', 'electrical', 'foundation_structural', 'pest_termite', 'septic_well', 'restoration', 'repairs_handyman', 'photography_video', 'staging', 'cleaning', 'moving_storage', 'lawn_pool', 'security_smart_home', 'home_warranty', 'insurance', 'other'}:
-            raise ValueError('Use the signed-agreement placement workflow for this category.')
+        if lead.get('partner_type') not in {'title', 'lender', 'inspection', 'surveyor', 'roofing', 'general_contractor', 'hvac', 'plumbing', 'electrical', 'foundation_structural', 'pest_termite', 'septic_well', 'restoration', 'repairs_handyman', 'photography_video', 'staging', 'cleaning', 'moving_storage', 'lawn_pool', 'security_smart_home', 'home_warranty', 'insurance', 'other'}:
+            raise ValueError('This partner category is not supported for free beta publication.')
         query = urlencode({'source_lead_id': 'eq.' + lead_id, 'is_active': 'eq.true', 'select': 'id,source_lead_id,monthly_fee,brokerage_id', 'limit': 1})
         existing = await client.get(base + 'hof_partner_placements?' + query)
         existing.raise_for_status()
