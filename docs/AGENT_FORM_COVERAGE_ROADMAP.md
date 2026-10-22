@@ -1,5 +1,17 @@
 # HomeOfferFlow — Agent Form Coverage Roadmap
 
+## IABS profile upload validation — October 22, 2026
+
+The private profile uploader now checks the selected file's `%PDF` signature
+before writing it to Storage or saving document metadata. This catches files
+that only claim a PDF MIME type or filename before they can appear as a saved
+IABS and later fail during packet assembly. The inline error explains how to
+recover. The actual-source IABS upload and attachment-routing runtime suites
+pass (21 cases); a mislabeled non-PDF is confirmed to cause no external writes.
+Nineteen focused Python profile, attachment-routing and disclosure workflow
+checks also pass using the repository runtime. Implemented and tested locally;
+not deployed. See [release evidence](release-evidence/iabs-profile-signature-validation-2026-10-22.md).
+
 ## Partner directory and Premier visibility — October 22, 2026
 
 Partner visibility now follows one cross-category rule: one top Premier partner

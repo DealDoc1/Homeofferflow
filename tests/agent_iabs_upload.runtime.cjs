@@ -13,7 +13,8 @@ const source = html.slice(start, end);
 test('IABS upload uses the Supabase Storage cache lifetime contract and saves metadata', async () => {
   const events = [];
   const status = { className: '', textContent: '' };
-  const file = { name: 'Brokerage IABS.pdf', type: 'application/pdf', size: 2048 };
+  const file = { name: 'Brokerage IABS.pdf', type: 'application/pdf', size: 2048,
+    slice: () => ({ arrayBuffer: async () => Uint8Array.from([37, 80, 68, 70]).buffer }) };
   const context = vm.createContext({
     MAX_BYTES: 10 * 1024 * 1024,
     BUCKET: 'agent-documents',
@@ -53,4 +54,33 @@ test('IABS upload uses the Supabase Storage cache lifetime contract and saves me
   assert.equal(upload.options.cacheControl, '0');
   assert.equal(events.find(event => event.kind === 'metadata').table, 'hof_agent_documents');
   assert.equal(events.at(-1).kind, 'mount-offer-option');
+});
+
+test('a mislabeled non-PDF IABS is rejected before storage or metadata writes', async () => {
+  const events = [];
+  const status = { className: '', textContent: '' };
+  const file = { name: 'Brokerage IABS.pdf', type: 'application/pdf', size: 2048,
+    slice: () => ({ arrayBuffer: async () => Uint8Array.from([80, 75, 3, 4]).buffer }) };
+  const context = vm.createContext({
+    MAX_BYTES: 10 * 1024 * 1024,
+    BUCKET: 'agent-documents',
+    filePath: userId => `${userId}/iabs.pdf`,
+    hofAuth: { session: { user: { id: 'agent-1' } }, agentIabsDocument: null },
+    getSupabaseClient: () => ({
+      storage: { from: () => ({ upload: async (...args) => { events.push(['storage', ...args]); return { error: null }; } }) },
+      from: () => ({ upsert: async (...args) => { events.push(['metadata', ...args]); return { error: null }; } })
+    }),
+    document: { getElementById: id => ({ agentIabsFile: { files: [file] }, agentIabsStatus: status })[id] || null },
+    console: { error() {} },
+    window: { hofCustomerActionError: (_error, fallback) => fallback }
+  });
+  context.root = context;
+  context.window = context;
+  vm.runInContext(source, context);
+
+  await context.uploadAgentIabsDocument();
+
+  assert.equal(status.className, 'hof-iabs-status error');
+  assert.match(status.textContent, /not a readable PDF/);
+  assert.deepEqual(events, []);
 });
