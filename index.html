@@ -12047,22 +12047,28 @@ function routeAfterMagicLinkIfNeeded() {
     const maxFileBytes = 2 * 1024 * 1024;
     const maxTotalBytes = Math.floor(2.5 * 1024 * 1024);
     const input = document.getElementById('uploadedDisclosureDocs');
+    const agentRole = String(hofAuth?.role || '').toLowerCase();
+    const canSaveProfileIabs = !!hofAuth?.session?.user && ['agent', 'broker', 'brokerage_admin', 'team_lead'].includes(agentRole);
+    const profileIabsFiles = canSaveProfileIabs ? files.filter(file => /\biabs\b/i.test(file.name || '')) : [];
+    const profileIabsGuidance = 'Save your brokerage IABS in Account > Profile > My IABS, then choose “Include my IABS?” on this offer. Profile IABS uploads allow PDFs up to 10 MB.';
+    files = files.filter(file => !profileIabsFiles.includes(file));
+    const setStatus = message => setUploadedDisclosureStatus([message, profileIabsFiles.length ? profileIabsGuidance : ''].filter(Boolean).join(' '));
     const existingDocs = Array.isArray(window.hofUploadedDisclosureDocs) ? window.hofUploadedDisclosureDocs : [];
     const existingBytes = existingDocs.reduce((total, doc) => total + Number(doc?.size || 0), 0);
     const selectedBytes = files.reduce((total, file) => total + Number(file?.size || 0), 0);
-    setUploadedDisclosureStatus('');
+    setStatus('');
     if (existingDocs.length + files.length > maxFiles) {
       const remaining = Math.max(0, maxFiles - existingDocs.length);
-      setUploadedDisclosureStatus(`You can keep up to ${maxFiles} PDFs. This packet can add ${remaining} more file${remaining === 1 ? '' : 's'}.`);
+      setStatus(`You can keep up to ${maxFiles} PDFs. This packet can add ${remaining} more file${remaining === 1 ? '' : 's'}.`);
       if (input) input.value = '';
       return;
     }
     if (existingBytes + selectedBytes > maxTotalBytes) {
-      setUploadedDisclosureStatus('Uploaded PDFs must stay under 2.5MB combined so the packet can be sent reliably. Remove a file or use a smaller PDF.');
+      setStatus('Uploaded PDFs must stay under 2.5MB combined so the packet can be sent reliably. Remove a file or use a smaller PDF.');
       if (input) input.value = '';
       return;
     }
-    if (!files.length) return;
+    if (!files.length) { if (input) input.value = ''; return; }
     const docs = [...existingDocs];
     const originalCount = docs.length;
     for (const file of files) {
@@ -12073,11 +12079,11 @@ function routeAfterMagicLinkIfNeeded() {
       }
       const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
       if (!isPdf) {
-        setUploadedDisclosureStatus('Only PDF files can be uploaded right now: ' + file.name);
+        setStatus('Only PDF files can be uploaded right now: ' + file.name);
         continue;
       }
       if (file.size > maxFileBytes) {
-        setUploadedDisclosureStatus('This PDF is too large for packet upload: ' + file.name + '. Please keep each file under 2MB.');
+        setStatus('This PDF is too large for packet upload: ' + file.name + '. Please keep each file under 2MB.');
         continue;
       }
       try {
@@ -12085,7 +12091,7 @@ function routeAfterMagicLinkIfNeeded() {
         if (!batch.isCurrent()) return;
         const signature = String.fromCharCode(...signatureBytes);
         if (signature !== '%PDF') {
-          setUploadedDisclosureStatus('This file is not a readable PDF: ' + file.name);
+          setStatus('This file is not a readable PDF: ' + file.name);
           continue;
         }
         const base64 = await readFileAsBase64(file);
@@ -12102,7 +12108,7 @@ function routeAfterMagicLinkIfNeeded() {
       } catch (err) {
         if (!batch.isCurrent()) return;
         console.error('Upload read failed:', err);
-        setUploadedDisclosureStatus('Could not read uploaded PDF: ' + file.name);
+        setStatus('Could not read uploaded PDF: ' + file.name);
       }
     }
     if (!batch.isCurrent()) return;
@@ -22918,7 +22924,7 @@ function routeAfterMagicLinkIfNeeded() {
     const path = filePath(user.id);
     try {
       const { error: uploadError } = await client.storage.from(BUCKET).upload(path, file, {
-        contentType: 'application/pdf', upsert: true, cacheControl: 'private, max-age=0'
+        contentType: 'application/pdf', upsert: true, cacheControl: '0'
       });
       if (uploadError) throw uploadError;
       const payload = {

@@ -12,7 +12,8 @@ class UploadedDisclosureFeedbackTests(unittest.TestCase):
         self.assertIn('role="status" aria-live="polite"', INDEX)
 
     def test_upload_validation_uses_inline_status_instead_of_alerts(self):
-        self.assertIn("setUploadedDisclosureStatus('Only PDF files can be uploaded right now: '", INDEX)
+        self.assertIn("const setStatus = message => setUploadedDisclosureStatus(", INDEX)
+        self.assertIn("setStatus('Only PDF files can be uploaded right now: '", INDEX)
         self.assertIn("setUploadedDisclosureStatus('Review the uploaded PDF labels and order", INDEX)
         self.assertNotIn("alert('Only PDF files can be uploaded right now: '", INDEX)
         self.assertNotIn("alert('Review the uploaded PDF labels and order", INDEX)

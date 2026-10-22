@@ -66,6 +66,21 @@ test('same-account token refresh preserves the upload', async()=>{
   x.hofAuth.session={user:{id:'one'},access_token:'replacement'};
   f.gate.resolve('JVBERg==');await p;assert.deepEqual(x.names(),['survey.pdf']);
 });
+test('agent IABS uploads bypass packet size limits and explain the dedicated profile flow', async()=>{
+  const x=setup(),f=file('brokerage-IABS.pdf','body',3*1024*1024);x.hofAuth.role='agent';
+  await x.handleUploadedDisclosureDocs([f]);
+  assert.deepEqual(x.names(),[]);
+  assert.match(x.statuses.at(-1),/Account > Profile > My IABS/);
+  assert.match(x.statuses.at(-1),/up to 10 MB/);
+  assert.equal(x.input.attrs['aria-busy'],'false');
+});
+test('routing an agent IABS does not block a separate valid packet attachment', async()=>{
+  const x=setup(),iabs=file('brokerage-IABS.pdf','body',3*1024*1024),survey=file('survey.pdf');x.hofAuth.role='agent';
+  const pending=x.handleUploadedDisclosureDocs([iabs,survey]);await tick();survey.gate.resolve('JVBERg==');await pending;
+  assert.deepEqual(x.names(),['survey.pdf']);
+  assert.match(x.statuses.at(-1),/Account > Profile > My IABS/);
+  assert.match(x.statuses.at(-1),/up to 10 MB/);
+});
 test('overlapping selections append in selection order', async()=>{
   const x=setup(),a=file('one.pdf'),b=file('two.pdf');
   const p=x.handleUploadedDisclosureDocs([a]);await tick();
