@@ -1,7 +1,7 @@
 // Bump the shell whenever a released public workflow changes. That makes an
 // already-installed app fetch the new worker and retire stale public pages.
 // The worker activates in the background but never reloads an open workflow.
-const SHELL_CACHE = 'homeofferflow-shell-v122';
+const SHELL_CACHE = 'homeofferflow-shell-v123';
 const SHELL_ASSETS = [
   // Keep installation lightweight. Public pages cache after the visitor has
   // actually opened them; preloading every guide would spend bandwidth for
@@ -14,7 +14,7 @@ const SHELL_ASSETS = [
   '/assets/trec-38-8-followup.js',
   '/assets/trec-39-11-amendment.js',
   '/assets/seller-disclosure-interview.js',
-  '/assets/saved-disclosure-attachment.js',
+  '/assets/saved-disclosure-attachment.js?v=20261022-summary1',
   '/assets/agent-landing-focus.css',
   '/assets/agent-landing-focus.js',
   '/assets/partner-landing-focus.css',
