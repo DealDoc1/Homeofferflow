@@ -7,11 +7,13 @@ before writing it to Storage or saving document metadata. It scopes the pending
 upload to the signed-in user, role, and account epoch, preventing a late upload
 from populating a different account's profile. After metadata is saved, the UI
 uses that confirmed payload directly instead of depending on a second read.
-Runtime coverage verifies the saved IABS appears in the profile and offer
-option, a mislabeled file causes no writes, and an account switch during upload
-causes no metadata update or cross-account render. Focused checks pass: 45
-JavaScript runtime cases and 24 Python checks; shell v124 delivers the workflow
-to installed clients. Implemented and tested locally; not deployed. See
+Repeated clicks are locked while the header is checked and the upload is
+pending, preventing duplicate writes. Runtime coverage verifies the saved IABS
+appears in the profile and offer option, invalid and repeated uploads cause no
+extra writes, and an account switch during upload causes no metadata update or
+cross-account render. Focused checks pass: 46 JavaScript runtime cases and 24
+Python checks; shell v125 delivers the workflow to installed clients.
+Implemented and tested locally; not deployed. See
 [release evidence](release-evidence/iabs-upload-account-scope-2026-10-22.md).
 
 ## Partner directory and Premier visibility — October 22, 2026

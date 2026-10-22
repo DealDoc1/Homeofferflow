@@ -10,10 +10,12 @@ const end = html.indexOf('\n  root.removeAgentIabsDocument =', start);
 assert.ok(start >= 0 && end > start, 'IABS upload handler is present');
 const source = html.slice(start, end);
 const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return { promise, resolve }; };
+const fakeButton = () => ({ disabled: false, attributes: {}, setAttribute(name, value) { this.attributes[name] = value; }, removeAttribute(name) { delete this.attributes[name]; } });
 
 test('IABS upload uses the Supabase Storage cache lifetime contract and saves metadata', async () => {
   const events = [];
   const status = { className: '', textContent: '' };
+  const button = fakeButton();
   const auth = { session: { user: { id: 'agent-1' } }, role: 'agent', agentIabsDocument: null };
   const file = { name: 'Brokerage IABS.pdf', type: 'application/pdf', size: 2048,
     slice: () => ({ arrayBuffer: async () => Uint8Array.from([37, 80, 68, 70]).buffer }) };
@@ -35,6 +37,7 @@ test('IABS upload uses the Supabase Storage cache lifetime contract and saves me
     }),
     document: { getElementById: id => ({
       agentIabsFile: { files: [file] }, agentIabsStatus: status,
+      agentIabsUploadButton: button,
       agentIabsProfileCard: { remove() { events.push({ kind: 'remove-card' }); } }
     })[id] || null },
     loadAgentIabsDocument: async () => { events.push({ kind: 'unexpected-readback' }); throw new Error('simulated readback failure'); },
@@ -61,11 +64,65 @@ test('IABS upload uses the Supabase Storage cache lifetime contract and saves me
   assert.equal(events.some(event => event.kind === 'unexpected-readback'), false);
   assert.equal(events.find(event => event.kind === 'render-card').document.original_filename, file.name);
   assert.equal(events.at(-1).kind, 'mount-offer-option');
+  assert.equal(button.disabled, false);
+  assert.equal(button.attributes['aria-busy'], undefined);
+});
+
+test('repeated upload clicks start only one storage and metadata write', async () => {
+  const events = [];
+  const status = { className: '', textContent: '' };
+  const button = fakeButton();
+  const storageWrite = deferred();
+  const auth = { session: { user: { id: 'agent-1' } }, role: 'agent', agentIabsDocument: null };
+  const file = { name: 'Brokerage IABS.pdf', type: 'application/pdf', size: 2048,
+    slice: () => ({ arrayBuffer: async () => Uint8Array.from([37, 80, 68, 70]).buffer }) };
+  const context = vm.createContext({
+    MAX_BYTES: 10 * 1024 * 1024,
+    BUCKET: 'agent-documents',
+    filePath: userId => `${userId}/iabs.pdf`,
+    hofAuth: auth,
+    __hofAccountProfileEpoch: 4,
+    getSupabaseClient: () => ({
+      storage: { from: bucket => ({ upload: async (objectPath, body, options) => {
+        events.push({ kind: 'storage', bucket, objectPath, body, options });
+        await storageWrite.promise;
+        return { error: null };
+      } }) },
+      from: table => ({ upsert: async payload => { events.push({ kind: 'metadata', table, payload }); return { error: null }; } })
+    }),
+    document: { getElementById: id => ({
+      agentIabsFile: { files: [file] }, agentIabsStatus: status,
+      agentIabsUploadButton: button,
+      agentIabsProfileCard: { remove() { events.push({ kind: 'remove-card' }); } }
+    })[id] || null },
+    loadAgentIabsDocument: async () => null,
+    renderProfileIabsCard() { events.push({ kind: 'render-card' }); },
+    mountIabsOfferOption() { events.push({ kind: 'mount-offer-option' }); },
+    console: { error() {} },
+    window: { hofCustomerActionError: (_error, fallback) => fallback }
+  });
+  context.root = context;
+  context.window = context;
+  vm.runInContext(source, context);
+
+  const first = context.uploadAgentIabsDocument();
+  assert.equal(button.disabled, true);
+  assert.equal(button.attributes['aria-busy'], 'true');
+  await new Promise(setImmediate);
+  await context.uploadAgentIabsDocument();
+  assert.equal(events.filter(event => event.kind === 'storage').length, 1);
+  storageWrite.resolve();
+  await first;
+
+  assert.equal(events.filter(event => event.kind === 'metadata').length, 1);
+  assert.equal(button.disabled, false);
+  assert.equal(button.attributes['aria-busy'], undefined);
 });
 
 test('a mislabeled non-PDF IABS is rejected before storage or metadata writes', async () => {
   const events = [];
   const status = { className: '', textContent: '' };
+  const button = fakeButton();
   const file = { name: 'Brokerage IABS.pdf', type: 'application/pdf', size: 2048,
     slice: () => ({ arrayBuffer: async () => Uint8Array.from([80, 75, 3, 4]).buffer }) };
   const context = vm.createContext({
@@ -77,7 +134,7 @@ test('a mislabeled non-PDF IABS is rejected before storage or metadata writes', 
       storage: { from: () => ({ upload: async (...args) => { events.push(['storage', ...args]); return { error: null }; } }) },
       from: () => ({ upsert: async (...args) => { events.push(['metadata', ...args]); return { error: null }; } })
     }),
-    document: { getElementById: id => ({ agentIabsFile: { files: [file] }, agentIabsStatus: status })[id] || null },
+    document: { getElementById: id => ({ agentIabsFile: { files: [file] }, agentIabsStatus: status, agentIabsUploadButton: button })[id] || null },
     console: { error() {} },
     window: { hofCustomerActionError: (_error, fallback) => fallback }
   });
@@ -90,11 +147,14 @@ test('a mislabeled non-PDF IABS is rejected before storage or metadata writes', 
   assert.equal(status.className, 'hof-iabs-status error');
   assert.match(status.textContent, /not a readable PDF/);
   assert.deepEqual(events, []);
+  assert.equal(button.disabled, false);
+  assert.equal(button.attributes['aria-busy'], undefined);
 });
 
 test('an account switch during storage upload cannot save metadata or populate the new profile', async () => {
   const events = [];
   const status = { className: '', textContent: '' };
+  const button = fakeButton();
   const storageWrite = deferred();
   const auth = { session: { user: { id: 'agent-1' } }, role: 'agent', agentIabsDocument: null };
   const file = { name: 'Brokerage IABS.pdf', type: 'application/pdf', size: 2048,
@@ -115,6 +175,7 @@ test('an account switch during storage upload cannot save metadata or populate t
     }),
     document: { getElementById: id => ({
       agentIabsFile: { files: [file] }, agentIabsStatus: status,
+      agentIabsUploadButton: button,
       agentIabsProfileCard: { remove() { events.push({ kind: 'remove-card' }); } }
     })[id] || null },
     loadAgentIabsDocument: async () => { events.push({ kind: 'unexpected-readback' }); return null; },
@@ -139,4 +200,6 @@ test('an account switch during storage upload cannot save metadata or populate t
   assert.equal(events.some(event => event.kind === 'metadata'), false);
   assert.equal(events.some(event => event.kind === 'render-card' || event.kind === 'mount-offer-option'), false);
   assert.equal(auth.agentIabsDocument, null);
+  assert.equal(button.disabled, false);
+  assert.equal(button.attributes['aria-busy'], undefined);
 });
