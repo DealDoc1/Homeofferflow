@@ -1,5 +1,28 @@
 # HomeOfferFlow — Agent Form Coverage Roadmap
 
+## Complimentary partner beta intake — October 22, 2026
+
+New partner applications are saved with `partner_program=beta`; the API returns
+that program value so another client can follow the same server-owned rule.
+The beta path records an application, sends the existing application receipt,
+and returns before checkout. The partner checkout endpoint rejects beta
+checkout before database or Stripe access. Public application, homepage card,
+partner guide, structured data, admin placement controls, and generated
+campaign copy now show the same $0 beta terms and no automatic paid conversion.
+All placement levels retain the same complimentary terms and review process;
+the intake no longer asks for a future paid-budget preference. Focused partner,
+receipt, checkout-boundary, beta-publication, and directory checks pass (111
+tests); the three edited pages’ JSON-LD and inline scripts parse.
+Source-level UX was reviewed. Browser visual review was blocked because the
+local server was not running, the sandbox denied binding it, and browser policy
+does not allow `file://` pages. **Implemented and tested locally; not visually
+verified in a browser or deployed.** Existing Stripe Checkout links or
+subscriptions were not inspected or changed. See
+[partner beta intake evidence](release-evidence/complimentary-partner-beta-intake-2026-10-22.md).
+
+The repository does not contain `docs/CURRENT_PROJECT_STATE.md`; the roadmap
+and release evidence remain the available project records.
+
 ## IABS profile upload validation — October 22, 2026
 
 The private profile uploader checks the selected file's `%PDF` signature

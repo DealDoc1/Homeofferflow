@@ -5777,7 +5777,7 @@ class handler(BaseHTTPRequestHandler):
                 "partner_application_essentials_opened",
                 "partner_application_essentials_focused",
                 "partner_application_essentials_ready",
-                "partner_application_checkout_ready",
+                "partner_application_beta_terms_acknowledged",
                 "partner_application_abandoned",
                 "partner_application_save_failed",
                 "partner_checkout_start_failed",
@@ -5810,8 +5810,8 @@ class handler(BaseHTTPRequestHandler):
             partner_application_essentials_ready_count = len([
                 item for item in partner_landing_events if item.get("event_type") == "partner_application_essentials_ready"
             ])
-            partner_application_checkout_ready_count = len([
-                item for item in partner_landing_events if item.get("event_type") == "partner_application_checkout_ready"
+            partner_application_beta_terms_acknowledged_count = len([
+                item for item in partner_landing_events if item.get("event_type") == "partner_application_beta_terms_acknowledged"
             ])
             partner_application_abandoned_count = len([
                 item for item in partner_landing_events if item.get("event_type") == "partner_application_abandoned"
@@ -7566,7 +7566,7 @@ class handler(BaseHTTPRequestHandler):
                 "partnerApplicationEssentialsOpenCount": partner_application_essentials_open_count,
                 "partnerApplicationEssentialsFocusCount": partner_application_essentials_focus_count,
                 "partnerApplicationEssentialsReadyCount": partner_application_essentials_ready_count,
-                "partnerApplicationCheckoutReadyCount": partner_application_checkout_ready_count,
+                "partnerApplicationBetaTermsAcknowledgedCount": partner_application_beta_terms_acknowledged_count,
                 "partnerApplicationAbandonedCount": partner_application_abandoned_count,
                 "partnerApplicationAbandonedRate": round(
                     (partner_application_abandoned_count / partner_application_open_count) * 100, 1

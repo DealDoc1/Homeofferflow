@@ -65,19 +65,17 @@ class Client:
 
 class PartnerCheckoutTests(unittest.TestCase):
 
-    def test_cancelled_checkout_can_resume_without_reentering_saved_application(self):
+    def test_beta_application_does_not_offer_checkout_recovery(self):
         html = (ROOT / "index.html").read_text(encoding="utf-8")
-        self.assertIn("const hasSavedPartnerApplication = Boolean(window.__hofFoundingPartnerLeadId);", html)
-        self.assertIn("if (!hasSavedPartnerApplication && (!hasType || !hasCompany || !hasContact || !hasEmail || !hasValidEmail || !hasMarket))", html)
-        self.assertIn("if (!hasSavedPartnerApplication && !document.getElementById('foundingPartnerConsent')?.checked)", html)
-        self.assertIn("source: hasSavedPartnerApplication ? 'partner_cancel_recovery' : payload.source", html)
-        self.assertIn("checkout_source: hasSavedPartnerApplication ? 'partner_cancel_recovery' : ''", html)
-        self.assertIn("You do not need to re-enter your saved essentials", html)
+        self.assertIn("const hasSavedPartnerApplication = Boolean(window.__hofFoundingPartnerLeadId || loadSavedPartnerLeadId());", html)
+        self.assertIn("if (PARTNER_BETA_ACTIVE && hasSavedPartnerApplication)", html)
+        self.assertIn("No checkout or payment is available during beta.", html)
+        self.assertNotIn("Resume Secure Checkout", html)
 
-    def test_saved_application_state_is_clear_after_a_refresh_not_just_the_cancel_return(self):
+    def test_saved_beta_application_is_clear_after_a_refresh(self):
         html = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertIn("function applySavedPartnerApplicationState()", html)
-        self.assertIn("Resume Secure Checkout — saved application", html)
+        self.assertIn("Application already saved", html)
         self.assertIn("hasSavedApplication && window.__hofFoundingPartnerCheckoutState !== 'success'", html)
         self.assertIn("jump.style.display = hasSavedApplication ? 'none' : ''", html)
 
@@ -95,7 +93,7 @@ class PartnerCheckoutTests(unittest.TestCase):
         self.assertIn('We couldn’t save your setup details. Please try again.', html)
     def test_success_return_explains_secure_setup_timeline_and_activation_boundary(self):
         html = (ROOT / "index.html").read_text(encoding="utf-8")
-        self.assertIn("your next step is partner setup", html)
+        self.assertIn("Your partner setup is ready to review.", html)
         self.assertIn("it expires in 14 days", html)
         self.assertIn("Setup does not activate advertising by itself.", html)
         self.assertIn("issue a fresh secure link", html)
@@ -108,8 +106,16 @@ class PartnerCheckoutTests(unittest.TestCase):
         self.assertEqual(partner_checkout.MONTHLY_PRICE_ENV_BY_TIER["monthly_placement"], "STRIPE_FOUNDING_PARTNER_FEATURED_MONTHLY_PRICE_ID")
         self.assertEqual(partner_checkout.MONTHLY_PRICE_ENV_BY_TIER["market_exclusive"], "STRIPE_FOUNDING_PARTNER_PREMIER_MONTHLY_PRICE_ID")
 
+    def test_partner_beta_blocks_checkout_before_database_or_stripe_access(self):
+        Client.requests = []
+        with patch.object(partner_checkout, "_get_partner_lead_for_checkout") as get_lead, patch.object(partner_checkout.httpx, "Client", Client):
+            with self.assertRaisesRegex(PermissionError, "complimentary during beta"):
+                partner_checkout._create_partner_checkout("e35eace9-2760-4b11-a01a-07ee65f2744e", {})
+        get_lead.assert_not_called()
+        self.assertEqual(Client.requests, [])
+
     def test_custom_partner_request_cannot_enter_a_price_based_checkout(self):
-        with patch.object(partner_checkout, "STRIPE_SECRET_KEY", "sk_test_example"), patch.object(partner_checkout, "_get_partner_lead_for_checkout", return_value={
+        with patch.object(partner_checkout, "PARTNER_BETA_ACTIVE", False), patch.object(partner_checkout, "STRIPE_SECRET_KEY", "sk_test_example"), patch.object(partner_checkout, "_get_partner_lead_for_checkout", return_value={
             "id": "e35eace9-2760-4b11-a01a-07ee65f2744e",
             "preferred_model": "discuss",
             "contact_email": "partner@example.com",
@@ -229,7 +235,7 @@ class PartnerCheckoutTests(unittest.TestCase):
 
     def test_partner_checkout_collects_launch_charge_and_defers_recurring_plan_for_90_days(self):
         Client.requests = []
-        with patch.object(partner_checkout, "_get_partner_lead_for_checkout", return_value={
+        with patch.object(partner_checkout, "PARTNER_BETA_ACTIVE", False), patch.object(partner_checkout, "_get_partner_lead_for_checkout", return_value={
             "id": "e35eace9-2760-4b11-a01a-07ee65f2744e",
             "preferred_model": "monthly_placement",
             "contact_email": "partner@example.com",
@@ -262,7 +268,7 @@ class PartnerCheckoutTests(unittest.TestCase):
         with patch.dict(partner_checkout.os.environ, {
             "STRIPE_FOUNDING_PARTNER_FEATURED_PRICE_ID": "price_same",
             "STRIPE_FOUNDING_PARTNER_FEATURED_MONTHLY_PRICE_ID": "price_same",
-        }, clear=False), patch.object(partner_checkout, "_get_partner_lead_for_checkout", return_value={
+        }, clear=False), patch.object(partner_checkout, "PARTNER_BETA_ACTIVE", False), patch.object(partner_checkout, "_get_partner_lead_for_checkout", return_value={
             "id": "e35eace9-2760-4b11-a01a-07ee65f2744e",
             "preferred_model": "monthly_placement",
             "contact_email": "partner@example.com",
@@ -284,7 +290,8 @@ class PartnerCheckoutTests(unittest.TestCase):
             "payment_status": "checkout_started",
             "stripe_checkout_session_id": "cs_open",
         }
-        with patch.object(partner_checkout, "_get_partner_lead_for_checkout", return_value=lead), \
+        with patch.object(partner_checkout, "PARTNER_BETA_ACTIVE", False), \
+             patch.object(partner_checkout, "_get_partner_lead_for_checkout", return_value=lead), \
              patch.object(partner_checkout, "_open_stripe_checkout_url", return_value="https://checkout.stripe.test/open"), \
              patch.object(partner_checkout, "_record_partner_checkout_event") as record, \
              patch.object(partner_checkout, "_claim_partner_checkout_session") as claim_session:
@@ -307,7 +314,8 @@ class PartnerCheckoutTests(unittest.TestCase):
             "payment_status": "checkout_started",
             "stripe_checkout_session_id": "cs_open",
         }
-        with patch.object(partner_checkout, "_get_partner_lead_for_checkout", return_value=lead), \
+        with patch.object(partner_checkout, "PARTNER_BETA_ACTIVE", False), \
+             patch.object(partner_checkout, "_get_partner_lead_for_checkout", return_value=lead), \
              patch.object(partner_checkout, "_open_stripe_checkout_url", return_value="https://checkout.stripe.test/open"), \
              patch.object(partner_checkout, "_record_partner_checkout_event") as record:
             partner_checkout._create_partner_checkout(lead["id"], {"host": "www.homeofferflow.com"}, "partner_cancel_recovery")

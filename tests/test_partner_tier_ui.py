@@ -1,9 +1,11 @@
+import json
 import re
 import unittest
 from pathlib import Path
 
 
 INDEX_PATH = Path(__file__).resolve().parents[1] / "index.html"
+API_PATH = INDEX_PATH.parent / "api" / "fsbo-lead.py"
 
 
 class PartnerTierUiTests(unittest.TestCase):
@@ -12,28 +14,17 @@ class PartnerTierUiTests(unittest.TestCase):
         cls.html = INDEX_PATH.read_text(encoding="utf-8")
 
     def test_three_public_tiers_and_rates_are_present(self):
-        expected = (
-            ("Core Partner", "$149"),
-            ("Featured Partner", "$399"),
-            ("Premier Partner", "$799"),
-        )
-        for label, rate in expected:
+        for label in ("Core Partner", "Featured Partner", "Premier Partner"):
             with self.subTest(label=label):
                 self.assertIn(label, self.html)
-                self.assertIn(rate, self.html)
+        self.assertEqual(self.html.count('<strong>$0</strong><span>during beta</span>'), 3)
 
-    def test_founder_offer_is_a_clear_nonrenewing_90_day_pilot(self):
-        required_copy = (
-            "first 90 days for the price of one standard month",
-            "Onboarding is included with no setup fee",
-            "Then $149/month unless cancelled.",
-            "Then $149/month after 90 days, unless cancelled",
-            "Then $399/month after 90 days, unless cancelled",
-            "Then $799/month after 90 days, unless cancelled",
-        )
-        for copy in required_copy:
-            with self.subTest(copy=copy):
-                self.assertIn(copy, self.html)
+    def test_beta_terms_are_equal_and_have_no_automatic_paid_conversion(self):
+        self.assertIn("All partner placements are complimentary during beta", self.html)
+        self.assertIn("no automatic paid conversion", self.html)
+        self.assertNotIn("$149", self.html)
+        self.assertNotIn("$399", self.html)
+        self.assertNotIn("$799", self.html)
 
     def test_public_tiers_keep_existing_server_safe_model_values(self):
         for value in ("founding_pilot", "monthly_placement", "market_exclusive"):
@@ -45,7 +36,7 @@ class PartnerTierUiTests(unittest.TestCase):
 
     def test_consumer_choice_and_neutral_selection_are_explicit(self):
         required_copy = (
-            "never preselects a paid provider",
+            "never preselects a provider",
             "users may choose any provider or none",
             "neutral provider selector",
             "Sponsored",
@@ -58,14 +49,26 @@ class PartnerTierUiTests(unittest.TestCase):
         self.assertIn("fetch('/api/fsbo-lead'", self.html)
         self.assertIn("request_type: 'founding_partner'", self.html)
 
-    def test_checkout_intake_keeps_required_details_short_and_defers_preferences(self):
-        self.assertIn("Start your partner application", self.html)
+    def test_beta_application_uses_the_server_program_response_before_checkout(self):
+        start = self.html.index("window.submitFoundingPartnerLead = async function")
+        end = self.html.index("function setupPartnerOnboardingModal", start)
+        submit = self.html[start:end]
+        beta_path = submit.index("if (result.partner_program === 'beta')")
+        checkout_path = submit.index("request_type: 'founding_partner_checkout'")
+        self.assertLess(beta_path, checkout_path)
+        self.assertIn("No checkout or payment was started.", submit)
+        self.assertIn("partner_program", API_PATH.read_text(encoding="utf-8"))
+
+    def test_beta_intake_keeps_required_details_short_and_defers_preferences(self):
         self.assertIn("Five quick details.", self.html)
-        self.assertIn("review the exact price and renewal terms in secure checkout before payment", self.html)
-        self.assertIn("No charge now", self.html)
+        self.assertIn("Complimentary during beta", self.html)
+        self.assertIn("no payment or automatic paid conversion", self.html)
         self.assertIn("Add optional placement preferences now", self.html)
+        self.assertNotIn("foundingPartnerBudget", self.html)
+        self.assertNotIn("monthly_budget_range: value('foundingPartnerBudget')", self.html)
         modal = self.html[self.html.index('id="foundingPartnerModal"'):self.html.index('id="hof-founding-partner-intake-v1"')]
         self.assertNotIn("Founding offer:</strong>", modal)
+        self.assertNotIn("foundingPartnerBudget", modal)
 
     def test_checkout_intake_validates_and_focuses_the_first_invalid_essential(self):
         self.assertIn('id="foundingPartnerType" required aria-required="true"', self.html)
@@ -76,8 +79,8 @@ class PartnerTierUiTests(unittest.TestCase):
         submit = self.html[start:end]
         self.assertIn("emailInput?.checkValidity()", submit)
         self.assertIn("typeInput?.checkValidity()", submit)
-        self.assertIn("Choose your service category to continue to secure checkout.", submit)
-        self.assertIn("Enter a valid business email to continue to secure checkout.", submit)
+        self.assertIn("Choose your service category to submit your application.", submit)
+        self.assertIn("Enter a valid business email to submit your application.", submit)
         self.assertIn("firstInvalid?.focus();", submit)
         self.assertIn("setAttribute('aria-invalid'", submit)
         self.assertIn("Add optional placement preferences now", self.html)
@@ -93,10 +96,10 @@ class PartnerTierUiTests(unittest.TestCase):
         self.assertIn('id="foundingPartnerRequiredCue"', self.html)
         self.assertIn("function partnerEssentialProgress()", self.html)
         self.assertIn("Complete the five essentials (${progress.complete} of 5 complete)", self.html)
-        self.assertIn("Review and acknowledge the founding-partner terms below, then continue to secure checkout.", self.html)
+        self.assertIn("Review and acknowledge the complimentary beta terms before submitting", self.html)
         self.assertIn("document.getElementById('foundingPartnerConsent')?.addEventListener('change', () => { savePartnerApplicationDraft(); renderFoundingPartnerCheckoutAvailability(); });", self.html)
         self.assertIn("Continue application — ${progress.complete} of 5 details added", self.html)
-        self.assertIn("Review terms to continue", self.html)
+        self.assertIn("Review beta terms to continue", self.html)
         self.assertIn("Keep the primary action operable while the application is incomplete.", self.html)
         self.assertIn("submit.disabled = false;", self.html)
         start = self.html.index("window.submitFoundingPartnerLead")
@@ -117,7 +120,7 @@ class PartnerTierUiTests(unittest.TestCase):
         end = self.html.index("function setupPartnerOnboardingModal", start)
         submit = self.html[start:end]
         self.assertIn("submit.setAttribute('aria-busy', 'true')", submit)
-        self.assertIn("submit.textContent = hasSavedPartnerApplication ? 'Opening secure checkout…' : 'Saving application…'", submit)
+        self.assertIn("submit.textContent = hasSavedPartnerApplication ? 'Application already saved' : 'Saving application…'", submit)
         self.assertIn("submit.setAttribute('aria-busy', 'false')", submit)
         self.assertIn("renderFoundingPartnerCheckoutAvailability();", submit)
 
@@ -135,7 +138,7 @@ class PartnerTierUiTests(unittest.TestCase):
 
     def test_missing_consent_returns_focus_to_the_required_acknowledgement(self):
         start = self.html.index("if (!hasSavedPartnerApplication && !document.getElementById('foundingPartnerConsent')?.checked)")
-        end = self.html.index("trackPartnerFunnel('Founding Partner Checkout Started'", start)
+        end = self.html.index("trackPartnerFunnel('Founding Partner Paid Checkout Started'", start)
         self.assertIn("document.getElementById('foundingPartnerConsent')?.focus();", self.html[start:end])
 
     def test_checkout_retry_reuses_saved_partner_lead(self):
@@ -162,8 +165,8 @@ class PartnerTierUiTests(unittest.TestCase):
     def test_cancelled_checkout_has_a_saved_application_resume_state(self):
         self.assertIn('id="foundingPartnerCheckoutResume"', self.html)
         self.assertIn("partner_checkout') === 'cancelled'", self.html)
-        self.assertIn('Resume Secure Checkout', self.html)
-        self.assertIn('No second application is created on this device.', self.html)
+        self.assertIn('Application already saved', self.html)
+        self.assertIn('No checkout or payment is available during beta.', self.html)
         self.assertIn("founding_partner_checkout_returned", self.html)
         self.assertIn("partner_resume_token", self.html)
 
@@ -178,35 +181,36 @@ class PartnerTierUiTests(unittest.TestCase):
         for event in (
             "Founding Partner Intake Opened",
             "Founding Partner Tier Selected",
-            "Founding Partner Checkout Started",
+            "Founding Partner Beta Application Saved",
             "Founding Partner Application Saved",
-            "Founding Partner Stripe Checkout Opened",
+            "Founding Partner Paid Stripe Checkout Opened",
             "Founding Partner Checkout Cancelled",
             "Founding Partner Checkout Completed",
-            "Founding Partner Checkout Failed",
+            "Founding Partner Paid Checkout Failed",
         ):
             self.assertIn(event, self.html)
         self.assertIn("partner_application_essentials_ready", self.html)
-        self.assertIn("partner_application_checkout_ready", self.html)
+        self.assertIn("partner_application_beta_terms_acknowledged", self.html)
         self.assertIn("partner_application_save_failed", self.html)
         self.assertIn("partner_checkout_start_failed", self.html)
         self.assertIn("window.selectFoundingPartnerTier('founding_pilot', false)", self.html)
 
-    def test_selected_tier_makes_the_secure_checkout_handoff_explicit(self):
+    def test_selected_tier_explains_complimentary_beta_terms(self):
         self.assertIn('id="foundingPartnerCheckoutNote"', self.html)
-        self.assertIn('Continue to Secure Checkout — ', self.html)
+        self.assertIn("All partner placements are complimentary during beta. No checkout, payment, or automatic paid conversion applies.", self.html)
 
-    def test_selected_tier_stays_accurately_named_in_the_checkout_handoff(self):
+    def test_selected_tier_stays_accurately_named_in_the_application(self):
         self.assertIn('id="foundingPartnerTierLabel"', self.html)
-        self.assertIn("'Selected 90-day ' + detail.label + ' placement'", self.html)
+        self.assertIn("'Selected placement preference'", self.html)
         self.assertIn("'Please acknowledge the ' + selectedTier.label + ' terms before submitting.'", self.html)
 
     def test_custom_multi_market_request_never_opens_price_based_checkout(self):
-        self.assertIn("if (payload.preferred_model === 'discuss')", self.html)
-        self.assertIn("Custom Request Saved", self.html)
-        self.assertIn("before any checkout or charge", self.html)
-        self.assertIn('review the selected Founding Partner price and payment details in secure Stripe Checkout', self.html)
-        self.assertIn('placement stays private until onboarding and written-agreement review are complete', self.html)
+        start = self.html.index("window.submitFoundingPartnerLead = async function")
+        end = self.html.index("function setupPartnerOnboardingModal", start)
+        submit = self.html[start:end]
+        self.assertIn("if (PARTNER_BETA_ACTIVE)", submit)
+        self.assertLess(submit.index("if (PARTNER_BETA_ACTIVE)"), submit.index("if (payload.preferred_model === 'discuss')"))
+        self.assertIn("No checkout or payment is available during beta.", submit)
 
     def test_short_required_checkout_intake_precedes_the_optional_tier_comparison(self):
         essentials = self.html.index('id="foundingPartnerEssentials"')
@@ -214,7 +218,7 @@ class PartnerTierUiTests(unittest.TestCase):
         placement = self.html.index('class="partner-placement-wrap"')
         self.assertLess(essentials, comparison)
         self.assertLess(comparison, placement)
-        self.assertIn('Compare or change your placement tier', self.html)
+        self.assertIn('Compare or change your placement preference', self.html)
         self.assertIn("window.jumpToFoundingPartnerEssentials", self.html)
         self.assertIn("essentials.scrollIntoView({ behavior: 'smooth', block: 'start' })", self.html)
         self.assertIn("Founding Partner Essentials Jumped", self.html)
@@ -229,7 +233,7 @@ class PartnerTierUiTests(unittest.TestCase):
 
     def test_homepage_audience_grid_links_to_partner_offer(self):
         self.assertIn("<h3>Service Partners</h3>", self.html)
-        self.assertIn("Start free in about a minute · placements from $149", self.html)
+        self.assertIn("Complimentary beta · no payment or automatic conversion", self.html)
         self.assertRegex(
             self.html,
             r'class="audience-card audience-card-link"[^>]+href="\?partner=1&amp;partner_quick_start=1"',
@@ -265,7 +269,7 @@ class PartnerTierUiTests(unittest.TestCase):
         self.assertIn("if (window.__hofFoundingPartnerLeadId) return { category:'', tier:'', channel:'' };", self.html)
         self.assertIn("campaignCategory: campaign.category || null", self.html)
 
-    def test_campaign_links_can_preselect_only_paid_existing_tiers(self):
+    def test_campaign_links_can_preselect_only_existing_placement_levels(self):
         self.assertIn("const partnerCampaignTiers = new Set(['founding_pilot','monthly_placement','market_exclusive']);", self.html)
         self.assertIn("const partnerCampaignChannels = new Set(['direct_outreach','email','social','referral','local_event','print','organic','pwa_shortcut','partner_receipt','owned_directory']);", self.html)
         self.assertIn("function campaignPartnerChannel()", self.html)
@@ -279,6 +283,41 @@ class PartnerTierUiTests(unittest.TestCase):
         self.assertIn("return partnerCampaignTiers.has(tier) ? tier : '';", self.html)
         self.assertIn("window.selectFoundingPartnerTier?.(tier, false);", self.html)
         self.assertIn("campaignTier: campaign.tier || null", self.html)
+
+    def test_server_marks_beta_applications_and_returns_the_program_contract(self):
+        api = API_PATH.read_text(encoding="utf-8")
+        self.assertIn("PARTNER_BETA_ACTIVE = True", api)
+        self.assertIn('"partner_program": "beta" if PARTNER_BETA_ACTIVE else "commercial"', api)
+        self.assertIn("'partner_program': payload['partner_program']", api)
+        checkout = api[api.index("def _create_partner_checkout("):api.index("def _create_partner_checkout(") + 500]
+        self.assertIn("if PARTNER_BETA_ACTIVE", checkout)
+        self.assertLess(checkout.index("if PARTNER_BETA_ACTIVE"), checkout.index("stripe_secret_key = STRIPE_SECRET_KEY"))
+
+    def test_beta_admin_and_campaign_materials_use_zero_dollar_terms(self):
+        self.assertIn('id="partnerMonthlyFee" type="number" min="0" max="0" value="0" readonly', self.html)
+        self.assertIn("All partner placements have the same $0 beta fee.", self.html)
+        self.assertIn("All partners receive the same no-charge beta terms", self.html)
+        self.assertIn("$0 · complimentary during beta", self.html)
+        invitation_start = self.html.index("function partnerCampaignInvitation()")
+        invitation_end = self.html.index("window.copyPartnerCampaignLink", invitation_start)
+        self.assertNotIn("application and checkout", self.html[invitation_start:invitation_end])
+
+    def test_homepage_partner_offer_structured_data_is_valid(self):
+        blocks = re.findall(r'<script[^>]+type="application/ld\+json"[^>]*>(.*?)</script>', self.html, re.S)
+        structured_data = [json.loads(block) for block in blocks]
+        def walk(value):
+            if isinstance(value, dict):
+                yield value
+                for child in value.values():
+                    yield from walk(child)
+            elif isinstance(value, list):
+                for child in value:
+                    yield from walk(child)
+        offers = [item for value in structured_data for item in walk(value)
+                  if item.get("@type") == "Offer" and item.get("name") == "Founding Partner Placement"]
+        self.assertEqual(len(offers), 1)
+        self.assertEqual(offers[0]["price"], "0")
+        self.assertIn("no payment or automatic paid conversion", offers[0]["description"])
 
 
 if __name__ == "__main__":

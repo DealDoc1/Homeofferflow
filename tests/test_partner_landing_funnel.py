@@ -19,7 +19,7 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn('"partner_application_opened": "application_opened"', API)
         self.assertIn('"partner_application_essentials_focused": "essentials_focused"', API)
         self.assertIn('"partner_application_essentials_ready": "essentials_ready"', API)
-        self.assertIn('"partner_application_checkout_ready": "checkout_ready"', API)
+        self.assertIn('"partner_application_beta_terms_acknowledged": "beta_terms_acknowledged"', API)
         self.assertIn('"partner_application_abandoned": "abandoned"', API)
         self.assertIn('"partner_application_save_failed": "save_failed"', API)
         self.assertIn('"partner_checkout_start_failed": "checkout_failed"', API)
@@ -61,10 +61,11 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn('env(safe-area-inset-top)', PARTNERS)
         self.assertIn('env(safe-area-inset-bottom)', PARTNERS)
 
-    def test_partner_page_reduces_checkout_uncertainty_without_changing_price_or_claims(self):
+    def test_partner_page_explains_the_complimentary_beta_without_payment_prompts(self):
         self.assertIn("Start free application", PARTNERS)
-        self.assertIn("Start free. Decide later.", PARTNERS)
-        self.assertIn("submitted applications can resume the same checkout later", PARTNERS)
+        self.assertIn("Complimentary during beta. No payment or automatic conversion.", PARTNERS)
+        self.assertIn("No checkout, payment, or automatic paid conversion applies", PARTNERS)
+        self.assertNotIn("submitted applications can resume the same checkout later", PARTNERS)
         self.assertIn("/texas-home-service-partner-guide", PARTNERS)
         guide = (ROOT / "texas-home-service-partner-guide.html").read_text(encoding="utf-8")
         self.assertIn("Texas home-service partner placement guide", guide)
@@ -75,15 +76,14 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn("request_type: 'partner_landing_event'", metrics)
 
         self.assertIn('"@type":"BreadcrumbList"', guide)
-        self.assertIn("before any payment", PARTNERS)
-        self.assertIn('Most popular starting point', PARTNERS)
-        self.assertIn('class="tier-badge"', PARTNERS)
+        self.assertNotIn('Most popular starting point', PARTNERS)
         self.assertIn("Start Core application", PARTNERS)
         self.assertIn("Start Featured application", PARTNERS)
         self.assertIn("Start Premier application", PARTNERS)
-        self.assertIn("For your first 90 days, then $149/month", PARTNERS)
-        self.assertIn("For your first 90 days, then $399/month", PARTNERS)
-        self.assertIn("For your first 90 days, then $799/month", PARTNERS)
+        self.assertEqual(PARTNERS.count('<p class="price">$0</p>'), 3)
+        self.assertNotIn("$149", PARTNERS)
+        self.assertNotIn("$399", PARTNERS)
+        self.assertNotIn("$799", PARTNERS)
         self.assertIn("not a referral program", PARTNERS)
 
     def test_partner_guide_exposes_crawlable_tier_inventory(self):
@@ -93,10 +93,10 @@ class PartnerLandingFunnelTests(unittest.TestCase):
             self.assertIn(tier, guide)
         self.assertIn('https://www.homeofferflow.com/partners#tiers', guide)
 
-    def test_partner_page_states_when_the_paid_launch_period_begins(self):
-        self.assertIn("When does the 90-day founding launch period begin?", PARTNERS)
-        self.assertIn("The 90-day launch period begins when secure Stripe Checkout is completed.", PARTNERS)
-        self.assertIn("Payment does not make a placement public", PARTNERS)
+    def test_partner_page_states_no_automatic_paid_conversion(self):
+        self.assertIn("Will my placement automatically become paid?", PARTNERS)
+        self.assertIn("There is no fee during beta and no automatic paid conversion.", PARTNERS)
+        self.assertIn("written-agreement, and profile review", PARTNERS)
 
     def test_partner_page_can_open_the_existing_essential_fields_without_skipping_disclosures(self):
         self.assertIn("partner_quick_start=1", PARTNERS)
@@ -142,7 +142,7 @@ class PartnerLandingFunnelTests(unittest.TestCase):
         self.assertIn('"partnerApplicationEssentialsFocusCount"', ADMIN)
         self.assertIn('"partnerApplicationEssentialsFocusRate"', ADMIN)
         self.assertIn('"partnerApplicationEssentialsReadyCount"', ADMIN)
-        self.assertIn('"partnerApplicationCheckoutReadyCount"', ADMIN)
+        self.assertIn('"partnerApplicationBetaTermsAcknowledgedCount"', ADMIN)
         self.assertIn('"partnerApplicationAbandonedCount"', ADMIN)
         self.assertIn('"partnerApplicationAbandonedRate"', ADMIN)
         self.assertIn('"partnerApplicationSaveFailureCount"', ADMIN)
