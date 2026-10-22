@@ -24,7 +24,7 @@ function setup({active = true, providers = [provider], fail = false, deferred = 
   }};
   const step = {classList:{contains:()=>isActive}};
   let observer;
-  const sandbox = {window:{},URL,Date:{now:()=>now},Promise,Set,
+  const sandbox = {window:{},URL,URLSearchParams,Date:{now:()=>now},Promise,Set,
     document:{readyState:'complete',addEventListener(){},getElementById:id=>id==='step6'?step:target},
     MutationObserver:class {constructor(fn){observer=fn;}observe(){}},
     fetch:async(url, options)=>{
@@ -105,11 +105,11 @@ test('impression and clicks carry only allowed aggregate placement metadata, nev
 
 test('inspection and follow-up share one pending/cached lookup, then refresh after five minutes',async()=>{
   const p=setup({deferred:true});
-  const followup=p.sandbox.window.hofPartnerProfile.load();
+  const followup=p.sandbox.window.hofPartnerProfile.load('workflow');
   assert.equal(p.calls.length,1);p.resolve();await followup;await p.flush();
-  await p.sandbox.window.hofPartnerProfile.load();assert.equal(p.calls.filter(c=>!c.options).length,1);
+  await p.sandbox.window.hofPartnerProfile.load('workflow');assert.equal(p.calls.filter(c=>!c.options).length,1);
   p.setTime(302000);
-  const fresh=p.sandbox.window.hofPartnerProfile.load();
+  const fresh=p.sandbox.window.hofPartnerProfile.load('workflow');
   assert.equal(p.calls.filter(c=>!c.options).length,2);p.resolve();await fresh;
 });
 

@@ -165,6 +165,7 @@ MONTHLY_PRICE_ENV_BY_TIER = {
 }
 PARTNER_DIRECTORY_EVENT_TYPES = {"partner_directory_impression": "shown", "partner_directory_outbound_click": "clicked"}
 PARTNER_DIRECTORY_TIERS = {"core", "featured", "founding", "premier", "exclusive_market"}
+PARTNER_DIRECTORY_VIEWS = {"directory", "workflow"}
 PARTNER_DIRECTORY_SURFACES = {"public_directory", "fsbo_seller_plan", "pwa_provider_directory", "offer_completion", "inspection_interview", "insurance_planning"}
 FSBO_LANDING_EVENT_TYPES = {
     "fsbo_landing_viewed": "viewed",
@@ -1469,8 +1470,37 @@ def _create_partner_checkout(lead_id, headers, source=None):
     return result["url"]
 
 
-def _list_public_partner_placements(category=None, market=None):
-    """Return public placement fields plus an approved public CTA, never lead data."""
+def _select_partner_placements_for_view(rows, view):
+    """Apply the reusable public partner-placement contract by category."""
+    if view not in PARTNER_DIRECTORY_VIEWS:
+        return rows
+    rank = {"exclusive_market": 0, "premier": 1, "founding": 2}
+    groups = {}
+    for row in rows:
+        category = str(row.get("partner_type") or "").strip()
+        if category:
+            groups.setdefault(category, []).append(row)
+    selected = []
+    for category in sorted(groups):
+        partners = sorted(
+            groups[category],
+            key=lambda item: (
+                rank.get(str(item.get("placement_tier") or "").strip(), 9),
+                str(item.get("partner_name") or "").casefold(),
+                str(item.get("id") or ""),
+            ),
+        )
+        if view == "workflow":
+            partners = [partner for partner in partners if partner.get("placement_tier") == "exclusive_market"][:1]
+        else:
+            partners = partners[:3]
+        selected.extend(partners)
+    return selected
+
+
+def _list_public_partner_placements(category=None, market=None, view=None):
+    """Return approved public placement fields curated for a directory surface."""
+    view = view if view in PARTNER_DIRECTORY_VIEWS else "workflow"
     from lib.partner_public_profile import PUBLIC_PROFILE_COLUMNS, approved_public_profile
     params = {
         # source_lead_id is used only in this server-side request to recover a
@@ -1480,7 +1510,7 @@ def _list_public_partner_placements(category=None, market=None):
         "is_active": "eq.true",
         "brokerage_id": "is.null",
         "order": "partner_name.asc",
-        "limit": "100",
+        "limit": "1000",
     }
     if category in ALLOWED_PARTNER_TYPES:
         params["partner_type"] = f"eq.{category}"
@@ -1502,6 +1532,7 @@ def _list_public_partner_placements(category=None, market=None):
     rows = response.json() if response.text else []
     if not isinstance(rows, list):
         return []
+    rows = _select_partner_placements_for_view(rows, view)
     lead_ids = {
         str(row.get("source_lead_id") or "").strip()
         for row in rows
@@ -1966,7 +1997,8 @@ class handler(BaseHTTPRequestHandler):
                 return _send(self, 404, {'error': 'Not found.'})
             category = _text(query.get('category', [''])[0], 80)
             market = _text(query.get('market', [''])[0], 100)
-            rows = _list_public_partner_placements(category, market)
+            view = _text(query.get('surface', [''])[0], 40)
+            rows = _list_public_partner_placements(category, market, view)
             return _send(self, 200, {'ok': True, 'partners': rows})
         except Exception as exc:
             return _send(self, 500, {'error': 'Could not load partner directory.', 'detail': str(exc)[:300]})

@@ -16,7 +16,7 @@ function setup({active=true,open=true,providers=[provider],fail=false,deferred=f
     return {dataset:{partnerId:id,insuranceBrand:brand},addEventListener:(_,fn)=>handlers.push({markup,fn})};
   });}};
   const step={classList:{contains:()=>activeStep}}, planner={open,addEventListener:(_,fn)=>{toggle=fn;}};
-  const sandbox={window:{},URL,Date,Promise,Set,document:{readyState:'complete',addEventListener(){},getElementById:id=>missing?null:({step4:step,paymentCalcCard:planner,hofInsurancePartners:target}[id])},
+  const sandbox={window:{},URL,URLSearchParams,Date,Promise,Set,document:{readyState:'complete',addEventListener(){},getElementById:id=>missing?null:({step4:step,paymentCalcCard:planner,hofInsurancePartners:target}[id])},
     MutationObserver:class{constructor(fn){observer=fn;}observe(){}},fetch:async(url,options)=>{
       calls.push({url,options}); if(options) return {ok:true,json:async()=>({ok:true})};
       if(fail)throw Error('unavailable');

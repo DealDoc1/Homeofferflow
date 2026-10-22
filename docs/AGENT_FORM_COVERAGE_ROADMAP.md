@@ -5,6 +5,10 @@
 Partner visibility now follows one cross-category rule: one top Premier partner
 may appear in the workflow and offer-completion page, while the public directory
 shows that Premier partner and at most two additional profiles per category.
+The placement rule now lives in the shared public partner API as additive
+`surface=directory` and `surface=workflow` views, so future clients can reuse
+the same result contract. The API curates placement rows before fetching
+opted-in public profile details.
 Title, lender, inspection and survey categories use the same explicit
 placement-label rule. Beta profiles say “Beta partner” alongside their
 placement, keeping the free beta status clear. Focused directory, workflow,
