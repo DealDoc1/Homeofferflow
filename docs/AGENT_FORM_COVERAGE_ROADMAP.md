@@ -39,6 +39,13 @@ Python checks; shell v125 delivers the workflow to installed clients.
 Implemented and tested locally; not deployed. See
 [release evidence](release-evidence/iabs-upload-account-scope-2026-10-22.md).
 
+The generic Uploaded Documents handoff now says explicitly that an IABS was
+not added to the offer and uses neutral guidance styling instead of the red
+error state. Ordinary PDFs selected alongside it continue through packet
+upload. Focused upload tests pass (23 JavaScript cases and 19 Python checks).
+**Implemented and tested locally; not visually verified or deployed.** See
+[handoff evidence](release-evidence/iabs-packet-upload-guidance-2026-10-22.md).
+
 ## Partner directory and Premier visibility — October 22, 2026
 
 Partner visibility now follows one cross-category rule: one top Premier partner

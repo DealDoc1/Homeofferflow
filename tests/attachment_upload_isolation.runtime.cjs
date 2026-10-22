@@ -29,11 +29,11 @@ function setup() {
   const ack = {checked:true};
   const x = {window:{hofUploadedDisclosureDocs:[]}, state:{data:{}}, hofAuth:{session:{user:{id:'one'}}},
     document:{getElementById:id=>id==='uploadedDisclosureDocs'?input:id==='uploadedDisclosureAck'?ack:null},
-    console:{error(){}}, Uint8Array, statuses:[], reviews:0,
+    console:{error(){}}, Uint8Array, statuses:[], statusTypes:[], reviews:0,
     getCurrentSteps:()=>['step5'], showStep(){}, saveDraft(){}, escapeHtml:s=>s};
   vm.createContext(x);
   vm.runInContext(source('  const uploadedDisclosureTypes =', '  function renderUploadedDocsList()'), x);
-  x.setUploadedDisclosureStatus = message=>x.statuses.push(message);
+  x.setUploadedDisclosureStatus = (message,type)=>{x.statuses.push(message);x.statusTypes.push(type);};
   x.renderUploadedDocsList = ()=>{};
   x.renderReview = ()=>x.reviews++;
   x.readFileAsBase64 = f=>f.body;
@@ -72,6 +72,8 @@ test('agent IABS uploads bypass packet size limits and explain the dedicated pro
   assert.deepEqual(x.names(),[]);
   assert.match(x.statuses.at(-1),/Account > Profile > My IABS/);
   assert.match(x.statuses.at(-1),/up to 10 MB/);
+  assert.match(x.statuses.at(-1),/This file was not added to this offer/);
+  assert.equal(x.statusTypes.at(-1),'info');
   assert.equal(x.input.attrs['aria-busy'],'false');
 });
 test('routing an agent IABS does not block a separate valid packet attachment', async()=>{

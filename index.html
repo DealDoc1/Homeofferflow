@@ -1139,6 +1139,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 .platform-status { display:none; margin-top:0.85rem; padding:0.75rem; border-radius:10px; font-size:0.84rem; line-height:1.45; }
 .platform-status.show { display:block; }
 .platform-status.ok { background:rgba(74,140,111,0.12); border:1px solid rgba(74,140,111,0.28); color:var(--sage-light); }
+.platform-status.info { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.14); color:var(--gray-light); }
 .platform-status.err { background:rgba(180,75,75,0.12); border:1px solid rgba(180,75,75,0.28); color:#ffb3b3; }
 .ai-score-ring { width:92px; height:92px; border-radius:999px; border:8px solid rgba(200,151,63,0.25); display:flex; align-items:center; justify-content:center; margin:0.25rem auto 0.75rem; color:var(--gold-light); font-family:'Playfair Display',serif; font-size:1.7rem; font-weight:900; }
 .roadmap-row { display:grid; grid-template-columns:0.75fr 1.6fr 0.7fr; gap:0.7rem; align-items:start; padding:0.65rem 0; border-bottom:1px solid rgba(255,255,255,0.07); color:var(--gray-light); font-size:0.82rem; }
@@ -11848,7 +11849,8 @@ function routeAfterMagicLinkIfNeeded() {
     const el = document.getElementById('uploadedDocsStatus');
     if (!el) return;
     el.textContent = message || '';
-    el.className = message ? 'platform-status show ' + (type === 'err' ? 'err' : 'ok') : 'platform-status';
+    const tone = ['err', 'ok', 'info'].includes(type) ? type : 'err';
+    el.className = message ? 'platform-status show ' + tone : 'platform-status';
   }
 
   function uploadedDisclosureDraftNames() {
@@ -12046,13 +12048,13 @@ function routeAfterMagicLinkIfNeeded() {
     const agentRole = String(hofAuth?.role || '').toLowerCase();
     const canSaveProfileIabs = !!hofAuth?.session?.user && ['agent', 'broker', 'brokerage_admin', 'team_lead'].includes(agentRole);
     const profileIabsFiles = canSaveProfileIabs ? files.filter(file => /\biabs\b/i.test(file.name || '')) : [];
-    const profileIabsGuidance = 'Save your brokerage IABS in Account > Profile > My IABS, then choose “Include my IABS?” on this offer. Profile IABS uploads allow PDFs up to 10 MB.';
+    const profileIabsGuidance = 'This file was not added to this offer. Save your brokerage IABS in Account > Profile > My IABS, then choose “Include my IABS?” on this offer. Profile IABS uploads allow PDFs up to 10 MB.';
     files = files.filter(file => !profileIabsFiles.includes(file));
-    const setStatus = message => setUploadedDisclosureStatus([message, profileIabsFiles.length ? profileIabsGuidance : ''].filter(Boolean).join(' '));
+    const setStatus = (message, type = 'err') => setUploadedDisclosureStatus([message, profileIabsFiles.length ? profileIabsGuidance : ''].filter(Boolean).join(' '), type);
     const existingDocs = Array.isArray(window.hofUploadedDisclosureDocs) ? window.hofUploadedDisclosureDocs : [];
     const existingBytes = existingDocs.reduce((total, doc) => total + Number(doc?.size || 0), 0);
     const selectedBytes = files.reduce((total, file) => total + Number(file?.size || 0), 0);
-    setStatus('');
+    setStatus('', profileIabsFiles.length ? 'info' : 'err');
     if (existingDocs.length + files.length > maxFiles) {
       const remaining = Math.max(0, maxFiles - existingDocs.length);
       setStatus(`You can keep up to ${maxFiles} PDFs. This packet can add ${remaining} more file${remaining === 1 ? '' : 's'}.`);
