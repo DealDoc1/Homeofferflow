@@ -92,7 +92,7 @@
       {"@type":"Offer","name":"Texas Homebuyer Offer Packet","url":"https://www.homeofferflow.com/buyers","price":"99","priceCurrency":"USD","description":"One-time supported buyer-offer packet price shown after the guided questions are complete; no payment to start."},
       {"@type":"Offer","name":"Texas FSBO Seller Plan","url":"https://www.homeofferflow.com/sellers","price":"0","priceCurrency":"USD","description":"Free Texas FSBO seller plan with property-specific planning and optional support paths; no checkout or service commitment to start."},
       {"@type":"Offer","name":"OnDemand Agent Workspace","url":"https://www.homeofferflow.com/ondemand","price":"29","priceCurrency":"USD","description":"Eligible agent workspace plan: 60 days free, then $29 monthly unless canceled; eligibility and checkout terms are confirmed before payment."},
-      {"@type":"Offer","name":"Founding Partner Placement","url":"https://www.homeofferflow.com/partners","price":"149","priceCurrency":"USD","description":"Core founding partner placement starting price; placement scope, category, market, agreement, and renewal terms are confirmed before activation."}
+      {"@type":"Offer","name":"Founding Partner Placement","url":"https://www.homeofferflow.com/partners","price":"0","priceCurrency":"USD","description":"Complimentary partner placements during beta; no payment or automatic paid conversion."}
     ]
   }
   </script>
@@ -3046,7 +3046,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <div class="audience-icon">🤝</div>
       <h3>Service Partners</h3>
       <p>Reach Texas buyers, sellers, agents, and investors with market-based placements across title, inspection, lending, roofing, insurance, home services, and more.</p>
-      <span class="audience-price">Start free in about a minute · placements from $149</span>
+      <span class="audience-price">Complimentary beta · no payment or automatic conversion</span>
     </a>
   </div>
   <p style="margin:1.15rem 0 0;text-align:center;color:var(--gray-light);font-size:.92rem;">Selling without an agent? <a href="/texas-fsbo-guide" style="color:var(--gold-light);font-weight:800;">Read the Texas FSBO planning guide →</a> &nbsp;·&nbsp; Agents and brokers? <a href="/texas-agent-form-library" style="color:var(--gold-light);font-weight:800;">Review the shared Texas form library →</a> &nbsp;·&nbsp; Looking for a title company, lender, inspector, or another service? <a href="/directory" style="color:var(--gold-light);font-weight:800;">Browse approved provider listings →</a></p>
@@ -4368,7 +4368,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       </div>
       <h2>Review your packet</h2>
       <p class="step-desc">Your self-service Texas buyer-offer packet is ready to purchase for $99.</p>
-      <div id="paymentCheckoutReturnNotice" class="notice sage" style="display:none; margin-bottom:1rem;" role="status" aria-live="polite"><strong>Your offer is still saved.</strong> Checkout was not completed, and no charge was made. To resume, confirm the one-time packet acknowledgement and receipt email below; payment is not restarted until you continue to secure checkout.<br><span id="paymentCheckoutResumeHelp" style="display:block;margin-top:.45rem;color:var(--gray-light);font-size:.82rem;">You can review and update those details before resuming.</span><button id="paymentCheckoutResumeButton" class="btn-secondary" type="button" style="margin-top:.65rem;" onclick="resumeCancelledBuyerCheckout()">Review confirmations and resume secure checkout</button></div>
+      <div id="paymentCheckoutReturnNotice" class="notice sage" style="display:none; margin-bottom:1rem;" role="status" aria-live="polite"><strong>Your offer is still saved.</strong> Checkout was not completed, and no charge was made. To resume, confirm the one-time packet acknowledgement and receipt email below; payment is not restarted until you submit your application.<br><span id="paymentCheckoutResumeHelp" style="display:block;margin-top:.45rem;color:var(--gray-light);font-size:.82rem;">You can review and update those details before resuming.</span><button id="paymentCheckoutResumeButton" class="btn-secondary" type="button" style="margin-top:.65rem;" onclick="resumeCancelledBuyerCheckout()">Review confirmations and resume secure checkout</button></div>
       <div id="packetGenerationRecoveryNotice" class="notice gold" style="display:none; margin-bottom:1rem;" role="status" aria-live="polite"><strong>Check your packet status.</strong><span id="packetGenerationRecoveryMessage" style="display:block; margin-top:.35rem;"></span><button id="packetGenerationRetryButton" class="btn-secondary" type="button" style="margin-top:.65rem;">View next step</button></div>
       <div style="display:grid; grid-template-columns:1fr; gap:0.6rem; margin-bottom:1.5rem;">
         <div class="pricing-card popular" id="plan-self" onclick="selectPlan('self', 99)"><div class="popular-badge">Current packet</div><div class="plan-name">Self-Serve Buyer Offer Packet</div><div class="plan-price">$99</div><div class="plan-features"><div class="plan-feature">✓ Guided buyer-offer questions</div><div class="plan-feature">✓ Supported purchase addenda</div><div class="plan-feature">✓ Buyer-side signing delivery</div></div></div>
@@ -4821,7 +4821,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const agreementPendingNote = eligible && setupComplete && String(readiness.code || '') === 'agreement_review_pending'
       ? ' <span class="admin-muted">Agreement signing is awaiting final Texas counsel approval.</span>'
       : '';
-    const checkoutButton = !paid && String(row?.payment_status || '') === 'checkout_started'
+    const checkoutButton = !beta && !paid && String(row?.payment_status || '') === 'checkout_started'
       ? ` <button type="button" class="admin-contact-action" onclick="copyPartnerCheckoutInvitation('${adminSafe(row.id, '')}')">Copy checkout invitation</button>`
       : '';
     return `<a class="admin-contact-action" href="mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}" onclick='logOfferEvent(null, "partner_follow_up_email_started", "started", "Partner follow-up email opened.", ${eventMetadata})'>Email partner</a>${checkoutButton}${onboardingButton}${agreementButton}${agreementPendingNote}`;
@@ -5739,7 +5739,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="admin-metric-value">${metrics.partnerLeadCount || partnerLeads.length || 0}</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.partnerLandingViewCount || 0} partner landing views · ${metrics.partnerLandingCtaCount || 0} CTA selections (${Number(metrics.partnerLandingCtaRate || 0).toFixed(1)}%).</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">${metrics.partnerApplicationOpenCount || 0} new application modal open${Number(metrics.partnerApplicationOpenCount || 0) === 1 ? '' : 's'} (${Number(metrics.partnerApplicationOpenRate || 0).toFixed(1)}% of landing views).</div>
-            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Partner form progress: ${metrics.partnerApplicationEssentialsFocusCount || 0} reached an essential · ${metrics.partnerApplicationEssentialsReadyCount || 0} completed the five essentials · ${metrics.partnerApplicationCheckoutReadyCount || 0} acknowledged terms and unlocked checkout · ${metrics.partnerApplicationAbandonedCount || 0} dismissed before checkout (${Number(metrics.partnerApplicationAbandonedRate || 0).toFixed(1)}% of applications) · ${metrics.partnerApplicationSaveFailureCount || 0} application-save failures · ${metrics.partnerCheckoutStartFailureCount || 0} checkout-start failures.</div>
+            <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Partner form progress: ${metrics.partnerApplicationEssentialsFocusCount || 0} reached an essential · ${metrics.partnerApplicationEssentialsReadyCount || 0} completed the five essentials · ${metrics.partnerApplicationBetaTermsAcknowledgedCount || 0} acknowledged complimentary beta terms · ${metrics.partnerApplicationAbandonedCount || 0} dismissed before submission (${Number(metrics.partnerApplicationAbandonedRate || 0).toFixed(1)}% of applications) · ${metrics.partnerApplicationSaveFailureCount || 0} application-save failures · ${metrics.partnerCheckoutStartFailureCount || 0} legacy checkout-start failures.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:${Number(metrics.partnerApplicationReceiptFailureCount || 0) ? 'var(--gold-light)' : 'var(--gray-light)'}">Partner-application receipts: ${Number(metrics.partnerApplicationReceiptSentCount || 0)} accepted by the delivery provider · ${Number(metrics.partnerApplicationReceiptFailureCount || 0)} unavailable or failed.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Directory acquisition: ${metrics.partnerDirectoryPricingSelectionCount || 0} pricing-and-placement view${Number(metrics.partnerDirectoryPricingSelectionCount || 0) === 1 ? '' : 's'} · ${metrics.partnerDirectoryApplicationStartCount || 0} partner application start${Number(metrics.partnerDirectoryApplicationStartCount || 0) === 1 ? '' : 's'} from the public directory.</div>
             <div class="admin-metric-label" style="margin-top:.2rem;color:var(--gray-light)">Unfilled provider demand: ${Number(metrics.partnerDirectoryEmptySearchCount || 0)} category search${Number(metrics.partnerDirectoryEmptySearchCount || 0) === 1 ? '' : 'es'} with no active profile · ${adminSafe(Object.entries(metrics.partnerDirectoryEmptySearchCategoryCounts || {}).map(([category, count]) => `${category.replace(/_/g, ' ')} (${count})`).join(' · '), 'category demand begins with the next selected empty search')}.</div>
@@ -16014,10 +16014,10 @@ function routeAfterMagicLinkIfNeeded() {
     const campaignToolkit = isCurrentAdmin() ? `
       <div class="platform-card" id="partnerCampaignToolkit">
         <h4>Partner Campaign Link Toolkit</h4>
-        <p>Create a shareable, preselected partner application link for one category and one commercial tier. The link contains no contact, market, application, payment, or onboarding data.</p>
+        <p>Create a shareable, preselected complimentary beta application for one category and placement level. The link contains no contact, market, application, payment, or onboarding data.</p>
         <div class="platform-grid">
           <div class="field"><label for="partnerCampaignCategory">Partner category</label><select id="partnerCampaignCategory"><option value="title">Title company / fee attorney</option><option value="lender">Mortgage lender</option><option value="inspection">Home inspection</option><option value="surveyor">Property surveyor</option><option value="home_warranty">Home warranty</option><option value="insurance">Home insurance</option><option value="roofing">Roofing contractor</option><option value="hvac">HVAC / heating and air</option><option value="plumbing">Plumbing</option><option value="electrical">Electrical</option><option value="foundation_structural">Foundation / structural repair</option><option value="general_contractor">General contractor / remodeling</option><option value="pest_termite">Pest control / termite</option><option value="septic_well">Septic / well service</option><option value="restoration">Water / fire restoration</option><option value="repairs_handyman">Repairs / handyman</option><option value="photography_video">Photography / video</option><option value="staging">Home staging</option><option value="cleaning">Cleaning</option><option value="moving_storage">Moving / storage</option><option value="lawn_pool">Lawn / pool</option><option value="security_smart_home">Security / smart home</option><option value="other">Other real-estate service</option></select></div>
-          <div class="field"><label for="partnerCampaignTier">Commercial tier</label><select id="partnerCampaignTier"><option value="founding_pilot">Core Partner · $149</option><option value="monthly_placement" selected>Featured Partner · $399</option><option value="market_exclusive">Premier Partner · $799</option></select></div>
+          <div class="field"><label for="partnerCampaignTier">Placement level</label><select id="partnerCampaignTier"><option value="founding_pilot">Core Partner · complimentary during beta</option><option value="monthly_placement" selected>Featured Partner · complimentary during beta</option><option value="market_exclusive">Premier Partner · complimentary during beta</option></select></div>
           <div class="field"><label for="partnerCampaignChannel">Distribution channel</label><select id="partnerCampaignChannel"><option value="direct_outreach" selected>Direct outreach</option><option value="email">Email newsletter</option><option value="social">Social post</option><option value="referral">Referral partner</option><option value="local_event">Local event</option><option value="print">Print / QR code</option></select></div>
           <div class="field"><label for="partnerCampaignName">Campaign label <span style="color:var(--gray);font-weight:500;">(optional)</span></label><input id="partnerCampaignName" maxlength="80" placeholder="August North Texas title"></div>
         </div>
@@ -16027,13 +16027,13 @@ function routeAfterMagicLinkIfNeeded() {
     el.innerHTML = `
       <div class="platform-card">
         <h4>HomeOfferFlow Partner Marketplace</h4>
-        <p>Platform-wide partner listings belong to HomeOfferFlow, never to an agent or brokerage. Paid placements stay separate from the neutral provider selector and are never preselected; no-charge beta listings are managed separately from paid billing.</p>
+        <p>Platform-wide partner listings belong to HomeOfferFlow, never to an agent or brokerage. All partner placements are complimentary during beta, are clearly labeled, and are never preselected in the neutral provider selector.</p>
         <div class="platform-kpi-row">
-          <div class="platform-kpi"><span>Core Partner</span><strong>$149</strong></div>
-          <div class="platform-kpi"><span>Featured Partner</span><strong>$399</strong></div>
-          <div class="platform-kpi"><span>Premier Partner</span><strong>$799</strong></div>
+          <div class="platform-kpi"><span>Core Partner</span><strong>$0</strong></div>
+          <div class="platform-kpi"><span>Featured Partner</span><strong>$0</strong></div>
+          <div class="platform-kpi"><span>Premier Partner</span><strong>$0</strong></div>
         </div>
-        <div class="notice gold">The launch price covers the first 90 days for paid tiers; the selected tier then renews only under its signed order terms. Beta listings remain free with no automatic paid conversion. Premier Partner is limited to one active paid placement position per category and market, but it never creates required selection or referral rights.</div>
+        <div class="notice gold">Every partner receives complimentary beta terms. No payment or automatic paid conversion applies. Placement scope follows the selected Core, Featured, or Premier level and remains subject to the same application, profile, and written-agreement review.</div>
       </div>
       ${campaignToolkit}
       <div class="partner-create-card">
@@ -16055,11 +16055,11 @@ function routeAfterMagicLinkIfNeeded() {
         <h4 style="color:var(--gold-light); font-size:0.86rem; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.75rem;">Create Partner Placement</h4>
         <div class="platform-grid">
           <div class="field"><label>Eligible partner application</label><select id="partnerLeadId" disabled onchange="applyPartnerPlacementDefaultsFromLead()"><option value="">Loading eligible applications…</option></select></div>
-          <div class="field"><label>Placement Tier</label><select id="partnerTier"><option value="founding">Core Partner · $149 / first 90 days</option><option value="premier">Featured Partner · $399 / first 90 days</option><option value="exclusive_market">Premier Partner · $799 / first 90 days</option></select></div>
-          <div class="field"><label>Monthly fee after 90 days</label><input id="partnerMonthlyFee" type="number" placeholder="149"></div>
+          <div class="field"><label>Placement Tier</label><select id="partnerTier"><option value="founding">Core Partner · complimentary during beta</option><option value="premier">Featured Partner · complimentary during beta</option><option value="exclusive_market">Premier Partner · complimentary during beta</option></select></div>
+          <div class="field"><label for="partnerMonthlyFee">Monthly fee during beta</label><input id="partnerMonthlyFee" type="number" min="0" max="0" value="0" readonly aria-describedby="partnerBetaFeeNote"><small id="partnerBetaFeeNote">All partner placements have the same $0 beta fee.</small></div>
         </div>
         <div class="notice gold" style="margin-top:.85rem;">A completed HomeOfferFlow Partner Marketplace Agreement is required before activation. SignWell copies each completed PDF to support@homeofferflow.com.</div>
-        <div class="notice gold" style="margin-top:.7rem;">Paid partners and signed no-charge beta partners with completed secure onboarding appear here. Public placement details come from the partner application so company, category, and market cannot be mismatched.</div>
+        <div class="notice gold" style="margin-top:.7rem;">Approved beta partners with completed secure onboarding appear here. Public placement details come from the partner application so company, category, and market cannot be mismatched.</div>
         <div class="platform-actions"><button type="button" onclick="savePartnerPlacementFoundation()">Save Partner Placement</button><button type="button" onclick="loadPartnerPlacementsFoundation()">Refresh Partners</button></div>
         <div id="partnerFoundationStatus" class="platform-status"></div>
       </div>
@@ -16134,12 +16134,7 @@ function routeAfterMagicLinkIfNeeded() {
     const link = partnerCampaignLink();
     if (!link) return '';
     const category = String(getVal('partnerCampaignCategory') || '').trim().replace(/_/g, ' ');
-    const tier = {
-      founding_pilot: 'Core Partner',
-      monthly_placement: 'Featured Partner',
-      market_exclusive: 'Premier Partner'
-    }[String(getVal('partnerCampaignTier') || '').trim()] || 'Partner';
-    return `Hi [First name],\n\nHomeOfferFlow is opening a limited ${tier} pilot for ${category} businesses serving Texas homebuyers, agents, and FSBO sellers. The placement is disclosed advertising inventory—not referrals, required provider selection, transactions, or closings.\n\nYou can review the exact placement scope, 90-day pilot terms, and secure application here:\n${link}\n\nIf it looks like a fit, complete the application and checkout. We will confirm category/market availability and written placement terms before any public placement is activated.\n\nBest,\nHomeOfferFlow`;
+    return `Hi [First name],\n\nHomeOfferFlow is inviting Texas ${category} businesses to apply for a complimentary beta partner placement. All partners receive the same no-charge beta terms; there is no payment, checkout, or automatic paid conversion. The placement is disclosed advertising inventory—not referrals, required provider selection, transactions, or closings.\n\nYou can review the placement options and submit the short application here:\n${link}\n\nIf approved, you will receive secure setup steps. HomeOfferFlow reviews the profile and written placement agreement before any public placement is activated.\n\nBest,\nHomeOfferFlow`;
   }
 
   window.copyPartnerCampaignLink = async function copyPartnerCampaignLink() {
@@ -16176,16 +16171,16 @@ function routeAfterMagicLinkIfNeeded() {
     if (!link) return platformStatus('partnerCampaignLinkPreview', 'Choose a supported partner category and tier.', 'err');
     const category = String(getVal('partnerCampaignCategory') || '').trim().replace(/_/g, ' ') || 'real-estate service';
     const tierDetails = {
-      founding_pilot: ['Core Partner', '$149', 'Disclosed advertising presence for a 90-day pilot.'],
-      monthly_placement: ['Featured Partner', '$399', 'Prominent disclosed advertising inventory for a 90-day pilot.'],
-      market_exclusive: ['Premier Partner', '$799', 'Limited category-and-market advertising inventory for a 90-day pilot.']
+      founding_pilot: ['Core Partner', '$0 · complimentary during beta', 'Disclosed category directory presence.'],
+      monthly_placement: ['Featured Partner', '$0 · complimentary during beta', 'Labeled sponsored category placement.'],
+      market_exclusive: ['Premier Partner', '$0 · complimentary during beta', 'Top Premier placement, subject to category and market availability.']
     };
     const [tier, price, description] = tierDetails[String(getVal('partnerCampaignTier') || '').trim()] || tierDetails.monthly_placement;
     const campaign = sellerCampaignLabel(getVal('partnerCampaignName')) || 'HomeOfferFlow Partner Marketplace';
     const safe = value => String(value || '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
     const flyer = window.open('', '_blank', 'noopener,noreferrer');
     if (!flyer) return platformStatus('partnerCampaignLinkPreview', 'Allow pop-ups to open the printable partner flyer.', 'err');
-    flyer.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${safe(tier)} | HomeOfferFlow</title><style>@page{size:letter;margin:.5in}body{font-family:Arial,sans-serif;color:#102438;margin:0}.sheet{border:3px solid #c8973f;border-radius:18px;padding:32px;min-height:8.5in;box-sizing:border-box}h1{font-family:Georgia,serif;font-size:34px;line-height:1.08;margin:0 0 12px}.eyebrow{color:#8d641e;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.price{display:inline-block;background:#102f46;color:#fff;border-radius:999px;padding:8px 14px;font-weight:800;margin:10px 0 18px}.box{background:#f5f8fa;border-left:5px solid #c8973f;padding:16px 18px;margin:22px 0;font-size:17px;line-height:1.45}.link{word-break:break-all;font-size:13px;line-height:1.4;padding:12px;background:#edf2f5;border-radius:8px}.fine{font-size:10px;color:#566676;line-height:1.45;margin-top:28px}@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}</style></head><body><main class="sheet"><div class="eyebrow">${safe(campaign)}</div><h1>Reach active Texas real-estate customers.</h1><p style="font-size:19px;line-height:1.45;margin:0">A transparent advertising opportunity for <strong>${safe(category)}</strong> businesses serving homebuyers, agents, and FSBO sellers.</p><div class="box"><strong>${safe(tier)}</strong><br>${safe(description)}</div><div class="price">${safe(price)}</div><p><strong>Review the pilot and apply securely:</strong></p><div class="link">${safe(link)}</div><p class="fine">This is disclosed advertising inventory, not a referral, required-provider choice, transaction, or closing service. Availability, category/market scope, and a written placement agreement are confirmed before any public placement is activated.</p></main><script>window.onload=()=>window.print();<\/script></body></html>`);
+    flyer.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${safe(tier)} | HomeOfferFlow</title><style>@page{size:letter;margin:.5in}body{font-family:Arial,sans-serif;color:#102438;margin:0}.sheet{border:3px solid #c8973f;border-radius:18px;padding:32px;min-height:8.5in;box-sizing:border-box}h1{font-family:Georgia,serif;font-size:34px;line-height:1.08;margin:0 0 12px}.eyebrow{color:#8d641e;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.price{display:inline-block;background:#102f46;color:#fff;border-radius:999px;padding:8px 14px;font-weight:800;margin:10px 0 18px}.box{background:#f5f8fa;border-left:5px solid #c8973f;padding:16px 18px;margin:22px 0;font-size:17px;line-height:1.45}.link{word-break:break-all;font-size:13px;line-height:1.4;padding:12px;background:#edf2f5;border-radius:8px}.fine{font-size:10px;color:#566676;line-height:1.45;margin-top:28px}@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}</style></head><body><main class="sheet"><div class="eyebrow">${safe(campaign)}</div><h1>Reach active Texas real-estate customers.</h1><p style="font-size:19px;line-height:1.45;margin:0">A transparent advertising opportunity for <strong>${safe(category)}</strong> businesses serving homebuyers, agents, and FSBO sellers.</p><div class="box"><strong>${safe(tier)}</strong><br>${safe(description)}</div><div class="price">${safe(price)}</div><p><strong>Review the complimentary beta application:</strong></p><div class="link">${safe(link)}</div><p class="fine">All partners receive the same no-charge beta terms. There is no checkout or automatic paid conversion. This is disclosed advertising inventory, not a referral, required-provider choice, transaction, or closing service. A written placement agreement and profile review are required before any public activation.</p></main><script>window.onload=()=>window.print();<\/script></body></html>`);
     flyer.document.close();
     try { trackEvent('Partner Campaign Flyer Printed', { category: getVal('partnerCampaignCategory'), tier: getVal('partnerCampaignTier'), surface: 'partner_admin_toolkit' }); } catch (_) {}
     platformStatus('partnerCampaignLinkPreview', 'Printable partner flyer opened. It contains only public campaign details and the advertising-inventory disclosure.', 'ok');
@@ -16205,7 +16200,7 @@ function routeAfterMagicLinkIfNeeded() {
     });
     const link = `https://www.homeofferflow.com/partners?${params.toString()}`;
     const categoryLabel = safeCategory.replace(/_/g, ' ');
-    const invitation = `Hi [First name],\n\nHomeOfferFlow is opening a limited Featured Partner pilot for ${categoryLabel} businesses serving Texas homebuyers, agents, and FSBO sellers. We are building category inventory in response to aggregate directory demand; this does not identify or describe any visitor, search, or market.\n\nThe placement is disclosed advertising inventory—not referrals, required provider selection, transactions, or closings. You can review the 90-day pilot terms and secure application here:\n${link}\n\nIf it looks like a fit, complete the application and checkout. We will confirm category/market availability and written placement terms before any public placement is activated.\n\nBest,\nHomeOfferFlow`;
+    const invitation = `Hi [First name],\n\nHomeOfferFlow is inviting Texas ${categoryLabel} businesses to apply for a complimentary beta partner placement. All partners receive the same no-charge beta terms; there is no payment, checkout, or automatic paid conversion. We are building category inventory in response to aggregate directory demand; this does not identify or describe any visitor, search, or market.\n\nThe placement is disclosed advertising inventory—not referrals, required provider selection, transactions, or closings. You can review the placement options and submit the short application here:\n${link}\n\nIf approved, you will receive secure setup steps. HomeOfferFlow reviews the profile and written placement agreement before any public placement is activated.\n\nBest,\nHomeOfferFlow`;
     try {
       if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(invitation);
       else window.prompt('Copy this partner recruitment invitation:', invitation);
@@ -16339,9 +16334,9 @@ function routeAfterMagicLinkIfNeeded() {
 
   function partnerPlacementDefaults(preferredModel) {
     const defaults = {
-      founding_pilot: { tier: 'founding', fee: 149, label: 'Core · $149/month after 90 days' },
-      monthly_placement: { tier: 'premier', fee: 399, label: 'Featured · $399/month after 90 days' },
-      market_exclusive: { tier: 'exclusive_market', fee: 799, label: 'Premier · $799/month after 90 days' }
+      founding_pilot: { tier: 'founding', fee: 0, label: 'Core · complimentary during beta' },
+      monthly_placement: { tier: 'premier', fee: 0, label: 'Featured · complimentary during beta' },
+      market_exclusive: { tier: 'exclusive_market', fee: 0, label: 'Premier · complimentary during beta' }
     };
     return defaults[preferredModel] || defaults.founding_pilot;
   }
@@ -18067,17 +18062,17 @@ function routeAfterMagicLinkIfNeeded() {
   <div class="modal-card partner-sales-modal" role="dialog" aria-modal="true" aria-labelledby="foundingPartnerTitle">
     <div style="display:flex; justify-content:space-between; gap:1rem; align-items:flex-start; margin-bottom:.9rem;">
       <div>
-        <div class="section-label" style="margin-bottom:.35rem;">Founding Partner application</div>
+        <div class="section-label" style="margin-bottom:.35rem;">Partner beta application</div>
         <h3 id="foundingPartnerTitle" style="font-family:'Playfair Display',serif; color:var(--white); margin:0 0 .3rem; font-size:1.55rem;">Start your partner application</h3>
-        <p style="color:var(--gray-light); line-height:1.55; margin:0;">Five quick details. Each placement covers one category and market. Onboarding is included with no setup fee. No charge now; review the exact price and renewal terms in secure checkout before payment.</p>
+        <p style="color:var(--gray-light); line-height:1.55; margin:0;">Five quick details. All partner placements are complimentary during beta, with no charge or automatic paid conversion. Your application stays private until it is reviewed.</p>
       </div>
       <button type="button" onclick="closeFoundingPartnerModal('close')" aria-label="Close partner application" style="border:none;background:transparent;color:var(--gray-light);font-size:1.5rem;cursor:pointer;">×</button>
     </div>
 
-    <div class="notice sage" id="foundingPartnerCheckoutConfirmation" style="display:none;margin-bottom:.9rem;"><strong>Checkout complete — your next step is partner setup.</strong><br><span id="foundingPartnerCheckoutSetupMessage"><strong>1.</strong> Preparing your secure setup now. <strong>2.</strong> Add your market, website, logo, and call to action. <strong>3.</strong> HomeOfferFlow reviews those details with the written placement agreement before anything becomes public. Setup does not activate advertising by itself. If setup is still preparing, a secure link will also be sent to your business email (it expires in 14 days). If you still need help, <a href="mailto:support@homeofferflow.com?subject=Partner%20setup%20link%20request" style="color:inherit;text-decoration:underline;font-weight:700;">ask support to issue a fresh secure link</a>. After the 90-day launch period, your plan renews monthly unless cancelled.</span></div>
-    <div class="notice gold" id="foundingPartnerCheckoutResume" style="display:none;margin-bottom:.9rem;"><strong>Your application is saved.</strong><br>You can resume the exact secure checkout below whenever you are ready. No second application is created on this device. You do not need to re-enter your saved essentials.</div>
+    <div class="notice sage" id="foundingPartnerCheckoutConfirmation" style="display:none;margin-bottom:.9rem;"><strong>Your partner setup is ready to review.</strong><br><span id="foundingPartnerCheckoutSetupMessage"><strong>1.</strong> Preparing your secure setup now. <strong>2.</strong> Add your market, website, logo, and call to action. <strong>3.</strong> HomeOfferFlow reviews those details with the written placement agreement before anything becomes public. Setup does not activate advertising by itself. Partner beta placements have no automatic paid conversion. If you completed an earlier checkout, contact support to review its saved billing terms. If setup is still preparing, a secure link will also be sent to your business email (it expires in 14 days). If you still need help, <a href="mailto:support@homeofferflow.com?subject=Partner%20setup%20link%20request" style="color:inherit;text-decoration:underline;font-weight:700;">ask support to issue a fresh secure link</a>.</span></div>
+    <div class="notice gold" id="foundingPartnerCheckoutResume" style="display:none;margin-bottom:.9rem;"><strong>Your beta application is saved.</strong><br>No checkout, payment, or automatic paid conversion applies. HomeOfferFlow will review the application and provide secure setup steps if it is approved.</div>
 
-    <div class="partner-selected-tier" aria-live="polite"><span id="foundingPartnerTierLabel">Your starting placement</span><strong id="foundingPartnerTierSelection">Core Partner · $149 — Get the first 90 days for the price of one standard month. Then $149/month unless cancelled.</strong></div>
+    <div class="partner-selected-tier" aria-live="polite"><span id="foundingPartnerTierLabel">Your placement preference</span><strong id="foundingPartnerTierSelection">Core Partner · Complimentary during beta</strong></div>
     <select id="foundingPartnerModel" class="partner-tier-native-select" aria-label="Selected advertising tier"><option value="founding_pilot" selected>Core Partner</option><option value="monthly_placement">Featured Partner</option><option value="market_exclusive">Premier Partner</option><option value="discuss">Custom / multi-market plan</option></select>
 
     <div class="platform-grid" id="foundingPartnerEssentials">
@@ -18087,21 +18082,21 @@ function routeAfterMagicLinkIfNeeded() {
       <div class="field"><label for="foundingPartnerEmail">Business email</label><input id="foundingPartnerEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@company.com" required aria-required="true"></div>
       <div class="field"><label for="foundingPartnerMarket">Primary market area</label><input id="foundingPartnerMarket" placeholder="Collin / Denton / Grayson County" required aria-required="true"></div>
     </div>
-    <div id="foundingPartnerRequiredCue" class="notice sage" role="status" aria-live="polite" style="margin-top:.75rem;"><strong>Step 1 of 2:</strong> Complete the five essentials to prepare secure checkout. Your placement remains private until onboarding and agreement review are complete.</div>
+    <div id="foundingPartnerRequiredCue" class="notice sage" role="status" aria-live="polite" style="margin-top:.75rem;"><strong>Step 1 of 2:</strong> Complete five essentials to submit your complimentary beta application. Your profile remains private until review is complete.</div>
     <div id="foundingPartnerDraftRecovery" class="platform-status" aria-live="polite"></div>
 
-    <label class="terms-check" style="margin-top:.8rem;"><input type="checkbox" id="foundingPartnerConsent"><span>I understand the selected launch offer begins at checkout, renews monthly after 90 days unless I cancel, and requires a written placement agreement before launch.</span></label>
+    <label class="terms-check" style="margin-top:.8rem;"><input type="checkbox" id="foundingPartnerConsent"><span>I understand all partner placements are complimentary during beta, with no payment or automatic paid conversion. A written placement agreement and review are required before public launch.</span></label>
 
     <details class="partner-optional-details" style="margin-top:1rem;" id="foundingPartnerTierComparison">
-      <summary>Compare or change your placement tier <span style="font-weight:500;">(optional before checkout)</span></summary>
+      <summary>Compare or change your placement preference <span style="font-weight:500;">(optional)</span></summary>
       <div style="margin-top:.8rem;">
 
     <div class="partner-tier-grid" role="radiogroup" aria-label="Partner advertising tier">
       <button type="button" class="partner-tier-card is-selected" data-partner-tier="founding_pilot" role="radio" aria-checked="true" onclick="selectFoundingPartnerTier('founding_pilot')">
         <span class="partner-tier-badge subtle">Build visibility</span>
         <h4>Core Partner</h4>
-        <div class="partner-tier-price"><strong>$149</strong><span>one time<br>first 90 days</span></div>
-        <span class="partner-tier-standard">Then $149/month after 90 days, unless cancelled</span>
+        <div class="partner-tier-price"><strong>$0</strong><span>during beta</span></div>
+        <span class="partner-tier-standard">Complimentary; no automatic paid conversion</span>
         <p class="partner-tier-summary">A credible, selectable presence wherever consumers compare providers in your category.</p>
         <span class="partner-tier-list">
           <span>Company profile in the category directory</span>
@@ -18114,10 +18109,10 @@ function routeAfterMagicLinkIfNeeded() {
       </button>
 
       <button type="button" class="partner-tier-card" data-partner-tier="monthly_placement" role="radio" aria-checked="false" onclick="selectFoundingPartnerTier('monthly_placement')">
-        <span class="partner-tier-badge">Recommended</span>
+        <span class="partner-tier-badge">Clear sponsored placement</span>
         <h4>Featured Partner</h4>
-        <div class="partner-tier-price"><strong>$399</strong><span>one time<br>first 90 days</span></div>
-        <span class="partner-tier-standard">Then $399/month after 90 days, unless cancelled</span>
+        <div class="partner-tier-price"><strong>$0</strong><span>during beta</span></div>
+        <span class="partner-tier-standard">Complimentary; no automatic paid conversion</span>
         <p class="partner-tier-summary">More brand exposure on category pages and at a relevant customer decision point.</p>
         <span class="partner-tier-list">
           <span>Everything in Core Partner</span>
@@ -18132,22 +18127,22 @@ function routeAfterMagicLinkIfNeeded() {
       <button type="button" class="partner-tier-card premier" data-partner-tier="market_exclusive" role="radio" aria-checked="false" onclick="selectFoundingPartnerTier('market_exclusive')">
         <span class="partner-tier-badge">Highest visibility</span>
         <h4>Premier Partner</h4>
-        <div class="partner-tier-price"><strong>$799</strong><span>one time<br>first 90 days</span></div>
-        <span class="partner-tier-standard">Then $799/month after 90 days, unless cancelled</span>
+        <div class="partner-tier-price"><strong>$0</strong><span>during beta</span></div>
+        <span class="partner-tier-standard">Complimentary; no automatic paid conversion</span>
         <p class="partner-tier-summary">The top sponsored brand position across the category and its relevant HomeOfferFlow moments.</p>
         <span class="partner-tier-list">
           <span>Everything in Featured Partner</span>
           <span>First sponsored brand module, separate from and above the neutral category directory</span>
           <span>Premier sponsored module outside the provider selector in relevant buyer, agent, and FSBO areas</span>
           <span>One active Premier sponsor per category and market during the pilot</span>
-          <span>Priority onboarding, creative setup, and 90-day review</span>
+          <span>Secure creative setup and placement review</span>
         </span>
         <span class="partner-tier-select-copy">Select Premier</span>
       </button>
     </div>
 
     <div class="partner-placement-wrap" aria-label="Partner tier placement comparison">
-      <div class="partner-placement-title"><strong>Exactly where each tier appears</strong><span>All paid placements are labeled “Sponsored.”</span></div>
+      <div class="partner-placement-title"><strong>Exactly where each tier appears</strong><span>Sponsored placements are clearly labeled.</span></div>
       <table class="partner-placement-table">
         <thead><tr><th>Placement</th><th>Core Partner</th><th>Featured Partner</th><th>Premier Partner</th></tr></thead>
         <tbody>
@@ -18155,34 +18150,35 @@ function routeAfterMagicLinkIfNeeded() {
           <tr><td>Provider selection</td><td>Selectable in neutral results</td><td>Selectable in neutral results</td><td>Selectable in neutral results; never preselected</td></tr>
           <tr><td>Buyer path</td><td>Directory access</td><td>Sponsored education / CTA outside selector</td><td>Premier sponsored module outside selector</td></tr>
           <tr><td>Agent + FSBO paths</td><td>Directory access</td><td>Sponsored education / CTA outside selector</td><td>Premier sponsored module outside selector</td></tr>
-          <tr><td>Reporting</td><td>Views + outbound clicks</td><td>Views, clicks + CTA engagement</td><td>Priority monthly performance summary</td></tr>
+          <tr><td>Reporting</td><td>Views + outbound clicks</td><td>Views, clicks + CTA engagement</td><td>Views + outbound clicks</td></tr>
         </tbody>
       </table>
     </div>
 
-    <div class="partner-safety-note"><span aria-hidden="true">✓</span><div><strong>Consumer choice stays protected.</strong> Partner fees pay for disclosed advertising inventory—not referrals, closings, or required selection. HomeOfferFlow never preselects a paid provider, and users may choose any provider or none.</div></div>
+    <div class="partner-safety-note"><span aria-hidden="true">✓</span><div><strong>Consumer choice stays protected.</strong> All partner placements are complimentary during beta with no automatic paid conversion. Sponsored inventory remains clearly labeled; HomeOfferFlow never preselects a provider, and users may choose any provider or none.</div></div>
       </div>
     </details>
 
-    <details class="partner-optional-details"><summary>Add optional placement preferences now</summary><div class="platform-grid" style="margin-top:.75rem;"><div class="field"><label for="foundingPartnerPhone">Phone</label><input id="foundingPartnerPhone" autocomplete="tel" placeholder="(214) 555-0000"></div><div class="field"><label for="foundingPartnerWebsite">Website</label><input id="foundingPartnerWebsite" type="url" autocomplete="url" placeholder="https://company.com"></div><div class="field"><label for="foundingPartnerFocus">Customer focus</label><input id="foundingPartnerFocus" placeholder="First-time buyers, agents, FSBO sellers..."></div><div class="field"><label for="foundingPartnerBudget">Expected monthly budget after the pilot</label><select id="foundingPartnerBudget"><option value="discuss">Discuss first</option><option value="under_250">Under $250</option><option value="250_499" selected>$250–$499</option><option value="500_999">$500–$999</option><option value="1000_plus">$1,000+</option></select></div></div><div class="field" style="margin-top:.75rem;"><label for="foundingPartnerMessage">What would make the pilot valuable to you?</label><textarea id="foundingPartnerMessage" rows="3" placeholder="Markets served, ideal customer, category preferences, or questions..."></textarea></div></details>
+    <details class="partner-optional-details"><summary>Add optional placement preferences now</summary><div class="platform-grid" style="margin-top:.75rem;"><div class="field"><label for="foundingPartnerPhone">Phone</label><input id="foundingPartnerPhone" autocomplete="tel" placeholder="(214) 555-0000"></div><div class="field"><label for="foundingPartnerWebsite">Website</label><input id="foundingPartnerWebsite" type="url" autocomplete="url" placeholder="https://company.com"></div><div class="field"><label for="foundingPartnerFocus">Customer focus</label><input id="foundingPartnerFocus" placeholder="First-time buyers, agents, FSBO sellers..."></div></div><div class="field" style="margin-top:.75rem;"><label for="foundingPartnerMessage">What would make the complimentary beta useful to you?</label><textarea id="foundingPartnerMessage" rows="3" placeholder="Markets served, ideal customer, category preferences, or questions..."></textarea></div></details>
     <div aria-hidden="true" style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden;"><label for="foundingPartnerConfirm">Leave this field blank</label><input id="foundingPartnerConfirm" tabindex="-1" autocomplete="off"></div>
 
     <div class="account-actions-row" style="margin-top:1rem;">
       <button class="btn-primary" type="button" id="foundingPartnerSubmit" onclick="submitFoundingPartnerLead()" aria-disabled="false" aria-label="Continue partner application; 0 of 5 required details added">Continue application — 0 of 5 details added</button>
       <button class="btn-secondary" type="button" onclick="closeFoundingPartnerModal('cancel')">Cancel</button>
     </div>
-    <div id="foundingPartnerCheckoutNote" class="admin-muted" style="margin-top:.55rem;line-height:1.45;">Next: review the selected Founding Partner price and payment details in secure Stripe Checkout. Your placement stays private until onboarding and written-agreement review are complete.</div>
+    <div id="foundingPartnerCheckoutNote" class="admin-muted" style="margin-top:.55rem;line-height:1.45;">Next: submit your complimentary application for review. No charge or automatic paid conversion applies during beta.</div>
     <div id="foundingPartnerStatus" class="platform-status" role="status" aria-live="polite" aria-atomic="true"></div>
   </div>
 </div>
 
 <script id="hof-founding-partner-intake-v1">
 (function(){
+  const PARTNER_BETA_ACTIVE = true;
   const partnerTierDetails = {
-    founding_pilot: { label:'Core Partner', price:'$149 for the first 90 days, then $149/month', budget:'under_250' },
-    monthly_placement: { label:'Featured Partner', price:'$399 for the first 90 days, then $399/month', budget:'250_499' },
-    market_exclusive: { label:'Premier Partner', price:'$799 for the first 90 days, then $799/month', budget:'500_999' },
-    discuss: { label:'Custom / multi-market plan', price:'Pricing discussed after market review', budget:'discuss' }
+    founding_pilot: { label:'Core Partner', price:'Complimentary during beta' },
+    monthly_placement: { label:'Featured Partner', price:'Complimentary during beta' },
+    market_exclusive: { label:'Premier Partner', price:'Complimentary during beta' },
+    discuss: { label:'Custom / multi-market plan', price:'Complimentary during beta; scope reviewed', budget:'discuss' }
   };
   // Public outreach can preselect only an existing server-approved category.
   // Never copy arbitrary query text into the intake, analytics, or lead data.
@@ -18215,7 +18211,7 @@ function routeAfterMagicLinkIfNeeded() {
   const partnerDraftFields = [
     'foundingPartnerType', 'foundingPartnerCompany', 'foundingPartnerContact',
     'foundingPartnerEmail', 'foundingPartnerMarket', 'foundingPartnerPhone',
-    'foundingPartnerWebsite', 'foundingPartnerFocus', 'foundingPartnerBudget',
+    'foundingPartnerWebsite', 'foundingPartnerFocus',
     'foundingPartnerMessage', 'foundingPartnerModel'
   ];
   function hasPartnerDraftContent(values = {}, consent = false){
@@ -18293,10 +18289,10 @@ function routeAfterMagicLinkIfNeeded() {
     const resume = document.getElementById('foundingPartnerCheckoutResume');
     if (resume) resume.style.display = hasSavedApplication && window.__hofFoundingPartnerCheckoutState !== 'success' ? 'block' : 'none';
     if (submit && hasSavedApplication) {
-      submit.disabled = false;
-      submit.setAttribute('aria-disabled', 'false');
-      submit.setAttribute('aria-label', 'Resume Secure Checkout — saved application');
-      submit.textContent = 'Resume Secure Checkout — saved application';
+      submit.disabled = true;
+      submit.setAttribute('aria-disabled', 'true');
+      submit.setAttribute('aria-label', 'Partner beta application already saved');
+      submit.textContent = 'Application already saved';
     }
     if (jump) jump.style.display = hasSavedApplication ? 'none' : '';
     renderFoundingPartnerCheckoutAvailability();
@@ -18327,7 +18323,7 @@ function routeAfterMagicLinkIfNeeded() {
       recordPartnerApplicationProgress('partner_application_essentials_ready');
     }
     if (!hasSavedApplication && progress.ready && consent) {
-      recordPartnerApplicationProgress('partner_application_checkout_ready');
+      recordPartnerApplicationProgress('partner_application_beta_terms_acknowledged');
     }
     const tier = value('foundingPartnerModel') || 'founding_pilot';
     const detail = partnerTierDetails[tier] || partnerTierDetails.founding_pilot;
@@ -18335,28 +18331,28 @@ function routeAfterMagicLinkIfNeeded() {
     const cue = document.getElementById('foundingPartnerRequiredCue');
     if (cue) {
       cue.innerHTML = hasSavedApplication
-        ? '<strong>Your application is saved.</strong> Resume the exact secure checkout when you are ready. No second application is created on this device.'
+        ? '<strong>Your beta application is saved.</strong> No checkout, payment, or automatic paid conversion applies. HomeOfferFlow will review it and provide setup steps if approved.'
         : !progress.ready
-          ? `<strong>Step 1 of 2:</strong> Complete the five essentials (${progress.complete} of 5 complete) to prepare secure checkout. Your placement remains private until onboarding and agreement review are complete.`
+          ? `<strong>Step 1 of 2:</strong> Complete the five essentials (${progress.complete} of 5 complete) to submit your complimentary application. Your profile remains private until review is complete.`
           : !consent
-            ? '<strong>Step 2 of 2:</strong> Review and acknowledge the founding-partner terms below, then continue to secure checkout.'
-            : '<strong>You’re ready.</strong> Review the selected tier and payment details in secure Stripe Checkout. Your placement remains private until onboarding and agreement review are complete.';
+            ? '<strong>Step 2 of 2:</strong> Acknowledge the complimentary beta terms below, then submit your application for review.'
+            : '<strong>You’re ready.</strong> Submit your complimentary application. No charge or automatic paid conversion applies during beta.';
     }
     if (!submit) return;
     // Keep the primary action operable while the application is incomplete.
     // Its submit handler still blocks saving and checkout, then moves focus to
     // the first missing answer. A disabled button made that guidance
     // unreachable and left visitors to hunt through the form on their own.
-    submit.disabled = false;
-    submit.setAttribute('aria-disabled', 'false');
-    const enabledLabel = hasSavedApplication ? 'Resume Secure Checkout — saved application' : `Continue to Secure Checkout — ${detail.label}`;
+    submit.disabled = Boolean(hasSavedApplication);
+    submit.setAttribute('aria-disabled', hasSavedApplication ? 'true' : 'false');
+    const enabledLabel = hasSavedApplication ? 'Application already saved' : `Submit ${detail.label} beta application`;
     const incompleteLabel = progress.ready
-      ? 'Review terms to continue'
+      ? 'Review beta terms to continue'
       : `Continue application — ${progress.complete} of 5 details added`;
     const incompleteAriaLabel = progress.ready
-      ? 'Review and acknowledge the founding-partner terms to continue to secure checkout'
+      ? 'Review and acknowledge the complimentary beta terms before submitting'
       : `Continue partner application; ${progress.complete} of 5 required details added`;
-    const canOpenCheckout = hasSavedApplication || (progress.ready && consent);
+    const canOpenCheckout = !hasSavedApplication && progress.ready && consent;
     submit.setAttribute('aria-label', canOpenCheckout ? enabledLabel : incompleteAriaLabel);
     submit.textContent = canOpenCheckout ? enabledLabel : incompleteLabel;
   }
@@ -18474,15 +18470,13 @@ function routeAfterMagicLinkIfNeeded() {
   window.selectFoundingPartnerTier = function(model, shouldTrack = true){
     const detail = partnerTierDetails[model] || partnerTierDetails.founding_pilot;
     const select = document.getElementById('foundingPartnerModel');
-    const budget = document.getElementById('foundingPartnerBudget');
     const summary = document.getElementById('foundingPartnerTierSelection');
     const tierLabel = document.getElementById('foundingPartnerTierLabel');
     const submit = document.getElementById('foundingPartnerSubmit');
     const checkoutNote = document.getElementById('foundingPartnerCheckoutNote');
     if (select) select.value = model;
-    if (budget) budget.value = detail.budget;
     if (summary) summary.textContent = detail.label + ' · ' + detail.price;
-    if (tierLabel) tierLabel.textContent = 'Selected 90-day ' + detail.label + ' placement';
+    if (tierLabel) tierLabel.textContent = 'Selected placement preference';
     document.querySelectorAll('[data-partner-tier]').forEach(function(card){
       const selected = card.getAttribute('data-partner-tier') === model;
       card.classList.toggle('is-selected', selected);
@@ -18491,8 +18485,8 @@ function routeAfterMagicLinkIfNeeded() {
       const cardModel = card.getAttribute('data-partner-tier');
       if (copy) copy.textContent = selected ? 'Selected' : (cardModel === 'market_exclusive' ? 'Select Premier' : 'Select ' + (partnerTierDetails[cardModel]?.label || 'tier'));
     });
-    if (submit) submit.textContent = (Boolean(window.__hofFoundingPartnerLeadId || loadSavedPartnerLeadId()) ? 'Resume Secure Checkout — ' : 'Continue to Secure Checkout — ') + detail.label;
-    if (checkoutNote) checkoutNote.textContent = 'Next: review ' + detail.price + ' and payment details in secure Stripe Checkout. Your placement stays private until onboarding and written-agreement review are complete.';
+    if (submit) submit.textContent = (Boolean(window.__hofFoundingPartnerLeadId || loadSavedPartnerLeadId()) ? 'Application already saved' : 'Submit ' + detail.label + ' beta application');
+    if (checkoutNote) checkoutNote.textContent = 'All partner placements are complimentary during beta. No checkout, payment, or automatic paid conversion applies.';
     savePartnerApplicationDraft();
     if (shouldTrack) {
       trackPartnerFunnel('Founding Partner Tier Selected', { tier: model });
@@ -18546,7 +18540,11 @@ function routeAfterMagicLinkIfNeeded() {
     const emailInput = document.getElementById('foundingPartnerEmail');
     const marketInput = document.getElementById('foundingPartnerMarket');
     const query = params();
-    const hasSavedPartnerApplication = Boolean(window.__hofFoundingPartnerLeadId);
+    const hasSavedPartnerApplication = Boolean(window.__hofFoundingPartnerLeadId || loadSavedPartnerLeadId());
+    if (PARTNER_BETA_ACTIVE && hasSavedPartnerApplication) {
+      if (status) { status.textContent = 'Your complimentary beta application is already saved for review. No checkout or payment is available during beta.'; status.className = 'platform-status ok'; }
+      return;
+    }
     const payload = {
       request_type: 'founding_partner',
       partner_type: value('foundingPartnerType'),
@@ -18558,7 +18556,6 @@ function routeAfterMagicLinkIfNeeded() {
       market_area: value('foundingPartnerMarket'),
       customer_focus: value('foundingPartnerFocus'),
       preferred_model: value('foundingPartnerModel'),
-      monthly_budget_range: value('foundingPartnerBudget'),
       message: value('foundingPartnerMessage'),
       company_website_confirm: value('foundingPartnerConfirm'),
       source: query.get('utm_source') ? 'tracked_partner_landing' : 'website_partner_modal',
@@ -18582,16 +18579,16 @@ function routeAfterMagicLinkIfNeeded() {
       });
       if (status) {
         status.textContent = !hasType
-          ? 'Choose your service category to continue to secure checkout.'
+          ? 'Choose your service category to submit your application.'
           : !hasCompany
-            ? 'Enter your company name to continue to secure checkout.'
+            ? 'Enter your company name to submit your application.'
             : !hasContact
-            ? 'Enter your contact name to continue to secure checkout.'
+            ? 'Enter your contact name to submit your application.'
             : !hasEmail
-              ? 'Enter your business email to continue to secure checkout.'
+              ? 'Enter your business email to submit your application.'
               : !hasValidEmail
-                ? 'Enter a valid business email to continue to secure checkout.'
-                : 'Enter your primary market area to continue to secure checkout.';
+                ? 'Enter a valid business email to submit your application.'
+                : 'Enter your primary market area to submit your application.';
         status.className = 'platform-status err';
       }
       firstInvalid?.focus();
@@ -18609,9 +18606,9 @@ function routeAfterMagicLinkIfNeeded() {
       submit.disabled = true;
       submit.setAttribute('aria-disabled', 'true');
       submit.setAttribute('aria-busy', 'true');
-      submit.textContent = hasSavedPartnerApplication ? 'Opening secure checkout…' : 'Saving application…';
+      submit.textContent = hasSavedPartnerApplication ? 'Application already saved' : 'Saving application…';
     }
-    if (status) { status.textContent = hasSavedPartnerApplication ? 'Resuming secure checkout...' : 'Saving your application...'; status.className = 'platform-status'; }
+    if (status) { status.textContent = hasSavedPartnerApplication ? 'Application already saved.' : 'Saving your application...'; status.className = 'platform-status'; }
     let applicationSavedNow = false;
     try {
       let partnerLeadId = window.__hofFoundingPartnerLeadId || '';
@@ -18627,6 +18624,39 @@ function routeAfterMagicLinkIfNeeded() {
         applicationSavedNow = true;
         window.__hofFoundingPartnerLeadId = partnerLeadId;
         clearPartnerApplicationDraft();
+        if (result.partner_program === 'beta') {
+          savePartnerLeadId(partnerLeadId);
+          trackPartnerFunnel('Founding Partner Beta Application Saved', { tier: payload.preferred_model, source: payload.source });
+          if (status) {
+            status.textContent = 'Your application is saved for review. All partner placements are complimentary during beta, with no charge or automatic paid conversion. If approved, HomeOfferFlow will provide secure setup steps; your profile stays private until review is complete.';
+            status.className = 'platform-status ok';
+          }
+          if (submit) {
+            submit.disabled = true;
+            submit.setAttribute('aria-disabled', 'true');
+            submit.setAttribute('aria-busy', 'false');
+            submit.setAttribute('aria-label', 'Partner beta application already saved');
+            submit.textContent = 'Application received';
+          }
+          const resume = document.getElementById('foundingPartnerCheckoutResume');
+          if (resume) resume.style.display = 'block';
+          renderFoundingPartnerCheckoutAvailability();
+          return;
+        }
+        if (PARTNER_BETA_ACTIVE) {
+          savePartnerLeadId(partnerLeadId);
+          if (status) {
+            status.textContent = 'Your application was saved, but HomeOfferFlow could not confirm its complimentary beta terms. No checkout or payment was started. Please contact support for review.';
+            status.className = 'platform-status err';
+          }
+          if (submit) {
+            submit.disabled = true;
+            submit.setAttribute('aria-disabled', 'true');
+            submit.setAttribute('aria-busy', 'false');
+            submit.textContent = 'Application saved for review';
+          }
+          return;
+        }
         if (payload.preferred_model === 'discuss') {
           savePartnerLeadId('');
           window.__hofFoundingPartnerLeadId = '';
@@ -18646,7 +18676,7 @@ function routeAfterMagicLinkIfNeeded() {
         savePartnerLeadId(partnerLeadId);
         trackPartnerFunnel('Founding Partner Application Saved', { tier: payload.preferred_model, source: payload.source });
       }
-      trackPartnerFunnel('Founding Partner Checkout Started', { tier: payload.preferred_model, source: hasSavedPartnerApplication ? 'partner_cancel_recovery' : payload.source });
+      trackPartnerFunnel('Founding Partner Paid Checkout Started', { tier: payload.preferred_model, source: hasSavedPartnerApplication ? 'partner_cancel_recovery' : payload.source });
       if (status) { status.textContent = 'Opening secure Stripe Checkout...'; status.className = 'platform-status'; }
       const checkoutResponse = await fetch('/api/fsbo-lead', {
         method: 'POST',
@@ -18655,10 +18685,10 @@ function routeAfterMagicLinkIfNeeded() {
       });
       const checkout = await checkoutResponse.json().catch(() => ({}));
       if (!checkoutResponse.ok || !checkout.url) throw new Error(checkout.error || 'Could not start secure checkout.');
-      trackPartnerFunnel('Founding Partner Stripe Checkout Opened', { tier: payload.preferred_model });
+      trackPartnerFunnel('Founding Partner Paid Stripe Checkout Opened', { tier: payload.preferred_model });
       window.location.assign(checkout.url);
     } catch (error) {
-      trackPartnerFunnel('Founding Partner Checkout Failed', { tier: payload.preferred_model });
+      trackPartnerFunnel('Founding Partner Paid Checkout Failed', { tier: payload.preferred_model });
       recordPartnerApplicationProgress(
         !hasSavedPartnerApplication && !applicationSavedNow
           ? 'partner_application_save_failed'
@@ -18814,7 +18844,7 @@ function routeAfterMagicLinkIfNeeded() {
       field?.addEventListener('input', () => { savePartnerApplicationDraft(); renderFoundingPartnerCheckoutAvailability(); });
       field?.addEventListener('change', () => { savePartnerApplicationDraft(); renderFoundingPartnerCheckoutAvailability(); });
     });
-    ['foundingPartnerPhone', 'foundingPartnerWebsite', 'foundingPartnerFocus', 'foundingPartnerBudget', 'foundingPartnerMessage'].forEach(id => {
+    ['foundingPartnerPhone', 'foundingPartnerWebsite', 'foundingPartnerFocus', 'foundingPartnerMessage'].forEach(id => {
       const field = document.getElementById(id);
       field?.addEventListener('input', savePartnerApplicationDraft);
       field?.addEventListener('change', savePartnerApplicationDraft);
@@ -18850,7 +18880,12 @@ function routeAfterMagicLinkIfNeeded() {
         window.history.replaceState({}, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
       } catch (_) {}
       const submit = document.getElementById('foundingPartnerSubmit');
-      if (window.__hofFoundingPartnerLeadId && submit) submit.textContent = 'Resume Secure Checkout';
+      if (PARTNER_BETA_ACTIVE && submit) submit.textContent = 'Application already saved';
+      const partnerStatus = document.getElementById('foundingPartnerStatus');
+      if (PARTNER_BETA_ACTIVE && partnerStatus) {
+        partnerStatus.innerHTML = '<strong>Your application remains saved.</strong> Partner placements are complimentary during beta. Checkout and payment are unavailable.';
+        partnerStatus.className = 'platform-status ok';
+      }
       trackPartnerFunnel('Founding Partner Checkout Cancelled');
     }
     if (params().get('partner_checkout') === 'success') {

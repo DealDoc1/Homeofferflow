@@ -37,6 +37,10 @@ PARTNER_LOGO_TYPES = {
 PARTNER_LOGO_MAX_BYTES = 2 * 1024 * 1024
 STRIPE_CHECKOUT_SESSION_RE = re.compile(r"^cs_(?:test|live)_[A-Za-z0-9_]{8,250}$")
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
+# The owner has directed that every partner placement remain complimentary
+# throughout beta. Turning this off requires an explicit owner decision and a
+# coordinated copy + API release.
+PARTNER_BETA_ACTIVE = True
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 RESEND_WEBHOOK_SECRET = os.environ.get("RESEND_WEBHOOK_SECRET", "").strip()
 RESEND_WEBHOOK_MAX_BODY_BYTES = 100_000
@@ -230,7 +234,7 @@ PARTNER_LANDING_EVENT_TYPES = {
     "partner_application_essentials_opened": "essentials_opened",
     "partner_application_essentials_focused": "essentials_focused",
     "partner_application_essentials_ready": "essentials_ready",
-    "partner_application_checkout_ready": "checkout_ready",
+    "partner_application_beta_terms_acknowledged": "beta_terms_acknowledged",
     "partner_application_abandoned": "abandoned",
     "partner_application_save_failed": "save_failed",
     "partner_checkout_start_failed": "checkout_failed",
@@ -514,6 +518,12 @@ def _record_seller_plan_receipt_event(payload, delivery_status):
 
 def _partner_application_receipt_steps(payload):
     """Return controlled partner next steps without creating checkout or a placement."""
+    if PARTNER_BETA_ACTIVE:
+        return (
+            "Your application is saved for HomeOfferFlow review.",
+            "All partner placements are complimentary during beta; no payment or automatic paid conversion applies.",
+            "If your application is approved, HomeOfferFlow will provide secure setup steps. A public placement still waits for profile and agreement review.",
+        )
     tier = _text((payload or {}).get("preferred_model"), 80) or "founding_pilot"
     return PARTNER_APPLICATION_NEXT_STEPS.get(tier, PARTNER_APPLICATION_NEXT_STEPS["founding_pilot"])
 
@@ -545,12 +555,13 @@ def _send_partner_application_confirmation(payload):
     return_link = f"{PUBLIC_APP_ORIGIN}/partners?{urlencode(return_query)}"
     custom_request = tier_key == "discuss"
     return_link_label = "Review partner placement options" if custom_request else "Review your selected partner tier"
-    checkout_copy = (
-        "This custom request does not open checkout or create a charge. If scope and pricing are agreed, you can decide whether to continue."
-        if custom_request
-        else "Secure Stripe Checkout is a separate next step and shows the final terms before any payment."
-    )
-    reply_copy = "Have a question about your request? Reply directly to this email." if custom_request else "Have a question before checkout? Reply directly to this email."
+    if PARTNER_BETA_ACTIVE:
+        checkout_copy = "All partner placements are complimentary during beta. This application does not open checkout, create a charge, or convert automatically."
+    elif custom_request:
+        checkout_copy = "This custom request does not open checkout or create a charge. If scope and pricing are agreed, you can decide whether to continue."
+    else:
+        checkout_copy = "Secure Stripe Checkout is a separate next step and shows the final terms before any payment."
+    reply_copy = "Have a question about your request? Reply directly to this email." if PARTNER_BETA_ACTIVE or custom_request else "Have a question before checkout? Reply directly to this email."
     plain_steps = "\n".join(f"{index}. {step}" for index, step in enumerate(next_steps, start=1))
     html_steps = "".join(f"<li>{html.escape(step)}</li>" for step in next_steps)
     plain_text = (
@@ -696,6 +707,7 @@ def _build_partner_payload(data):
         "preferred_model": _choice(data.get("preferred_model"), ALLOWED_MODELS, "founding_pilot"),
         "message": _text(data.get("message"), 2000),
         "source": "tracked_partner_landing" if any(campaign.values()) else "website_partner_modal",
+        "partner_program": "beta" if PARTNER_BETA_ACTIVE else "commercial",
         **campaign,
         "status": "new",
         "created_at": now,
@@ -1364,6 +1376,8 @@ def _recover_partner_onboarding_from_checkout(session_id):
 
 
 def _create_partner_checkout(lead_id, headers, source=None):
+    if PARTNER_BETA_ACTIVE:
+        raise PermissionError("All partner placements are complimentary during beta. Checkout and charges are unavailable.")
     stripe_secret_key = STRIPE_SECRET_KEY
     if not stripe_secret_key:
         raise RuntimeError("Partner checkout is not configured.")
@@ -1866,20 +1880,15 @@ class handler(BaseHTTPRequestHandler):
                 # Dashboard for an unauthenticated applicant. Record only the
                 # aggregate lifecycle and selected tier on the server.
                 _record_partner_checkout_event(
-                    'founding_partner_checkout_started',
-                    'started',
-                    'Partner checkout intent recorded after required details and consent.',
-                    {'tier': payload['preferred_model']},
-                )
-                _record_partner_checkout_event(
                     'founding_partner_application_saved',
                     'saved',
-                    'Partner application saved before secure checkout.',
+                    'Partner complimentary beta application saved for review.',
                     {'tier': payload['preferred_model']},
                 )
                 return _send(self, 200, {
                     'ok': True,
                     'partner_lead_id': row.get('id'),
+                    'partner_program': payload['partner_program'],
                     'partner_application_email': application_receipt,
                     'message': 'Partner interest received.',
                 })

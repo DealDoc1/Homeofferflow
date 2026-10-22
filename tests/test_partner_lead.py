@@ -101,6 +101,7 @@ class PartnerLeadTests(unittest.TestCase):
         self.assertEqual(payload["partner_type"], "title")
         self.assertEqual(payload["preferred_model"], "market_exclusive")
         self.assertEqual(payload["monthly_budget_range"], "500_999")
+        self.assertEqual(payload["partner_program"], "beta")
         self.assertEqual(payload["status"], "new")
 
     def test_partner_attribution_keeps_only_an_allowlisted_aggregate_channel(self):
@@ -242,9 +243,9 @@ class PartnerLeadTests(unittest.TestCase):
             {"name": "partner_tier", "value": "monthly_placement"},
         ])
         self.assertNotIn("<script>", captured["kwargs"]["json"]["html"])
-        self.assertIn("separate next step", captured["kwargs"]["json"]["text"])
+        self.assertIn("complimentary during beta", captured["kwargs"]["json"]["text"])
         self.assertIn("What happens next", captured["kwargs"]["json"]["text"])
-        self.assertIn("final featured-placement terms", captured["kwargs"]["json"]["text"])
+        self.assertIn("no payment or automatic paid conversion", captured["kwargs"]["json"]["text"])
         self.assertIn("Review your selected partner tier: https://www.homeofferflow.com/partners?partner_tier=monthly_placement", captured["kwargs"]["json"]["text"])
         self.assertIn("<h3>What happens next</h3>", captured["kwargs"]["json"]["html"])
         self.assertIn('href="https://www.homeofferflow.com/partners?partner_tier=monthly_placement', captured["kwargs"]["json"]["html"])
@@ -268,18 +269,15 @@ class PartnerLeadTests(unittest.TestCase):
         self.assertNotIn("bcc", captured["payload"])
 
     def test_partner_application_receipt_steps_are_allowlisted_and_fall_back_safely(self):
-        self.assertIn(
-            "availability is confirmed separately.",
-            fsbo_lead._partner_application_receipt_steps({"preferred_model": "market_exclusive"})[1],
-        )
-        self.assertEqual(
-            fsbo_lead._partner_application_receipt_steps({"preferred_model": "not-a-tier"}),
-            fsbo_lead.PARTNER_APPLICATION_NEXT_STEPS["founding_pilot"],
-        )
+        beta_steps = fsbo_lead._partner_application_receipt_steps({"preferred_model": "market_exclusive"})
+        self.assertIn("complimentary during beta", beta_steps[1])
+        self.assertIn("automatic paid conversion", beta_steps[1])
+        self.assertIn("complimentary during beta", fsbo_lead._partner_application_receipt_steps({"preferred_model": "not-a-tier"})[1])
 
     def test_custom_partner_request_receipt_does_not_describe_a_checkout_path(self):
         steps = fsbo_lead._partner_application_receipt_steps({"preferred_model": "discuss"})
-        self.assertIn("does not open checkout or create a charge.", steps[1])
+        self.assertIn("complimentary during beta", steps[1])
+        self.assertIn("no payment", steps[1])
 
     def test_partner_application_receipt_telemetry_is_aggregate_and_allowlisted(self):
         captured = []
