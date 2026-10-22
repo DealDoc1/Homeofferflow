@@ -248,22 +248,23 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('meta name="twitter:image" content="https://www.homeofferflow.com/assets/homeofferflow-social-preview-v2.jpg"', PARTNERS)
         self.assertIn('"@type":"Service"', PARTNERS)
         self.assertIn('"@type":"OfferCatalog"', PARTNERS)
-        self.assertIn('"name":"HomeOfferFlow Founding Partner Launch Pricing"', PARTNERS)
+        self.assertIn('"name":"HomeOfferFlow Complimentary Beta Partner Placements"', PARTNERS)
         self.assertIn('"name":"Core Partner founding placement"', PARTNERS)
         self.assertIn('"name":"Featured Partner founding placement"', PARTNERS)
         self.assertIn('"name":"Premier Partner founding placement"', PARTNERS)
         for tier, price in (
-            ('founding_pilot', '149'),
-            ('monthly_placement', '399'),
-            ('market_exclusive', '799'),
+            ('founding_pilot', '0'),
+            ('monthly_placement', '0'),
+            ('market_exclusive', '0'),
         ):
             self.assertIn(f'partner_tier={tier}', PARTNERS)
             self.assertIn(f'"price":"{price}"', PARTNERS)
-        self.assertIn('One active Premier placement per category and market while active.', PARTNERS)
+        self.assertIn('Complimentary during beta; no payment or automatic paid conversion.', PARTNERS)
+        self.assertIn('All partner placements are complimentary during beta.', PARTNERS)
         self.assertNotIn('guaranteed traffic', PARTNERS.lower())
         self.assertIn('href="/?partner=1&amp;partner_quick_start=1"', PARTNERS)
         self.assertIn('Start free application', PARTNERS)
-        self.assertIn('Start free. Decide later.', PARTNERS)
+        self.assertIn('Every partner placement is complimentary during beta.', PARTNERS)
         self.assertIn('partner_tier=founding_pilot', PARTNERS)
         self.assertIn('partner_tier=monthly_placement', PARTNERS)
         self.assertIn('partner_tier=market_exclusive', PARTNERS)
@@ -283,15 +284,14 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn("destination.searchParams.set('utm_campaign', 'partner_acquisition')", PARTNERS)
         self.assertIn('/_vercel/insights/script.js', PARTNERS)
         self.assertIn('not a referral or a required provider choice', PARTNERS)
-        self.assertIn('From application to a live placement.', PARTNERS)
+        self.assertIn('From application to a reviewed placement.', PARTNERS)
         self.assertIn('Apply with the essentials', PARTNERS)
-        self.assertIn('Review secure checkout', PARTNERS)
-        self.assertIn('Finish setup and e-sign', PARTNERS)
-        self.assertIn('Partner Marketplace Agreement for e-signature', PARTNERS)
+        self.assertIn('Finish secure setup', PARTNERS)
+        self.assertIn('written-agreement review', PARTNERS)
         self.assertIn('"@type":"FAQPage"', PARTNERS)
         self.assertIn('Founding partner questions', PARTNERS)
-        self.assertIn('Clear commercial terms before you apply.', PARTNERS)
-        self.assertIn('When does monthly founding partner billing begin?', PARTNERS)
+        self.assertIn('Clear beta terms before you apply.', PARTNERS)
+        self.assertIn('Will my placement automatically become paid?', PARTNERS)
         self.assertIn('What does Premier category-and-market exclusivity mean?', PARTNERS)
         self.assertIn('One active Premier sponsor per category and market', PARTNERS)
         self.assertIn('Premier Partners reserve one active Premier placement', PARTNERS)

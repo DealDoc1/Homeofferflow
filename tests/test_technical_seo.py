@@ -240,7 +240,7 @@ class TechnicalSeoTests(unittest.TestCase):
             "Texas Homebuyer Offer Packet": ("99", "no payment"),
             "Texas FSBO Seller Plan": ("0", "no checkout"),
             "OnDemand Agent Workspace": ("29", "eligibility"),
-            "Founding Partner Placement": ("149", "scope"),
+            "Founding Partner Placement": ("0", "complimentary partner placements during beta"),
         }
         for name, (price, term) in expected_terms.items():
             with self.subTest(name=name):

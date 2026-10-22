@@ -16327,8 +16327,7 @@ function routeAfterMagicLinkIfNeeded() {
     select.disabled = !eligible.length;
     select.innerHTML = eligible.length
       ? '<option value="">Choose a partner application…</option>' + eligible.map(lead => {
-          const isBeta = String(lead?.partner_program || '') === 'beta';
-          const defaults = isBeta ? {tier: 'founding', fee: 0, label: 'No-charge beta'} : partnerPlacementDefaults(lead?.preferred_model);
+          const defaults = partnerPlacementDefaults(lead?.preferred_model);
           return '<option value="' + escapeAttr(lead.id || '') + '" data-placement-tier="' + defaults.tier + '" data-monthly-fee="' + defaults.fee + '">' + escapeAttr(lead.company_name || 'Partner') + ' · ' + escapeAttr(lead.partner_type || 'other') + ' · ' + escapeAttr(lead.market_area || 'market') + ' · ' + defaults.label + '</option>';
         }).join('')
       : '<option value="">No fully onboarded eligible applications</option>';
