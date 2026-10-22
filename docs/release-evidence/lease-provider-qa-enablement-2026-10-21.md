@@ -140,6 +140,17 @@ after exact-head CI and the existing intentional production workflow pass.
 Ready for customer lease-listing release: **no**, until provider output is
 completed and inspected and the separate customer release is verified.
 
+## October 22 signing continuation
+
+The owner approved completing the existing SignWell QA-only ordinary lease
+listing packet (`3d912b0c837d`, document `940f1c1a-d5be-4fff-bad3-a66d55765841`)
+with the prepared fictional signer. The final `Agree & Finish` has not yet been
+executed. The current Codex browser-control session reports that the Mac is
+locked and cannot open the signer view; the required dependency is unlocking
+the Mac and resuming the same invitation. No replacement packet, resend or
+customer signature was created. Provider completion and signed-PDF review
+remain unverified.
+
 Keep Git deployments disabled. No routine previews or repeated usage checks.
 Use the existing prebuilt workflow's one capacity/spend safety check immediately
 before the intentional release. Shell v113 refreshes the admin control only;
