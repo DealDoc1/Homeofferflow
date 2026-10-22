@@ -302,7 +302,7 @@ class PartnerLeadTests(unittest.TestCase):
         self.assertNotIn("contact_email", request_url)
         self.assertNotIn("source_lead_id", rows[0])
 
-    def test_shared_partner_api_selects_directory_and_workflow_placements_by_category(self):
+    def test_shared_partner_api_caps_directory_by_category_and_workflow_to_one_top_premier(self):
         rows = [
             {"id":"core-a","partner_type":"title","partner_name":"Core A","placement_tier":"founding"},
             {"id":"premier-b","partner_type":"title","partner_name":"Premier B","placement_tier":"exclusive_market"},
@@ -317,8 +317,32 @@ class PartnerLeadTests(unittest.TestCase):
         self.assertEqual([row["id"] for row in directory], [
             "insurance-premier","insurance-core","premier-a","premier-b","featured"
         ])
-        self.assertEqual([row["id"] for row in workflow], ["insurance-premier","premier-a"])
+        self.assertEqual([row["id"] for row in workflow], ["insurance-premier"])
         self.assertEqual(fsbo_lead._select_partner_placements_for_view(rows, "legacy"), rows)
+
+    def test_category_filtered_workflow_cannot_select_a_second_category_premier(self):
+        placements = [
+            {"id":"insurance-premier","partner_type":"insurance","partner_name":"Insurance Premier","placement_tier":"exclusive_market"},
+            {"id":"title-premier","partner_type":"title","partner_name":"Title Premier","placement_tier":"exclusive_market"},
+        ]
+
+        class PlacementClient:
+            def __init__(self, *args, **kwargs): pass
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def get(self, url, headers=None):
+                self_url = url
+                response = FakeResponse()
+                response.status_code = 200
+                response.text = "[]"
+                response.json = lambda: placements
+                PlacementClient.last_url = self_url
+                return response
+
+        with patch.object(fsbo_lead.httpx, "Client", PlacementClient):
+            title_rows = fsbo_lead._list_public_partner_placements("title", view="workflow")
+        self.assertEqual(title_rows, [])
+        self.assertNotIn("partner_type=eq.title", PlacementClient.last_url)
 
     def test_public_partner_route_accepts_view_and_preserves_response_shape(self):
         endpoint = object.__new__(fsbo_lead.handler)
