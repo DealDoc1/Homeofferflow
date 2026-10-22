@@ -22912,6 +22912,9 @@ function routeAfterMagicLinkIfNeeded() {
     const file = input?.files?.[0];
     const showError = message => { if (status) { status.className = 'hof-iabs-status error'; status.textContent = message; } else window.announceWorkspaceStatus?.(message); };
     if (!client || !user) return showError('Please sign in again before uploading your IABS PDF.');
+    const uploadScope = { userId: user.id, role: root.hofAuth?.role, epoch: root.__hofAccountProfileEpoch || 0 };
+    const isCurrent = () => root.hofAuth?.session?.user?.id === uploadScope.userId &&
+      root.hofAuth?.role === uploadScope.role && (root.__hofAccountProfileEpoch || 0) === uploadScope.epoch;
     if (!file) return showError('Choose your IABS PDF first.');
     const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name || '');
     if (!isPdf) return showError('Only PDF files can be used for your IABS.');
@@ -22924,6 +22927,7 @@ function routeAfterMagicLinkIfNeeded() {
     } catch (_) {
       return showError('We couldn’t read this PDF. Choose the original brokerage-approved IABS PDF and try again.');
     }
+    if (!isCurrent()) return;
     if (status) { status.className = 'hof-iabs-status'; status.textContent = 'Uploading your private IABS PDF…'; }
     const path = filePath(user.id);
     try {
@@ -22931,6 +22935,7 @@ function routeAfterMagicLinkIfNeeded() {
         contentType: 'application/pdf', upsert: true, cacheControl: '0'
       });
       if (uploadError) throw uploadError;
+      if (!isCurrent()) return;
       const payload = {
         user_id: user.id,
         document_type: 'iabs',
@@ -22945,11 +22950,13 @@ function routeAfterMagicLinkIfNeeded() {
         onConflict: 'user_id,document_type'
       });
       if (recordError) throw recordError;
-      await root.loadAgentIabsDocument();
+      if (!isCurrent()) return;
+      root.hofAuth.agentIabsDocument = payload;
       document.getElementById('agentIabsProfileCard')?.remove();
       renderProfileIabsCard();
       mountIabsOfferOption();
     } catch (error) {
+      if (!isCurrent()) return;
       console.error('IABS upload failed:', error);
       if (status) { status.className = 'hof-iabs-status error'; status.textContent = window.hofCustomerActionError?.(error, 'We couldn’t upload your IABS PDF. Please try again.') || 'We couldn’t upload your IABS PDF. Please try again.'; }
     }

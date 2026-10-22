@@ -2,15 +2,17 @@
 
 ## IABS profile upload validation — October 22, 2026
 
-The private profile uploader now checks the selected file's `%PDF` signature
-before writing it to Storage or saving document metadata. This catches files
-that only claim a PDF MIME type or filename before they can appear as a saved
-IABS and later fail during packet assembly. The inline error explains how to
-recover. The actual-source IABS upload and attachment-routing runtime suites
-pass (21 cases); a mislabeled non-PDF is confirmed to cause no external writes.
-Nineteen focused Python profile, attachment-routing and disclosure workflow
-checks also pass using the repository runtime. Implemented and tested locally;
-not deployed. See [release evidence](release-evidence/iabs-profile-signature-validation-2026-10-22.md).
+The private profile uploader checks the selected file's `%PDF` signature
+before writing it to Storage or saving document metadata. It scopes the pending
+upload to the signed-in user, role, and account epoch, preventing a late upload
+from populating a different account's profile. After metadata is saved, the UI
+uses that confirmed payload directly instead of depending on a second read.
+Runtime coverage verifies the saved IABS appears in the profile and offer
+option, a mislabeled file causes no writes, and an account switch during upload
+causes no metadata update or cross-account render. Focused checks pass: 45
+JavaScript runtime cases and 24 Python checks; shell v124 delivers the workflow
+to installed clients. Implemented and tested locally; not deployed. See
+[release evidence](release-evidence/iabs-upload-account-scope-2026-10-22.md).
 
 ## Partner directory and Premier visibility — October 22, 2026
 
