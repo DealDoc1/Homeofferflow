@@ -42,16 +42,18 @@ class PartnerPlacementActivationGateTests(unittest.TestCase):
         self.assertIn("This invitation is free during beta", HTML)
         self.assertIn("readinessLabel", HTML)
 
-    def test_admin_defaults_placement_tier_and_fee_from_paid_selection(self):
+    def test_admin_preserves_selected_beta_tier_with_zero_fee(self):
         self.assertIn('onchange="applyPartnerPlacementDefaultsFromLead()"', HTML)
         self.assertIn("function partnerPlacementDefaults(preferredModel)", HTML)
-        self.assertIn("monthly_placement: { tier: 'premier', fee: 399", HTML)
-        self.assertIn("market_exclusive: { tier: 'exclusive_market', fee: 799", HTML)
+        self.assertIn("founding_pilot: { tier: 'founding', fee: 0", HTML)
+        self.assertIn("monthly_placement: { tier: 'premier', fee: 0", HTML)
+        self.assertIn("market_exclusive: { tier: 'exclusive_market', fee: 0", HTML)
+        self.assertIn("const defaults = partnerPlacementDefaults(lead?.preferred_model);", HTML)
+        self.assertNotIn("const defaults = isBeta ?", HTML)
         self.assertIn("function applyPartnerPlacementDefaultsFromLead()", HTML)
         self.assertIn("data-placement-tier", HTML)
-        self.assertIn("The launch price covers the first 90 days", HTML)
-        self.assertIn("Monthly fee after 90 days", HTML)
-        self.assertIn("Core · $149/month after 90 days", HTML)
+        self.assertIn("Complimentary during beta", HTML)
+        self.assertIn("All partner placements have the same $0 beta fee.", HTML)
 
     def test_public_directory_hides_partner_contact_and_agreement_records(self):
         self.assertIn("revoke all on table public.hof_partner_placements from anon, authenticated", PUBLIC_VIEW_MIGRATION)

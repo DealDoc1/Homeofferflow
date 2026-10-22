@@ -20,14 +20,15 @@ class PartnerLandingFocusTests(unittest.TestCase):
         self.assertIn("'direct_outreach'", script)
         self.assertIn("'owned_directory'", script)
 
-    def test_partner_landing_combines_application_and_resume_reassurance(self):
+    def test_partner_landing_clearly_states_free_beta_application_path(self):
         page = (ROOT / 'partners.html').read_text(encoding='utf-8')
         self.assertIn('class="skip-link" href="#tiers"', page)
         self.assertIn('.skip-link:focus', page)
-        self.assertIn('Reach Texas home buyers, sellers, agents, and investors when your service matters.', page)
-        self.assertIn('Start free. Decide later.', page)
-        self.assertIn('submitted applications can resume the same checkout later', page)
-        self.assertNotIn('No need to finish in one sitting.', page)
+        self.assertIn('HomeOfferFlow connects Texas buyers, sellers, agents, and investors', page)
+        self.assertIn('Start free application', page)
+        self.assertIn('Every partner placement is complimentary during beta.', page)
+        self.assertIn('No checkout, payment, or automatic paid conversion applies.', page)
+        self.assertNotIn('secure checkout', page.lower())
 
 
 if __name__ == '__main__':

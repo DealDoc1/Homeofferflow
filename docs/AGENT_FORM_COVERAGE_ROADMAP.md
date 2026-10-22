@@ -57,11 +57,13 @@ the same result contract. The API curates placement rows before fetching
 opted-in public profile details.
 Title, lender, inspection and survey categories use the same explicit
 placement-label rule. Beta profiles say “Beta partner” alongside their
-placement, keeping the free beta status clear. Focused directory, workflow,
-completion, insurance, and inspection tests pass (32 JavaScript cases and 45
-Python checks). The public API deterministically selects one active Premier
-across all categories; category-filtered workflow calls cannot select another
-Premier. Actual-source render tests cover Premier-only workflow surfaces, the
+placement, keeping the free beta status clear. The public API deterministically
+selects one active Premier across all categories; category-filtered workflow
+calls cannot select another Premier. Admin activation preserves each beta
+application's selected tier while keeping every placement at $0. Focused
+workflow, beta onboarding, and public-profile checks pass (32 JavaScript cases
+and 128 Python checks), and the full Python suite passes 2,938 tests.
+Actual-source render tests cover Premier-only workflow surfaces, the
 three-profile directory cap, and title-provider completion. **Implemented,
 tested, and reviewed locally; not deployed.** See
 [partner visibility evidence](release-evidence/partner-premier-visibility-2026-10-22.md).

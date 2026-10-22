@@ -20,6 +20,8 @@ Date: 2026-10-22
 - Beta profiles retain a clear “Beta partner” label together with the placement
   label. All partner links, portraits, approved public details, and aggregate
   click/impression tracking use the existing shared public-profile contract.
+- Free-beta administration keeps each application's selected Core, Featured,
+  or Premier preference and sets every tier's monthly fee to $0.
 - The shared public API exposes additive `surface=directory` and
   `surface=workflow` query values. The directory view returns at most three
   profiles per category; the workflow view returns at most one Premier profile
@@ -34,10 +36,11 @@ Date: 2026-10-22
 
 Implemented locally in the public partner API, public directory, offer-
 completion page, optional insurance and roofing workflow modules, and shared
-partner-profile helper. The cross-category selector and category-filter
-behavior passed 45 focused Python tests across API routing/selection,
-directory, and public-profile behavior, plus 32 JavaScript tests across
-completion, inspection, and insurance surfaces.
+partner-profile helper. The cross-category selector, beta tier defaults, and
+category-filter behavior passed 128 focused Python tests across partner
+selection, beta onboarding, API routing, metadata, directory, and public-
+profile behavior, plus 32 JavaScript tests across completion, inspection, and
+insurance surfaces. The complete Python suite passed 2,938 tests.
 `git diff --check` passed. Runtime fixtures verify three directory profiles per
 category, one Premier across workflow/completion surfaces, title inclusion,
 public contact links, and existing analytics payload limits. The partner UI
