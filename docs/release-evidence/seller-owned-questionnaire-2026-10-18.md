@@ -36,3 +36,22 @@
 4. Coordinate both disclosure migrations and the candidate API/UI in one reviewed release, run the frozen full regression once, and verify canonical live behavior. The new migration extends the existing service-only release readiness contract for the questionnaire RPC/columns. Current production remains unchanged.
 
 No new owner action is required for this local workstream. The roadmap goal remains active.
+
+### October 22 source differential follow-up
+
+The [current TREC form page](https://www.trec.texas.gov/forms/sellers-disclosure-notice)
+lists Form 55-1 as effective 05/28/2026. The linked local PDF reports four
+letter-size pages, XFA, creation date May 12, 2026, and printed revision
+05-04-2026; its SHA256 is
+`cebab031402fef2d1a16b91e6820b778f3e8971764177700706ec3f6ad8f359b`. All four
+official-source pages were rendered and visually inspected. Their headings,
+questions, execution lines, page count, and page dimensions agree with the
+renderer’s expected 55-1 structure.
+
+The previously approved source hash
+`65a52e167c290814930624ba230e232c152573359f1388cdb5e1237a62e4239a` was checked
+against all 74 PDFs in the local project/QA artifact tree; no exact binary
+match was present. Because the approved binary is unavailable for a direct
+content and geometry comparison, this review does not establish byte or full
+layout equivalence. The renderer hash and private source record remain
+unchanged; the source differential and release gate are still open.
