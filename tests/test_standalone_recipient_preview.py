@@ -17,7 +17,7 @@ USER = {"id": "owner-1", "email": "agent@example.com"}
 def showing_draft(plan="associate_and_clients"):
     return {
         "id": AGREEMENT_ID, "brokerage_id": "brokerage-1", "form_code": "TXR-1508",
-        "client_names": ["Customer One"],
+        "client_names": ["Customer One"], "status": "draft",
         "agreement_data": {"signer_plan": plan, "private_notes": "Must not be returned"},
     }
 

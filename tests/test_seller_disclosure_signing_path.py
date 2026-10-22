@@ -59,6 +59,12 @@ class SellerDisclosureSigningPathTests(unittest.TestCase):
         self.assertIn("hof-seller-download-signed", source)
         self.assertIn("HomeOfferFlow-signed-seller-disclosure.pdf", source)
 
+    def test_bound_drafts_show_the_correct_package_and_no_second_send_action(self):
+        source=(ROOT/'index.html').read_text()
+        self.assertIn("if (draft?.signature_offer_id) return 'Included in a purchase package'",source)
+        self.assertIn("if (draft?.signature_packet_id) return 'Included in a listing package'",source)
+        self.assertIn('!d.signature_offer_id && !d.signature_packet_id && d.status',source)
+
 
 if __name__ == "__main__":
     unittest.main()

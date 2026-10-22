@@ -66,3 +66,19 @@ test('a timed-out handoff gives one clear recovery direction', () => {
   assert.equal(page.events[0][1], 'agent_form_package_start_timeout');
   assert.equal(page.recovered(), 1);
 });
+
+test('direct lease entry records completion only when the real agreement interview opens', () => {
+  const page = setup();
+  page.context.kind = 'lease_listing';
+  let open = false;
+  const choice = {label: 'Prepare a lease listing agreement', directStart: true, isWorkspaceOpen: () => open};
+  page.context.setStatus(choice);
+  page.context.record(choice);
+  page.timers.shift()();
+  assert.equal(page.events.length, 0);
+  open = true;
+  page.timers.shift()();
+  assert.equal(page.status.textContent, 'Prepare a lease listing agreement is open.');
+  assert.deepEqual(page.events.map(event => event[1]), ['agent_form_package_started', 'agent_form_package_direct_started']);
+  assert.deepEqual(JSON.parse(JSON.stringify(page.events[1][4])), {workflow: 'lease_listing', package_type: 'listing_agreement'});
+});

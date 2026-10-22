@@ -79,11 +79,12 @@ for(const kind of ['base','canonical']) {
     assert.equal(x.c.hofAuth.accountProfile,null);assert.deepEqual(x.renders,[]);
   });
 }
-test('account change clears cached profile and optional IABS presentation immediately',()=>{
+test('account change clears profile, private document dialogs and IABS presentation immediately',()=>{
   const x=setup();x.c.hofAuth.accountProfile={agent_name:'Old'};x.c.hofAuth.agentIabsDocument={original_filename:'Old.pdf'};
   x.c.authChange({user:{id:'next'}});
   assert.equal(x.c.hofAuth.accountProfile,null);assert.equal(x.c.hofAuth.agentIabsDocument,null);
-  assert.equal(x.c.state.data.includeAgentIabs,false);assert.deepEqual(x.removed,['agentIabsProfileCard','agentIabsOfferOption']);
+  assert.equal(x.c.state.data.includeAgentIabs,false);assert.deepEqual(x.removed,['agentIabsProfileCard','agentIabsOfferOption','txr1101Interview','hofStandaloneAgreementCard','hofStandaloneSendDialog']);
+  assert.equal(x.c.hofOpenPreparedAgreement,null);
 });
 test('canonical alias lookup cannot continue under a changed account',async()=>{
   const x=setup(),pending=x.c.loadAccountProfile();

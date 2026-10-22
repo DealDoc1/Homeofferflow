@@ -18,8 +18,7 @@ class CustomerWorkspaceLanguageTests(unittest.TestCase):
         self.assertNotIn("private-draft foundation", HTML)
 
     def test_agent_forms_explain_review_before_available_sending(self):
-        self.assertIn("Review your prepared documents here.", HTML)
-        self.assertIn("confirm the recipients and signer plan before anything is sent.", HTML)
+        self.assertIn("Review your documents, recipients, and signing roles before sending for signature.", HTML)
         self.assertIn("const canRetryUnsent = agreement.status === 'failed' && !agreement.signwell_document_id;", HTML)
         self.assertIn("const canRetrySaved = agreement.canRetrySavedRequest === true && ['draft', 'failed'].includes(agreement.status);", HTML)
         self.assertIn("const canSend = signingEnabled && signingFormCodes.has(agreement.form_code) && ((!agreement.signwell_document_id && (agreement.status === 'draft' || canRetryUnsent)) || canRetrySaved);", HTML)

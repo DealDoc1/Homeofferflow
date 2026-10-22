@@ -1,0 +1,29 @@
+#txr1101Interview .hof-agreement-dialog { width:min(100%,740px); max-height:90dvh; overflow-y:auto; padding-bottom:0; scroll-padding-bottom:170px; }
+#txr1101Interview [hidden] { display:none !important; }
+#txr1101Interview .hof-listing-heading { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
+#txr1101Interview [data-close] { background:transparent; color:var(--gray-light); border:0; font-size:1.6rem; min-width:44px; min-height:44px; cursor:pointer; }
+#txr1101Interview h4 { margin:1rem 0; font-size:1.15rem; }
+#txr1101Interview section { min-width:0; }
+#txr1101Interview label, #txr1101Interview input, #txr1101Interview select, #txr1101Interview textarea { min-width:0; max-width:100%; }
+#txr1101Interview input, #txr1101Interview select, #txr1101Interview textarea { font-size:1rem; min-height:44px; }
+#txr1101Interview .hof-listing-note { color:var(--gray-light); font-size:.88rem; line-height:1.5; }
+#txr1101Interview details { border-top:1px solid rgba(255,255,255,.15); padding-top:.65rem; }
+#txr1101Interview summary { cursor:pointer; min-height:44px; padding:.65rem 0; }
+#txr1101Interview .hof-listing-checks { display:grid; grid-template-columns:1fr 1fr; gap:.5rem; border:0; padding:0; min-width:0; }
+#txr1101Interview .hof-listing-checks legend { padding:0 0 .6rem; font-weight:700; }
+#txr1101Interview .hof-listing-checks label { display:flex; align-items:flex-start; gap:.6rem; padding:.65rem; border:1px solid rgba(255,255,255,.15); border-radius:8px; min-height:44px; }
+#txr1101Interview .hof-listing-checks input { width:18px; height:18px; min-height:18px; flex:0 0 auto; margin:2px 0 0; }
+#txr1101Interview .hof-listing-preference-toggle { display:flex; flex-direction:row; align-items:center; gap:.65rem; min-height:44px; }
+#txr1101Interview .hof-listing-preference-toggle input { width:18px; height:18px; min-height:18px; flex:0 0 auto; }
+#txr1101Interview dl { margin:0; }
+#txr1101Interview dl div { display:grid; grid-template-columns:1fr 2fr; gap:1rem; padding:.6rem 0; border-bottom:1px solid rgba(255,255,255,.12); }
+#txr1101Interview dt { color:var(--gray-light); }
+#txr1101Interview dd { margin:0; overflow-wrap:anywhere; }
+#txr1101Interview .hof-agreement-footer { position:sticky; bottom:0; z-index:2; background:var(--navy); padding:.75rem 0; }
+#hofStandaloneAgreementList strong { color:var(--white); }
+@media (max-width:640px) {
+  #txr1101Interview { padding:.5rem; }
+  #txr1101Interview .hof-agreement-dialog { padding:1.1rem 1.1rem 0; max-height:96dvh; }
+  #txr1101Interview .hof-listing-checks { grid-template-columns:1fr; }
+  #txr1101Interview dl div { grid-template-columns:1fr; gap:.2rem; }
+}

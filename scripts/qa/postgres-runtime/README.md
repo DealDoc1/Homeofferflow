@@ -37,6 +37,14 @@ row-lock orderings of simultaneous answer saves and review completion. It uses
 a fresh private Unix-socket cluster with no TCP listener and stops it in
 `finally`. It is not production-schema or live PostgREST/provider evidence.
 
+The listing-integrated branch also applies the purchase binding migration and
+both pending listing migrations. It checks that one disclosure cannot be
+claimed by both packages, including independent-connection races in both
+orders, proof retirement, retained answers, and nonblocking view timestamps.
+Default order mirrors the production upgrade (purchase first). Repeat with
+`--listing-first` to exercise chronological fresh-install order. Neither mode
+contacts production, sends an invitation, or changes source/signature geometry.
+
 Alternatively install these locked dependencies in a temporary directory and
 point `HOF_PG_QA_MODULES` to its `node_modules`, as used in release verification.
 On a restricted execution host, PostgreSQL may need permission to create its

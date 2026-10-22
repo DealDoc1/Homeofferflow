@@ -127,6 +127,13 @@ class SellerDisclosureSigningBoundaryTests(unittest.TestCase):
         render.assert_not_awaited()
         deliver.assert_not_awaited()
 
+    def test_purchase_or_listing_bound_disclosure_cannot_start_a_standalone_request(self):
+        for key in ('signature_offer_id','signature_packet_id'):
+            with self.subTest(binding=key):
+                error,_,render,deliver=self.run_boundary({**draft_record(),key:'existing-package'})
+                self.assertIsInstance(error,PermissionError)
+                render.assert_not_awaited();deliver.assert_not_awaited()
+
     def test_invalid_or_duplicate_recipient_emails_stop_before_render(self):
         for emails in ([], ["not-an-email", "qa@example.com"],
                        ["SAME@example.com", "same@example.com"]):

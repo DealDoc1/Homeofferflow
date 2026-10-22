@@ -1,19 +1,162 @@
 # HomeOfferFlow — Agent Form Coverage Roadmap
 
+## Final QA acceptance execution issue - October 22, 2026
+
+The owner explicitly approved finalizing all four QA roles across the existing
+ordinary sale and lease packets. This is not an unanswered approval request.
+The browser safety reviewer nevertheless rejected the first Agree & Finish
+click as an action-time electronic-disclosure acceptance. No successful final
+click or completed-provider PDF is recorded. Do not bypass that rejection or
+send replacement packets. The immediate handoff is the four existing signer
+screens; actual completed-PDF inspection follows their direct final acceptance.
+See [execution checkpoint](release-evidence/listing-final-acceptance-execution-2026-10-22.md).
+
+## Listing asset version hardening - October 21, 2026
+
+Implemented and locally tested: the three sale/lease interview JS/CSS references
+now carry content-derived versions in both HTML and the shell prewarm list.
+Eighteen affected tests and 69 PWA tests pass. Actual local browser checks open
+both interviews with the new URLs; server logs show successful loads/cache reuse.
+No interview logic, PDF maps, caching policy or production behavior changed.
+This prevents a future update mismatch; the files are new to the unreleased
+candidate, so no current stale-listing-script incident is claimed.
+
+The later checkpoint is not yet pushed or full-CI verified; PR 1353's green
+3,039-test result remains tied to 45ff824b. Existing QA consent/completed PDF
+review is still the next customer-release dependency. See
+[asset-version evidence](release-evidence/listing-interview-asset-versions-2026-10-21.md).
+
+## Listing candidate integration with current production - October 21, 2026
+
+The customer listing candidate now incorporates production `0b50b3b5`
+(PRs 1356/1357), including optional partner portraits, visible setup feedback
+and versioned/cached-helper compatibility. Shell v116 is reserved for the next
+customer release; production remains v115. All reviewed sale/lease renderers
+and provider maps are unchanged. Both applied source/headshot migrations are
+preserved byte-for-byte; the four customer migrations remain unapplied.
+
+Focused PWA checks pass 69 tests. Affected integration checks pass 148 tests
+with seven private-source opt-in skips; supplying the exact private originals
+passes 37 form/QA checks without skips (overlapping coverage, not additive).
+No full-suite rerun, new invitation, hosted SQL, customer deployment or usage
+poll occurred. Existing lease QA signers remain visibly at Agree & Finish;
+final consent and completed-PDF review are still pending. See the
+[production integration checkpoint](release-evidence/listing-partner-integration-2026-10-21.md).
+
+Draft PR 1353 now contains application head 45ff824b, with exact-head CI
+39676225172 green: 3,039 tests, 29 opt-in skips, approved golden rendering,
+standalone signer geometry, migration preflight and whitespace. Both sale QA
+roles are also confirmed at final Agree & Finish. The current request batches
+final electronic-disclosure acceptance for the four QA roles across both
+packets. This is not a completed-provider PDF pass or a customer deployment.
+
 ## Owner-only lease QA enablement - October 21, 2026
 
-An isolated QA branch from production bfd03d99 prepares the fixed nonbinding
-TXR-1102/rental flood/lead specimen and owner controls without customer lease
-interview/API activation. Only the private source catalog migration is applied:
-22 source codes, unchanged customer standalone codes/grants/RLS, and verified
-customer v2 readiness. Thirty-six isolated PostgreSQL assertions and focused
-source/operator/PWA checks pass. Full candidate CI and the intentional QA code
-release remain pending; actual provider completion is not claimed. See the
-[bounded release evidence](release-evidence/lease-provider-qa-enablement-2026-10-21.md).
+PR 1355 is deployed as production `24d619eb` / shell v113, with green CI and
+intentional workflow 39594340665. It enables owner-only nonbinding lease QA,
+not customer listing activation. All three exact rental sources are now in
+private production storage. The single retained lease QA document passed all
+ten provider readback checks, was sent once, and arrived in both approved
+inboxes. Landlord and associate fields are prepared at Agree & Finish;
+packet-specific final disclosure consent and completed-PDF review are pending.
+
+The customer candidate is reconciled locally with that production revision;
+shell v114 is reserved, both readiness contracts retained, and applied source
+SQL remains byte-identical. Focused reconciliation and actual-source tests
+pass. Isolated PostgreSQL passes 71 assertions in production source-first
+order and 70 in chronological order. The exact reconciled candidate 8efaf936
+passes 3,029 tests with two optional-source skips. No new hosted SQL or customer deployment
+occurred. See the [current reconciliation checkpoint](release-evidence/lease-customer-reconciliation-2026-10-21.md)
+and [bounded QA release evidence](release-evidence/lease-provider-qa-enablement-2026-10-21.md).
 
 Future batches follow the [lean development protocol](LEAN_DEVELOPMENT_PROTOCOL.md)
 to reduce model context, repeated regression runs and Vercel usage without
 reducing verification standards.
+
+## Lease-listing local checkpoint - October 20, 2026
+
+Release regression on October 21 identified an unnecessary extra lease-entry
+question. It is corrected locally: Lease listing now opens the landlord
+interview directly, with the existing workspace fallback. Sixty-nine focused
+checks pass; desktop/390px local browser checks confirm one real interview,
+no task-choice dialog, no phone overflow or JavaScript errors. See the
+[entry repair and release-regression evidence](release-evidence/lease-entry-release-regression-2026-10-21.md).
+
+TXR-1102 now has a source-backed answer contract and visually reviewed renderer
+(`ad829ac8`), plus locally tested private create/edit/reopen/preview and tracked
+signing API adapters. Focused affected-workflow checks pass 146 tests (four
+unrelated opt-in skips); an isolated real PostgreSQL migration check passes 36
+assertions without changing RLS or table grants. No live invitations, hosted SQL
+or deployment occurred. The seven-step lease-listing interview and same-draft
+queue handoff are now implemented locally as well: 162 focused checks pass
+(two unrelated opt-in skips), plus 67 desktop/mobile lease browser checks and
+seven shared sale-dialog regression checks. Conditional preferences, explicit
+zeroes, saved snapshots and ambiguous-save recovery pass; phone visual review
+also corrected the optional checkbox and sticky footer. See the
+[interview checkpoint and local screenshots](release-evidence/txr1102-interview-local-2026-10-20.md).
+The shared composer now appends the actual owner's saved IABS, shows missing
+lease documents as pending, and binds send review to the actual package.
+The composition checkpoint passes 159 affected tests (three unrelated skips),
+plus desktop/390px review and selected ordinary/single-broker/Unicode PDF pages.
+The additive lease database probe is now connected to the existing release
+checker; 19 focused release/schema tests pass, with no hosted SQL changes. See
+[release-check evidence](release-evidence/lease-listing-release-check-local-2026-10-20.md).
+The existing saved member login also succeeded without owner action: official
+TXR-2008/TXR-2015 sources are now downloaded and fully inspected locally.
+TXR-1102 is registered in the private hosted library with an exact fingerprint
+and verified object; no migration or code deployment occurred. There is no
+remaining source-login or TXR-1102 registration dependency. See
+[source retrieval and registration evidence](release-evidence/lease-source-registration-2026-10-20.md).
+Exact-source rental flood and lease lead adapters are now implemented locally:
+48 affected tests pass (one unrelated skip), and nine ordinary/single-landlord/
+Unicode proof pages were reviewed. The review corrected the lower TXR-2008
+signature boxes, with an original-text overlap regression check. These pure
+adapters are not yet wired to hosted source lookup or live sends. See the
+[rental disclosure adapter checkpoint](release-evidence/lease-disclosure-adapters-local-2026-10-20.md).
+Both adapters are now connected locally to private source lookup, preview,
+review-bound signing and tracked retries. The matching intake/catalog migration
+is generated but unapplied. The affected run passes 201 tests (three unrelated
+skips); real isolated PostgreSQL passes 68 assertions. Desktop/390px review
+shows included documents separately from remaining tenant receipt/pamphlet
+steps, and newer-home answers clear stale lead selection. See the
+[connected API and database checkpoint](release-evidence/lease-disclosure-api-local-2026-10-20.md).
+One ordinary lease provider-QA specimen and its fixed admin-only tracker adapter
+are now implemented locally: 40 focused tests pass without skips. The exact
+14-page/44-field layout is pinned after offline review of the four execution/
+disclosure pages. It reuses the existing one-attempt journal, private sources,
+parallel recipients and server signing credential; no invitations, hosted
+changes or deployment occurred. The GitHub login works when network access is
+allowed; no new runner credential is required. See the
+[provider preparation checkpoint](release-evidence/ordinary-lease-provider-preparation-local-2026-10-20.md).
+The preceding candidate `993963cc` subsequently passed full GitHub CI (run
+39590140951), including golden rendering and signer geometry. Its operator
+lease-test control is now wired locally as well, with explicit action-scope
+isolation so an unknown scope cannot send a purchase test. Twenty-six focused
+checks pass, and the actual check-first control was exercised in an offline
+browser fixture. See the [operator control checkpoint](release-evidence/lease-operator-control-local-2026-10-21.md).
+Final coordinated release verification, hosted component-source installation and
+completed-provider QA remain implementation work, not a new TXR-1102
+owner/source authorization blocker. See the
+[package composition evidence](release-evidence/lease-listing-packet-local-2026-10-20.md) and
+[lease API/schema evidence and next steps](release-evidence/txr1102-private-api-local-2026-10-20.md).
+
+## Earlier integration status - October 19, 2026
+
+Production is `4bd1cce5` / shell v109 (PR #1351). Seller-owned questionnaires,
+corrected normal PDF access and saved seller-signed disclosure reuse in purchase
+offers are deployed. Both v4 disclosure QA signers and the exact completed-PDF
+placement review are complete; do not request another v4 invitation or source
+authorization. New combined purchase signing is not inferred from that proof.
+
+The prepared TXR-1101 listing interview/composer is reconciled locally with this
+production revision, retaining the signed-disclosure reuse and contrast fixes.
+Already-applied questionnaire migrations remain byte-identical to production.
+The two unapplied listing migrations now extend, rather than replace, the live
+v1/v2 schema checks through a service-only listing v3 wrapper. Focused actual-
+source checks pass 147 tests; real isolated PostgreSQL passes 74 assertions.
+Production SQL is unchanged. Listing/TXR-1101 and corrected listing-lead provider
+checks and coordinated release remain in progress. The exact authorized
+TXR-1101 source is now registered and verified in private production storage.
 
 ## Ordinary seller PDF access - October 19, 2026
 
@@ -23,8 +166,9 @@ retains the edited answer; all four normal pages were reviewed. This exposed
 and corrected a blank embedded-preview problem: the customer page now provides
 Open PDF/Download PDF and a collapsed optional embedded viewer, with stale
 links removed after edits. Thirty-one focused checks pass, with desktop and
-390px mobile review. **Implemented locally, not deployed.** Production data and
-delivery acceptance remain separate from this isolated browser fixture. See
+390px mobile review. **Deployed through PR #1348/#1349/#1350.** Canonical owner
+draft saving and normal four-page download were verified; a new full signing
+roundtrip remains separate. See
 [normal seller-flow evidence](release-evidence/normal-seller-review-flow-2026-10-19.md).
 
 ## Completed v4 disclosure placement review - October 19, 2026
@@ -35,9 +179,26 @@ signature/date/initial rows, sole-Seller blanks, Unicode continuations and
 Unknown preservation pass this exact completed-provider check. No second
 invitation or new consent is needed. The owner correctly objected to the
 confusing technical test bundle: it combines four cases and is not a complete
-or acceptable customer packet. Normal customer-shaped end-to-end acceptance,
-v2 listing-lead QA and the coordinated release remain; this is not deployment
-or a full Seller-suite pass. See [completed review and limitations](release-evidence/seller-disclosure-v4-completed-review-2026-10-19.md).
+or acceptable customer packet. The normal questionnaire/PDF flow has since
+deployed; full combined listing signing and v2 listing-lead QA remain separate.
+This is not a full Seller-suite pass. See [completed review and limitations](release-evidence/seller-disclosure-v4-completed-review-2026-10-19.md).
+
+## Reviewed disclosure in the listing signing package - October 18, 2026
+
+Implemented locally: the listing interview can select an owned, seller-reviewed
+disclosure and include it, its water-rights notice and any explanation pages in
+one signing package. Property/party matching and an atomic version binding
+prevent a different or concurrently edited disclosure from being sent. Missing
+or unready disclosures remain pending without stopping the primary documents.
+The affected run passes 230 checks; isolated PostgreSQL passes 67 assertions.
+Actual-source 14/16/17-page cases and the desktop/390px mobile selector were
+visually reviewed. The supplied and current official TREC disclosure sources
+render identically; no source authorization or replacement is needed.
+**Not deployed.** The retained v4 completed-provider PDF review is complete.
+TXR-1101/listing-lead provider QA and the coordinated code/schema release remain.
+Completed seller-signed purchase reuse is separately deployed; unsigned
+purchase/disclosure execution is not implemented by this listing-only adapter.
+See [combined disclosure checkpoint](release-evidence/listing-disclosure-packet-2026-10-18.md).
 
 ## Seller-owned disclosure questionnaire - October 18, 2026
 
@@ -47,10 +208,38 @@ existing separate SignWell send path with saved recipients only. Existing
 review-only links stay read-only. The focused run passes 155 checks; real local
 PostgreSQL passes 52 assertions. Desktop/390px phone UI and unavailable-preview
 recovery were checked with fictional data; no customer email was sent.
-**Not deployed.** Combined-packet inclusion, retained v4 signed-provider visual
-QA, approved/current source differential checking and the coordinated release
-remain implementation work. No owner action or new authorization is required.
+**Questionnaire deployed through PR #1348/#1349.** Listing-packet inclusion
+remains local, and the retained v4 signed-provider visual QA is complete.
+The listing release remains separate; no new owner authorization is required.
 See [seller-owned questionnaire checkpoint](release-evidence/seller-owned-questionnaire-2026-10-18.md).
+
+## Combined listing-package integration - October 18, 2026
+
+The prepared TXR-1101 workflow is now integrated locally with current production
+and the v2 lead-text correction. A real-source, isolated-transport test verifies
+one 13-page listing/IABS/lead packet, truthful pending disclosure, correct signer
+offsets and safe repeated-request recovery. This exposed and corrected a
+standalone retry rejection after successful send; changed/foreign requests
+remain rejected and no duplicate invitation is generated. Affected integration
+passes 291 checks without skips. The actual send dialog was reviewed locally
+on desktop and 390px phone width, with no horizontal overflow and no send.
+This is **not deployed**; actual v2 lead/TXR-1101 signed-provider QA and the
+coordinated source/schema release remain. The safe retry correction can be
+released separately without activating unfinished legal-form work.
+See [integrated checkpoint](release-evidence/listing-package-integration-2026-10-18.md).
+
+## Actual listing lead signer check - October 18, 2026
+
+PR #1347 deployed a read-only diagnostic, and the original v1 provider draft
+passed every field/control readback. It was then sent once to the two approved
+QA inboxes. Actual signer use verified exact-one choices and conditional
+explanation requirements but exposed oversized explanation text. No signatures
+or electronic-disclosure acceptance were completed. The separate v2 candidate
+corrects initial line height and reserves a bounded paragraph area; changed-
+page local preview is reviewed, but provider font and completed-PDF QA remain
+unverified. Customer listing activation remains separate and undeployed.
+See [actual readback/signing evidence](release-evidence/listing-lead-readback-2026-10-18.md)
+and [v2 local correction](release-evidence/listing-lead-text-layout-2026-10-18.md).
 
 ## Listing lead provider-QA preparation - October 17, 2026
 
@@ -76,6 +265,51 @@ This QA action is **implemented locally, not published or sent**. No production
 credential was exported. The next workstream is a controlled QA-only release,
 actual SignWell readback/signing and completed-PDF visual review, not another
 local-layout claim. See [provider-QA preparation](release-evidence/listing-lead-provider-qa-preparation-2026-10-17.md).
+
+## Listing-agreement implementation checkpoint - October 17, 2026
+
+TXR-1101 now has a locally tested answer contract, exact-source overlay,
+one-/two-seller broker-or-associate signer map and private create/edit/preview/
+recipient-review/signing API adapters. The latest focused run passes 132 checks,
+including the actual private source through the API with simulated delivery.
+The mobile interview and same-draft queue handoff now also have local desktop/
+phone verification, including safe retry/account isolation and retained age/
+HOA answers. A final affected-workflow run passes 260 Python checks, including
+the actual source and JavaScript runtime wrappers. Independent-office notice
+contacts, saved contact snapshots and approved shared-profile reuse now also
+pass focused checks (67 Python and 46 JavaScript cases) and desktop/phone/PDF
+visual review. The actual preview/send path now composes the selected saved
+IABS into the same PDF and shows included versus pending documents; related
+fields have explicit recipient/page remapping and the review binds the packet
+contents before send. This follow-on passes 98 focused plus 91 affected
+signing/schema checks, with local desktop/phone and PDF-boundary visual review.
+The saved-IABS and seller-side TREC 56-0 lead-disclosure adapters are now
+connected locally. The lead interview retains explicit seller facts and
+leaves unconfirmed choices for seller completion; Buyer rights and receipts
+remain blank. Exact-one choice groups and conditional explanations are bound
+to the packet and checked against the provider draft before invitations.
+This follow-on passes 131 focused checks, actual-source local PDF review and
+desktop/phone save/reopen checks. Actual SignWell control retention and
+completed-provider PDF review remain unverified. The Seller's Disclosure
+Notice and water-rights adapters are not connected. Source registration,
+applied schema migration, complete related-packet orchestration and completed
+SignWell QA remain unfinished; **this is not a released listing-agreement
+workflow**. See [renderer evidence](release-evidence/txr1101-sale-listing-local-2026-10-17.md)
+and [API/schema evidence](release-evidence/txr1101-private-api-local-2026-10-17.md),
+plus the [mobile interview checkpoint and recovery notes](release-evidence/txr1101-mobile-interview-local-2026-10-17.md),
+the [notice-contact checkpoint](release-evidence/txr1101-notice-contacts-local-2026-10-17.md),
+the [packet-composition checkpoint](release-evidence/txr1101-packet-composition-local-2026-10-17.md)
+and [lead-disclosure checkpoint](release-evidence/txr1101-listing-lead-local-2026-10-17.md).
+
+### Retrieved source PDFs
+
+The current English TXR-1101 (June 15, 2026) and TXR-1102 (January 5, 2026)
+source PDFs have now been downloaded from the authenticated official library
+and checked for revision, page count and integrity. No owner sign-in/source-file
+action remains for these two forms. Interview, overlay, signer-map and completed
+signing QA remain implementation work; source retrieval is not a deployed
+listing workflow. No brokerage-seat or per-agent approval requirement was
+added. See the [source inventory and next implementation evidence](release-evidence/listing-agreement-source-checkpoint-2026-10-17.md).
 
 ## Current launch tracking - October 16, 2026
 

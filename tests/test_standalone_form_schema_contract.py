@@ -41,12 +41,34 @@ class StandaloneFormSchemaContractTests(unittest.TestCase):
         self.assertLessEqual(implemented_form_codes(), allowed)
 
     def test_live_readiness_checks_the_same_implemented_document_codes(self):
-        migrations = sorted((ROOT / 'supabase/migrations').glob('*enable_trec_standalone_drafts.sql'))
-        self.assertEqual(len(migrations), 1)
-        sql = migrations[0].read_text(encoding='utf-8')
+        definitions = [path.read_text(encoding='utf-8')
+                       for path in sorted((ROOT / 'supabase/migrations').glob('*.sql'))
+                       if 'create or replace function public.hof_release_schema_readiness()'
+                       in path.read_text(encoding='utf-8').lower()]
+        self.assertTrue(definitions)
+        sql = definitions[-1]
         match = re.search(r'foreach supported_form_code in array array\[(.*?)\]', sql, re.DOTALL)
         self.assertIsNotNone(match, 'Release readiness must check actual draft form capabilities.')
         checked = set(re.findall(r"'([^']+)'", match.group(1)))
+        # The already deployed v1/v2 contracts are immutable. The additive v3
+        # delegates v2 and verifies newly supported codes against the constraint.
+        wrapper = (ROOT/'supabase/migrations/20261019000034_bind_disclosure_to_listing_signature.sql').read_text()
+        self.assertIn('baseline := public.hof_seller_disclosure_schema_readiness();', wrapper)
+        self.assertIn("'homeofferflow-release-schema-v3'", wrapper)
+        self.assertIn('strpos(constraint_definition,quote_literal(', wrapper)
+        self.assertIn("'form_code:hof_standalone_agreements.TXR-1101'", wrapper)
+        self.assertIn('security invoker', wrapper.lower())
+        self.assertIn('set search_path=pg_catalog', wrapper.lower())
+        self.assertIn('from public,anon,authenticated', wrapper.lower())
+        checked.update(re.findall(r"quote_literal\('([^']+)'\)", wrapper))
+        lease = (ROOT/'supabase/migrations/20261020231654_add_txr1102_lease_listing_drafts.sql').read_text()
+        self.assertIn('baseline := public.hof_release_schema_readiness();', lease)
+        self.assertIn("'homeofferflow-lease-listing-schema-v1'", lease)
+        self.assertIn('c.convalidated', lease)
+        self.assertIn('security invoker', lease.lower())
+        self.assertIn('set search_path=pg_catalog', lease.lower())
+        self.assertIn('from public,anon,authenticated', lease.lower())
+        checked.update(re.findall(r"quote_literal\('([^']+)'\)", lease))
         self.assertLessEqual(implemented_form_codes(), checked)
         self.assertIn('security invoker', sql.lower())
         self.assertIn("set search_path = ''", sql.lower())

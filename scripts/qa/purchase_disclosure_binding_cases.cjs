@@ -97,11 +97,13 @@ module.exports=async function run(ctx) {
   await bind(service,unicodeOffer,unicode);
   check((await row(unicode.id)).signature_offer_id===unicodeOffer.id,'Unicode seller works without a brokerage seat check');
   // Exercise compatibility with the separate, unapplied listing association.
-  await admin.query('alter table public.hof_seller_disclosure_drafts add column signature_packet_id uuid');
-  await reject(()=>admin.query('update public.hof_seller_disclosure_drafts set signature_packet_id=$2 where id=$1',[d.id,randomUUID()]),'55000');
-  const listed=await ready(),listedOffer=await offer(listed);
-  await admin.query('update public.hof_seller_disclosure_drafts set signature_packet_id=$2 where id=$1',[listed.id,randomUUID()]);
-  await reject(()=>bind(service,listedOffer,listed),'55000');
+  if(!ctx.listingIntegration) {
+    await admin.query('alter table public.hof_seller_disclosure_drafts add column signature_packet_id uuid');
+    await reject(()=>admin.query('update public.hof_seller_disclosure_drafts set signature_packet_id=$2 where id=$1',[d.id,randomUUID()]),'55000');
+    const listed=await ready(),listedOffer=await offer(listed);
+    await admin.query('update public.hof_seller_disclosure_drafts set signature_packet_id=$2 where id=$1',[listed.id,randomUUID()]);
+    await reject(()=>bind(service,listedOffer,listed),'55000');
+  }
 
   // Actual independent connection waits establish both race orderings.
   const editFirst=await ready(),editOffer=await offer(editFirst);
@@ -124,4 +126,5 @@ module.exports=async function run(ctx) {
   await a.query('begin');await bind(a,protectedOffer,protectedProof);
   const lateRetirement=b.query('update public.hof_seller_disclosure_review_links set revoked_at=now() where id=$1',[protectedProof.links[0]]).then(()=>null,e=>e);
   await blocked(b);await a.query('commit');check((await lateRetirement)?.code==='55000','Send-first proof remains attached after concurrent retirement');
+  return {ready,offer,bind};
 };

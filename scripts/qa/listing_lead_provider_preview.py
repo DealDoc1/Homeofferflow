@@ -9,7 +9,7 @@ from reportlab.pdfgen.canvas import Canvas
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.platypus import Paragraph
 from lib.pdf_text import paragraph_markup
-from lib.listing_lead_disclosure import LIVE_DETAIL_LIMIT
+from lib.listing_lead_disclosure import LIVE_DETAIL_LIMIT, LIVE_DETAIL_BOX_HEIGHT
 from lib import listing_lead_signing_qa as qa
 
 
@@ -23,8 +23,8 @@ def guide(packet,fields):
             canvas.setStrokeColorRGB(.1,.35,.8);canvas.setLineWidth(.5);canvas.rect(x,y,w,h)
             if field['type']=='text':
                 text=Paragraph(paragraph_markup('李'*LIVE_DETAIL_LIMIT),ParagraphStyle('qa_sample',fontName='Helvetica',fontSize=9.75,leading=12,splitLongWords=True))
-                _,height=text.wrap(w-4,h-4)
-                if height>h-4:raise ValueError('The reviewed explanation does not fit its field.')
+                _,height=text.wrap(w-4,LIVE_DETAIL_BOX_HEIGHT-4)
+                if height>LIVE_DETAIL_BOX_HEIGHT-4:raise ValueError('The explanation exceeds its printed answer region.')
                 text.drawOn(canvas,x+2,y+h-2-height)
             elif field['type']!='checkbox':
                 canvas.setFillColorRGB(.1,.35,.8);canvas.setFont('Helvetica',8)
@@ -53,7 +53,8 @@ def main():
     groups,rules=qa.completion_controls()
     manifest={'qa_revision':qa.QA_REVISION,'reviewed_source_commit':qa.REVIEWED_SOURCE_COMMIT,
         'layout_sha256':qa.layout_fingerprint(fields,cases),'cases':cases,'fields':fields,
-        'checkbox_groups':groups,'conditional_rules':rules,'completed_provider_verified':False}
+        'checkbox_groups':groups,'conditional_rules':rules,'completed_provider_verified':False,
+        'preview_font_points':9.75,'preview_is_not_provider_font_verification':True}
     (args.output_dir/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
     print(json.dumps({'pages':len(rendered),'fields':len(fields[0]),'layout_sha256':manifest['layout_sha256']}))
 
