@@ -4315,6 +4315,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <div style="width:72px; height:72px; border-radius:999px; background:rgba(74,140,111,0.18); border:1px solid rgba(74,140,111,0.45); display:flex; align-items:center; justify-content:center; font-size:2rem; margin:0 auto 1rem;">📄</div>
         <h2 id="successHeading">Your offer packet</h2>
         <p class="step-desc" id="successMessage">Review your document delivery and signing status below.</p>
+        <div id="successPendingDocuments" class="notice gold" role="status" aria-live="polite" hidden style="text-align:left; margin:1rem 0 0;"></div>
         <div id="successBrokerageBrand" class="notice" style="display:none; text-align:left; margin-top:1rem; align-items:center; gap:.75rem;"></div>
 
         <div class="notice sage" style="text-align:left; margin-top:1.25rem;">
@@ -11573,8 +11574,16 @@ function routeAfterMagicLinkIfNeeded() {
     if (successHeading) successHeading.textContent = checkoutConfirmationPending
       ? 'We’re confirming your checkout'
       : options.packetGenerated === true ? 'Packet generated' : 'Your offer packet';
-    if (successMessage) successMessage.textContent = deliverySummary.message
-      + (Array.isArray(options.pendingDocuments) && options.pendingDocuments.length ? ' ' + options.pendingDocuments.join(' ') : '');
+    if (successMessage) successMessage.textContent = deliverySummary.message;
+    const pendingDocuments = Array.isArray(options.pendingDocuments) ? options.pendingDocuments : [];
+    const pendingDocumentsNotice = document.getElementById('successPendingDocuments');
+    if (pendingDocumentsNotice) {
+      const hasPendingDocuments = options.packetGenerated === true && pendingDocuments.length > 0;
+      pendingDocumentsNotice.hidden = !hasPendingDocuments;
+      pendingDocumentsNotice.textContent = hasPendingDocuments
+        ? 'The seller’s disclosure wasn’t ready for this offer, so it was left out. Open Listing Tools to finish or review it and send it separately; it can’t be added to this packet after generation.'
+        : '';
+    }
     if (successSignatureStep) {
       successSignatureStep.textContent = paragraph4Forms.length && options.signwell?.ok === true
         ? `2. Buyers and sellers receive signing invitations together. Sellers sign the included ${paragraph4Forms.join(' and ')}.`

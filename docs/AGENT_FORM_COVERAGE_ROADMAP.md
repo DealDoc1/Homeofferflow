@@ -1,5 +1,17 @@
 # HomeOfferFlow — Agent Form Coverage Roadmap
 
+## Purchase packet pending-disclosure guidance — October 22, 2026
+
+When a seller disclosure cannot be included in a generated purchase packet, the
+completion screen now shows a separate accessible notice explaining that it was
+omitted, should be completed or reviewed from Listing Tools and sent
+separately, and cannot be added to that already-generated packet. Delivery and
+signing summaries remain separate. Focused delivery/PWA checks pass (35 tests),
+and the full suite passes (2,927 passed, 23 skipped). The actual completion
+markup was reviewed at desktop and 390px mobile sizes with fictional data.
+**Implemented, tested and visually reviewed locally; not deployed.** See
+[release evidence](release-evidence/purchase-pending-disclosure-guidance-2026-10-22.md).
+
 ## Owner-only lease QA enablement - October 21, 2026
 
 An isolated QA branch from production bfd03d99 prepares the fixed nonbinding
