@@ -22916,6 +22916,14 @@ function routeAfterMagicLinkIfNeeded() {
     const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name || '');
     if (!isPdf) return showError('Only PDF files can be used for your IABS.');
     if (!file.size || file.size > MAX_BYTES) return showError('Your IABS PDF must be 10 MB or smaller.');
+    try {
+      const signatureBytes = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+      if (String.fromCharCode(...signatureBytes) !== '%PDF') {
+        return showError('This file is not a readable PDF. Choose the original brokerage-approved IABS PDF.');
+      }
+    } catch (_) {
+      return showError('We couldn’t read this PDF. Choose the original brokerage-approved IABS PDF and try again.');
+    }
     if (status) { status.className = 'hof-iabs-status'; status.textContent = 'Uploading your private IABS PDF…'; }
     const path = filePath(user.id);
     try {
