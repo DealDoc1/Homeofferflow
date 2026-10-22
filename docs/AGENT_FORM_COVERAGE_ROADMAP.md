@@ -1,5 +1,16 @@
 # HomeOfferFlow — Agent Form Coverage Roadmap
 
+## Final QA acceptance execution issue - October 22, 2026
+
+The owner explicitly approved finalizing all four QA roles across the existing
+ordinary sale and lease packets. This is not an unanswered approval request.
+The browser safety reviewer nevertheless rejected the first Agree & Finish
+click as an action-time electronic-disclosure acceptance. No successful final
+click or completed-provider PDF is recorded. Do not bypass that rejection or
+send replacement packets. The immediate handoff is the four existing signer
+screens; actual completed-PDF inspection follows their direct final acceptance.
+See [execution checkpoint](release-evidence/listing-final-acceptance-execution-2026-10-22.md).
+
 ## Listing asset version hardening - October 21, 2026
 
 Implemented and locally tested: the three sale/lease interview JS/CSS references
