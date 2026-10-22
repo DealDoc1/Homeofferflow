@@ -58,6 +58,15 @@ class BetaPartnerPublicationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(placement['placement_tier'], 'founding')
         self.assertTrue(all(url.startswith('https://example.supabase.co/rest/v1/') for _,url,_ in client.calls))
 
+    async def test_title_partner_can_publish_under_the_same_zero_cost_beta_terms(self):
+        lead = {**LEAD, 'company_name': 'Fictional Title Partner', 'partner_type': 'title'}
+        result, client = await self.run_fixture([(200,[lead]),(200,[]),(200,[{'id':LEAD_ID}]),(201,[{'id':PLACEMENT_ID}])])
+        placement = client.calls[3][2]['json']
+        self.assertEqual(result['monthlyFee'], 0)
+        self.assertEqual(placement['partner_type'], 'title')
+        self.assertEqual(placement['monthly_fee'], 0)
+        self.assertIsNone(placement['agreement_confirmed_at'])
+
     async def test_missing_operator_is_rejected_before_network(self):
         with patch.object(publication.httpx,'AsyncClient') as factory:
             with self.assertRaises(ValueError):
@@ -76,7 +85,7 @@ class BetaPartnerPublicationTests(unittest.IsolatedAsyncioTestCase):
             factory.assert_not_called()
 
     async def test_non_beta_or_unqualified_records_are_not_mutated(self):
-        for change in ({'partner_program':'commercial'},{'status':'declined'},{'status':'waitlist'},{'id':PLACEMENT_ID},{'partner_type':'lender'}):
+        for change in ({'partner_program':'commercial'},{'status':'declined'},{'status':'waitlist'},{'id':PLACEMENT_ID}):
             lead = {**LEAD, **change}; client = Client([(200,[lead])])
             with patch.object(publication.httpx,'AsyncClient',return_value=client):
                 with self.assertRaises(ValueError):
