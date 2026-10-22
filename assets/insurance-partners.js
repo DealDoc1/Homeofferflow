@@ -16,7 +16,7 @@
       if (!visible() || loaded || loading) return;
       loading = true;
       try {
-        const providers = window.hofPartnerProfile.selectWorkflowPartners(await window.hofPartnerProfile.load()).filter(p => p.partner_type === 'insurance' && window.hofPartnerProfile.websiteUrl(p.website_url));
+        const providers = (await window.hofPartnerProfile.load('workflow')).filter(p => p.partner_type === 'insurance' && window.hofPartnerProfile.websiteUrl(p.website_url));
         if (!visible()) return;
         if (!providers.length) { loaded = true; return; }
         target.innerHTML = providers.map(provider => {

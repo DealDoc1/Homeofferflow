@@ -13,7 +13,7 @@
     if (!step?.classList.contains('active') || !target || loaded || loading) return;
     loading = true;
     try {
-      const providers = window.hofPartnerProfile.selectWorkflowPartners(await window.hofPartnerProfile.load()).filter(p => p.partner_type === 'roofing' && window.hofPartnerProfile.websiteUrl(p.website_url));
+      const providers = (await window.hofPartnerProfile.load('workflow')).filter(p => p.partner_type === 'roofing' && window.hofPartnerProfile.websiteUrl(p.website_url));
       if (!step.classList.contains('active') || document.getElementById('hofInspectionPartners') !== target) return;
       if (!providers.length) { loaded = true; return; }
       target.innerHTML = providers.map(provider => {

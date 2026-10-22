@@ -43,21 +43,18 @@ test('website cannot be misleadingly labeled Call while approved custom labels s
   assert.equal(profile.websiteLabel({cta_label:'Call Tedd'}),'Visit website');
   assert.equal(profile.websiteLabel({cta_label:'Request a roof inspection'}),'Request a roof inspection');
 });
-test('directory shows at most three per category with Premier first, and workflow exposes only one Premier per category',()=>{
-  const rows=[
-    {partner_name:'Core A',partner_type:'title',placement_tier:'founding'},
-    {partner_name:'Premier B',partner_type:'title',placement_tier:'exclusive_market'},
-    {partner_name:'Featured',partner_type:'title',placement_tier:'premier'},
-    {partner_name:'Core B',partner_type:'title',placement_tier:'founding'},
-    {partner_name:'Premier A',partner_type:'title',placement_tier:'exclusive_market'},
-    {partner_name:'Insurance Core',partner_type:'insurance',placement_tier:'founding'},
-    {partner_name:'Insurance Premier',partner_type:'insurance',placement_tier:'exclusive_market'},
-  ];
-  assert.deepEqual(Array.from(profile.selectDirectoryPartners(rows),p=>p.partner_name),[
-    'Insurance Premier','Insurance Core','Premier A','Premier B','Featured'
-  ]);
-  assert.deepEqual(Array.from(profile.selectWorkflowPartners(rows),p=>p.partner_name),['Insurance Premier','Premier A']);
-  assert.equal(profile.placementLabel(rows[1]),'Premier Partner');
+test('partner profiles request independent directory and workflow views from the shared API',async()=>{
+  const calls=[];
+  const sandbox={window:{},URL,URLSearchParams,Date,document:{addEventListener(){}},fetch:async url=>{
+    calls.push(String(url));return {ok:true,json:async()=>({ok:true,partners:[]})};
+  }};
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../assets/partner-profile.js'),'utf8'),sandbox);
+  const shared=sandbox.window.hofPartnerProfile;
+  await shared.load('workflow'); await shared.load('workflow'); await shared.load('directory');
+  assert.equal(calls.length,2);
+  assert.match(calls[0],/surface=workflow/);
+  assert.match(calls[1],/surface=directory/);
+  assert.equal(shared.placementLabel({placement_tier:'exclusive_market'}),'Premier Partner');
 });
 test('all completion actions use existing privacy-safe tracking markers',()=>{
   const markup=profile.actions(provider,esc,'data-offer-completion-partner-link');
@@ -99,15 +96,9 @@ test('actual offer-follow-up places an optional portrait without changing contac
   assert.match(html,/tel:\+19728376378/); assert.match(html,/href="https:\/\/example.com\/"/);
   assert.doesNotMatch(completionMarkup({...provider,placement_tier:'exclusive_market'}),/has-portrait|hof-partner-headshot/);
 });
-test('completion shows only the single Premier provider per category, including title partners',()=>{
-  const rows=[
-    {...provider,partner_type:'title',placement_tier:'founding',partner_name:'Title Core'},
-    {...provider,partner_type:'title',placement_tier:'exclusive_market',partner_name:'Premier Title'},
-    {...provider,partner_type:'title',placement_tier:'exclusive_market',partner_name:'Second Premier Title'},
-  ];
-  const markup=completionMarkup(rows);
+test('completion renders the server-selected Premier title partner with an explicit placement label',()=>{
+  const markup=completionMarkup({...provider,partner_type:'title',placement_tier:'exclusive_market',partner_name:'Premier Title'});
   assert.match(markup,/Premier Title/);
-  assert.doesNotMatch(markup,/Title Core|Second Premier Title/);
   assert.match(markup,/Premier Partner/);
 });
 test('cached pre-portrait helper still renders follow-up cards and contact links',()=>{

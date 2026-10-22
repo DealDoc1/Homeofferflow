@@ -44,8 +44,8 @@ class FakeClient:
         type(self).last_request = self.request
         response = FakeResponse()
         response.status_code = 200
-        response.text = '[{"id":"placement-1","partner_name":"North Texas Movers"}]'
-        response.json = lambda: [{"id": "placement-1", "partner_name": "North Texas Movers"}]
+        response.text = '[{"id":"placement-1","partner_type":"moving_storage","partner_name":"North Texas Movers","placement_tier":"founding"}]'
+        response.json = lambda: [{"id": "placement-1", "partner_type":"moving_storage", "partner_name": "North Texas Movers", "placement_tier":"founding"}]
         return response
 
 
@@ -294,14 +294,47 @@ class PartnerLeadTests(unittest.TestCase):
 
     def test_public_directory_only_requests_platform_wide_safe_fields(self):
         with patch.object(fsbo_lead.httpx, "Client", FakeClient):
-            rows = fsbo_lead._list_public_partner_placements("moving_storage", "DFW")
+            rows = fsbo_lead._list_public_partner_placements("moving_storage", "DFW", "directory")
         self.assertEqual(rows[0]["partner_name"], "North Texas Movers")
         request_url = FakeClient.last_request["url"]
         self.assertIn("brokerage_id=is.null", request_url)
         self.assertIn("partner_type=eq.moving_storage", request_url)
         self.assertIn("select=id%2Cpartner_type%2Cpartner_name", request_url)
+        self.assertIn("limit=1000", request_url)
         self.assertNotIn("contact_email", request_url)
         self.assertNotIn("source_lead_id", rows[0])
+
+    def test_shared_partner_api_selects_directory_and_workflow_placements_by_category(self):
+        rows = [
+            {"id":"core-a","partner_type":"title","partner_name":"Core A","placement_tier":"founding"},
+            {"id":"premier-b","partner_type":"title","partner_name":"Premier B","placement_tier":"exclusive_market"},
+            {"id":"featured","partner_type":"title","partner_name":"Featured","placement_tier":"premier"},
+            {"id":"core-b","partner_type":"title","partner_name":"Core B","placement_tier":"founding"},
+            {"id":"premier-a","partner_type":"title","partner_name":"Premier A","placement_tier":"exclusive_market"},
+            {"id":"insurance-premier","partner_type":"insurance","partner_name":"Insurance Premier","placement_tier":"exclusive_market"},
+            {"id":"insurance-core","partner_type":"insurance","partner_name":"Insurance Core","placement_tier":"founding"},
+        ]
+        directory = fsbo_lead._select_partner_placements_for_view(rows, "directory")
+        workflow = fsbo_lead._select_partner_placements_for_view(rows, "workflow")
+        self.assertEqual([row["id"] for row in directory], [
+            "insurance-premier","insurance-core","premier-a","premier-b","featured"
+        ])
+        self.assertEqual([row["id"] for row in workflow], ["insurance-premier","premier-a"])
+        self.assertEqual(fsbo_lead._select_partner_placements_for_view(rows, "legacy"), rows)
+
+    def test_public_partner_route_accepts_view_and_preserves_response_shape(self):
+        endpoint = object.__new__(fsbo_lead.handler)
+        endpoint.path = "/api/fsbo-lead?partner_directory=1&surface=workflow&category=title"
+        expected = [{"id":"premier","partner_type":"title","placement_tier":"exclusive_market"}]
+        response = object()
+        with patch.object(fsbo_lead, "SUPABASE_URL", "https://example.supabase.co"), \
+             patch.object(fsbo_lead, "SUPABASE_SERVICE_ROLE_KEY", "test"), \
+             patch.object(fsbo_lead, "_list_public_partner_placements", return_value=expected) as load, \
+             patch.object(fsbo_lead, "_send", return_value=response) as send:
+            result = endpoint.do_GET()
+        load.assert_called_once_with("title", None, "workflow")
+        send.assert_called_once_with(endpoint, 200, {"ok":True,"partners":expected})
+        self.assertIs(result, response)
 
     def test_directory_cta_lookup_is_server_side_and_never_returns_the_source_lead_id(self):
         self.assertIn('_DIRECTORY_LOOKUP_FIELDS = f"{PUBLIC_PARTNER_FIELDS},source_lead_id"', MODULE_PATH.read_text())

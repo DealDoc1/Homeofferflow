@@ -132,7 +132,7 @@ class PartnerPublicProfileTests(unittest.TestCase):
             def get(self,url,**kwargs):
                 calls.append(url)
                 if 'hof_partner_placements?' in url:
-                    return Response([{'id':'placement','partner_name':'Integrity First','source_lead_id':lead_id,
+                    return Response([{'id':'placement','partner_type':'roofing','partner_name':'Integrity First','placement_tier':'founding','source_lead_id':lead_id,
                                       'contact_email':'private@invalid.test','contact_phone':'9999999999'}])
                 return Response([{'id':lead_id,'onboarding_cta_label':'Visit site',
                                   'onboarding_public_contact_phone':'+19728376378',
@@ -141,7 +141,7 @@ class PartnerPublicProfileTests(unittest.TestCase):
                                   'onboarding_public_headshot_url':'https://example.com/public-photo.jpg',
                                   'avatar_url':'https://private.example/photo.jpg',
                                   'contact_phone':'9999999999','message':'PRIVATE'}])
-        with patch.object(api.httpx,'Client',return_value=Client()): rows=api._list_public_partner_placements()
+        with patch.object(api.httpx,'Client',return_value=Client()): rows=api._list_public_partner_placements(view='directory')
         self.assertEqual(rows[0]['public_contact_phone'], '+19728376378')
         self.assertEqual(rows[0]['public_description'], 'DFW roof inspections')
         self.assertEqual(rows[0]['cta_label'], 'Visit site')
@@ -150,6 +150,34 @@ class PartnerPublicProfileTests(unittest.TestCase):
             self.assertNotIn(field, rows[0])
         self.assertNotIn('contact_email', calls[1])
         self.assertIn('onboarding_public_contact_phone', calls[1])
+
+    def test_public_workflow_view_returns_one_premier_title_partner_and_loads_only_its_public_profile(self):
+        lead_core='11111111-1111-4111-8111-111111111111'
+        lead_premier='22222222-2222-4222-8222-222222222222'
+        calls=[]
+        class Response:
+            status_code=200
+            text='yes'
+            def __init__(self,rows): self.rows=rows
+            def json(self): return self.rows
+        class Client:
+            def __enter__(self): return self
+            def __exit__(self,*args): return False
+            def get(self,url,**kwargs):
+                calls.append(url)
+                if 'hof_partner_placements?' in url:
+                    return Response([
+                        {'id':'placement-core','partner_type':'title','partner_name':'Title Core','placement_tier':'founding','source_lead_id':lead_core},
+                        {'id':'placement-premier','partner_type':'title','partner_name':'Title Premier','placement_tier':'exclusive_market','source_lead_id':lead_premier},
+                    ])
+                return Response([{'id':lead_premier,'partner_program':'beta','onboarding_cta_label':'Visit site'}])
+        with patch.object(api.httpx,'Client',return_value=Client()):
+            rows=api._list_public_partner_placements()
+        self.assertEqual([row['partner_name'] for row in rows],['Title Premier'])
+        self.assertEqual(rows[0]['partner_program'],'beta')
+        self.assertNotIn('source_lead_id',rows[0])
+        self.assertIn(lead_premier,calls[1])
+        self.assertNotIn(lead_core,calls[1])
 
     def test_phone_validation_occurs_before_setup_write_or_agreement_dispatch(self):
         with patch.object(api,'_get_partner_onboarding',return_value={'id':'fixture'}), \
