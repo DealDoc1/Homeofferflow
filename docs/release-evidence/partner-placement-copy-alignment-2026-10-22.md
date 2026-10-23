@@ -24,10 +24,10 @@ wording.
 
 - Python: 123 focused checks across intake copy, public metadata, partner tier
   UI, offer completion, public partner selection, and public profile lookup.
-  The local bundled Python runtime lacks `httpx`; these checks used a temporary
-  import stub that raises on any real network call. All selected API tests
-  replace the client with their in-memory fixtures. An additional 37 focused
-  PWA shell checks passed using the bundled runtime.
+  An additional 37 focused PWA shell checks passed. The full repository suite
+  passed 2,940 tests with 23 skips, using the pinned test requirements in
+  temporary storage. Partner selection and profile checks used in-memory
+  fixtures; no network requests were made.
 - JavaScript: 32 runtime checks across shared public partner profiles,
   offer-completion rendering, inspection workflow, and insurance workflow.
 - JSON-LD parsing and the focused public metadata checks passed.

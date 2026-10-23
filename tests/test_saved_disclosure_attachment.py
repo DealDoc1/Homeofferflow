@@ -12,7 +12,7 @@ class SavedDisclosureAttachmentTests(unittest.TestCase):
         asset='/assets/saved-disclosure-attachment.js?v=20261022-summary1'
         self.assertIn(asset,html)
         self.assertIn("'"+asset+"'",worker)
-        self.assertIn("homeofferflow-shell-v126",worker)
+        self.assertIn("homeofferflow-shell-v128",worker)
 
     def test_selected_reviewed_disclosure_shows_bound_parties_without_exposing_email(self):
         script = r'''

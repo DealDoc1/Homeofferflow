@@ -76,8 +76,9 @@ confirmation. Core, Featured, and other Premier profiles are directory-only.
 Focused partner visibility, metadata, tier UI, completion, and PWA tests pass
 (123 Python cases plus 32 JavaScript runtime cases). The partner page was reviewed
 at desktop and 390px mobile widths; the beta application and comparison were
-reviewed at desktop width. **Implemented, tested, and visually reviewed
-locally; not deployed.** See
+reviewed at desktop and mobile widths. The full Python suite passes 2,940 tests
+with 23 skips. **Implemented, tested, and visually reviewed locally; not
+deployed.** See
 [copy alignment evidence](release-evidence/partner-placement-copy-alignment-2026-10-22.md).
 
 ## Purchase packet pending-disclosure guidance — October 22, 2026
