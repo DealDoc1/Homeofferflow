@@ -13,6 +13,25 @@ class IntakePathClarityAuditTests(unittest.TestCase):
         self.assertIn("All partner placements are complimentary during beta.", PARTNERS)
         self.assertIn("One active Premier placement per category and market", PARTNERS)
 
+    def test_partner_visibility_copy_matches_the_shared_directory_and_workflow_rules(self):
+        guide = (Path(__file__).resolve().parents[1] / "texas-home-service-partner-guide.html").read_text(encoding="utf-8")
+        for page in (PARTNERS, HTML, guide):
+            with self.subTest(page=page[:60]):
+                self.assertIn("single top active Premier across HomeOfferFlow", page)
+                self.assertIn("guided workflows", page)
+                self.assertIn("after offer completion", page)
+        self.assertIn("up to three partners per category", PARTNERS)
+        self.assertIn("up to two other partners", PARTNERS)
+        self.assertIn("Other Premier profiles, Featured Partners, and Core Partners remain directory-only.", PARTNERS)
+        for stale in (
+            "Sponsored education / CTA outside selector",
+            "Sponsored education or CTA card at a relevant customer decision point",
+            "relevant workflow moments",
+            "Premier sponsored module outside the provider selector",
+        ):
+            with self.subTest(stale=stale):
+                self.assertNotIn(stale, HTML + PARTNERS + guide)
+
     def test_shared_landing_sections_are_marked_for_path_specific_copy(self):
         for identifier in (
             'id="heroBadge"', 'id="howCta"', 'id="trustPrimary"',
