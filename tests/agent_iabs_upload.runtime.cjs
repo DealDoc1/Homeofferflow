@@ -12,6 +12,40 @@ const source = html.slice(start, end);
 const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return { promise, resolve }; };
 const fakeButton = () => ({ disabled: false, attributes: {}, setAttribute(name, value) { this.attributes[name] = value; }, removeAttribute(name) { delete this.attributes[name]; } });
 
+function failureSetup({ metadataFailure = false } = {}) {
+  const events = [];
+  const status = { className: '', textContent: '' };
+  const button = fakeButton();
+  const file = { name: 'Brokerage IABS.pdf', type: 'application/pdf', size: 2048,
+    slice: () => ({ arrayBuffer: async () => Uint8Array.from([37, 80, 68, 70]).buffer }) };
+  const context = vm.createContext({
+    MAX_BYTES: 10 * 1024 * 1024,
+    BUCKET: 'agent-documents',
+    filePath: userId => `${userId}/iabs.pdf`,
+    hofAuth: { session: { user: { id: 'agent-1' } }, role: 'agent', agentIabsDocument: null },
+    __hofAccountProfileEpoch: 4,
+    getSupabaseClient: () => ({
+      storage: { from: () => ({ upload: async () => {
+        events.push('storage');
+        return metadataFailure ? { error: null } : { error: new Error('storage unreachable') };
+      } }) },
+      from: () => ({ upsert: async () => {
+        events.push('metadata');
+        return { error: new Error('database unavailable') };
+      } })
+    }),
+    document: { getElementById: id => ({
+      agentIabsFile: { files: [file] }, agentIabsStatus: status, agentIabsUploadButton: button
+    })[id] || null },
+    console: { error() {} },
+    window: { hofCustomerActionError: (_error, fallback) => fallback }
+  });
+  context.root = context;
+  context.window = context;
+  vm.runInNewContext(source, context);
+  return { context, status, button, events };
+}
+
 test('IABS upload uses the Supabase Storage cache lifetime contract and saves metadata', async () => {
   const events = [];
   const status = { className: '', textContent: '' };
@@ -64,6 +98,26 @@ test('IABS upload uses the Supabase Storage cache lifetime contract and saves me
   assert.equal(events.some(event => event.kind === 'unexpected-readback'), false);
   assert.equal(events.find(event => event.kind === 'render-card').document.original_filename, file.name);
   assert.equal(events.at(-1).kind, 'mount-offer-option');
+  assert.equal(button.disabled, false);
+  assert.equal(button.attributes['aria-busy'], undefined);
+});
+
+test('storage failure gives a retry hint and releases the upload control without a metadata write', async () => {
+  const { context, status, button, events } = failureSetup();
+  await context.uploadAgentIabsDocument();
+  assert.deepEqual(events, ['storage']);
+  assert.equal(status.className, 'hof-iabs-status error');
+  assert.match(status.textContent, /couldn’t upload this PDF.*Check your connection and try again/i);
+  assert.equal(button.disabled, false);
+  assert.equal(button.attributes['aria-busy'], undefined);
+});
+
+test('metadata failure explains that the private file uploaded and retry is idempotent', async () => {
+  const { context, status, button, events } = failureSetup({ metadataFailure: true });
+  await context.uploadAgentIabsDocument();
+  assert.deepEqual(events, ['storage', 'metadata']);
+  assert.equal(status.className, 'hof-iabs-status error');
+  assert.match(status.textContent, /couldn’t confirm the profile save.*same private file/i);
   assert.equal(button.disabled, false);
   assert.equal(button.attributes['aria-busy'], undefined);
 });

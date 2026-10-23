@@ -22958,6 +22958,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!file.size || file.size > MAX_BYTES) return showError('Your IABS PDF must be 10 MB or smaller.');
     if (button?.disabled) return;
     if (button) { button.disabled = true; button.setAttribute('aria-busy', 'true'); }
+    let storageUploadConfirmed = false;
     try {
       try {
         const signatureBytes = new Uint8Array(await file.slice(0, 4).arrayBuffer());
@@ -22976,6 +22977,7 @@ function routeAfterMagicLinkIfNeeded() {
         contentType: 'application/pdf', upsert: true, cacheControl: '0'
       });
       if (uploadError) throw uploadError;
+      storageUploadConfirmed = true;
       if (!isCurrent()) return;
       const payload = {
         user_id: user.id,
@@ -22999,7 +23001,10 @@ function routeAfterMagicLinkIfNeeded() {
     } catch (error) {
       if (!isCurrent()) return;
       console.error('IABS upload failed:', error);
-      if (status) { status.className = 'hof-iabs-status error'; status.textContent = window.hofCustomerActionError?.(error, 'We couldn’t upload your IABS PDF. Please try again.') || 'We couldn’t upload your IABS PDF. Please try again.'; }
+      const fallback = storageUploadConfirmed
+        ? 'Your PDF uploaded, but we couldn’t confirm the profile save. Upload it again to finish; it updates the same private file.'
+        : 'We couldn’t upload this PDF. Check your connection and try again.';
+      if (status) { status.className = 'hof-iabs-status error'; status.textContent = window.hofCustomerActionError?.(error, fallback) || fallback; }
     } finally {
       if (button) { button.disabled = false; button.removeAttribute('aria-busy'); }
     }

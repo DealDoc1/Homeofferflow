@@ -39,6 +39,13 @@ Python checks; shell v125 delivers the workflow to installed clients.
 Implemented and tested locally; not deployed. See
 [release evidence](release-evidence/iabs-upload-account-scope-2026-10-22.md).
 
+A follow-up now distinguishes a Storage upload failure from an unconfirmed
+profile-metadata save. The first prompts a connection check and retry; the
+second explains that the private file uploaded and that retry updates the same
+file path. Both paths release the busy state. Focused verification passes six
+upload runtime cases and 24 related Python checks. **Implemented and locally
+tested; not deployed.** The authenticated production upload remains unverified.
+
 The generic Uploaded Documents handoff now says explicitly that an IABS was
 not added to the offer and uses neutral guidance styling instead of the red
 error state. Ordinary PDFs selected alongside it continue through packet
@@ -92,6 +99,18 @@ and the full suite passes (2,927 passed, 23 skipped). The actual completion
 markup was reviewed at desktop and 390px mobile sizes with fictional data.
 **Implemented, tested and visually reviewed locally; not deployed.** See
 [release evidence](release-evidence/purchase-pending-disclosure-guidance-2026-10-22.md).
+
+## Sale and lease listing-package release gate — October 22, 2026
+
+Draft PR [#1353](https://github.com/DealDoc1/Homeofferflow/pull/1353) remains
+unmerged at head `c7e2e35260f3a6b8880725cb7460a2819901ffa3`. The owner approved
+the four final fictional QA signer steps, but the browser safety reviewer
+rejected the first `Agree & Finish` action; no final acceptance completed and
+no completed-provider PDFs are available for inspection. The existing test
+invitations must be completed and their actual PDFs reviewed before release.
+Four customer migrations also remain unapplied and must ship with the verified
+code in one intentional release. No replacement packet or deployment was made.
+See [final-acceptance dependency evidence](release-evidence/listing-final-acceptance-execution-2026-10-22.md).
 
 ## Owner-only lease QA enablement - October 21, 2026
 
