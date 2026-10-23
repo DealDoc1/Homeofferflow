@@ -56,12 +56,15 @@ upload. Focused upload tests pass (23 JavaScript cases and 19 Python checks).
 The IABS handoff now includes an **Open My IABS in Profile** button. It saves
 the current offer through the existing draft path, switches to Profile, and
 focuses the IABS upload control. The update preserves ordinary PDF attachments
-and advances the service-worker shell to v127. Focused verification passes 26
-JavaScript runtime cases and 66 Python checks, including PWA cache/update
+and advances the service-worker shell to v128. A regression uncovered and
+fixed filename detection for common underscore-separated names such as
+`Brokerage_IABS_2026.pdf`; focused verification passes 27 JavaScript runtime
+cases and 27 Python checks, including PWA cache/update
 paths. The mobile agent route reaches the secure sign-in panel, but the
 authenticated upload handoff could not be visually reviewed without a local
 QA session; no sign-in email was sent. **Implemented and locally tested; not
-deployed.** See
+deployed.** Status/action layout visually reviewed at 390×844; authenticated
+workspace and production behavior remain unverified. See
 [handoff evidence](release-evidence/iabs-packet-upload-guidance-2026-10-22.md).
 
 ## Partner directory and Premier visibility — October 22, 2026

@@ -46,20 +46,30 @@ saves the in-progress offer with the existing draft scheduler, opens the
 Profile tab, and focuses the IABS upload input. The status remains a polite
 live region, the route appears only for signed-in agent-side IABS selections,
 and unrelated PDFs continue through the existing packet path. The service
-worker advances to shell v127. `node --test
-tests/attachment_upload_isolation.runtime.cjs tests/agent_iabs_upload.runtime.cjs`
-passed 26 cases; the focused Python suite passed 66 checks, including PWA
-cache/update paths, and `git diff --check` passed. This follow-up is implemented
-and locally tested, not deployed; no external file, draft, or customer record
-was changed.
+worker advances to shell v128. Follow-up regression review found that the
+filename boundary expression did not recognize underscores, so a common name
+such as `Brokerage_IABS_2026.pdf` missed the private profile handoff and fell
+through to the generic packet size limit. The detector now treats underscores,
+periods, and hyphens as separators. A 3 MB underscore-named IABS regression
+confirms it routes to the profile action and is never added to the packet.
+`node --test tests/attachment_upload_isolation.runtime.cjs
+tests/agent_iabs_upload.runtime.cjs` passed 27 cases; the focused Python suite
+passed 27 checks, including PWA cache/update paths, and `git diff --check`
+passed. At 390×844, the status and profile action fit without horizontal
+overflow (390 px document width). This was a local status/action layout review;
+an authenticated upload session was unavailable, while runtime coverage
+verifies that the action saves the draft and routes to Profile. This follow-up
+is implemented and locally tested, not deployed; no external file, draft, or
+customer record was changed.
 
 ## Isolated IABS release-candidate check — October 22, 2026
 
-The IABS follow-up was isolated from the independent partner-copy work on
-production base `551d90644fb0cb0fa00492ea506a1736a09f6499`. Focused JavaScript
-coverage passes (26 cases). Focused Python coverage passes (27 tests); this
-also corrected the existing PWA assertion from shell v126 to v127, matching
-the current IABS build. At a 390×844 viewport, the agent purchase route opens
+The IABS follow-up was isolated from the independent partner-copy work. The
+production base was verified at `153c1420e8c756d23a083068d21a3252394a0ea4`;
+its deployed service worker was shell v127. Focused JavaScript coverage passes
+(27 cases). Focused Python coverage passes (27 checks); this also corrected
+the existing PWA assertion from shell v127 to v128, matching this IABS build.
+At a 390×844 viewport, the agent purchase route opens
 the secure sign-in panel before the authenticated workspace. The IABS upload
 handoff itself could not be visually reviewed because no authenticated local
 QA session is available; no sign-in email was sent. The runtime tests cover

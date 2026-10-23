@@ -12056,7 +12056,8 @@ function routeAfterMagicLinkIfNeeded() {
     const input = document.getElementById('uploadedDisclosureDocs');
     const agentRole = String(hofAuth?.role || '').toLowerCase();
     const canSaveProfileIabs = !!hofAuth?.session?.user && ['agent', 'broker', 'brokerage_admin', 'team_lead'].includes(agentRole);
-    const profileIabsFiles = canSaveProfileIabs ? files.filter(file => /\biabs\b/i.test(file.name || '')) : [];
+    const isIabsFilename = name => /(^|[^a-z])iabs(?=$|[^a-z])/i.test(String(name || '').replace(/[._-]+/g, ' '));
+    const profileIabsFiles = canSaveProfileIabs ? files.filter(file => isIabsFilename(file.name)) : [];
     const profileIabsGuidance = 'This file was not added to this offer. Save your brokerage IABS in Account > Profile > My IABS, then choose “Include my IABS?” on this offer. Profile IABS uploads allow PDFs up to 10 MB.';
     files = files.filter(file => !profileIabsFiles.includes(file));
     const setStatus = (message, type = 'err') => {

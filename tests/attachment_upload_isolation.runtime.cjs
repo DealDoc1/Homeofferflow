@@ -101,6 +101,14 @@ test('agent IABS uploads bypass packet size limits and explain the dedicated pro
   assert.equal(x.profileInput.scrolled,true);
   assert.equal(x.profileInput.focused,true);
 });
+test('underscore-separated IABS filenames use the private profile flow', async()=>{
+  const x=setup(),f=file('Brokerage_IABS_2026.pdf','body',3*1024*1024);x.hofAuth.role='agent';
+  await x.handleUploadedDisclosureDocs([f]);
+  assert.deepEqual(x.names(),[]);
+  assert.match(x.statuses.at(-1),/Account > Profile > My IABS/);
+  assert.equal(x.statusTypes.at(-1),'info');
+  assert.equal(x.actions.at(-1).label,'Open My IABS in Profile');
+});
 test('routing an agent IABS does not block a separate valid packet attachment', async()=>{
   const x=setup(),iabs=file('brokerage-IABS.pdf','body',3*1024*1024),survey=file('survey.pdf');x.hofAuth.role='agent';
   const pending=x.handleUploadedDisclosureDocs([iabs,survey]);await tick();survey.gate.resolve('JVBERg==');await pending;
