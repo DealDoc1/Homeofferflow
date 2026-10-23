@@ -35,4 +35,46 @@ upload. Other selected PDFs can still be added to the packet.
   requests and did not capture the user's reported failure. It cannot prove
   the cause of that specific attempt.
 - No Storage object, metadata row, account, or customer PDF was read or
-  changed. No deployment was created.
+  changed. Automatic Git deployments remain disabled; the production release
+  used the existing prebuilt workflow. No new deployment was created for the
+  local follow-up.
+
+## Follow-up local checkpoint
+
+The IABS handoff now provides an **Open My IABS in Profile** button. Its action
+saves the in-progress offer with the existing draft scheduler, opens the
+Profile tab, and focuses the IABS upload input. The status remains a polite
+live region, the route appears only for signed-in agent-side IABS selections,
+and unrelated PDFs continue through the existing packet path. The service
+worker advances to shell v128. Follow-up regression review found that the
+filename boundary expression did not recognize underscores, so a common name
+such as `Brokerage_IABS_2026.pdf` missed the private profile handoff and fell
+through to the generic packet size limit. The detector now treats underscores,
+periods, and hyphens as separators. A 3 MB underscore-named IABS regression
+confirms it routes to the profile action and is never added to the packet.
+`node --test tests/attachment_upload_isolation.runtime.cjs
+tests/agent_iabs_upload.runtime.cjs` passed 27 cases; the focused Python suite
+passed 27 checks, including PWA cache/update paths, and `git diff --check`
+passed. At 390×844, the status and profile action fit without horizontal
+overflow (390 px document width). This was a local status/action layout review;
+an authenticated upload session was unavailable, while runtime coverage
+verifies that the action saves the draft and routes to Profile. This follow-up
+is implemented and locally tested, not deployed; no external file, draft, or
+customer record was changed.
+
+## Isolated IABS release-candidate check — October 22, 2026
+
+The IABS follow-up was isolated from the independent partner-copy work. The
+production base was verified at `153c1420e8c756d23a083068d21a3252394a0ea4`;
+its deployed service worker was shell v127. Focused JavaScript coverage passes
+(27 cases). Focused Python coverage passes (27 checks); this also corrected
+the existing PWA assertion from shell v127 to v128, matching this IABS build.
+At a 390×844 viewport, the agent purchase route opens
+the secure sign-in panel before the authenticated workspace. The IABS upload
+handoff itself could not be visually reviewed because no authenticated local
+QA session is available; no sign-in email was sent. The runtime tests cover
+the visible status, route button, retry copy, upload scope, and preservation of
+other PDFs. No live file, draft, account, or metadata was read or changed.
+
+**Implemented and locally tested; authenticated upload UX not visually
+reviewed and this candidate is not deployed.**

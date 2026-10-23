@@ -26,14 +26,18 @@ function file(name, phase='body', size=100) {
 async function tick() { await new Promise(resolve=>setImmediate(resolve)); }
 function setup() {
   const input = {value:'selected', attrs:{}, setAttribute(k,v){this.attrs[k]=v;}, focus(){}};
+  const profileInput = {focused:false,scrolled:false,focus(){this.focused=true;},scrollIntoView(){this.scrolled=true;}};
   const ack = {checked:true};
   const x = {window:{hofUploadedDisclosureDocs:[]}, state:{data:{}}, hofAuth:{session:{user:{id:'one'}}},
-    document:{getElementById:id=>id==='uploadedDisclosureDocs'?input:id==='uploadedDisclosureAck'?ack:null},
-    console:{error(){}}, Uint8Array, statuses:[], statusTypes:[], reviews:0,
-    getCurrentSteps:()=>['step5'], showStep(){}, saveDraft(){}, escapeHtml:s=>s};
+    document:{getElementById:id=>id==='uploadedDisclosureDocs'?input:id==='uploadedDisclosureAck'?ack:id==='agentIabsFile'?profileInput:null},
+    console:{error(){}}, Uint8Array, statuses:[], statusTypes:[], actions:[], reviews:0,
+    getCurrentSteps:()=>['step5'], showStep(){}, accountTab:'', savedDraft:false,
+    profileInput};
+  x.showAccountTab = tab => { x.accountTab = tab; };
+  x.saveDraft = () => { x.savedDraft = true; };
   vm.createContext(x);
   vm.runInContext(source('  const uploadedDisclosureTypes =', '  function renderUploadedDocsList()'), x);
-  x.setUploadedDisclosureStatus = (message,type)=>{x.statuses.push(message);x.statusTypes.push(type);};
+  x.setUploadedDisclosureStatus = (message,type,action)=>{x.statuses.push(message);x.statusTypes.push(type);x.actions.push(action);};
   x.renderUploadedDocsList = ()=>{};
   x.renderReview = ()=>x.reviews++;
   x.readFileAsBase64 = f=>f.body;
@@ -42,6 +46,21 @@ function setup() {
   x.names=()=>Array.from(x.window.hofUploadedDisclosureDocs, d=>d.name);
   return x;
 }
+test('the IABS handoff renders its route as a button in the existing status region',()=>{
+  let textContent='';
+  const status={className:'',children:[],set textContent(value){textContent=value;this.children=[];},get textContent(){return textContent;},appendChild(node){this.children.push(node);}};
+  const button={style:{},listeners:{},addEventListener(type,handler){this.listeners[type]=handler;}};
+  const x={document:{getElementById:()=>status,createElement:tag=>{assert.equal(tag,'button');return button;}}};
+  vm.createContext(x);
+  vm.runInContext(source('  function setUploadedDisclosureStatus(', '  function uploadedDisclosureDraftNames()'),x);
+  x.setUploadedDisclosureStatus('This file was not added to this offer.','info',{label:'Open My IABS in Profile',run(){}});
+  assert.equal(status.className,'platform-status show info');
+  assert.equal(status.textContent,'This file was not added to this offer.');
+  assert.equal(status.children[0],button);
+  assert.equal(button.type,'button');
+  assert.equal(button.textContent,'Open My IABS in Profile');
+  assert.equal(typeof button.listeners.click,'function');
+});
 for (const phase of ['header','body']) {
   for (const change of ['offer','account','signout','epoch','reset']) {
     test(`late ${phase} completion is ignored after ${change}`, async()=>{
@@ -75,6 +94,20 @@ test('agent IABS uploads bypass packet size limits and explain the dedicated pro
   assert.match(x.statuses.at(-1),/This file was not added to this offer/);
   assert.equal(x.statusTypes.at(-1),'info');
   assert.equal(x.input.attrs['aria-busy'],'false');
+  assert.equal(x.actions.at(-1).label,'Open My IABS in Profile');
+  x.actions.at(-1).run();
+  assert.equal(x.savedDraft,true);
+  assert.equal(x.accountTab,'profile');
+  assert.equal(x.profileInput.scrolled,true);
+  assert.equal(x.profileInput.focused,true);
+});
+test('underscore-separated IABS filenames use the private profile flow', async()=>{
+  const x=setup(),f=file('Brokerage_IABS_2026.pdf','body',3*1024*1024);x.hofAuth.role='agent';
+  await x.handleUploadedDisclosureDocs([f]);
+  assert.deepEqual(x.names(),[]);
+  assert.match(x.statuses.at(-1),/Account > Profile > My IABS/);
+  assert.equal(x.statusTypes.at(-1),'info');
+  assert.equal(x.actions.at(-1).label,'Open My IABS in Profile');
 });
 test('routing an agent IABS does not block a separate valid packet attachment', async()=>{
   const x=setup(),iabs=file('brokerage-IABS.pdf','body',3*1024*1024),survey=file('survey.pdf');x.hofAuth.role='agent';

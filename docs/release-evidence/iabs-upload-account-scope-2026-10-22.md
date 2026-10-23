@@ -36,5 +36,20 @@ document into the newly active profile.
 
 ## External-state and release boundary
 
-No Storage object or metadata row was read or changed. This is implemented and
-tested locally only; it is not deployed or production-verified.
+No Storage object or metadata row was read or changed. The implementation is
+deployed in production release run `39875081232` at commit
+`551d90644fb0cb0fa00492ea506a1736a09f6499`; the full regression and production
+release checks passed. The authenticated profile-upload journey remains
+unverified in production because no test account or test document was used.
+
+## Follow-up local checkpoint
+
+The upload handler now gives stage-specific recovery guidance: Storage errors
+prompt a connection check and retry, while a confirmed Storage upload followed
+by a metadata error explains that retry updates the same private file path.
+Both errors restore the upload control. `node --test
+tests/agent_iabs_upload.runtime.cjs` passed six cases, including both failure
+stages; the related Python suite passed 24 checks and `git diff --check` passed.
+The existing profile-card status styles handle the added copy and no layout or
+upload contract changed. This follow-up is implemented and locally tested, not
+deployed; no live file or metadata was touched.

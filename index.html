@@ -11845,12 +11845,21 @@ function routeAfterMagicLinkIfNeeded() {
     try { renderReview(); } catch (_) {}
   }
 
-  function setUploadedDisclosureStatus(message, type = 'err') {
+  function setUploadedDisclosureStatus(message, type = 'err', action = null) {
     const el = document.getElementById('uploadedDocsStatus');
     if (!el) return;
     el.textContent = message || '';
     const tone = ['err', 'ok', 'info'].includes(type) ? type : 'err';
     el.className = message ? 'platform-status show ' + tone : 'platform-status';
+    if (message && action?.label && typeof action.run === 'function') {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'btn-secondary';
+      button.textContent = action.label;
+      button.style.marginTop = '.55rem';
+      button.addEventListener('click', action.run);
+      el.appendChild(button);
+    }
   }
 
   function uploadedDisclosureDraftNames() {
@@ -12047,10 +12056,24 @@ function routeAfterMagicLinkIfNeeded() {
     const input = document.getElementById('uploadedDisclosureDocs');
     const agentRole = String(hofAuth?.role || '').toLowerCase();
     const canSaveProfileIabs = !!hofAuth?.session?.user && ['agent', 'broker', 'brokerage_admin', 'team_lead'].includes(agentRole);
-    const profileIabsFiles = canSaveProfileIabs ? files.filter(file => /\biabs\b/i.test(file.name || '')) : [];
+    const isIabsFilename = name => /(^|[^a-z])iabs(?=$|[^a-z])/i.test(String(name || '').replace(/[._-]+/g, ' '));
+    const profileIabsFiles = canSaveProfileIabs ? files.filter(file => isIabsFilename(file.name)) : [];
     const profileIabsGuidance = 'This file was not added to this offer. Save your brokerage IABS in Account > Profile > My IABS, then choose “Include my IABS?” on this offer. Profile IABS uploads allow PDFs up to 10 MB.';
     files = files.filter(file => !profileIabsFiles.includes(file));
-    const setStatus = (message, type = 'err') => setUploadedDisclosureStatus([message, profileIabsFiles.length ? profileIabsGuidance : ''].filter(Boolean).join(' '), type);
+    const setStatus = (message, type = 'err') => {
+      const copy = [message, profileIabsFiles.length ? profileIabsGuidance : ''].filter(Boolean).join(' ');
+      const action = profileIabsFiles.length ? {
+        label: 'Open My IABS in Profile',
+        run: () => {
+          saveDraft();
+          showAccountTab('profile');
+          const upload = document.getElementById('agentIabsFile');
+          upload?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+          upload?.focus?.();
+        }
+      } : null;
+      setUploadedDisclosureStatus(copy, type, action);
+    };
     const existingDocs = Array.isArray(window.hofUploadedDisclosureDocs) ? window.hofUploadedDisclosureDocs : [];
     const existingBytes = existingDocs.reduce((total, doc) => total + Number(doc?.size || 0), 0);
     const selectedBytes = files.reduce((total, file) => total + Number(file?.size || 0), 0);
@@ -22958,6 +22981,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!file.size || file.size > MAX_BYTES) return showError('Your IABS PDF must be 10 MB or smaller.');
     if (button?.disabled) return;
     if (button) { button.disabled = true; button.setAttribute('aria-busy', 'true'); }
+    let storageUploadConfirmed = false;
     try {
       try {
         const signatureBytes = new Uint8Array(await file.slice(0, 4).arrayBuffer());
@@ -22976,6 +23000,7 @@ function routeAfterMagicLinkIfNeeded() {
         contentType: 'application/pdf', upsert: true, cacheControl: '0'
       });
       if (uploadError) throw uploadError;
+      storageUploadConfirmed = true;
       if (!isCurrent()) return;
       const payload = {
         user_id: user.id,
@@ -22999,7 +23024,10 @@ function routeAfterMagicLinkIfNeeded() {
     } catch (error) {
       if (!isCurrent()) return;
       console.error('IABS upload failed:', error);
-      if (status) { status.className = 'hof-iabs-status error'; status.textContent = window.hofCustomerActionError?.(error, 'We couldn’t upload your IABS PDF. Please try again.') || 'We couldn’t upload your IABS PDF. Please try again.'; }
+      const fallback = storageUploadConfirmed
+        ? 'Your PDF uploaded, but we couldn’t confirm the profile save. Upload it again to finish; it updates the same private file.'
+        : 'We couldn’t upload this PDF. Check your connection and try again.';
+      if (status) { status.className = 'hof-iabs-status error'; status.textContent = window.hofCustomerActionError?.(error, fallback) || fallback; }
     } finally {
       if (button) { button.disabled = false; button.removeAttribute('aria-busy'); }
     }
