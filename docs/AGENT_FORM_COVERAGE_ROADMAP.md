@@ -53,6 +53,14 @@ upload. Focused upload tests pass (23 JavaScript cases and 19 Python checks).
 **Implemented and tested locally; not visually verified or deployed.** See
 [handoff evidence](release-evidence/iabs-packet-upload-guidance-2026-10-22.md).
 
+The IABS handoff now includes an **Open My IABS in Profile** button. It saves
+the current offer through the existing draft path, switches to Profile, and
+focuses the IABS upload control. The update preserves ordinary PDF attachments
+and advances the service-worker shell to v127. Focused verification passes 26
+JavaScript runtime cases and 66 Python checks, including PWA cache/update
+paths. **Implemented and locally tested; not deployed.** See
+[handoff evidence](release-evidence/iabs-packet-upload-guidance-2026-10-22.md).
+
 ## Partner directory and Premier visibility — October 22, 2026
 
 Partner visibility now follows one cross-category rule: one top Premier partner

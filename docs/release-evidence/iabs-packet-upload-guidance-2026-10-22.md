@@ -35,4 +35,20 @@ upload. Other selected PDFs can still be added to the packet.
   requests and did not capture the user's reported failure. It cannot prove
   the cause of that specific attempt.
 - No Storage object, metadata row, account, or customer PDF was read or
-  changed. No deployment was created.
+  changed. Automatic Git deployments remain disabled; the production release
+  used the existing prebuilt workflow. No new deployment was created for the
+  local follow-up.
+
+## Follow-up local checkpoint
+
+The IABS handoff now provides an **Open My IABS in Profile** button. Its action
+saves the in-progress offer with the existing draft scheduler, opens the
+Profile tab, and focuses the IABS upload input. The status remains a polite
+live region, the route appears only for signed-in agent-side IABS selections,
+and unrelated PDFs continue through the existing packet path. The service
+worker advances to shell v127. `node --test
+tests/attachment_upload_isolation.runtime.cjs tests/agent_iabs_upload.runtime.cjs`
+passed 26 cases; the focused Python suite passed 66 checks, including PWA
+cache/update paths, and `git diff --check` passed. This follow-up is implemented
+and locally tested, not deployed; no external file, draft, or customer record
+was changed.

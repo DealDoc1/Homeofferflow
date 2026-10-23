@@ -11845,12 +11845,21 @@ function routeAfterMagicLinkIfNeeded() {
     try { renderReview(); } catch (_) {}
   }
 
-  function setUploadedDisclosureStatus(message, type = 'err') {
+  function setUploadedDisclosureStatus(message, type = 'err', action = null) {
     const el = document.getElementById('uploadedDocsStatus');
     if (!el) return;
     el.textContent = message || '';
     const tone = ['err', 'ok', 'info'].includes(type) ? type : 'err';
     el.className = message ? 'platform-status show ' + tone : 'platform-status';
+    if (message && action?.label && typeof action.run === 'function') {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'btn-secondary';
+      button.textContent = action.label;
+      button.style.marginTop = '.55rem';
+      button.addEventListener('click', action.run);
+      el.appendChild(button);
+    }
   }
 
   function uploadedDisclosureDraftNames() {
@@ -12050,7 +12059,20 @@ function routeAfterMagicLinkIfNeeded() {
     const profileIabsFiles = canSaveProfileIabs ? files.filter(file => /\biabs\b/i.test(file.name || '')) : [];
     const profileIabsGuidance = 'This file was not added to this offer. Save your brokerage IABS in Account > Profile > My IABS, then choose “Include my IABS?” on this offer. Profile IABS uploads allow PDFs up to 10 MB.';
     files = files.filter(file => !profileIabsFiles.includes(file));
-    const setStatus = (message, type = 'err') => setUploadedDisclosureStatus([message, profileIabsFiles.length ? profileIabsGuidance : ''].filter(Boolean).join(' '), type);
+    const setStatus = (message, type = 'err') => {
+      const copy = [message, profileIabsFiles.length ? profileIabsGuidance : ''].filter(Boolean).join(' ');
+      const action = profileIabsFiles.length ? {
+        label: 'Open My IABS in Profile',
+        run: () => {
+          saveDraft();
+          showAccountTab('profile');
+          const upload = document.getElementById('agentIabsFile');
+          upload?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+          upload?.focus?.();
+        }
+      } : null;
+      setUploadedDisclosureStatus(copy, type, action);
+    };
     const existingDocs = Array.isArray(window.hofUploadedDisclosureDocs) ? window.hofUploadedDisclosureDocs : [];
     const existingBytes = existingDocs.reduce((total, doc) => total + Number(doc?.size || 0), 0);
     const selectedBytes = files.reduce((total, file) => total + Number(file?.size || 0), 0);
