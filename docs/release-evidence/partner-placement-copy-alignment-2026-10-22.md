@@ -39,6 +39,25 @@ wording.
 - No partner application was submitted, no external write or message was
   made, no charge was incurred, and no deployment was attempted.
 
+## Isolated production release candidate — October 22, 2026
+
+This copy-only release candidate is based on the current production commit
+`551d90644fb0cb0fa00492ea506a1736a09f6499`; its service-worker shell advances
+from v126 to v127. Focused validation on the isolated candidate passes 146
+Python tests and 32 JavaScript runtime cases. The complete Python regression
+suite also completed successfully (exit 0). The partner page and Premier tier
+were visually reviewed at 1280×900 and 390×844; at 390px the document
+`scrollWidth` remains 390px and the Premier card clearly states the
+cross-platform workflow and completion rule.
+
+A read-only production Supabase query confirmed
+`hof_partner_leads_partner_type_check` is validated and includes `title`,
+`lender`, `inspection`, and `surveyor`, alongside the API-supported categories.
+The API/database category contract therefore accepts title partners. No row was
+read or changed. Vercel reports no connected Git project or origin connection;
+automatic Git deployments remain off. This candidate remains **not deployed**;
+no routine preview or partner submission was made.
+
 **Implemented, tested, and visually reviewed locally; not deployed or
 production-verified.** The repository has no `docs/CURRENT_PROJECT_STATE.md`;
 the roadmap and release-evidence files are the available project records.
