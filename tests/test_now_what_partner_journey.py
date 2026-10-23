@@ -22,9 +22,13 @@ class NowWhatPartnerJourneyTests(unittest.TestCase):
         self.assertIn("No active HomeOfferFlow provider profiles are available here yet.", self.html)
         self.assertIn("You are free to choose any provider or none.", self.html)
 
-    def test_completion_directory_only_mentions_one_premier_partner_per_category(self):
+    def test_completion_directory_only_mentions_the_single_platform_top_premier(self):
         self.assertIn("window.hofPartnerProfile.load('workflow')", self.html)
         self.assertIn('window.hofPartnerProfile.placementLabel(partner)', self.html)
+        api = (HTML_PATH.parent/'api/fsbo-lead.py').read_text(encoding='utf-8')
+        self.assertIn('return premier[:1]', api)
+        self.assertIn('partners = partners[:3]', api)
+        self.assertIn('single top active Premier across HomeOfferFlow', (HTML_PATH.parent/'partners.html').read_text(encoding='utf-8'))
 
     def test_premier_partners_have_explicit_tier_label(self):
         self.assertIn("Premier Partner", self.html)

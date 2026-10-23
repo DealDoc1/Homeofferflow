@@ -149,7 +149,8 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, INDEX)
         self.assertNotIn("workflow moments", PARTNERS)
-        self.assertIn("customer decision points", PARTNERS)
+        self.assertIn("single top active Premier across HomeOfferFlow", PARTNERS)
+        self.assertIn("offer-completion confirmation", PARTNERS)
 
     def test_crawlers_can_discover_the_public_marketing_routes(self):
         self.assertIn('Sitemap: https://www.homeofferflow.com/sitemap.xml', ROBOTS)
@@ -283,7 +284,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn("destination.searchParams.set('utm_source', 'organic')", PARTNERS)
         self.assertIn("destination.searchParams.set('utm_campaign', 'partner_acquisition')", PARTNERS)
         self.assertIn('/_vercel/insights/script.js', PARTNERS)
-        self.assertIn('not a referral or a required provider choice', PARTNERS)
+        self.assertIn('Partner placement does not establish a referral relationship', PARTNERS)
         self.assertIn('From application to a reviewed placement.', PARTNERS)
         self.assertIn('Apply with the essentials', PARTNERS)
         self.assertIn('Finish secure setup', PARTNERS)
@@ -293,8 +294,9 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('Clear beta terms before you apply.', PARTNERS)
         self.assertIn('Will my placement automatically become paid?', PARTNERS)
         self.assertIn('What does Premier category-and-market exclusivity mean?', PARTNERS)
-        self.assertIn('One active Premier sponsor per category and market', PARTNERS)
-        self.assertIn('Premier Partners reserve one active Premier placement', PARTNERS)
+        self.assertIn('One active Premier placement per category and market', PARTNERS)
+        self.assertIn('single top active Premier across HomeOfferFlow', PARTNERS)
+        self.assertIn('up to three partners per category', PARTNERS)
         self.assertIn('href="/partners">Become a Founding Partner</a>', INDEX)
 
     def test_provider_directory_describes_its_searchable_collection(self):

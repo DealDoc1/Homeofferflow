@@ -68,6 +68,18 @@ three-profile directory cap, and title-provider completion. **Implemented,
 tested, and reviewed locally; not deployed.** See
 [partner visibility evidence](release-evidence/partner-premier-visibility-2026-10-22.md).
 
+The public partner page, beta application comparison, Texas partner guide, and
+rate card now state the same placement contract: up to three profiles per
+category (the Premier plus up to two others), while only the single top active
+Premier across HomeOfferFlow appears in guided workflows and the completion
+confirmation. Core, Featured, and other Premier profiles are directory-only.
+Focused partner visibility, metadata, tier UI, completion, and PWA tests pass
+(123 Python cases plus 32 JavaScript runtime cases). The partner page was reviewed
+at desktop and 390px mobile widths; the beta application and comparison were
+reviewed at desktop width. **Implemented, tested, and visually reviewed
+locally; not deployed.** See
+[copy alignment evidence](release-evidence/partner-placement-copy-alignment-2026-10-22.md).
+
 ## Purchase packet pending-disclosure guidance — October 22, 2026
 
 When a seller disclosure cannot be included in a generated purchase packet, the
