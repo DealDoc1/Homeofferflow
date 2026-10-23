@@ -58,7 +58,10 @@ the current offer through the existing draft path, switches to Profile, and
 focuses the IABS upload control. The update preserves ordinary PDF attachments
 and advances the service-worker shell to v127. Focused verification passes 26
 JavaScript runtime cases and 66 Python checks, including PWA cache/update
-paths. **Implemented and locally tested; not deployed.** See
+paths. The mobile agent route reaches the secure sign-in panel, but the
+authenticated upload handoff could not be visually reviewed without a local
+QA session; no sign-in email was sent. **Implemented and locally tested; not
+deployed.** See
 [handoff evidence](release-evidence/iabs-packet-upload-guidance-2026-10-22.md).
 
 ## Partner directory and Premier visibility — October 22, 2026

@@ -52,3 +52,19 @@ passed 26 cases; the focused Python suite passed 66 checks, including PWA
 cache/update paths, and `git diff --check` passed. This follow-up is implemented
 and locally tested, not deployed; no external file, draft, or customer record
 was changed.
+
+## Isolated IABS release-candidate check — October 22, 2026
+
+The IABS follow-up was isolated from the independent partner-copy work on
+production base `551d90644fb0cb0fa00492ea506a1736a09f6499`. Focused JavaScript
+coverage passes (26 cases). Focused Python coverage passes (27 tests); this
+also corrected the existing PWA assertion from shell v126 to v127, matching
+the current IABS build. At a 390×844 viewport, the agent purchase route opens
+the secure sign-in panel before the authenticated workspace. The IABS upload
+handoff itself could not be visually reviewed because no authenticated local
+QA session is available; no sign-in email was sent. The runtime tests cover
+the visible status, route button, retry copy, upload scope, and preservation of
+other PDFs. No live file, draft, account, or metadata was read or changed.
+
+**Implemented and locally tested; authenticated upload UX not visually
+reviewed and this candidate is not deployed.**
