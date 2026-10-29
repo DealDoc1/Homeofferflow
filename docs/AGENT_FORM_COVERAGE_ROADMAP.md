@@ -77,11 +77,14 @@ The placement rule now lives in the shared public partner API as additive
 the same result contract. The API curates placement rows before fetching
 opted-in public profile details.
 Title, lender, inspection and survey categories use the same explicit
-placement-label rule. Beta profiles say “Beta partner” alongside their
-placement, keeping the free beta status clear. The public API deterministically
-selects one active Premier across all categories; category-filtered workflow
-calls cannot select another Premier. Admin activation preserves each beta
-application's selected tier while keeping every placement at $0. Focused
+placement-label rule. Public surfaces identify the first active partner in
+each category as Founding Partner, independently of tier, and label all
+placements Sponsored; they do not expose the internal beta-program flag. Free
+beta terms remain clear on partner acquisition surfaces. The public API
+deterministically selects one active Premier across all categories;
+category-filtered workflow calls cannot select another Premier. Admin
+activation preserves each beta application's selected tier while keeping every
+placement at $0. Focused
 workflow, beta onboarding, and public-profile checks pass (32 JavaScript cases
 and 128 Python checks), and the full Python suite passes 2,938 tests.
 Actual-source render tests cover Premier-only workflow surfaces, the
@@ -93,7 +96,7 @@ The public partner page, beta application comparison, Texas partner guide, and
 rate card now state the same placement contract: up to three profiles per
 category (the Premier plus up to two others), while only the single top active
 Premier across HomeOfferFlow appears in guided workflows and the completion
-confirmation. Core, Featured, and other Premier profiles are directory-only.
+confirmation. Founding, Featured, and other Premier profiles are directory-only.
 Focused partner visibility, metadata, tier UI, completion, and PWA tests pass
 (123 Python cases plus 32 JavaScript runtime cases). The partner page was reviewed
 at desktop and 390px mobile widths; the beta application and comparison were
@@ -101,6 +104,15 @@ reviewed at desktop and mobile widths. The full Python suite passes 2,940 tests
 with 23 skips. **Implemented, tested, and visually reviewed locally; not
 deployed.** See
 [copy alignment evidence](release-evidence/partner-placement-copy-alignment-2026-10-22.md).
+
+Public tier names now use Founding Partner, Featured Partner, and Premier
+Partner. The first active profile in each category receives the Founding label
+regardless of the applicant's tier selection; public profile cards use the
+Sponsored disclosure and never expose “Beta partner” or “Core Partner.” The
+shared API keeps the existing tier and response contracts, returns the
+category-founder flag, caps directories at three per category, and limits
+workflows and offer completion to the single top active Premier. See
+[October 28 nomenclature evidence](release-evidence/partner-public-placement-nomenclature-2026-10-28.md).
 
 ## Purchase packet pending-disclosure guidance — October 22, 2026
 

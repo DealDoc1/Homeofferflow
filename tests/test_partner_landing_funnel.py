@@ -11,6 +11,10 @@ ACQUISITION_CHANNEL = (ROOT / "assets" / "acquisition-channel.js").read_text(enc
 
 
 class PartnerLandingFunnelTests(unittest.TestCase):
+    def test_partner_page_compacts_hero_and_keeps_mobile_tier_anchor_visible(self):
+        self.assertIn('@media (max-width:600px) { h1 { font-size:clamp(1.9rem,8vw,2.3rem)', PARTNERS)
+        self.assertIn('#tiers { scroll-margin-top:1rem; }', PARTNERS)
+
     def test_public_endpoint_only_accepts_allowlisted_aggregate_events(self):
         self.assertIn("PARTNER_LANDING_EVENT_TYPES", API)
         self.assertIn("def _record_partner_landing_event(data):", API)
@@ -77,7 +81,7 @@ class PartnerLandingFunnelTests(unittest.TestCase):
 
         self.assertIn('"@type":"BreadcrumbList"', guide)
         self.assertNotIn('Most popular starting point', PARTNERS)
-        self.assertIn("Start Core application", PARTNERS)
+        self.assertIn("Start Founding application", PARTNERS)
         self.assertIn("Start Featured application", PARTNERS)
         self.assertIn("Start Premier application", PARTNERS)
         self.assertEqual(PARTNERS.count('<p class="price">$0</p>'), 3)
@@ -89,7 +93,7 @@ class PartnerLandingFunnelTests(unittest.TestCase):
     def test_partner_guide_exposes_crawlable_tier_inventory(self):
         guide = (ROOT / "texas-home-service-partner-guide.html").read_text(encoding="utf-8")
         self.assertIn('"@type":"ItemList"', guide)
-        for tier in ("Core Partner placement", "Featured Partner placement", "Premier Partner placement"):
+        for tier in ("Founding Partner placement", "Featured Partner placement", "Premier Partner placement"):
             self.assertIn(tier, guide)
         self.assertIn('https://www.homeofferflow.com/partners#tiers', guide)
 

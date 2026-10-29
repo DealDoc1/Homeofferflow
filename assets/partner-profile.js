@@ -25,9 +25,17 @@
     const name = String(provider.public_contact_name || '').trim().slice(0, 80);
     return `<div class="hof-partner-actions">${website ? `<a href="${esc(website)}" ${attrs} target="_blank" rel="noopener noreferrer">${esc(websiteLabel(provider))} ↗</a>` : ''}${phone ? `<a href="${esc(phone)}" ${attrs} aria-label="${esc((name ? 'Call ' + name : 'Call') + ' at ' + provider.public_contact_phone)}">${esc(name ? 'Call ' + name : 'Call')} →</a>` : ''}</div>`;
   };
-  const placementLabel = partner => partner?.placement_tier === 'exclusive_market' ? 'Premier Partner'
+  const placementTierLabel = partner => partner?.placement_tier === 'exclusive_market' ? 'Premier Partner'
     : partner?.placement_tier === 'premier' ? 'Featured Partner'
-    : partner?.placement_tier === 'founding' ? 'Core Partner' : 'Partner';
+    : 'Partner';
+  const placementLabel = partner => {
+    const tierLabel = placementTierLabel(partner);
+    if (!partner?.is_category_founder) return tierLabel;
+    return tierLabel === 'Partner' ? 'Founding Partner' : `Founding Partner · ${tierLabel}`;
+  };
+  const topWorkflowPremier = partners => Array.isArray(partners)
+    ? partners.find(partner => partner?.placement_tier === 'exclusive_market') || null
+    : null;
   const directoryRequests = new Map();
   if (typeof document !== 'undefined') document.addEventListener('error', event => {
     if (!event.target?.matches?.('.hof-partner-headshot')) return;
@@ -52,5 +60,5 @@
     }
     return directoryRequests.get(view).request;
   };
-  window.hofPartnerProfile = Object.freeze({ websiteUrl, phoneUrl, websiteLabel, placementLabel, portrait, actions, load });
+  window.hofPartnerProfile = Object.freeze({ websiteUrl, phoneUrl, websiteLabel, placementLabel, topWorkflowPremier, portrait, actions, load });
 }());

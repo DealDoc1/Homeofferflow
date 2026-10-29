@@ -13,8 +13,20 @@ class PartnerTierUiTests(unittest.TestCase):
     def setUpClass(cls):
         cls.html = INDEX_PATH.read_text(encoding="utf-8")
 
+    def test_selected_tier_does_not_promise_the_category_founding_designation(self):
+        self.assertNotIn("Founding Partner badge and onboarding included", self.html)
+        self.assertIn("The first active partner in each category is labeled Founding Partner, regardless of selected tier.", self.html)
+        modal = self.html[self.html.index('id="foundingPartnerModal"'):self.html.index('id="hof-founding-partner-intake-v1"')]
+        essentials = modal[modal.index('id="foundingPartnerEssentials"'):modal.index('id="foundingPartnerRequiredCue"')]
+        self.assertLess(essentials.index("first active partner in each category"), essentials.index('id="foundingPartnerType"'))
+
+    def test_public_premier_review_copy_does_not_promise_a_fixed_review_date(self):
+        partners = (INDEX_PATH.parent / "partners.html").read_text(encoding="utf-8")
+        self.assertNotIn("90-day placement review", partners)
+        self.assertIn("Onboarding and placement review", partners)
+
     def test_three_public_tiers_and_rates_are_present(self):
-        for label in ("Core Partner", "Featured Partner", "Premier Partner"):
+        for label in ("Founding Partner", "Featured Partner", "Premier Partner"):
             with self.subTest(label=label):
                 self.assertIn(label, self.html)
         self.assertEqual(self.html.count('<strong>$0</strong><span>during beta</span>'), 3)

@@ -55,6 +55,9 @@ test('partner profiles request independent directory and workflow views from the
   assert.match(calls[0],/surface=workflow/);
   assert.match(calls[1],/surface=directory/);
   assert.equal(shared.placementLabel({placement_tier:'exclusive_market'}),'Premier Partner');
+  assert.equal(shared.placementLabel({placement_tier:'founding',is_category_founder:true}),'Founding Partner');
+  assert.equal(shared.placementLabel({placement_tier:'premier',is_category_founder:true}),'Founding Partner · Featured Partner');
+  assert.equal(shared.topWorkflowPremier([{placement_tier:'premier'},{id:'top',placement_tier:'exclusive_market'},{id:'second',placement_tier:'exclusive_market'}]).id,'top');
 });
 test('all completion actions use existing privacy-safe tracking markers',()=>{
   const markup=profile.actions(provider,esc,'data-offer-completion-partner-link');
@@ -72,12 +75,20 @@ function completionMarkup(rows,sharedProfile=profile) {
   vm.runInNewContext(code+'\nrenderNowWhatDirectory(input);',{...sandbox,input:Array.isArray(rows)?rows:[rows]});
   return target.innerHTML;
 }
-test('actual offer-follow-up renderer carries logo, escaped description, beta label and both actions',()=>{
+test('actual offer-follow-up renderer carries logo, escaped description, sponsored label and both actions',()=>{
   const markup=completionMarkup({...provider,placement_tier:'exclusive_market',partner_name:'Integrity First',partner_program:'beta',
     public_description:'Roofing <script>unsafe</script>',logo_url:'https://example.com/logo.jpg'});
-  assert.match(markup,/alt="Integrity First logo"/); assert.match(markup,/Beta partner · Premier Partner/);
+  assert.match(markup,/alt="Integrity First logo"/); assert.match(markup,/Sponsored · Premier Partner/);
+  assert.doesNotMatch(markup,/Beta partner|Core Partner/);
   assert.match(markup,/&lt;script&gt;/); assert.doesNotMatch(markup,/<script>/);
   assert.match(markup,/tel:\+19728376378/); assert.match(markup,/Visit website/);
+});
+test('actual offer-follow-up renderer mentions only one Premier profile',()=>{
+  const markup=completionMarkup([
+    {...provider,placement_tier:'exclusive_market',partner_name:'First Premier',partner_type:'title'},
+    {...provider,placement_tier:'exclusive_market',partner_name:'Second Premier',partner_type:'roofing'}
+  ]);
+  assert.match(markup,/First Premier/); assert.doesNotMatch(markup,/Second Premier/);
 });
 test('actual offer-follow-up renderer never uses private contacts or unsafe website',()=>{
   const markup=completionMarkup({id:'fixture',partner_type:'roofing',placement_tier:'exclusive_market',contact_phone:'+19728376378',contact_name:'Private',website_url:'javascript:evil'});

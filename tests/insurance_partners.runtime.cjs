@@ -34,7 +34,7 @@ test('cached pre-portrait helper preserves insurance planning and contact routin
 });
 test('renders approved central insurance profile with separate website and call actions and choice',async()=>{
   const p=setup();await p.flush();assert.equal(p.target.hidden,false);
-  for(const text of ['Fictional QA Insurance','Home insurance · Beta partner · Premier Partner','North Texas','excluding coastal','tel:+19034362470','Visit website','Optional service providers','not shared automatically']){
+  for(const text of ['Fictional QA Insurance','Home insurance · Sponsored · Premier Partner','North Texas','excluding coastal','tel:+19034362470','Visit website','Optional service providers','not shared automatically']){
     assert.ok(p.target.innerHTML.includes(text),text);
   }
   assert.equal(p.calls.filter(c=>!c.options).length,1);

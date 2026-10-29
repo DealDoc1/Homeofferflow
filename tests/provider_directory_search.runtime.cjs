@@ -6,7 +6,7 @@ const root = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'directory.html'), 'utf8');
 const source = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]).find(s => s.includes('const labels ='));
 const profile = fs.readFileSync(path.join(root, 'assets/partner-profile.js'), 'utf8');
-const fixture = {id:'22222222-2222-4222-8222-222222222222',partner_type:'roofing',partner_name:'Test Roofing',partner_program:'beta',placement_tier:'founding',market_area:'Test market',website_url:'https://example.com/',logo_url:'https://example.com/logo.jpg',public_contact_name:'Test Contact',public_contact_phone:'+19725550123',public_description:'First approved sentence. Second approved sentence. '+ 'More approved details. '.repeat(15)};
+const fixture = {id:'22222222-2222-4222-8222-222222222222',partner_type:'roofing',partner_name:'Test Roofing',partner_program:'beta',placement_tier:'founding',is_category_founder:true,market_area:'Test market',website_url:'https://example.com/',logo_url:'https://example.com/logo.jpg',public_contact_name:'Test Contact',public_contact_phone:'+19725550123',public_description:'First approved sentence. Second approved sentence. '+ 'More approved details. '.repeat(15)};
 const tick = () => new Promise(resolve => setImmediate(resolve));
 function deferred() { let resolve, reject; const promise = new Promise((a,b) => {resolve=a;reject=b;}); return {promise,resolve,reject}; }
 function setup({legacyProfile=false,strictPortrait=false}={}) {
@@ -57,7 +57,7 @@ async function run() {
     assert(result.includes('<details class="provider-description">'));
     assert(result.includes(fixture.public_description.trim()));
     assert(result.includes('tel:+19725550123'));
-    assert(result.includes('Beta partner · Core Partner'));
+    assert(result.includes('Sponsored · Founding Partner'));
     assert.equal(s.button.disabled,false);assert.equal(s.timers.size,0);
   }
   {

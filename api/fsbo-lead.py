@@ -155,8 +155,8 @@ FSBO_RECEIPT_NEXT_STEPS = {
         "We will confirm the scope and provider plan with you before any payment is requested.",
     ),
 }
-PUBLIC_PARTNER_FIELDS = "id,partner_type,partner_name,website_url,logo_url,market_area,placement_tier"
-_DIRECTORY_LOOKUP_FIELDS = f"{PUBLIC_PARTNER_FIELDS},source_lead_id"
+PUBLIC_PARTNER_FIELDS = "id,partner_type,partner_name,website_url,logo_url,market_area,placement_tier,is_category_founder"
+_DIRECTORY_LOOKUP_FIELDS = "id,partner_type,partner_name,website_url,logo_url,market_area,placement_tier,source_lead_id,created_at"
 PRICE_ENV_BY_TIER = {
     "founding_pilot": "STRIPE_FOUNDING_PARTNER_LISTING_PRICE_ID",
     "monthly_placement": "STRIPE_FOUNDING_PARTNER_FEATURED_PRICE_ID",
@@ -540,7 +540,7 @@ def _send_partner_application_confirmation(payload):
     contact = str(payload.get("contact_name") or "there")
     market = str(payload.get("market_area") or "your market")
     tier_labels = {
-        "founding_pilot": "Core Partner",
+        "founding_pilot": "Founding Partner",
         "monthly_placement": "Featured Partner",
         "market_exclusive": "Premier Partner",
         "discuss": "Custom / multi-market plan",
@@ -1484,13 +1484,19 @@ def _create_partner_checkout(lead_id, headers, source=None):
     return result["url"]
 
 
-def _select_partner_placements_for_view(rows, view):
+def _select_partner_placements_for_view(rows, view, market=None):
     """Apply the shared directory and single-Premier workflow contract."""
     if view not in PARTNER_DIRECTORY_VIEWS:
         return rows
+    rows = [dict(row) if isinstance(row, dict) else row for row in rows]
+    for row in rows:
+        if isinstance(row, dict):
+            row["is_category_founder"] = False
     rank = {"exclusive_market": 0, "premier": 1, "founding": 2}
     groups = {}
     for row in rows:
+        if not isinstance(row, dict):
+            continue
         category = str(row.get("partner_type") or "").strip()
         if category:
             groups.setdefault(category, []).append(row)
@@ -1504,6 +1510,8 @@ def _select_partner_placements_for_view(rows, view):
                 if partner.get("placement_tier") == "exclusive_market"
             ),
             key=lambda item: (
+                not bool(str(item.get("created_at") or "").strip()),
+                str(item.get("created_at") or ""),
                 str(item.get("partner_type") or "").casefold(),
                 str(item.get("partner_name") or "").casefold(),
                 str(item.get("id") or ""),
@@ -1511,16 +1519,36 @@ def _select_partner_placements_for_view(rows, view):
         )
         return premier[:1]
     for category in sorted(groups):
+        category_partners = groups[category]
+        first_partner = min(
+            category_partners,
+            key=lambda item: (
+                not bool(str(item.get("created_at") or "").strip()),
+                str(item.get("created_at") or ""),
+                str(item.get("id") or ""),
+            ),
+        )
+        for partner in category_partners:
+            partner["is_category_founder"] = partner is first_partner
         partners = sorted(
-            groups[category],
+            category_partners,
             key=lambda item: (
                 rank.get(str(item.get("placement_tier") or "").strip(), 9),
                 str(item.get("partner_name") or "").casefold(),
                 str(item.get("id") or ""),
             ),
         )
-        partners = partners[:3]
-        selected.extend(partners)
+        safe_market = re.sub(r"[^a-zA-Z0-9 ,.&/-]", "", str(market or ""))[:100]
+        if safe_market:
+            partners = [partner for partner in partners if safe_market.casefold() in str(partner.get("market_area") or "").casefold()]
+        category_selection = []
+        top_premier = next((partner for partner in partners if partner.get("placement_tier") == "exclusive_market"), None)
+        if top_premier:
+            category_selection.append(top_premier)
+        if first_partner in partners and first_partner not in category_selection:
+            category_selection.append(first_partner)
+        category_selection.extend(partner for partner in partners if partner not in category_selection)
+        selected.extend(category_selection[:3])
     return selected
 
 
@@ -1542,7 +1570,7 @@ def _list_public_partner_placements(category=None, market=None, view=None):
     # callers filter by category. Directory results retain category scoping.
     if category in ALLOWED_PARTNER_TYPES and view == "directory":
         params["partner_type"] = f"eq.{category}"
-    if market:
+    if market and view == "workflow":
         safe_market = re.sub(r"[^a-zA-Z0-9 ,.&/-]", "", market)[:100]
         if safe_market:
             params["market_area"] = f"ilike.*{safe_market}*"
@@ -1560,7 +1588,7 @@ def _list_public_partner_placements(category=None, market=None, view=None):
     rows = response.json() if response.text else []
     if not isinstance(rows, list):
         return []
-    rows = _select_partner_placements_for_view(rows, view)
+    rows = _select_partner_placements_for_view(rows, view, market=market)
     if category in ALLOWED_PARTNER_TYPES and view == "workflow":
         rows = [row for row in rows if row.get("partner_type") == category]
     lead_ids = {

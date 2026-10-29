@@ -26,11 +26,11 @@
   <meta name="twitter:image" content="https://www.homeofferflow.com/assets/homeofferflow-social-preview-v2.jpg" />
   <meta name="twitter:image:alt" content="HomeOfferFlow Texas offer workflow" />
   <title>Write a Texas Real Estate Offer | HomeOfferFlow</title>
-  <script src="/assets/partner-profile.js?v=20261022-partner-api1"></script>
+  <script src="/assets/partner-profile.js?v=20261028-public-placement-labels1"></script>
   <link rel="stylesheet" href="/assets/partner-profile.css?v=20261021-portrait1">
   <link rel="stylesheet" href="/assets/inspection-partners.css">
-  <script src="/assets/inspection-partners.js?v=20261022-partner-api1" defer></script>
-  <script src="/assets/insurance-partners.js?v=20261022-partner-api1" defer></script>
+  <script src="/assets/inspection-partners.js?v=20261028-public-placement-labels1" defer></script>
+  <script src="/assets/insurance-partners.js?v=20261028-public-placement-labels1" defer></script>
   <script id="hof-agent-route-primer-v1">
   // Keep only the four declared agent-route labels during this page load.
   // This contains no customer, property, account, or campaign information.
@@ -11440,28 +11440,30 @@ function routeAfterMagicLinkIfNeeded() {
     window.__hofPartnerDirectoryRows = Array.isArray(partners) ? partners : [];
     const search = String(document.getElementById('nowWhatPartnerSearch')?.value || '').trim().toLowerCase();
     const category = String(document.getElementById('nowWhatPartnerCategory')?.value || '').trim();
-    const visiblePartners = window.__hofPartnerDirectoryRows.filter(partner => {
+    const premier = window.hofPartnerProfile.topWorkflowPremier(window.__hofPartnerDirectoryRows);
+    const visiblePartners = premier ? [premier] : [];
+    const matchingPartners = visiblePartners.filter(partner => {
       const text = [partner.partner_name, partner.market_area, partner.partner_type].filter(Boolean).join(' ').toLowerCase();
       return (!search || text.includes(search)) && (!category || partner.partner_type === category);
     });
-    const groupsToShow = NOW_WHAT_GROUPS.filter(group => visiblePartners.some(partner => group.types.includes(partner.partner_type)));
+    const groupsToShow = NOW_WHAT_GROUPS.filter(group => matchingPartners.some(partner => group.types.includes(partner.partner_type)));
     target.innerHTML = groupsToShow.length ? groupsToShow.map(group => {
-      const matches = visiblePartners.filter(partner => group.types.includes(partner.partner_type));
+      const matches = matchingPartners.filter(partner => group.types.includes(partner.partner_type));
       const cards = matches.length ? matches.map(partner => {
         const logo = window.hofPartnerProfile.websiteUrl(partner.logo_url);
         const portrait = (window.hofPartnerProfile.portrait?.(partner, nowWhatEscape) || "");
         const fullDescription = String(partner.public_description || '').trim().slice(0, 600);
         const description = fullDescription.length > 260 ? fullDescription.split(/(?<=[.!?])\s+/).slice(0, 2).join(' ') : fullDescription;
-        const tierLabel = partner.partner_program === 'beta' ? `Beta partner · ${window.hofPartnerProfile.placementLabel(partner)}` : `Sponsored · ${window.hofPartnerProfile.placementLabel(partner)}`;
+        const tierLabel = `Sponsored · ${window.hofPartnerProfile.placementLabel(partner)}`;
         return `<div class="now-what-partner${portrait ? ' has-portrait' : ''}">
           <div>${portrait}${logo ? `<img class="now-what-partner-logo" src="${nowWhatEscape(logo)}" alt="${nowWhatEscape(partner.partner_name)} logo" loading="lazy" decoding="async">` : ''}<div class="now-what-partner-name">${nowWhatEscape(partner.partner_name || 'Local provider')}</div><div class="now-what-partner-meta">${nowWhatEscape(NOW_WHAT_PARTNER_LABELS[partner.partner_type] || 'Local service')} · ${nowWhatEscape(partner.market_area || 'Local market')}</div>${description ? `<p class="now-what-partner-description">${nowWhatEscape(description)}</p>` : ''}<span class="now-what-badge">${tierLabel}</span></div>
           ${window.hofPartnerProfile.actions(partner, nowWhatEscape, 'data-offer-completion-partner-link')}
         </div>`;
       }).join('') : `<div class="now-what-empty">No active HomeOfferFlow provider profiles are available here yet. You may choose any qualified provider independently.</div>`;
       return `<section class="now-what-category"><div class="now-what-category-head"><div><h5>${nowWhatEscape(group.title)}</h5><p>${nowWhatEscape(group.detail)}</p></div></div><div class="now-what-partners">${cards}</div></section>`;
-    }).join('') : '<div class="now-what-empty">No active HomeOfferFlow provider profiles are available here yet. You may choose any qualified provider independently.</div>';
+    }).join('') : '<div class="now-what-empty">No Premier partner is available for this category yet. You may choose any qualified provider independently.</div>';
     bindOfferCompletionPartnerClicks(target);
-    trackPartnerDirectoryImpressions(visiblePartners);
+    trackPartnerDirectoryImpressions(matchingPartners);
   }
 
   async function renderNowWhatPartnerJourney() {
@@ -16042,7 +16044,7 @@ function routeAfterMagicLinkIfNeeded() {
         <p>Create a shareable, preselected complimentary beta application for one category and placement level. The link contains no contact, market, application, payment, or onboarding data.</p>
         <div class="platform-grid">
           <div class="field"><label for="partnerCampaignCategory">Partner category</label><select id="partnerCampaignCategory"><option value="title">Title company / fee attorney</option><option value="lender">Mortgage lender</option><option value="inspection">Home inspection</option><option value="surveyor">Property surveyor</option><option value="home_warranty">Home warranty</option><option value="insurance">Home insurance</option><option value="roofing">Roofing contractor</option><option value="hvac">HVAC / heating and air</option><option value="plumbing">Plumbing</option><option value="electrical">Electrical</option><option value="foundation_structural">Foundation / structural repair</option><option value="general_contractor">General contractor / remodeling</option><option value="pest_termite">Pest control / termite</option><option value="septic_well">Septic / well service</option><option value="restoration">Water / fire restoration</option><option value="repairs_handyman">Repairs / handyman</option><option value="photography_video">Photography / video</option><option value="staging">Home staging</option><option value="cleaning">Cleaning</option><option value="moving_storage">Moving / storage</option><option value="lawn_pool">Lawn / pool</option><option value="security_smart_home">Security / smart home</option><option value="other">Other real-estate service</option></select></div>
-          <div class="field"><label for="partnerCampaignTier">Placement level</label><select id="partnerCampaignTier"><option value="founding_pilot">Core Partner · complimentary during beta</option><option value="monthly_placement" selected>Featured Partner · complimentary during beta</option><option value="market_exclusive">Premier Partner · complimentary during beta</option></select></div>
+          <div class="field"><label for="partnerCampaignTier">Placement level</label><select id="partnerCampaignTier"><option value="founding_pilot">Founding Partner · complimentary during beta</option><option value="monthly_placement" selected>Featured Partner · complimentary during beta</option><option value="market_exclusive">Premier Partner · complimentary during beta</option></select></div>
           <div class="field"><label for="partnerCampaignChannel">Distribution channel</label><select id="partnerCampaignChannel"><option value="direct_outreach" selected>Direct outreach</option><option value="email">Email newsletter</option><option value="social">Social post</option><option value="referral">Referral partner</option><option value="local_event">Local event</option><option value="print">Print / QR code</option></select></div>
           <div class="field"><label for="partnerCampaignName">Campaign label <span style="color:var(--gray);font-weight:500;">(optional)</span></label><input id="partnerCampaignName" maxlength="80" placeholder="August North Texas title"></div>
         </div>
@@ -16054,11 +16056,11 @@ function routeAfterMagicLinkIfNeeded() {
         <h4>HomeOfferFlow Partner Marketplace</h4>
         <p>Platform-wide partner listings belong to HomeOfferFlow, never to an agent or brokerage. All partner placements are complimentary during beta, are clearly labeled, and are never preselected in the neutral provider selector.</p>
         <div class="platform-kpi-row">
-          <div class="platform-kpi"><span>Core Partner</span><strong>$0</strong></div>
+          <div class="platform-kpi"><span>Founding Partner</span><strong>$0</strong></div>
           <div class="platform-kpi"><span>Featured Partner</span><strong>$0</strong></div>
           <div class="platform-kpi"><span>Premier Partner</span><strong>$0</strong></div>
         </div>
-        <div class="notice gold">Every partner receives complimentary beta terms. No payment or automatic paid conversion applies. Placement scope follows the selected Core, Featured, or Premier level and remains subject to the same application, profile, and written-agreement review.</div>
+        <div class="notice gold">Every partner receives complimentary beta terms. No payment or automatic paid conversion applies. Placement scope follows the selected Founding, Featured, or Premier level and remains subject to the same application, profile, and written-agreement review.</div>
       </div>
       ${campaignToolkit}
       <div class="partner-create-card">
@@ -16080,7 +16082,7 @@ function routeAfterMagicLinkIfNeeded() {
         <h4 style="color:var(--gold-light); font-size:0.86rem; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.75rem;">Create Partner Placement</h4>
         <div class="platform-grid">
           <div class="field"><label>Eligible partner application</label><select id="partnerLeadId" disabled onchange="applyPartnerPlacementDefaultsFromLead()"><option value="">Loading eligible applications…</option></select></div>
-          <div class="field"><label>Placement Tier</label><select id="partnerTier"><option value="founding">Core Partner · complimentary during beta</option><option value="premier">Featured Partner · complimentary during beta</option><option value="exclusive_market">Premier Partner · complimentary during beta</option></select></div>
+          <div class="field"><label>Placement Tier</label><select id="partnerTier"><option value="founding">Founding Partner · complimentary during beta</option><option value="premier">Featured Partner · complimentary during beta</option><option value="exclusive_market">Premier Partner · complimentary during beta</option></select></div>
           <div class="field"><label for="partnerMonthlyFee">Monthly fee during beta</label><input id="partnerMonthlyFee" type="number" min="0" max="0" value="0" readonly aria-describedby="partnerBetaFeeNote"><small id="partnerBetaFeeNote">All partner placements have the same $0 beta fee.</small></div>
         </div>
         <div class="notice gold" style="margin-top:.85rem;">A completed HomeOfferFlow Partner Marketplace Agreement is required before activation. SignWell copies each completed PDF to support@homeofferflow.com.</div>
@@ -16196,7 +16198,7 @@ function routeAfterMagicLinkIfNeeded() {
     if (!link) return platformStatus('partnerCampaignLinkPreview', 'Choose a supported partner category and tier.', 'err');
     const category = String(getVal('partnerCampaignCategory') || '').trim().replace(/_/g, ' ') || 'real-estate service';
     const tierDetails = {
-      founding_pilot: ['Core Partner', '$0 · complimentary during beta', 'Disclosed category directory presence.'],
+      founding_pilot: ['Founding Partner', '$0 · complimentary during beta', 'Disclosed category directory presence.'],
       monthly_placement: ['Featured Partner', '$0 · complimentary during beta', 'Labeled sponsored category placement.'],
       market_exclusive: ['Premier Partner', '$0 · complimentary during beta', 'Top Premier placement, subject to category and market availability.']
     };
@@ -16358,7 +16360,7 @@ function routeAfterMagicLinkIfNeeded() {
 
   function partnerPlacementDefaults(preferredModel) {
     const defaults = {
-      founding_pilot: { tier: 'founding', fee: 0, label: 'Core · complimentary during beta' },
+      founding_pilot: { tier: 'founding', fee: 0, label: 'Founding · complimentary during beta' },
       monthly_placement: { tier: 'premier', fee: 0, label: 'Featured · complimentary during beta' },
       market_exclusive: { tier: 'exclusive_market', fee: 0, label: 'Premier · complimentary during beta' }
     };
@@ -18063,9 +18065,11 @@ function routeAfterMagicLinkIfNeeded() {
   .partner-placement-table td:first-child { color:var(--white); font-weight:700; }
   .partner-safety-note { display:grid; grid-template-columns:auto 1fr; gap:.65rem; align-items:flex-start; margin:.75rem 0 1rem; padding:.72rem .8rem; border:1px solid rgba(133,184,159,.25); border-radius:12px; background:rgba(133,184,159,.065); color:#cfe0d7; font-size:.72rem; line-height:1.45; }
   .partner-safety-note strong { color:#dff0e7; }
-  .partner-selected-tier { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin:.85rem 0 .3rem; padding:.68rem .8rem; border:1px solid rgba(200,151,63,.24); border-radius:12px; background:rgba(200,151,63,.06); }
+  .partner-selected-tier { display:flex; flex-direction:column; gap:.35rem; margin:.85rem 0 .3rem; padding:.68rem .8rem; border:1px solid rgba(200,151,63,.24); border-radius:12px; background:rgba(200,151,63,.06); }
+  .partner-selected-tier-value { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
   .partner-selected-tier span { color:var(--gray-light); font-size:.72rem; }
   .partner-selected-tier strong { color:var(--gold-light); font-size:.8rem; }
+  .partner-tier-designation-note { color:var(--gray-light); font-size:.68rem; line-height:1.4; }
   .partner-tier-native-select { position:absolute!important; width:1px!important; height:1px!important; overflow:hidden!important; clip:rect(0,0,0,0)!important; white-space:nowrap!important; }
   @media (max-width:860px) {
     .partner-tier-grid { grid-template-columns:1fr; }
@@ -18076,7 +18080,7 @@ function routeAfterMagicLinkIfNeeded() {
   @media (max-width:540px) {
     .partner-sales-modal { padding:.9rem; }
     .partner-tier-price strong { font-size:1.55rem; }
-    .partner-selected-tier { align-items:flex-start; flex-direction:column; gap:.25rem; }
+    .partner-selected-tier-value { align-items:flex-start; flex-direction:column; gap:.25rem; }
     .partner-checkout-intake-note { display:block; }
     .partner-checkout-intake-note strong { display:block; margin-bottom:.18rem; }
   }
@@ -18096,10 +18100,11 @@ function routeAfterMagicLinkIfNeeded() {
     <div class="notice sage" id="foundingPartnerCheckoutConfirmation" style="display:none;margin-bottom:.9rem;"><strong>Your partner setup is ready to review.</strong><br><span id="foundingPartnerCheckoutSetupMessage"><strong>1.</strong> Preparing your secure setup now. <strong>2.</strong> Add your market, website, logo, and call to action. <strong>3.</strong> HomeOfferFlow reviews those details with the written placement agreement before anything becomes public. Setup does not activate advertising by itself. Partner beta placements have no automatic paid conversion. If you completed an earlier checkout, contact support to review its saved billing terms. If setup is still preparing, a secure link will also be sent to your business email (it expires in 14 days). If you still need help, <a href="mailto:support@homeofferflow.com?subject=Partner%20setup%20link%20request" style="color:inherit;text-decoration:underline;font-weight:700;">ask support to issue a fresh secure link</a>.</span></div>
     <div class="notice gold" id="foundingPartnerCheckoutResume" style="display:none;margin-bottom:.9rem;"><strong>Your beta application is saved.</strong><br>No checkout, payment, or automatic paid conversion applies. HomeOfferFlow will review the application and provide secure setup steps if it is approved.</div>
 
-    <div class="partner-selected-tier" aria-live="polite"><span id="foundingPartnerTierLabel">Your placement preference</span><strong id="foundingPartnerTierSelection">Core Partner · Complimentary during beta</strong></div>
-    <select id="foundingPartnerModel" class="partner-tier-native-select" aria-label="Selected advertising tier"><option value="founding_pilot" selected>Core Partner</option><option value="monthly_placement">Featured Partner</option><option value="market_exclusive">Premier Partner</option><option value="discuss">Custom / multi-market plan</option></select>
+    <div class="partner-selected-tier" aria-live="polite"><div class="partner-selected-tier-value"><span id="foundingPartnerTierLabel">Your placement preference</span><strong id="foundingPartnerTierSelection">Founding Partner · Complimentary during beta</strong></div></div>
+    <select id="foundingPartnerModel" class="partner-tier-native-select" aria-label="Selected advertising tier"><option value="founding_pilot" selected>Founding Partner</option><option value="monthly_placement">Featured Partner</option><option value="market_exclusive">Premier Partner</option><option value="discuss">Custom / multi-market plan</option></select>
 
     <div class="platform-grid" id="foundingPartnerEssentials">
+      <small class="partner-tier-designation-note" style="grid-column:1/-1;display:block;">The first active partner in each category is labeled Founding Partner, regardless of selected tier.</small>
       <div class="field"><label for="foundingPartnerType">Partner category</label><select id="foundingPartnerType" required aria-required="true"><option value="" selected disabled>Choose your service category</option><option value="title">Title company / fee attorney</option><option value="lender">Mortgage lender</option><option value="inspection">Home inspection</option><option value="surveyor">Property surveyor</option><option value="home_warranty">Home warranty</option><option value="insurance">Home insurance</option><option value="roofing">Roofing contractor</option><option value="hvac">HVAC / heating and air</option><option value="plumbing">Plumbing</option><option value="electrical">Electrical</option><option value="foundation_structural">Foundation / structural repair</option><option value="general_contractor">General contractor / remodeling</option><option value="pest_termite">Pest control / termite</option><option value="septic_well">Septic / well service</option><option value="restoration">Water / fire restoration</option><option value="repairs_handyman">Repairs / handyman</option><option value="photography_video">Photography / video</option><option value="staging">Home staging</option><option value="cleaning">Cleaning</option><option value="moving_storage">Moving / storage</option><option value="lawn_pool">Lawn / pool</option><option value="security_smart_home">Security / smart home</option><option value="other">Other real-estate service</option></select></div>
       <div class="field"><label for="foundingPartnerCompany">Company name</label><input id="foundingPartnerCompany" autocomplete="organization" placeholder="Company name" required aria-required="true"></div>
       <div class="field"><label for="foundingPartnerContact">Contact name</label><input id="foundingPartnerContact" autocomplete="name" placeholder="Full name" required aria-required="true"></div>
@@ -18118,7 +18123,7 @@ function routeAfterMagicLinkIfNeeded() {
     <div class="partner-tier-grid" role="radiogroup" aria-label="Partner advertising tier">
       <button type="button" class="partner-tier-card is-selected" data-partner-tier="founding_pilot" role="radio" aria-checked="true" onclick="selectFoundingPartnerTier('founding_pilot')">
         <span class="partner-tier-badge subtle">Build visibility</span>
-        <h4>Core Partner</h4>
+        <h4>Founding Partner</h4>
         <div class="partner-tier-price"><strong>$0</strong><span>during beta</span></div>
         <span class="partner-tier-standard">Complimentary; no automatic paid conversion</span>
         <p class="partner-tier-summary">A neutral profile in your category directory, available for consumers to compare and contact.</p>
@@ -18127,9 +18132,8 @@ function routeAfterMagicLinkIfNeeded() {
           <span>Neutral profile and contact options in the category directory</span>
           <span>Logo, contact details, service area, and website CTA</span>
           <span>Profile-view and outbound-click reporting</span>
-          <span>Founding Partner badge and onboarding included</span>
         </span>
-        <span class="partner-tier-select-copy">Select Core Partner</span>
+        <span class="partner-tier-select-copy">Select Founding Partner</span>
       </button>
 
       <button type="button" class="partner-tier-card" data-partner-tier="monthly_placement" role="radio" aria-checked="false" onclick="selectFoundingPartnerTier('monthly_placement')">
@@ -18139,7 +18143,7 @@ function routeAfterMagicLinkIfNeeded() {
         <span class="partner-tier-standard">Complimentary; no automatic paid conversion</span>
         <p class="partner-tier-summary">More visible placement in the category directory, with an enhanced profile. Featured Partners do not appear in guided workflows.</p>
         <span class="partner-tier-list">
-          <span>Everything in Core Partner</span>
+          <span>Everything in Founding Partner</span>
           <span>Featured position within the category directory</span>
           <span>Enhanced profile and scheduling CTA within the directory</span>
           <span>Service details and an approved contact CTA in the directory</span>
@@ -18168,7 +18172,7 @@ function routeAfterMagicLinkIfNeeded() {
     <div class="partner-placement-wrap" aria-label="Partner tier placement comparison">
       <div class="partner-placement-title"><strong>Exactly where each tier appears</strong><span>Sponsored placements are clearly labeled.</span></div>
       <table class="partner-placement-table">
-        <thead><tr><th>Placement</th><th>Core Partner</th><th>Featured Partner</th><th>Premier Partner</th></tr></thead>
+        <thead><tr><th>Placement</th><th>Founding Partner</th><th>Featured Partner</th><th>Premier Partner</th></tr></thead>
         <tbody>
           <tr><td>Category directory</td><td>One of up to three profiles</td><td>Featured position within up to three profiles</td><td>Premier first, plus up to two other profiles</td></tr>
           <tr><td>Directory profile</td><td>Neutral profile and contact options</td><td>Featured profile and contact options</td><td>Premier profile first; contact options stay neutral</td></tr>
@@ -18199,7 +18203,7 @@ function routeAfterMagicLinkIfNeeded() {
 (function(){
   const PARTNER_BETA_ACTIVE = true;
   const partnerTierDetails = {
-    founding_pilot: { label:'Core Partner', price:'Complimentary during beta' },
+    founding_pilot: { label:'Founding Partner', price:'Complimentary during beta' },
     monthly_placement: { label:'Featured Partner', price:'Complimentary during beta' },
     market_exclusive: { label:'Premier Partner', price:'Complimentary during beta' },
     discuss: { label:'Custom / multi-market plan', price:'Complimentary during beta; scope reviewed', budget:'discuss' }

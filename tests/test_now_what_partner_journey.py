@@ -25,9 +25,10 @@ class NowWhatPartnerJourneyTests(unittest.TestCase):
     def test_completion_directory_only_mentions_the_single_platform_top_premier(self):
         self.assertIn("window.hofPartnerProfile.load('workflow')", self.html)
         self.assertIn('window.hofPartnerProfile.placementLabel(partner)', self.html)
+        self.assertIn('window.hofPartnerProfile.topWorkflowPremier(window.__hofPartnerDirectoryRows)', self.html)
         api = (HTML_PATH.parent/'api/fsbo-lead.py').read_text(encoding='utf-8')
         self.assertIn('return premier[:1]', api)
-        self.assertIn('partners = partners[:3]', api)
+        self.assertIn('selected.extend(category_selection[:3])', api)
         self.assertIn('single top active Premier across HomeOfferFlow', (HTML_PATH.parent/'partners.html').read_text(encoding='utf-8'))
 
     def test_premier_partners_have_explicit_tier_label(self):
