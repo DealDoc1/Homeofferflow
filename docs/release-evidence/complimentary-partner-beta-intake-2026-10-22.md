@@ -37,10 +37,10 @@ three-profile directory cap were not changed.
   `partners.html`, and `texas-home-service-partner-guide.html`. Node parsed all
   49 inline JavaScript blocks across those pages.
 - Source review covered the public landing page, partner application,
-  confirmation, and admin-generated partner materials. Browser visual review
-  was not completed: the ambient local URL had no listener, binding a local
-  server was denied by the sandbox (`Operation not permitted`), and the browser
-  refused the `file://` protocol under its security policy.
+  confirmation, and admin-generated partner materials. The original browser
+  review was blocked by local server and browser restrictions; the gap was
+  closed in the follow-up below using an isolated loopback server and a
+  headless browser with external hosts blocked.
 
 ## External state and release
 
@@ -56,3 +56,16 @@ three-profile directory cap were not changed.
   branch is `codex/purchase-disclosure-pending-guidance`, based on `d4d20ed6`
   and 11 commits ahead of `origin/main` at the time of this checkpoint. The
   production deployment revision was not independently verified.
+
+
+## Follow-up local browser review — October 28, 2026
+
+The public placement cards and the partner intake modal were opened from the
+actual local `partners.html` and `index.html` files at 1280x900 and 390x844.
+Partner tracking functions were stubbed, network access was restricted to
+localhost, and the form remained blank. The intake's five required fields,
+complimentary terms, category-order Founding designation, consent, and next
+action were inspected. The phone layout requires vertical scrolling as expected
+but has no horizontal overflow. No form was submitted and no application or
+partner message was created. This closes the visual-review gap; deployment and
+production verification remain outstanding.

@@ -13,6 +13,10 @@ class PartnerTierUiTests(unittest.TestCase):
     def setUpClass(cls):
         cls.html = INDEX_PATH.read_text(encoding="utf-8")
 
+    def test_selected_tier_does_not_promise_the_category_founding_designation(self):
+        self.assertNotIn("Founding Partner badge and onboarding included", self.html)
+        self.assertIn("The first active partner in each category is labeled Founding Partner, regardless of selected tier.", self.html)
+
     def test_three_public_tiers_and_rates_are_present(self):
         for label in ("Founding Partner", "Featured Partner", "Premier Partner"):
             with self.subTest(label=label):

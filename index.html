@@ -18065,9 +18065,11 @@ function routeAfterMagicLinkIfNeeded() {
   .partner-placement-table td:first-child { color:var(--white); font-weight:700; }
   .partner-safety-note { display:grid; grid-template-columns:auto 1fr; gap:.65rem; align-items:flex-start; margin:.75rem 0 1rem; padding:.72rem .8rem; border:1px solid rgba(133,184,159,.25); border-radius:12px; background:rgba(133,184,159,.065); color:#cfe0d7; font-size:.72rem; line-height:1.45; }
   .partner-safety-note strong { color:#dff0e7; }
-  .partner-selected-tier { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin:.85rem 0 .3rem; padding:.68rem .8rem; border:1px solid rgba(200,151,63,.24); border-radius:12px; background:rgba(200,151,63,.06); }
+  .partner-selected-tier { display:flex; flex-direction:column; gap:.35rem; margin:.85rem 0 .3rem; padding:.68rem .8rem; border:1px solid rgba(200,151,63,.24); border-radius:12px; background:rgba(200,151,63,.06); }
+  .partner-selected-tier-value { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
   .partner-selected-tier span { color:var(--gray-light); font-size:.72rem; }
   .partner-selected-tier strong { color:var(--gold-light); font-size:.8rem; }
+  .partner-tier-designation-note { color:var(--gray-light); font-size:.68rem; line-height:1.4; }
   .partner-tier-native-select { position:absolute!important; width:1px!important; height:1px!important; overflow:hidden!important; clip:rect(0,0,0,0)!important; white-space:nowrap!important; }
   @media (max-width:860px) {
     .partner-tier-grid { grid-template-columns:1fr; }
@@ -18078,7 +18080,7 @@ function routeAfterMagicLinkIfNeeded() {
   @media (max-width:540px) {
     .partner-sales-modal { padding:.9rem; }
     .partner-tier-price strong { font-size:1.55rem; }
-    .partner-selected-tier { align-items:flex-start; flex-direction:column; gap:.25rem; }
+    .partner-selected-tier-value { align-items:flex-start; flex-direction:column; gap:.25rem; }
     .partner-checkout-intake-note { display:block; }
     .partner-checkout-intake-note strong { display:block; margin-bottom:.18rem; }
   }
@@ -18098,7 +18100,7 @@ function routeAfterMagicLinkIfNeeded() {
     <div class="notice sage" id="foundingPartnerCheckoutConfirmation" style="display:none;margin-bottom:.9rem;"><strong>Your partner setup is ready to review.</strong><br><span id="foundingPartnerCheckoutSetupMessage"><strong>1.</strong> Preparing your secure setup now. <strong>2.</strong> Add your market, website, logo, and call to action. <strong>3.</strong> HomeOfferFlow reviews those details with the written placement agreement before anything becomes public. Setup does not activate advertising by itself. Partner beta placements have no automatic paid conversion. If you completed an earlier checkout, contact support to review its saved billing terms. If setup is still preparing, a secure link will also be sent to your business email (it expires in 14 days). If you still need help, <a href="mailto:support@homeofferflow.com?subject=Partner%20setup%20link%20request" style="color:inherit;text-decoration:underline;font-weight:700;">ask support to issue a fresh secure link</a>.</span></div>
     <div class="notice gold" id="foundingPartnerCheckoutResume" style="display:none;margin-bottom:.9rem;"><strong>Your beta application is saved.</strong><br>No checkout, payment, or automatic paid conversion applies. HomeOfferFlow will review the application and provide secure setup steps if it is approved.</div>
 
-    <div class="partner-selected-tier" aria-live="polite"><span id="foundingPartnerTierLabel">Your placement preference</span><strong id="foundingPartnerTierSelection">Founding Partner · Complimentary during beta</strong></div>
+    <div class="partner-selected-tier" aria-live="polite"><div class="partner-selected-tier-value"><span id="foundingPartnerTierLabel">Your placement preference</span><strong id="foundingPartnerTierSelection">Founding Partner · Complimentary during beta</strong></div><small class="partner-tier-designation-note">The first active partner in each category is labeled Founding Partner, regardless of selected tier.</small></div>
     <select id="foundingPartnerModel" class="partner-tier-native-select" aria-label="Selected advertising tier"><option value="founding_pilot" selected>Founding Partner</option><option value="monthly_placement">Featured Partner</option><option value="market_exclusive">Premier Partner</option><option value="discuss">Custom / multi-market plan</option></select>
 
     <div class="platform-grid" id="foundingPartnerEssentials">
@@ -18129,7 +18131,6 @@ function routeAfterMagicLinkIfNeeded() {
           <span>Neutral profile and contact options in the category directory</span>
           <span>Logo, contact details, service area, and website CTA</span>
           <span>Profile-view and outbound-click reporting</span>
-          <span>Founding Partner badge and onboarding included</span>
         </span>
         <span class="partner-tier-select-copy">Select Founding Partner</span>
       </button>

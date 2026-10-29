@@ -39,3 +39,19 @@ versioned helper and workflow scripts.
 Implemented locally; focused tests passed; local desktop UX reviewed; not
 deployed or production-verified. Local checkpoint commit recorded after the passing full
 regression run.
+
+## Founding designation clarity in partner intake
+
+The intake no longer implies that selecting the Founding tier earns a
+category's Founding label. It states that the first active partner in each
+category receives that public designation regardless of tier. The selected
+tier remains a placement preference, and all applicants retain the same
+complimentary beta terms.
+
+- A focused regression test confirms the note is present and the misleading
+  tier-card badge promise is absent.
+- The actual local intake was previously reviewed at 1280x900 and 390x844 with
+  a blank form; no application was submitted. The added note is part of that
+  same layout and preserves the existing form controls.
+- No application, database record, partner message, Stripe action, or
+  deployment was created. This change is local only.
