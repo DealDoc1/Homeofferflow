@@ -16,7 +16,7 @@ first. Workflow results continue to return at most one top active Premier
 across the platform; the completion renderer also guards against extra Premier
 rows. Existing tier values (`founding_pilot`, `monthly_placement`, and
 `market_exclusive`), complimentary beta terms, and consumer choice behavior
-remain unchanged. The service-worker shell advances to v129 and prewarms the
+remain unchanged. The service-worker shell advances to v130 and prewarms the
 versioned helper and workflow scripts.
 
 ## Verification
@@ -55,3 +55,23 @@ complimentary beta terms.
   same layout and preserves the existing form controls.
 - No application, database record, partner message, Stripe action, or
   deployment was created. This change is local only.
+
+The Premier tier copy also avoids promising a fixed 90-day review schedule
+during the complimentary beta. It now says “Onboarding and placement review,”
+matching the other public placement materials. The focused tier test guards the
+exact wording and rejects the old fixed-date claim.
+
+The quick-start form scrolls directly to its five required fields on a phone,
+which previously left the category-level Founding Partner rule above the
+visible area. The rule now appears immediately before the category field, where
+it remains visible during quick-start. The tier UI regression test requires
+that placement. The public partner page also uses neutral schema names without
+the internal “beta partner placement” phrase, removes the unsupported 90-day
+review promise, and keeps its tier comparison anchor visible on mobile.
+
+- Local browser review: the blank quick-start form was inspected at 390×844 and
+  1280×900. The category rule is visible before the category selector at both
+  sizes; required fields remain legible; the mobile document width stays at
+  390px. No application was submitted.
+- No external systems, partner applications, messages, agreements, billing, or
+  deployments were changed.

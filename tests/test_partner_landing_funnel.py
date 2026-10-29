@@ -11,6 +11,10 @@ ACQUISITION_CHANNEL = (ROOT / "assets" / "acquisition-channel.js").read_text(enc
 
 
 class PartnerLandingFunnelTests(unittest.TestCase):
+    def test_partner_page_compacts_hero_and_keeps_mobile_tier_anchor_visible(self):
+        self.assertIn('@media (max-width:600px) { h1 { font-size:clamp(1.9rem,8vw,2.3rem)', PARTNERS)
+        self.assertIn('#tiers { scroll-margin-top:1rem; }', PARTNERS)
+
     def test_public_endpoint_only_accepts_allowlisted_aggregate_events(self):
         self.assertIn("PARTNER_LANDING_EVENT_TYPES", API)
         self.assertIn("def _record_partner_landing_event(data):", API)
