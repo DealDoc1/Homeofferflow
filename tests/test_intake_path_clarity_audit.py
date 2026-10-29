@@ -22,7 +22,7 @@ class IntakePathClarityAuditTests(unittest.TestCase):
                 self.assertIn("after offer completion", page)
         self.assertIn("up to three partners per category", PARTNERS)
         self.assertIn("up to two other partners", PARTNERS)
-        self.assertIn("Other Premier profiles, Featured Partners, and Core Partners remain directory-only.", PARTNERS)
+        self.assertIn("Other Premier profiles, Featured Partners, and Founding Partners remain directory-only.", PARTNERS)
         for stale in (
             "Sponsored education / CTA outside selector",
             "Sponsored education or CTA card at a relevant customer decision point",

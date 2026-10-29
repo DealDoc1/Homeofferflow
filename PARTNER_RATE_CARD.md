@@ -4,7 +4,7 @@ All partner placements are complimentary during beta. No payment or automatic
 paid conversion is requested. Any future pricing or paid enrollment requires a
 separate owner decision and clear terms.
 
-| Placement | Core Partner | Featured Partner | Premier Partner |
+| Placement | Founding Partner | Featured Partner | Premier Partner |
 |---|---|---|---|
 | Beta price | Complimentary | Complimentary | Complimentary |
 | Category directory | Standard company profile | Featured profile and enhanced CTA | First profile in its category |
@@ -16,23 +16,23 @@ separate owner decision and clear terms.
 | Inventory | Subject to qualification | Subject to category capacity | One active Premier placement per category and market |
 
 The directory lists the active Premier first and up to two other partners in
-each category. Other Premier profiles, Featured Partners, and Core Partners
+each category. Other Premier profiles, Featured Partners, and Founding Partners
 remain directory-only. The same platform-wide top-Premier rule applies across
 buyer, seller, agent, investor, and offer-completion transaction surfaces.
 
-## Core Partner
+## Founding Partner
 
 - Company profile in the relevant category directory.
 - Logo, contact details, website, and service area.
 - Profile-view and outbound-click reporting.
-- Beta partner label while the complimentary beta is active.
+- Sponsored placement label; public tier names are Founding, Featured, and Premier Partner.
 
 ## Featured Partner
 
 - Featured profile in the relevant category directory.
 - Enhanced profile with an offer, scheduling link, or media CTA.
 - Profile-view and outbound-click reporting.
-- Beta partner label while the complimentary beta is active.
+- Sponsored placement label; public tier names are Founding, Featured, and Premier Partner.
 
 ## Premier Partner
 
@@ -41,7 +41,7 @@ buyer, seller, agent, investor, and offer-completion transaction surfaces.
 - Only the single top active Premier across HomeOfferFlow appears in guided
   transaction workflows and the offer-completion confirmation.
 - Priority onboarding, creative setup, and performance review.
-- Beta partner label while the complimentary beta is active.
+- Sponsored placement label; public tier names are Founding, Featured, and Premier Partner.
 
 ## Consumer choice and advertising terms
 

@@ -5,7 +5,7 @@ from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 STYLE_VERSION='?v=20261021-portrait1'
-PARTNER_API_VERSION='?v=20261022-partner-api1'
+PARTNER_API_VERSION='?v=20261028-public-placement-labels1'
 
 
 class PartnerAssetVersionsTests(unittest.TestCase):

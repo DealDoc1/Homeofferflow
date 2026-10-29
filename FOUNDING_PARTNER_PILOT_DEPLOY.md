@@ -12,7 +12,7 @@ Do not use those rates, checkout steps, or placement promises.
   Premier first, followed by up to two other partners.
 - Only the single top active Premier across HomeOfferFlow appears in guided
   transaction workflows and the offer-completion confirmation.
-- Other Premier profiles, Featured Partners, and Core Partners remain in the
+- Other Premier profiles, Featured Partners, and Founding Partners remain in the
   directory only.
 - Sponsored placements are labeled. HomeOfferFlow never preselects a provider;
   users may choose any provider or none.

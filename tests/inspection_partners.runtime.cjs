@@ -52,7 +52,7 @@ test('active inspection step uses central public profile, correct logo and separ
   assert.equal(p.target.hidden,false);
   assert.match(p.target.innerHTML,/Fictional QA Roofing/);
   assert.match(p.target.innerHTML,/logo\.jpg/);
-  assert.match(p.target.innerHTML,/Roofing · Beta partner · Premier Partner/);
+  assert.match(p.target.innerHTML,/Roofing · Sponsored · Premier Partner/);
   assert.match(p.target.innerHTML,/tel:\+19728376378/);
   assert.match(p.target.innerHTML,/Visit website/);
   assert.match(p.target.innerHTML,/Optional service providers/);

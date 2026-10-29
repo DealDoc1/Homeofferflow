@@ -44,8 +44,8 @@ class FakeClient:
         type(self).last_request = self.request
         response = FakeResponse()
         response.status_code = 200
-        response.text = '[{"id":"placement-1","partner_type":"moving_storage","partner_name":"North Texas Movers","placement_tier":"founding"}]'
-        response.json = lambda: [{"id": "placement-1", "partner_type":"moving_storage", "partner_name": "North Texas Movers", "placement_tier":"founding"}]
+        response.text = '[{"id":"placement-1","partner_type":"moving_storage","partner_name":"North Texas Movers","placement_tier":"founding","market_area":"DFW"}]'
+        response.json = lambda: [{"id": "placement-1", "partner_type":"moving_storage", "partner_name": "North Texas Movers", "placement_tier":"founding", "market_area":"DFW"}]
         return response
 
 
@@ -301,6 +301,7 @@ class PartnerLeadTests(unittest.TestCase):
         self.assertIn("limit=1000", request_url)
         self.assertNotIn("contact_email", request_url)
         self.assertNotIn("source_lead_id", rows[0])
+        self.assertIn("is_category_founder", rows[0])
 
     def test_shared_partner_api_caps_directory_by_category_and_workflow_to_one_top_premier(self):
         rows = [
@@ -315,8 +316,9 @@ class PartnerLeadTests(unittest.TestCase):
         directory = fsbo_lead._select_partner_placements_for_view(rows, "directory")
         workflow = fsbo_lead._select_partner_placements_for_view(rows, "workflow")
         self.assertEqual([row["id"] for row in directory], [
-            "insurance-premier","insurance-core","premier-a","premier-b","featured"
+            "insurance-premier","insurance-core","premier-a","core-a","premier-b"
         ])
+        self.assertEqual([row["id"] for row in directory if row["is_category_founder"]], ["insurance-core", "core-a"])
         self.assertEqual([row["id"] for row in workflow], ["insurance-premier"])
         self.assertEqual(fsbo_lead._select_partner_placements_for_view(rows, "legacy"), rows)
 
@@ -344,6 +346,16 @@ class PartnerLeadTests(unittest.TestCase):
         self.assertEqual(title_rows, [])
         self.assertNotIn("partner_type=eq.title", PlacementClient.last_url)
 
+    def test_directory_keeps_category_founder_even_when_market_filter_excludes_them(self):
+        placements = [
+            {"id":"older-outside-market","partner_type":"title","partner_name":"Older","placement_tier":"founding","market_area":"Austin","created_at":"2024-01-01T00:00:00Z"},
+            {"id":"newer-in-market","partner_type":"title","partner_name":"Newer","placement_tier":"founding","market_area":"Dallas","created_at":"2025-01-01T00:00:00Z"},
+            {"id":"premier","partner_type":"title","partner_name":"Premier","placement_tier":"exclusive_market","market_area":"Dallas","created_at":"2025-02-01T00:00:00Z"},
+        ]
+        directory = fsbo_lead._select_partner_placements_for_view(placements, "directory", market="Dallas")
+        self.assertEqual([row["id"] for row in directory], ["premier", "newer-in-market"])
+        self.assertFalse(directory[1]["is_category_founder"])
+
     def test_public_partner_route_accepts_view_and_preserves_response_shape(self):
         endpoint = object.__new__(fsbo_lead.handler)
         endpoint.path = "/api/fsbo-lead?partner_directory=1&surface=workflow&category=title"
@@ -359,7 +371,7 @@ class PartnerLeadTests(unittest.TestCase):
         self.assertIs(result, response)
 
     def test_directory_cta_lookup_is_server_side_and_never_returns_the_source_lead_id(self):
-        self.assertIn('_DIRECTORY_LOOKUP_FIELDS = f"{PUBLIC_PARTNER_FIELDS},source_lead_id"', MODULE_PATH.read_text())
+        self.assertIn('_DIRECTORY_LOOKUP_FIELDS = "id,partner_type,partner_name,website_url,logo_url,market_area,placement_tier,source_lead_id,created_at"', MODULE_PATH.read_text())
         self.assertIn('row.pop("source_lead_id", "")', MODULE_PATH.read_text())
         self.assertIn('row["cta_label"] = ctas[source_lead_id]', MODULE_PATH.read_text())
 

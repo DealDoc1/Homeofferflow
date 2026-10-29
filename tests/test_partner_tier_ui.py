@@ -14,7 +14,7 @@ class PartnerTierUiTests(unittest.TestCase):
         cls.html = INDEX_PATH.read_text(encoding="utf-8")
 
     def test_three_public_tiers_and_rates_are_present(self):
-        for label in ("Core Partner", "Featured Partner", "Premier Partner"):
+        for label in ("Founding Partner", "Featured Partner", "Premier Partner"):
             with self.subTest(label=label):
                 self.assertIn(label, self.html)
         self.assertEqual(self.html.count('<strong>$0</strong><span>during beta</span>'), 3)

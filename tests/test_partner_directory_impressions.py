@@ -45,14 +45,15 @@ class PartnerDirectoryImpressionTests(unittest.TestCase):
     def test_public_directory_caps_each_category_at_three_and_exposes_premier_label_for_every_category(self):
         helper = (ROOT / 'assets' / 'partner-profile.js').read_text(encoding='utf-8')
         self.assertIn("new URLSearchParams({partner_directory:'1',surface:'directory'})", PUBLIC_DIRECTORY)
-        self.assertIn('rows = _select_partner_placements_for_view(rows, view)', (ROOT / 'api' / 'fsbo-lead.py').read_text())
-        self.assertIn('partners = partners[:3]', (ROOT / 'api' / 'fsbo-lead.py').read_text())
+        self.assertIn('rows = _select_partner_placements_for_view(rows, view, market=market)', (ROOT / 'api' / 'fsbo-lead.py').read_text())
+        self.assertIn('selected.extend(category_selection[:3])', (ROOT / 'api' / 'fsbo-lead.py').read_text())
         self.assertIn('return premier[:1]', (ROOT / 'api' / 'fsbo-lead.py').read_text())
         self.assertIn('view == "directory"', (ROOT / 'api' / 'fsbo-lead.py').read_text())
         self.assertIn("partner?.placement_tier === 'exclusive_market' ? 'Premier Partner'", helper)
         self.assertIn("surface === 'workflow' ? 'workflow' : 'directory'", helper)
-        self.assertIn("placementLabels = {exclusive_market:'Premier Partner',premier:'Featured Partner',founding:'Core Partner'}", PUBLIC_DIRECTORY)
-        self.assertIn("provider.partner_program === 'beta' ? `Beta partner · ${placementLabels[provider.placement_tier] || 'Partner'}`", PUBLIC_DIRECTORY)
+        self.assertIn("window.hofPartnerProfile.placementLabel(provider)", PUBLIC_DIRECTORY)
+        self.assertNotIn('Beta partner', PUBLIC_DIRECTORY)
+        self.assertIn('is_category_founder', (ROOT / 'api' / 'fsbo-lead.py').read_text())
 
     def test_admin_metrics_can_report_aggregate_paid_directory_value(self):
         api = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
