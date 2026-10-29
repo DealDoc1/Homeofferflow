@@ -15,10 +15,10 @@ from lib.checkout_payload import cleanup_expired_checkout_payload
 
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_SUBSCRIPTION_WEBHOOK_SECRET", "")
-# The older webhook setting is retained only for Stripe test-mode deliveries.
-# It may acknowledge a correctly signed sandbox event, but it can never
-# authorize a live billing mutation.
-STRIPE_TEST_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+# Test-mode verification has its own explicit setting. Retain the former
+# setting as a migration fallback; it can acknowledge only correctly signed
+# sandbox deliveries and can never authorize a live billing mutation.
+STRIPE_TEST_WEBHOOK_SECRET = os.environ.get("STRIPE_TEST_WEBHOOK_SECRET") or os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
