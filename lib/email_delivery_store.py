@@ -4,6 +4,7 @@ Requires the email-delivery schema before deploying the checkout integration.
 Never holds a database transaction open during email HTTP.
 """
 import copy
+import math
 import time
 
 import httpx
@@ -78,10 +79,21 @@ class EmailDeliveryStore:
         return latest
 
     def accept(self, row, provider_id):
+        started = row.get('first_attempt_at')
+        if (isinstance(started, bool) or not isinstance(started, (int, float))
+                or not 0 <= started <= 253402300799 or not math.isfinite(started)):
+            raise EmailDeliveryPending('The original email attempt could not be verified.')
         rows = self._rows(self.client.patch(self.url, headers=self.headers, timeout=20,
                          params={'delivery_key': 'eq.' + row['delivery_key'], 'status': 'eq.pending',
                                  'payload_fingerprint': 'eq.' + row['payload_fingerprint'],
-                                 'first_attempt_at': 'eq.' + str(row['first_attempt_at']),
+                                 # The enabled hof_preserve_email_delivery trigger
+                                 # makes the first non-null attempt immutable for
+                                 # this key/fingerprint. REST can round float8 JSON
+                                 # values (extra_float_digits=0), so equality with
+                                 # the returned decimal can match zero rows even
+                                 # for the original attempt. Do not reset its time
+                                 # or use a tolerance that could cross identities.
+                                 'first_attempt_at': 'not.is.null',
                                  'select': self.COLUMNS},
                          json={'status': 'accepted', 'provider_id': provider_id, 'payload': None}))
         latest = rows[0] if rows else self._read(row['delivery_key'])

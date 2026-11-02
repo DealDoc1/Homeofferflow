@@ -92,7 +92,7 @@ class EmailDeliveryStoreTests(unittest.TestCase):
         self.assertTrue(self.store.accept(stamped, 'email-1'))
         request = self.client.patch.call_args.kwargs
         self.assertEqual(request['params']['delivery_key'], 'eq.' + self.key)
-        self.assertEqual(request['params']['first_attempt_at'], 'eq.1000')
+        self.assertEqual(request['params']['first_attempt_at'], 'not.is.null')
         self.assertEqual(request['json'], {'status': 'accepted', 'provider_id': 'email-1', 'payload': None})
 
     def test_zero_row_acceptance_checks_same_provider_id_not_any_status(self):
@@ -101,6 +101,62 @@ class EmailDeliveryStoreTests(unittest.TestCase):
             self.client.get.return_value = response([{**self.row, 'status': 'accepted',
                                                      'provider_id': provider_id, 'payload': None}])
             self.assertIs(self.store.accept({**self.row, 'first_attempt_at': 1000}, 'email-1'), expected)
+
+    def test_invalid_attempt_cannot_be_accepted_or_issue_a_patch(self):
+        for started in (None, True, '1000', -1, 253402300800, 10**1000, float('nan'), float('inf')):
+            with self.subTest(started=started), self.assertRaises(EmailDeliveryPending):
+                self.store.accept({**self.row, 'first_attempt_at': started}, 'email-1')
+        self.client.patch.assert_not_called()
+
+    def test_fractional_attempt_rounding_does_not_strand_provider_acceptance(self):
+        from lib.email_delivery import deliver_email_once
+        import struct
+        # A synthetic float with the same precision characteristic as the
+        # incident: PostgreSQL extra_float_digits=0's decimal is not equal to
+        # the stored binary value after it is parsed back into float8.
+        original = struct.unpack('>d', bytes.fromhex('41daba3685f7f103'))[0]
+        rounded = float(format(original, '.15g'))
+        self.assertNotEqual(original, rounded)
+        self.store.clock = lambda: original
+        saved = None
+
+        def wire(row):
+            row = copy.deepcopy(row)
+            if row and row.get('first_attempt_at') is not None:
+                row['first_attempt_at'] = float(format(row['first_attempt_at'], '.15g'))
+            return response([row] if row else [])
+
+        def read(*args, **kwargs): return wire(saved)
+
+        def insert(*args, json, **kwargs):
+            nonlocal saved
+            saved = {**copy.deepcopy(json), 'first_attempt_at': None, 'provider_id': None}
+            return wire(saved)
+
+        def update(*args, params, json, **kwargs):
+            nonlocal saved
+            for key in ('delivery_key', 'status', 'payload_fingerprint'):
+                if params.get(key) != 'eq.' + saved[key]: return response([])
+            timestamp = params['first_attempt_at']
+            if timestamp == 'is.null' and saved['first_attempt_at'] is not None: return response([])
+            if timestamp == 'not.is.null' and saved['first_attempt_at'] is None: return response([])
+            if timestamp.startswith('eq.') and saved['first_attempt_at'] != float(timestamp[3:]): return response([])
+            saved.update(copy.deepcopy(json))
+            return wire(saved)
+
+        self.client.get.side_effect = read
+        self.client.post.side_effect = insert
+        self.client.patch.side_effect = update
+        send = Mock(return_value={'id': 'fictional-provider-id'})
+        def run():
+            return deliver_email_once(key=self.key, payload=self.payload,
+                reserve=self.store.reserve, begin_attempt=self.store.begin_attempt,
+                accept=self.store.accept, send=send, clock=lambda: original + 1)
+        self.assertEqual(run()['status'], 'accepted')
+        self.assertEqual(saved['first_attempt_at'], original)
+        self.assertIsNone(saved['payload'])
+        self.assertTrue(run()['recovered'])
+        send.assert_called_once()
 
     def test_database_error_or_ambiguous_multiple_rows_are_not_success(self):
         for result in (response([], 500), response({}), response([self.row, self.row])):

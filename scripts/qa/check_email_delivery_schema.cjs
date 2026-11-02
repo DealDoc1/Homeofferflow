@@ -1,12 +1,48 @@
-// Run with HOF_PGLITE_MODULE pointing to an explicitly installed, pinned
-// @electric-sql/pglite package. No production connection is used.
+// Use HOF_PG_QA_MODULES for the existing pinned embedded PostgreSQL runtime,
+// or HOF_PGLITE_MODULE for an already installed PGlite. No hosted URL is read.
 const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
-const { PGlite } = require(process.env.HOF_PGLITE_MODULE || '@electric-sql/pglite');
+
+async function openDatabase() {
+  if (!process.env.HOF_PG_QA_MODULES) {
+    const { PGlite } = require(process.env.HOF_PGLITE_MODULE || '@electric-sql/pglite');
+    return {db:new PGlite(), engine:'isolated PGlite/PostgreSQL'};
+  }
+  const modules=process.env.HOF_PG_QA_MODULES;
+  assert.ok(path.isAbsolute(modules),'Use an absolute local node_modules directory');
+  const {Client}=require(path.join(modules,'pg'));
+  const {spawn,execFileSync}=require('node:child_process');
+  const {randomInt}=require('node:crypto');
+  const temp=fs.mkdtempSync('/private/tmp/hof-email-schema-');
+  const data=path.join(temp,'data'), bin=path.join(modules,'@embedded-postgres/darwin-arm64/native/bin');
+  const port=randomInt(55100,55999);
+  let server,client;
+  const close=async()=>{
+    if(client) await client.end();
+    if(server && server.exitCode===null) {
+      execFileSync(path.join(bin,'pg_ctl'),['-D',data,'-m','fast','-w','stop'],{stdio:'pipe',timeout:10000});
+      await new Promise(resolve=>server.exitCode!==null?resolve():server.once('exit',resolve));
+    }
+    assert.equal(fs.existsSync(path.join(data,'postmaster.pid')),false,'QA database is stopped');
+  };
+  try {
+    execFileSync(path.join(bin,'initdb'),['-D',data,'-U','hof_qa','--auth-local=trust','--auth-host=reject','--no-locale','-E','UTF8','--no-sync'],{stdio:'pipe'});
+    server=spawn(path.join(bin,'postgres'),['-D',data,'-k',temp,'-p',String(port),'-c','listen_addresses=','-c','unix_socket_permissions=0700','-c','shared_buffers=16MB'],{stdio:'ignore'});
+    for(let attempt=0;attempt<80;attempt++) {
+      const candidate=new Client({host:temp,port,user:'hof_qa',database:'postgres',connectionTimeoutMillis:1000,query_timeout:8000});
+      try {await candidate.connect();client=candidate;break;}
+      catch(error) {await candidate.end().catch(()=>{});if(server.exitCode!==null)throw Error('Isolated QA database stopped');await new Promise(r=>setTimeout(r,100));}
+    }
+    if(!client)throw Error('Isolated QA database did not start');
+    assert.equal((await client.query('show listen_addresses')).rows[0].listen_addresses,'','No TCP listener');
+    await client.query("set statement_timeout='8s'");
+    return {db:{query:(...args)=>client.query(...args),exec:sql=>client.query(sql),close},engine:'isolated PostgreSQL 17 (private Unix socket)'};
+  } catch(error) {await close();throw error;}
+}
 
 (async () => {
-  const db = new PGlite();
+  const {db,engine} = await openDatabase();
   let checks = 0;
   const check = (value, message) => { assert.ok(value, message); checks++; };
   const reject = async (sql, params = []) => {
@@ -58,6 +94,24 @@ const { PGlite } = require(process.env.HOF_PGLITE_MODULE || '@electric-sql/pglit
     await reject(`update ${table} set status='pending',payload='{}',provider_id=null where delivery_key=$1`, [key]);
     await reject(`update ${table} set provider_id='different' where delivery_key=$1`, [key]);
     await reject(`delete from ${table} where delivery_key=$1`, [key]);
+    // Reproduce REST float8 output with production's precision setting. The
+    // first timestamp is immutable, but its JSON decimal need not round-trip.
+    const fractionalKey = 'hof-email-v1-' + 'c'.repeat(64);
+    await db.query(`insert into ${table}(delivery_key,payload,payload_fingerprint) values ($1,$2,$3)`, [fractionalKey, body, hash]);
+    await db.query(`update ${table} set first_attempt_at=$2 where delivery_key=$1 and first_attempt_at is null`, [fractionalKey, 1700000000.1234567]);
+    await db.exec('set extra_float_digits=0');
+    const wire = await db.query(`select first_attempt_at::text as attempt_text from ${table} where delivery_key=$1`, [fractionalKey]);
+    const rounded = wire.rows[0].attempt_text;
+    const missed = await db.query(`update ${table} set status='accepted',payload=null,provider_id='fractional-email'
+      where delivery_key=$1 and payload_fingerprint=$2 and status='pending'
+      and first_attempt_at=$3::double precision returning delivery_key`, [fractionalKey, hash, rounded]);
+    check(missed.rows.length === 0, 'Rounded REST timestamp reproduces zero-row acceptance');
+    await reject(`update ${table} set first_attempt_at=1001 where delivery_key=$1`, [fractionalKey]);
+    const fractionalAccepted = await db.query(`update ${table} set status='accepted',payload=null,provider_id='fractional-email'
+      where delivery_key=$1 and payload_fingerprint=$2 and status='pending'
+      and first_attempt_at is not null returning delivery_key,payload`, [fractionalKey, hash]);
+    check(fractionalAccepted.rows.length === 1 && fractionalAccepted.rows[0].payload === null, 'Immutable attempted identity accepts without lossy timestamp equality');
+    await reject(`update ${table} set provider_id='different' where delivery_key=$1`, [fractionalKey]);
     await db.exec('reset role');
     // Defense in depth: even an accidental read grant must not bypass RLS.
     await db.exec(`grant select on ${table} to anon, authenticated`);
@@ -66,7 +120,7 @@ const { PGlite } = require(process.env.HOF_PGLITE_MODULE || '@electric-sql/pglit
       check((await db.query(`select * from ${table}`)).rows.length === 0, 'RLS denies all client rows');
       await db.exec('reset role');
     }
-    console.log(JSON.stringify({engine: 'isolated PGlite/PostgreSQL', checks, passed: true}));
+    console.log(JSON.stringify({engine, checks, passed: true}));
   } finally {
     await db.close();
   }

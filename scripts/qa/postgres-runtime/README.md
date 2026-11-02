@@ -44,6 +44,17 @@ local shared-memory segment. This is not production database authorization.
 
 ## Safety and scope
 
+The email-delivery schema and float timestamp receipt regression use the same
+already installed runtime:
+
+```sh
+HOF_PG_QA_MODULES="$PWD/scripts/qa/postgres-runtime/node_modules" node scripts/qa/check_email_delivery_schema.cjs
+```
+
+This verifies immutable attempts, receipt transitions, and reduced-precision
+JSON timestamp handling in a fresh, private Unix-socket cluster. It has no
+hosted URL, email provider request, or customer data, and stops in `finally`.
+
 The runner does not accept a connection URL. It creates a new private directory
 under `/private/tmp/hof-pg-usage-*`, initializes an empty PostgreSQL 17 cluster,
 disables TCP listening, and connects only through that directory's private Unix
