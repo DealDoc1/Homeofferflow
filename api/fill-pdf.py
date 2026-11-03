@@ -2421,6 +2421,32 @@ def retry_unsent_offer_signature(offer_id, user_id):
             "deliveryUnconfirmed": bool(signing.get("deliveryUnconfirmed"))}
 
 
+def print_owned_offer(offer_id, user_id):
+    from lib.offer_printing import unsigned_offer_copy
+
+    def load(identity, owner):
+        if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+            raise RuntimeError('Offer documents are temporarily unavailable.')
+        response = httpx.get(f'{SUPABASE_URL}/rest/v1/hof_offers',
+            params={'id': 'eq.' + identity, 'user_id': 'eq.' + owner,
+                    'select': 'id,user_id,status,signwell_document_id,offer_data', 'limit': '1'},
+            headers={'apikey': SUPABASE_SERVICE_ROLE_KEY,
+                     'Authorization': 'Bearer ' + SUPABASE_SERVICE_ROLE_KEY}, timeout=20)
+        if response.status_code != 200:
+            raise RuntimeError('The saved offer could not be loaded.')
+        rows = response.json()
+        return rows[0] if isinstance(rows, list) and len(rows) == 1 else None
+
+    def render(answers, record):
+        hydrate_paragraph4_sources(answers)
+        validate_supported_offer(answers)
+        if isinstance(answers.get('purchaseDisclosurePacket'), dict):
+            return reconstruct_purchase_disclosure_packet(record, answers, user_id).pdf
+        return fill_and_merge(answers)
+
+    return unsigned_offer_copy(offer_id, user_id, load=load, render=render)
+
+
 class handler(BaseHTTPRequestHandler):
 
     def _verified_user(self):
@@ -2489,6 +2515,31 @@ class handler(BaseHTTPRequestHandler):
                     self._json(503, {'error': 'Document verification is temporarily unavailable'})
                     return
                 self._json(200, result)
+                return
+
+            if isinstance(payload, dict) and payload.get('action') == 'print_offer_pdf':
+                user_id = self._verified_user()
+                if not user_id:
+                    self._json(401, {'error': 'Sign in again before opening your offer PDF.'})
+                    return
+                try:
+                    pdf = print_owned_offer(payload.get('offerId'), user_id)
+                except PermissionError:
+                    self._json(404, {'error': 'That offer is unavailable.'})
+                    return
+                except ValueError as error:
+                    self._json(409, {'error': str(error)})
+                    return
+                except Exception:
+                    self._json(503, {'error': 'The offer PDF is temporarily unavailable. Please try again.'})
+                    return
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/pdf')
+                self.send_header('Content-Disposition', 'attachment; filename="HomeOfferFlow-unsigned-offer.pdf"')
+                self.send_header('Cache-Control', 'private, no-store')
+                self.send_header('Content-Length', str(len(pdf)))
+                self.end_headers()
+                self.wfile.write(pdf)
                 return
 
             # Stripe webhook path: paid checkout sends a checkout.session.completed event.
