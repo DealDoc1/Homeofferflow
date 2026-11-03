@@ -946,6 +946,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     .account-panel.active { display:block; animation:fadeUp 0.2s ease both; }
     .account-card { background:rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.09); border-radius:14px; padding:1rem; margin-bottom:1rem; }
     .account-card h4 { color:var(--gold-light); font-size:0.9rem; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.75rem; }
+    #hofStandaloneAgreementSearch { background:rgba(255,255,255,.05); color:var(--white); border:1px solid rgba(255,255,255,.18); border-radius:10px; padding:.75rem; font:inherit; font-size:1rem; min-height:44px; }
+    #hofStandaloneAgreementSearch::placeholder { color:var(--gray-light); }
+    #hofStandaloneAgreementSearch:focus-visible { outline:2px solid var(--gold-light); outline-offset:2px; }
+    #hofStandaloneAgreementSearchHelp, #hofStandaloneAgreementSearchStatus { color:var(--gray-light); font-size:.82rem; line-height:1.5; margin:.35rem 0; }
     .relationship-drafts-guide-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.65rem; }
     .relationship-drafts-guide-item { display:flex; flex-direction:column; gap:.28rem; padding:.78rem; border:1px solid rgba(255,255,255,.1); border-radius:12px; background:rgba(255,255,255,.025); }
     .relationship-drafts-guide-item strong { color:var(--sage-light); font-size:.79rem; line-height:1.35; }
@@ -23962,9 +23966,11 @@ function routeAfterMagicLinkIfNeeded() {
   const escape = value => String(value ?? '').replace(/[&<>\"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[char]));
   const token = () => root.hofAuth?.session?.access_token || '';
   const activeAgent = () => !!root.hofAuth?.session?.user;
+  const captureViewer = () => ({ id: root.hofAuth?.session?.user?.id, epoch: root.__hofAccountProfileEpoch || 0 });
+  const viewerIsCurrent = actor => Boolean(actor.id) && actor.id === root.hofAuth?.session?.user?.id && actor.epoch === (root.__hofAccountProfileEpoch || 0);
 
-  async function loadAgreements() {
-    const response = await fetch('/api/admin-dashboard?scope=standalone_agreements', { headers: { Authorization: `Bearer ${token()}` } });
+  async function loadAgreements(offset = 0) {
+    const response = await fetch(`/api/admin-dashboard?scope=standalone_agreements&offset=${offset}`, { headers: { Authorization: `Bearer ${token()}` } });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.error || 'Could not load standalone agreement drafts.');
     return payload;
@@ -24153,22 +24159,82 @@ function routeAfterMagicLinkIfNeeded() {
     }
   }
 
+  function filterPreparedAgreementRows(list, query, status) {
+    const normalize = value => String(value || '').normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '').toLowerCase()
+      .replace(/\b(txr|trec)[\s-]+(?=\d)/g, '$1').trim();
+    const terms = normalize(query).split(/\s+/).filter(Boolean);
+    const rows = [...list.querySelectorAll('[data-agreement-search]')];
+    let visible = 0;
+    rows.forEach(row => {
+      const text = normalize(row.dataset.agreementSearch);
+      const matches = terms.every(term => text.includes(term));
+      row.hidden = !matches;
+      row.style.display = matches ? 'flex' : 'none';
+      if (matches) visible += 1;
+    });
+    status.textContent = rows.length === 0 ? '' : visible === 0
+      ? 'No documents match your search. Clear the search to see the full list.'
+      : `${visible} of ${rows.length} listed document${rows.length === 1 ? '' : 's'} shown.`;
+    return visible;
+  }
+
   async function renderCard() {
     const panel = document.getElementById('accountPanelDashboard');
-    if (!panel || !activeAgent() || document.getElementById('hofStandaloneAgreementCard')) return;
+    if (!panel || !activeAgent()) return;
+    const actor = captureViewer();
+    const existing = document.getElementById('hofStandaloneAgreementCard');
+    if (existing) {
+      if (existing.dataset.viewerId === actor.id && existing.dataset.viewerEpoch === String(actor.epoch)) return;
+      existing.remove();
+    }
+    const isCurrent = () => viewerIsCurrent(actor);
     const card = document.createElement('div');
     card.id = 'hofStandaloneAgreementCard';
+    card.dataset.viewerId = actor.id;
+    card.dataset.viewerEpoch = String(actor.epoch);
     card.className = 'account-card hof-agreement-card';
-    card.innerHTML = '<h4>Texas REALTORS® forms</h4><p>Review your prepared documents here. When signature sending is available, confirm the recipients and signer plan before anything is sent.</p><div id="hofStandaloneAgreementList"><div class="hof-iabs-status">Loading…</div></div>';
+    card.innerHTML = '<h4>Texas REALTORS® forms</h4><p>Review your prepared documents here. When signature sending is available, confirm the recipients and signer plan before anything is sent.</p><label for="hofStandaloneAgreementSearch">Find a saved document</label><p id="hofStandaloneAgreementSearchHelp">Search this login’s listed documents by client, form number, or status. Load older documents to include earlier records.</p><div style="display:flex;gap:.5rem;flex-wrap:wrap;margin:.5rem 0"><input id="hofStandaloneAgreementSearch" type="search" placeholder="Client name, form number, or status" aria-describedby="hofStandaloneAgreementSearchHelp" style="flex:1;min-width:min(16rem,100%);width:100%"><button type="button" class="btn-secondary" id="hofStandaloneAgreementSearchClear">Clear search</button></div><p id="hofStandaloneAgreementSearchStatus" role="status" aria-live="polite" aria-atomic="true"></p><div id="hofStandaloneAgreementList"><div class="hof-iabs-status">Loading…</div></div><button type="button" class="btn-secondary" id="hofStandaloneAgreementMore" hidden>Load older documents</button><p id="hofStandaloneAgreementMoreStatus" role="status" aria-live="polite" aria-atomic="true"></p>';
     panel.appendChild(card);
     const list = card.querySelector('#hofStandaloneAgreementList');
-    const refresh = async () => {
+    const search = card.querySelector('#hofStandaloneAgreementSearch');
+    const searchStatus = card.querySelector('#hofStandaloneAgreementSearchStatus');
+    const applySearch = () => {
+      if (isCurrent() && card.isConnected) filterPreparedAgreementRows(list, search.value, searchStatus);
+    };
+    search.addEventListener('input', applySearch);
+    card.querySelector('#hofStandaloneAgreementSearchClear').addEventListener('click', () => {
+      if (!isCurrent()) return;
+      search.value = ''; applySearch(); search.focus();
+    });
+    const more = card.querySelector('#hofStandaloneAgreementMore');
+    const moreStatus = card.querySelector('#hofStandaloneAgreementMoreStatus');
+    let loadedAgreements = [], nextOffset = null;
+    let refreshVersion = 0;
+    const refresh = async ({ append = false } = {}) => {
+      if (!isCurrent()) { card.remove(); return; }
+      if (append && (more.disabled || nextOffset === null)) return;
+      const offset = append ? nextOffset : 0;
+      const previousIds = new Set(loadedAgreements.map(agreement => agreement.id));
+      const version = ++refreshVersion;
+      more.disabled = true;
+      moreStatus.textContent = append ? 'Loading older documents…' : '';
       try {
-        const payload = await loadAgreements();
-        const agreements = payload.agreements || [];
+        const payload = await loadAgreements(offset);
+        if (!isCurrent() || version !== refreshVersion || !card.isConnected) return;
+        if (!Array.isArray(payload.agreements)) throw new Error('Document history is unavailable.');
+        const next = payload.pagination?.hasMore === true ? payload.pagination.nextOffset : null;
+        if (next !== null && (!Number.isInteger(next) || next <= offset || next > 1000000)) throw new Error('Document history is unavailable.');
+        const byId = new Map((append ? loadedAgreements : []).map(agreement => [agreement.id, agreement]));
+        payload.agreements.forEach(agreement => byId.set(agreement.id, agreement));
+        const agreements = [...byId.values()];
+        loadedAgreements = agreements;
+        nextOffset = next;
+        more.hidden = nextOffset === null;
+        moreStatus.textContent = append ? 'Older documents loaded.' : '';
         const signingEnabled = payload.signingEnabled === true;
         const signingFormCodes = new Set(payload.signingFormCodes || []);
-        if (!agreements.length) { list.innerHTML = '<div class="hof-iabs-status">No standalone agreement drafts yet.</div>'; return; }
+        if (!agreements.length) { list.innerHTML = '<div class="hof-iabs-status">No standalone agreement drafts yet.</div>'; applySearch(); return; }
         list.innerHTML = agreements.map(agreement => {
           // A failed record without a provider document was never delivered.
           // Let its owner retry after a temporary provider issue without
@@ -24182,30 +24248,59 @@ function routeAfterMagicLinkIfNeeded() {
           const canRefresh = agreement.status !== 'signed' && agreement.signwell_document_id;
           const canDownloadCompleted = agreement.status === 'signed' && agreement.signwell_document_id;
           const sendLabel = canRetrySaved ? 'Retry saved request' : (canRetryUnsent ? 'Retry signature request' : 'Send for signature');
-          return `<div style="display:flex;justify-content:space-between;align-items:center;gap:.75rem;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.12);padding:.7rem 0"><span><strong>${escape(agreement.form_code)}</strong><small style="display:block;color:var(--gray-light)">${escape(names)} · ${escape(agreement.status || 'draft')}</small>${gate}</span><span style="display:flex;gap:.4rem;flex-wrap:wrap"><button type="button" class="btn-secondary" data-preview="${escape(agreement.id)}">Preview</button>${canRefresh ? `<button type="button" class="btn-secondary" data-refresh-signing="${escape(agreement.id)}">Refresh status</button>` : ''}${canDownloadCompleted ? `<button type="button" class="btn-secondary" data-download-completed="${escape(agreement.id)}">Download completed PDF</button>` : ''}${canSend ? `<button type="button" class="btn-primary" data-send="${escape(agreement.id)}">${sendLabel}</button>` : ''}</span></div>`;
+          const title = agreement.form_code;
+          return `<div data-agreement-search="${escape([agreement.form_code, title, names, agreement.status || 'draft'].join(' '))}" style="display:flex;justify-content:space-between;align-items:center;gap:.75rem;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.12);padding:.7rem 0"><span><strong>${escape(title)}</strong><small style="display:block;color:var(--gray-light)">${escape(names)} · ${escape(agreement.status || 'draft')}</small>${gate}</span><span style="display:flex;gap:.4rem;flex-wrap:wrap"><button type="button" class="btn-secondary" data-preview="${escape(agreement.id)}">Preview</button>${canRefresh ? `<button type="button" class="btn-secondary" data-refresh-signing="${escape(agreement.id)}">Refresh status</button>` : ''}${canDownloadCompleted ? `<button type="button" class="btn-secondary" data-download-completed="${escape(agreement.id)}">Download completed PDF</button>` : ''}${canSend ? `<button type="button" class="btn-primary" data-send="${escape(agreement.id)}">${sendLabel}</button>` : ''}</span></div>`;
         }).join('');
+        applySearch();
         list.querySelectorAll('[data-preview]').forEach(button => button.addEventListener('click', () => {
+          if (!isCurrent()) return;
           const agreement = agreements.find(item => item.id === button.dataset.preview);
           if (agreement) previewAgreementPdf(agreement, button);
         }));
         list.querySelectorAll('[data-send]').forEach(button => button.addEventListener('click', () => {
+          if (!isCurrent()) return;
           const agreement = agreements.find(item => item.id === button.dataset.send);
           if (agreement) openSendDialog(agreement, refresh);
         }));
         list.querySelectorAll('[data-refresh-signing]').forEach(button => button.addEventListener('click', () => {
+          if (!isCurrent()) return;
           const agreement = agreements.find(item => item.id === button.dataset.refreshSigning);
           if (agreement) refreshAgreementSignWellStatus(agreement, button, refresh);
         }));
         list.querySelectorAll('[data-download-completed]').forEach(button => button.addEventListener('click', () => {
+          if (!isCurrent()) return;
           const agreement = agreements.find(item => item.id === button.dataset.downloadCompleted);
           if (agreement) downloadCompletedAgreementPdf(agreement, button);
         }));
-      } catch (error) { console.error('Prepared document list failed:', error); list.innerHTML = `<div class="hof-iabs-status error">${escape(window.hofCustomerActionError?.(error, 'We couldn’t load your prepared documents. Refresh and try again.') || 'We couldn’t load your prepared documents. Refresh and try again.')}</div>`; }
+        if (append) {
+          const firstNew = [...list.querySelectorAll('[data-preview]')].find(button =>
+            !previousIds.has(button.dataset.preview) && !button.closest('[data-agreement-search]')?.hidden);
+          if (firstNew) firstNew.focus();
+          else if (more.hidden) search.focus();
+        }
+      } catch (error) {
+        if (!isCurrent() || version !== refreshVersion) return;
+        if (append) {
+          moreStatus.textContent = 'We couldn’t load older documents. Your current list is unchanged. Try again.';
+        } else {
+          searchStatus.textContent = ''; loadedAgreements = []; nextOffset = null; more.hidden = true;
+          moreStatus.textContent = '';
+          console.error('Prepared document list failed:', error);
+          list.innerHTML = `<div class="hof-iabs-status error">${escape(window.hofCustomerActionError?.(error, 'We couldn’t load your prepared documents. Refresh and try again.') || 'We couldn’t load your prepared documents. Refresh and try again.')}</div>`;
+        }
+      } finally {
+        if (isCurrent() && version === refreshVersion && card.isConnected) more.disabled = false;
+      }
     };
-    root.hofOpenPreparedAgreement = async function hofOpenPreparedAgreement() {
+    more.addEventListener('click', () => refresh({ append: true }));
+    root.hofOpenPreparedAgreement = async function hofOpenPreparedAgreement(agreementId) {
       await refresh();
+      if (!isCurrent() || !card.isConnected) return false;
+      search.value = ''; applySearch();
       card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      card.querySelector('[data-send], [data-preview]')?.focus();
+      const target = [...card.querySelectorAll('[data-preview]')].find(button => button.dataset.preview === agreementId);
+      (target || card.querySelector('[data-send], [data-preview]'))?.focus();
+      return true;
     };
     await refresh();
   }
