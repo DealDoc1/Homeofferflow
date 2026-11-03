@@ -1,5 +1,8 @@
 import unittest
+import json
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -26,8 +29,36 @@ class SignWellLoggingHygieneTests(unittest.TestCase):
         # The production adapter no longer logs response bodies or requires
         # the removed create-and-send helper's particular log statement.
         adapter = (ROOT / 'lib/offer_signwell_delivery.py').read_text()
-        self.assertNotIn('print(', adapter)
         self.assertNotIn('response.text', adapter)
+
+    def test_rejected_create_logs_only_bounded_value_free_diagnostic(self):
+        from lib.offer_signwell_delivery import deliver_offer_document
+        from lib.signwell_rejections import SigningCreateRejected
+        private = 'PRIVATE buyer@example.test https://private.test/key'
+        response = SimpleNamespace(status_code=422, content=b'{}', json=lambda: {
+            'errors': {'fields': [[{'height': [private]}]], private: private},
+            'message': private,
+        })
+        with patch('lib.offer_signwell_delivery.httpx.post', return_value=response) as post, \
+             patch('lib.offer_signwell_delivery.httpx.patch') as write, \
+             patch('lib.offer_signwell_delivery.httpx.get') as read, \
+             patch('builtins.print') as log:
+            with self.assertRaises(SigningCreateRejected):
+                deliver_offer_document(
+                    {'id': 'qa-offer', 'user_id': 'qa-owner', 'offer_data': {}},
+                    {'fields': [], 'recipients': [], 'metadata': {}}, {},
+                    user_id='qa-owner', supabase_url='https://qa.example.test',
+                    supabase_key=private, signwell_key=private)
+        post.assert_called_once()
+        self.assertTrue(post.call_args.kwargs['json']['draft'])
+        write.assert_not_called()
+        read.assert_not_called()
+        log.assert_called_once()
+        diagnostic = json.loads(log.call_args.args[0])
+        self.assertEqual(diagnostic, {'event': 'signwell_create_rejected',
+            'http_status': 422, 'category': 'signature_fields',
+            'fields': ['fields.0.0.height']})
+        self.assertNotIn('PRIVATE', log.call_args.args[0])
 
 
 if __name__ == "__main__":

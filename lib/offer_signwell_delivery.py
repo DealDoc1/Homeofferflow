@@ -9,6 +9,7 @@ from urllib.parse import quote
 import httpx
 from lib import signwell_delivery as delivery
 from lib.signwell_request import document_matches_signing_request, send_options
+from lib.signwell_rejections import SigningCreateRejected
 
 
 def offer_answers(offer):
@@ -103,7 +104,9 @@ def deliver_offer_document(record, payload, offer, *, user_id, supabase_url, sup
     async def create(body):
         response = httpx.post(provider, headers=provider_headers, json=body, timeout=45)
         if response.status_code not in {200, 201, 202}:
-            raise delivery.DeliveryUnsent('The signing service could not prepare your offer. No invitation was requested.')
+            rejection = SigningCreateRejected(response)
+            print(json.dumps({'event': 'signwell_create_rejected', **rejection.diagnostic}, sort_keys=True))
+            raise rejection
         return response.json()
 
     async def inspect(document_id):
