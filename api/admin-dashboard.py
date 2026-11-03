@@ -4666,6 +4666,37 @@ async def _render_representation_draft_preview(user, agreement_id, *, for_signin
     )
 
 
+async def _standalone_agreement_page(user, offset=0):
+    try:
+        owner = str(uuid.UUID(str(user.get("id") or "")))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("Sign in again to view your saved documents.") from None
+    if (isinstance(offset, bool) or not isinstance(offset, (str, int))
+            or not re.fullmatch(r"[0-9]{1,7}", str(offset))
+            or not 0 <= int(offset) <= 1000000):
+        raise ValueError("Choose a valid document history page.")
+    offset = int(offset)
+    rows = await _get(
+        "hof_standalone_agreements?"
+        f"agent_user_id=eq.{urllib.parse.quote(owner, safe='')}"
+        "&select=id,form_code,source_revision,client_names,agreement_data,status,signwell_status,signwell_document_id,created_at,updated_at,sent_at,signed_at"
+        f"&order=updated_at.desc,id.desc&offset={offset}&limit=101"
+    )
+    if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+        raise RuntimeError("Document history is temporarily unavailable.")
+    page = [dict(row) for row in rows[:100]]
+    for row in page:
+        row["signer_labels"] = _standalone_signer_labels(row)
+        row["canRetrySavedRequest"] = bool(row.get("signwell_document_id")
+            and row.get("status") in {"draft", "failed"} and _tracked_signature_journal(row))
+        row.pop("agreement_data", None)
+    has_more = len(rows) > 100 and offset + len(page) <= 1000000
+    return {"agreements": page, "signingEnabled": TXR_SIGNING_ENABLED,
+            "signingFormCodes": sorted(TXR_SIGNING_FORM_CODES),
+            "pagination": {"hasMore": has_more,
+                           "nextOffset": offset + len(page) if has_more else None}}
+
+
 async def _representation_professional_context(user):
     """Resolve the agent's own identity, never the shared PDF source's host.
 
@@ -5424,22 +5455,19 @@ class handler(BaseHTTPRequestHandler):
                 _json(self, 200, {"drafts": rows})
                 return
             if scope == "standalone_agreements":
-                rows = asyncio.run(_get(
-                    "hof_standalone_agreements?"
-                    f"agent_user_id=eq.{urllib.parse.quote(user['id'])}"
-                    "&select=id,form_code,source_revision,client_names,agreement_data,status,signwell_status,signwell_document_id,created_at,updated_at,sent_at,signed_at"
-                    "&order=updated_at.desc&limit=100"
-                ))
-                for row in rows:
-                    row["signer_labels"] = _standalone_signer_labels(row)
-                    row["canRetrySavedRequest"] = bool(row.get("signwell_document_id")
-                        and row.get("status") in {"draft", "failed"} and _tracked_signature_journal(row))
-                    row.pop("agreement_data", None)
-                _json(self, 200, {
-                    "agreements": rows,
-                    "signingEnabled": TXR_SIGNING_ENABLED,
-                    "signingFormCodes": sorted(TXR_SIGNING_FORM_CODES),
-                })
+                try:
+                    payload = asyncio.run(_standalone_agreement_page(
+                        user, (query.get("offset") or ["0"])[0]))
+                except PermissionError as exc:
+                    _json(self, 403, {"error": str(exc)})
+                    return
+                except ValueError as exc:
+                    _json(self, 400, {"error": str(exc)})
+                    return
+                except Exception:
+                    _json(self, 503, {"error": "Document history is temporarily unavailable. Please try again."})
+                    return
+                _json(self, 200, payload)
                 return
             if scope == "platform_source_brokerages":
                 try:
