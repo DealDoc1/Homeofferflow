@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import subprocess
 import unittest
 
@@ -12,7 +13,9 @@ class SavedDisclosureAttachmentTests(unittest.TestCase):
         asset='/assets/saved-disclosure-attachment.js?v=20261022-summary1'
         self.assertIn(asset,html)
         self.assertIn("'"+asset+"'",worker)
-        self.assertIn("homeofferflow-shell-v130",worker)
+        version = re.search(r"const SHELL_CACHE = 'homeofferflow-shell-v(\d+)'", worker)
+        self.assertIsNotNone(version)
+        self.assertGreaterEqual(int(version.group(1)), 130)
 
     def test_selected_reviewed_disclosure_shows_bound_parties_without_exposing_email(self):
         script = r'''
