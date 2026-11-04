@@ -44,7 +44,7 @@ class OperatorListingLeadSigningQATests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(reserved['layout_sha256'],qa.LAYOUT_SHA256)
         self.assertEqual(len(reserved['completion_controls_sha256']),64)
         self.assertTrue(calls[1].kwargs['json']['test_mode'])
-        self.assertTrue(calls[2].args[0].endswith(DOCUMENT_ID+'/send/'))
+        self.assertTrue(calls[2].args[0].endswith(DOCUMENT_ID+'/send'))
         self.assertFalse(calls[2].kwargs['json']['apply_signing_order'])
         self.assertNotIn('fields',calls[2].kwargs['json'])
         self.assertNotIn('PRIVATE_KEY',str(result)+str(MODULE._patch.call_args_list))
