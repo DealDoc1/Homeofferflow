@@ -667,6 +667,7 @@ async def _verify_and_send_fixed_qa_draft(client, run_id, receipt, payload):
     from lib.signwell_controls import controls_match
     from lib.signwell_request import send_options
     from lib.signwell_qa_readback import required_flags_match
+    from lib.signwell_qa_transport import send_verified_qa_draft
     document_id=receipt['document_id']
     receipt['phase']='draft_unverified'
     await _patch('hof_qa_runs',f'id=eq.{run_id}',{'notes':json.dumps(receipt)})
@@ -686,8 +687,8 @@ async def _verify_and_send_fixed_qa_draft(client, run_id, receipt, payload):
     await _patch('hof_qa_runs',f'id=eq.{run_id}',{'notes':json.dumps(receipt)})
     # The durable reservation prevents a retry after an ambiguous response.
     receipt['phase']='unconfirmed'
-    response=await client.post('https://www.signwell.com/api/v1/documents/'+document_id+'/send/',
-        headers={'X-Api-Key':SIGNWELL_API_KEY},json=send_options(payload))
+    response=await send_verified_qa_draft(client, document_id,
+        api_key=SIGNWELL_API_KEY, payload=send_options(payload))
     if response.status_code in {200,201}:
         sent=response.json();status=_purchase_qa_provider_status(sent.get('status'))
         if sent.get('id')==document_id and sent.get('test_mode') is True and status in {'sent','viewed','pending','in_progress','completed'}:
@@ -703,6 +704,7 @@ async def _purchase_signing_qa(user, *, send=False, _spec=None):
     A fixed unique QA run survives refreshes, releases, timeouts and retries.
     """
     from lib import purchase_signing_qa
+    from lib.signwell_qa_transport import create_qa_document, validate_test_payload
     spec = _spec or purchase_signing_qa
     QA_OPERATOR_EMAILS, QA_REVISION = spec.QA_OPERATOR_EMAILS, spec.QA_REVISION
     QA_SCENARIO, QA_RECIPIENTS = spec.QA_SCENARIO, spec.QA_RECIPIENTS
@@ -799,6 +801,7 @@ async def _purchase_signing_qa(user, *, send=False, _spec=None):
     import inspect
     packet, fields, cases = await built if inspect.isawaitable(built) else built
     payload = build_payload(packet, fields, REVIEWED_SOURCE_COMMIT)
+    validate_test_payload(payload)
     if getattr(spec,"VERIFY_DRAFT",False) and (payload.get('draft') is not True or payload.get('test_mode') is not True):
         raise ValueError('This completion-control test must start as a private test draft. Nothing was sent.')
     now = datetime.now(timezone.utc).isoformat()
@@ -834,8 +837,7 @@ async def _purchase_signing_qa(user, *, send=False, _spec=None):
     run = claimed[0]
     try:
         async with httpx.AsyncClient(timeout=45) as client:
-            response = await client.post("https://www.signwell.com/api/v1/documents/",
-                                         headers={"X-Api-Key": SIGNWELL_API_KEY}, json=payload)
+            response = await create_qa_document(client, api_key=SIGNWELL_API_KEY, payload=payload)
             receipt["phase"] = "unconfirmed"
             if response.status_code == 201:
                 document = response.json()
@@ -852,6 +854,10 @@ async def _purchase_signing_qa(user, *, send=False, _spec=None):
                     else:receipt["phase"] = "created"
             else:
                 receipt["http_status"] = response.status_code
+                # Keep only the existing bounded, value-free classifier. Raw
+                # provider bodies can echo PDF data, recipient details or keys.
+                from lib.signwell_rejections import rejection_diagnostic
+                receipt["create_rejection"] = rejection_diagnostic(response)
     except Exception as error:
         # Never persist/log provider bodies, exception text, keys or signing URLs.
         receipt.update(phase="unconfirmed", error_type=type(error).__name__)

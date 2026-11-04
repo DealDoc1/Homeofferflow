@@ -1,0 +1,131 @@
+# Align protected QA transport with the API contract — November 4, 2026
+
+## Evidence and bounded change
+
+The v1 buyer-package create returned HTTP 400 with no confirmed document ID.
+Its body was discarded; a read-only connection check succeeds. Its reservation
+remains intact. No response field or exact root cause is established. Local
+payload review against the official SDK's request models found no obvious
+primitive-type mismatch; this was a source review, not execution of its
+Pydantic validator or proof that every provider business rule passes.
+
+The official Python SDK at commit
+7d6811135600b4426b22904d5432ff1f2f39e0ed uses canonical POST paths without
+trailing slashes and explicit application/json request/response headers:
+https://github.com/Bidsketch/signwell-sdk-python/blob/7d6811135600b4426b22904d5432ff1f2f39e0ed/signwell_sdk/api/document_api.py.
+The inspected reference checkout is private temporary research material, not a
+dependency and not installed/executed. The current source contract also documents
+X-TestMode-Enabled: true for both create and send:
+https://developers.signwell.com/reference/createdocument and
+https://developers.signwell.com/reference/senddocument. Send docs explicitly
+warn that draft test mode does not automatically carry over to sending.
+
+Added a QA-only transport helper using those canonical paths and JSON headers.
+It requires an exact Boolean test_mode true before any provider POST and sets
+the explicit true test-mode header on both create and send. It validates the
+reserved send UUID and disables redirects per request even if a future client
+allows them. It has no retries, configurable destination, logging, credential
+lookup or journal writes. The coordinator rejects live/malformed test mode
+before reserving an attempt and retains its existing reservation/readback/
+checkpoint-before-send sequencing. The existing local sanitized rejection
+capture will preserve bounded diagnostics for future necessary rejections.
+
+Customer delivery adapters, shared customer readback guard, PDF renderers,
+fields, sources, recipients, invitation order and API response shape are
+unchanged. The fixed buyer recipe is now v2 with a distinct QA title/transport
+metadata, so it cannot silently replay/reset the failed v1 reservation. It
+remains a private test draft with the two established owner QA inboxes, parallel
+invitations and no reminders. No automatic test send occurs on release.
+
+Canonical transport alignment is a compatibility correction and a controlled
+hypothesis for the rejected request, not a proven explanation of HTTP 400.
+Do not claim that optional empty control arrays are invalid: the inspected SDK
+models accept lists without a nonempty constraint, and those arrays remain
+unchanged. Do not infer an undocumented request-size limit from the status.
+
+## Verification and state
+
+83 unique focused cases pass across signwell_qa_transport,
+operator_qa_create_rejections, operator_purchase_signing_qa,
+operator_showing_signing_qa, operator_amendment_signing_qa,
+operator_listing_lead_signing_qa, listing_package_signing_qa,
+lease_listing_signing_qa, buyer_representation_signing_qa and
+signwell_qa_readback. Main run: 82 tests, no skips; the additional actual-packet
+serialization case passed in the eight-case transport suite. Private buyer,
+listing and lease sources were supplied. Existing HTTPX MockTransport inspects
+actual serialized requests with zero network calls and no new dependency.
+
+Coverage verifies exact canonical URLs, JSON headers/body, unchanged inputs,
+explicit test mode on both requests, invalid/live mode refusal before writes,
+invalid connection/document refusal without leaking a key, redirect refusal,
+one-call rejection behavior, and existing coordinator lifecycle controls.
+The actual nine-page PDF survives base64/JSON serialization byte-for-byte with
+the same reviewed packet and field pins; it is not flattened or re-authored.
+No changed PDF pages need rendering. Existing owner-control interaction and
+locally authored nonbinding message were reviewed; no browser UI changed.
+
+Implemented/tested locally. Source-approved packet and exact reviewed maps are
+unchanged. No provider call, new packet, invitation, customer/partner message,
+schema change, credential export, installation, charge or deployment occurred
+during this preparation. A release candidate must pass its focused/full/CI/
+live project/schema/cost gates before a single intentional prebuilt release.
+Only then may one necessary v2 controlled test verify compatibility. The v1
+attempt stays untouched, and completed-provider placement remains unproven.
+
+## Frozen candidate checkpoint
+
+The isolated candidate passes 99 focused tests with actual private sources,
+including its QA-only customer-activation boundary and UI/control/classifier
+regressions. Full local regression passed 3,011 tests, two skipped, in 120.846
+seconds. No PR, deployment or v2 provider request has occurred. Work is preserved
+on codex/buyer-qa-canonical-json-2026-11-04 while the owner prioritizes the live
+My Offers search-focus defect.
+
+## Resume against the released search fix
+
+The owner-reported search defect is now production-verified. This QA transport
+candidate is updated by a normal merge onto current production/main ab4037d8;
+the released search behavior and shell v134 are retained. No source or PDF/map
+change was added. The active isolated branch is
+codex/buyer-qa-transport-release-2026-11-04. Fixed failed v1 is not reset.
+
+The official create/send reference was rechecked November 4. It still specifies
+canonical paths without terminal slashes and explicit test mode for sending a
+draft. 100 focused tests pass with all private buyer/listing/lease sources,
+including actual serialization, QA-only activation boundary, value-free rejection
+classification, owner controls and the released search regression. No skips.
+The existing visible operator control is unchanged. Customer signing paths and
+API contracts are unchanged; this releases only the protected QA transport.
+
+Release baseline: ab4037d8a47f5ca98500d6d35c711f189734fef5. Use the existing
+intentional workflow after full regression and exact-head CI. Current live
+project/cost/schema checks must pass. One necessary controlled v2 test may run
+only after that release. It uses the already reviewed fixed fictional packet,
+existing owner-controlled inboxes, exact true test mode, private draft readback,
+no reminders and simultaneous invitations. No real customer or partner send.
+Completed-provider signatures are a separate unproven gate; do not claim them
+from a successful create/send alone.
+
+## Resume after readability release
+
+Current baseline is verified production/main
+9a7fbb73434dc51ac7a63f0656df09a0b3f67177, READY
+dpl_8CmDwC7CcQ6aGNxbcHEUfW5dVxJV, shell v135. A normal merge retains all
+released search/readability code. The seven-file QA-only diff is unchanged.
+No customer composer, API response contract, source, PDF, map or UI change.
+
+The previously failed private case passes with the known reviewed IABS hash
+provided through HOF_BUYER_QA_IABS_SHA256. The earlier full invocation completed
+3,012 tests with one missing-environment setup error and two skips; it must not
+be described as one clean full run. The sole failed case passed separately, then
+all 104 focused tests passed together with every private source supplied, no
+skips, in 5.056 seconds. This includes all actual-source branches and serialization.
+Exact-head CI must verify the final merged candidate; the intentional production
+workflow also runs its own required full regression. No redundant local full
+rerun is needed for the isolated setup correction and already-released CSS merge.
+
+The prior recipe's PDF/layout pins and offline visual review remain unchanged.
+The current owner-only controls are unchanged and retain check-first and
+reserve-once behavior. The release makes no provider success/completed-signature
+claim. A controlled v2 check/create after verified deployment will establish its
+actual state. V1 remains preserved, with no reset/replay.

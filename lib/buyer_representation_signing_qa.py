@@ -13,6 +13,7 @@ from lib.representation_package import compose_representation_package
 from lib.txr_1507 import render_txr_1507, build_signwell_fields_txr1507
 from lib.txr_1506 import render_txr_1506, build_signwell_fields_txr1506
 from lib.purchase_signing_qa import QA_OPERATOR_EMAILS, QA_RECIPIENTS
+from lib.signwell_qa_transport import TRANSPORT_REVISION
 
 SOURCE_HASHES = {
     'TXR1507': 'ff3c3682f68036d502314ca6bb2230c28d8e0b1ca5a4a5d4816a66f9f415b46f',
@@ -75,11 +76,11 @@ def build_case(sources, case):
 
 
 IABS_SHA256 = '81fd0005afc341aeceb2af0f9446db566bd8f3bf2479306763c03be3788806ff'
-QA_REVISION = 'ordinary-buyer-notice-iabs-2026-11-04-v1'
+QA_REVISION = 'ordinary-buyer-notice-iabs-2026-11-04-v2'
 QA_SCENARIO = 'ordinary-buyer-package-provider-placement'
 REVIEWED_SOURCE_COMMIT = '0e1e390bbd328980023ed983b9d7fc6052c8da01'
 RENDER_REVISION = 'txr1507-v3-txr1506-composed-2026-11-04'
-DOCUMENT_PREFIX = 'QA ONLY - ordinary buyer package - '
+DOCUMENT_PREFIX = 'QA ONLY - ordinary buyer package wire v2 - '
 QA_TITLE = 'Ordinary buyer representation, consumer notice and saved IABS'
 QA_DESCRIPTION = 'One fictional buyer and associate, parallel invitations; IABS information only.'
 TEST_LABEL = 'buyer representation package signing'
@@ -130,4 +131,5 @@ def build_payload(packet, fields, release_sha):
         'fields': deepcopy(fields), 'checkbox_groups': [], 'conditional_rules': [],
         'metadata': {'qa_kind': 'ordinary-buyer-representation-package',
             'qa_revision': QA_REVISION, 'release_sha': release_sha,
+            'qa_transport_revision': TRANSPORT_REVISION,
             'layout_sha256': LAYOUT_SHA256}}
