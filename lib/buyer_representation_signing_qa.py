@@ -131,4 +131,3 @@ def build_payload(packet, fields, release_sha):
         'metadata': {'qa_kind': 'ordinary-buyer-representation-package',
             'qa_revision': QA_REVISION, 'release_sha': release_sha,
             'layout_sha256': LAYOUT_SHA256}}
-
