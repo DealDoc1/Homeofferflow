@@ -9,6 +9,26 @@ from lib.signwell_controls import controls_match
 from lib.signwell_request import document_matches_signing_request
 
 
+def required_flags_match(document, expected_fields):
+    """Strict required/optional readback for operator QA drafts only."""
+    try:
+        rows = document['fields']
+        if not isinstance(rows, list) or any(not isinstance(group, list) for group in rows):
+            return False
+        returned = {field['api_id']: field for group in rows for field in group}
+        if len(returned) != sum(map(len, rows)):
+            return False
+        for group in expected_fields:
+            for field in group:
+                if 'required' in field:
+                    actual = returned.get(field['api_id'], {}).get('required')
+                    if type(field['required']) is not bool or type(actual) is not bool or actual is not field['required']:
+                        return False
+        return True
+    except (KeyError, TypeError, AttributeError):
+        return False
+
+
 def readback_report(document, payload):
     """Return booleans, reviewed field IDs and bounded scalar observations.
 

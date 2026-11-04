@@ -666,6 +666,7 @@ async def _verify_and_send_fixed_qa_draft(client, run_id, receipt, payload):
     """A reserved fictional test only; persist its identity before any send."""
     from lib.signwell_controls import controls_match
     from lib.signwell_request import send_options
+    from lib.signwell_qa_readback import required_flags_match
     document_id=receipt['document_id']
     receipt['phase']='draft_unverified'
     await _patch('hof_qa_runs',f'id=eq.{run_id}',{'notes':json.dumps(receipt)})
@@ -678,6 +679,7 @@ async def _verify_and_send_fixed_qa_draft(client, run_id, receipt, payload):
             or _purchase_qa_provider_status(document.get('status')) not in {'draft','created'}
             or any((document.get('metadata') or {}).get(k)!=v for k,v in payload['metadata'].items())
             or not _signwell_document_matches_signing_request(document,payload['fields'],payload['recipients'])
+            or not required_flags_match(document, payload['fields'])
             or not controls_match(document,payload['fields'],payload['checkbox_groups'],payload['conditional_rules'])):
         return
     receipt.update(controls_verified=True,phase='send_started')
@@ -871,6 +873,114 @@ async def _purchase_signing_qa(user, *, send=False, _spec=None):
 async def _listing_lead_signing_qa(user, *, send=False):
     from lib import listing_lead_signing_qa as qa
     return await _purchase_signing_qa(user,send=send,_spec=qa)
+
+
+class AgentIabsProfileMissing(ValueError):
+    """The authenticated agent has no IABS metadata row yet."""
+
+
+async def _agent_iabs_profile_record(user, *, expected_id=None, expected_updated_at=None):
+    """Read only the authenticated agent's exact, supported IABS profile row."""
+    user_id = str(user.get("id") or "")
+    if not re.fullmatch(r"[0-9a-fA-F-]{36}", user_id):
+        raise PermissionError("A signed-in agent account is required to include an IABS.")
+    rows = await _get(
+        "hof_agent_documents?"
+        f"user_id=eq.{urllib.parse.quote(user_id)}&document_type=eq.iabs"
+        "&select=id,user_id,document_type,storage_bucket,storage_path,original_filename,mime_type,byte_size,updated_at&limit=1"
+    )
+    if not rows:
+        raise AgentIabsProfileMissing("Upload your brokerage-approved IABS under My IABS before adding it to this package.")
+    row = rows[0]
+    if (row.get("user_id") != user_id or row.get("document_type") != "iabs"
+            or row.get("storage_bucket") != "agent-documents"
+            or row.get("storage_path") != f"{user_id}/iabs.pdf"
+            or row.get("mime_type") != "application/pdf"
+            or type(row.get("byte_size")) is not int or not 1 <= row["byte_size"] <= 10485760
+            or not row.get("id") or not row.get("updated_at")):
+        raise ValueError("Your saved IABS profile record is incomplete. Open My IABS and upload it again.")
+    if expected_id is not None and row["id"] != expected_id:
+        raise ValueError("Your saved IABS changed after this draft was prepared. Reopen the draft to include the current copy.")
+    if expected_updated_at is not None and row["updated_at"] != expected_updated_at:
+        raise ValueError("Your saved IABS changed after this draft was prepared. Reopen the draft to include the current copy.")
+    return row
+
+
+async def _agent_iabs_profile_pdf(user, *, expected_id, expected_updated_at):
+    """Load only the authenticated agent's currently saved IABS PDF."""
+    row = await _agent_iabs_profile_record(
+        user, expected_id=expected_id, expected_updated_at=expected_updated_at
+    )
+    user_id = str(user["id"])
+    async with httpx.AsyncClient(timeout=20) as client:
+        response = await client.get(
+            f"{SUPABASE_URL}/storage/v1/object/agent-documents/"
+            f"{urllib.parse.quote(user_id, safe='')}/iabs.pdf",
+            headers=_headers(),
+        )
+    if (response.status_code != 200 or not response.content.startswith(b"%PDF")
+            or len(response.content) != row["byte_size"]):
+        raise RuntimeError("Your saved IABS could not be loaded. Open My IABS and try again.")
+    await _agent_iabs_profile_record(
+        user, expected_id=expected_id, expected_updated_at=expected_updated_at
+    )
+    return response.content, row
+
+
+async def _buyer_package_signing_qa(user, *, send=False):
+    """One fixed buyer/notice/IABS specimen through the protected QA journal."""
+    from types import SimpleNamespace
+    from lib import buyer_representation_signing_qa as qa
+
+    async def build():
+        payloads = {}
+        for code, digest in qa.SOURCE_HASHES.items():
+            form_code = 'TXR-' + code[3:]
+            rows = await _get('hof_brokerage_form_sources?'
+                f'form_code=eq.{form_code}&source_revision=eq.06-15-26'
+                '&status=eq.approved&authorization_attested=is.true'
+                '&select=id,brokerage_id,form_code,source_revision,status,authorization_attested,source_sha256,storage_bucket,storage_path'
+                '&order=updated_at.desc,id.desc&limit=1')
+            if len(rows or []) != 1:
+                raise ValueError('The reviewed buyer QA source is unavailable. Nothing was sent.')
+            source = rows[0]
+            path = source.get('storage_path')
+            try:
+                uuid.UUID(str(source.get('id')))
+                office = str(uuid.UUID(str(source.get('brokerage_id'))))
+            except (ValueError, TypeError, AttributeError):
+                raise ValueError('The buyer QA source identity could not be confirmed.') from None
+            if (source.get('form_code') != form_code or source.get('source_revision') != '06-15-26'
+                    or source.get('status') != 'approved' or source.get('authorization_attested') is not True
+                    or source.get('source_sha256') != digest
+                    or source.get('storage_bucket') != 'brokerage-form-sources'
+                    or not isinstance(path, str) or len(path) > 500
+                    or not path.startswith(office + '/') or not path.endswith('.pdf')
+                    or any(part in {'', '.', '..'} for part in path.split('/'))):
+                raise ValueError('The buyer QA source differs from the reviewed private revision.')
+            try:
+                async with httpx.AsyncClient(timeout=20) as client:
+                    response = await client.get(f'{SUPABASE_URL}/storage/v1/object/brokerage-form-sources/'
+                        f'{urllib.parse.quote(path, safe="/")}', headers=_headers())
+            except Exception:
+                raise ValueError('The private buyer QA source could not be loaded. Nothing was sent.') from None
+            if (response.status_code != 200 or len(response.content) > 10_485_760
+                    or hashlib.sha256(response.content).hexdigest() != digest):
+                raise ValueError('The downloaded buyer QA source differs from the reviewed PDF.')
+            payloads[code] = response.content
+        # Preserve authenticated ownership and version checks. Never accept an
+        # IABS URL, account ID, source ID or PDF supplied in the action body.
+        profile = await _agent_iabs_profile_record(user)
+        payloads['IABS'], _ = await _agent_iabs_profile_pdf(
+            user, expected_id=profile['id'], expected_updated_at=profile['updated_at'])
+        return qa.build_packet(payloads)
+
+    spec = SimpleNamespace(**{key: getattr(qa, key) for key in (
+        'QA_OPERATOR_EMAILS', 'QA_REVISION', 'QA_SCENARIO', 'QA_RECIPIENTS',
+        'REVIEWED_SOURCE_COMMIT', 'DOCUMENT_PREFIX', 'QA_TITLE', 'QA_DESCRIPTION',
+        'RENDER_REVISION', 'TEST_LABEL', 'VERIFY_DRAFT', 'LAYOUT_SHA256')},
+        build_packet=build, build_payload=qa.build_payload)
+    return await _purchase_signing_qa(user, send=send, _spec=spec)
 
 
 async def _lease_listing_signing_qa(user, *, send=False):
@@ -8322,6 +8432,12 @@ class handler(BaseHTTPRequestHandler):
                 if set(data) != {"action"}:
                     raise ValueError("The signing test does not accept custom recipients or document settings.")
                 result = asyncio.run(_lease_listing_signing_qa(user, send=data["action"] == "send_lease_listing_signing_test"))
+                _json(self, 200, {"ok": True, "signingTest": result})
+                return
+            if data.get("action") in {"send_buyer_package_signing_test", "check_buyer_package_signing_test"}:
+                if set(data) != {"action"}:
+                    raise ValueError("The signing test does not accept custom recipients or document settings.")
+                result = asyncio.run(_buyer_package_signing_qa(user, send=data["action"] == "send_buyer_package_signing_test"))
                 _json(self, 200, {"ok": True, "signingTest": result})
                 return
             if data.get("action") == "create_platform_partner_placement":
