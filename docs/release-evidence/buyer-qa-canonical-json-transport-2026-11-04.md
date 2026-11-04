@@ -105,3 +105,27 @@ existing owner-controlled inboxes, exact true test mode, private draft readback,
 no reminders and simultaneous invitations. No real customer or partner send.
 Completed-provider signatures are a separate unproven gate; do not claim them
 from a successful create/send alone.
+
+## Resume after readability release
+
+Current baseline is verified production/main
+9a7fbb73434dc51ac7a63f0656df09a0b3f67177, READY
+dpl_8CmDwC7CcQ6aGNxbcHEUfW5dVxJV, shell v135. A normal merge retains all
+released search/readability code. The seven-file QA-only diff is unchanged.
+No customer composer, API response contract, source, PDF, map or UI change.
+
+The previously failed private case passes with the known reviewed IABS hash
+provided through HOF_BUYER_QA_IABS_SHA256. The earlier full invocation completed
+3,012 tests with one missing-environment setup error and two skips; it must not
+be described as one clean full run. The sole failed case passed separately, then
+all 104 focused tests passed together with every private source supplied, no
+skips, in 5.056 seconds. This includes all actual-source branches and serialization.
+Exact-head CI must verify the final merged candidate; the intentional production
+workflow also runs its own required full regression. No redundant local full
+rerun is needed for the isolated setup correction and already-released CSS merge.
+
+The prior recipe's PDF/layout pins and offline visual review remain unchanged.
+The current owner-only controls are unchanged and retain check-first and
+reserve-once behavior. The release makes no provider success/completed-signature
+claim. A controlled v2 check/create after verified deployment will establish its
+actual state. V1 remains preserved, with no reset/replay.
