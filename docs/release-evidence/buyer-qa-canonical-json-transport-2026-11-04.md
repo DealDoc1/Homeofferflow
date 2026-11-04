@@ -84,7 +84,7 @@ My Offers search-focus defect.
 ## Resume against the released search fix
 
 The owner-reported search defect is now production-verified. This QA transport
-candidate is rebased by a normal merge onto current production/main ab4037d8;
+candidate is updated by a normal merge onto current production/main ab4037d8;
 the released search behavior and shell v134 are retained. No source or PDF/map
 change was added. The active isolated branch is
 codex/buyer-qa-transport-release-2026-11-04. Fixed failed v1 is not reset.
