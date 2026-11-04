@@ -20048,11 +20048,19 @@ function routeAfterMagicLinkIfNeeded() {
     </article>`;
   }
 
+  function renderSearchResults(offers){
+    const safe = Array.isArray(offers) ? offers : [];
+    const shown = sortedOffers(safe);
+    const cards = shown.length ? shown.map(renderCard).join('') : `<div class="offer-workspace-empty"><strong>No saved purchase offers match this view.</strong><br/>Try another status tab, clear the search, or choose a transaction to begin.<br/><button type="button" class="btn-primary" style="margin-top:.75rem" onclick="startAccountTransaction()">Choose Transaction</button></div>`;
+    const hasActiveFilters = state.filter !== 'all' || String(state.query || '').trim() || state.sort !== 'updated_desc';
+    const summary = `<span><strong>${shown.length}</strong> of ${safe.length} loaded offer${safe.length === 1 ? '' : 's'} shown${hasActiveFilters ? ' in this view' : ''}.</span>${hasActiveFilters ? '<button type="button" class="offer-workspace-clear-filters" onclick="hofClearOfferWorkspaceFilters()">Reset view</button>' : ''}`;
+    return { cards, summary };
+  }
+
   function renderWorkspace(offers){
     const safe = Array.isArray(offers) ? offers : [];
     state.offers = safe;
     const c = counts(safe);
-    const shown = sortedOffers(safe);
     const priority = priorityOffer(safe);
     const priorityProperty = priority && (priority.property_address || priority.offer_data?.propertyAddress || priority.offer_data?.propAddress || 'Untitled offer');
     const priorityNeedsBuyerReminder = priority && bucketForOffer(priority) === 'signing';
@@ -20062,9 +20070,8 @@ function routeAfterMagicLinkIfNeeded() {
     </section>` : '';
     const volume = safe.reduce((sum,o) => sum + Number(o.offer_price || o.offer_data?.offerPrice || 0), 0);
     const tab = (key,label) => `<button type="button" class="offer-filter-tab ${state.filter===key?'active':''}" aria-pressed="${state.filter===key ? 'true' : 'false'}" onclick="hofSetOfferWorkspaceFilter('${key}')">${label} <span>${c[key] || 0}</span></button>`;
-    const cards = shown.length ? shown.map(renderCard).join('') : `<div class="offer-workspace-empty"><strong>No saved purchase offers match this view.</strong><br/>Try another status tab, clear the search, or choose a transaction to begin.<br/><button type="button" class="btn-primary" style="margin-top:.75rem" onclick="startAccountTransaction()">Choose Transaction</button></div>`;
-    const hasActiveFilters = state.filter !== 'all' || String(state.query || '').trim() || state.sort !== 'updated_desc';
-    const resultSummary = `<div class="offer-workspace-result-summary" aria-live="polite"><span><strong>${shown.length}</strong> of ${safe.length} loaded offer${safe.length === 1 ? '' : 's'} shown${hasActiveFilters ? ' in this view' : ''}.</span>${hasActiveFilters ? '<button type="button" class="offer-workspace-clear-filters" onclick="hofClearOfferWorkspaceFilters()">Reset view</button>' : ''}</div>`;
+    const { cards, summary } = renderSearchResults(safe);
+    const resultSummary = `<div class="offer-workspace-result-summary" aria-live="polite">${summary}</div>`;
     const canLoadMore = !!root.hofAuth?.myOffersHasMore;
     const loadMoreFailed = !!root.hofAuth?.myOffersLoadMoreError;
     const historyControl = canLoadMore
@@ -20160,7 +20167,20 @@ function routeAfterMagicLinkIfNeeded() {
   };
 
   root.hofSetOfferWorkspaceFilter = function(filter){ state.filter = filter || 'all'; persistWorkspaceState(); rerender(); };
-  root.hofSetOfferWorkspaceSearch = function(query){ state.query = query || ''; persistWorkspaceState(); rerender(); };
+  root.hofSetOfferWorkspaceSearch = function(query){
+    state.query = query || '';
+    persistWorkspaceState();
+    const list = document.getElementById('myOffersList');
+    const cards = list?.querySelector('.offer-workspace-list');
+    const summary = list?.querySelector('.offer-workspace-result-summary');
+    if (!cards || !summary) { rerender(); return; }
+    const results = renderSearchResults(state.offers || []);
+    cards.innerHTML = results.cards;
+    summary.innerHTML = results.summary;
+    // Keep the native input, caret, composition and mobile keyboard intact.
+    const input = document.getElementById('offerWorkspaceSearch');
+    if (input && input.value !== state.query) input.value = state.query;
+  };
   root.hofSetOfferWorkspaceSort = function(sort){ state.sort = sort || 'updated_desc'; persistWorkspaceState(); rerender(); };
   root.hofClearOfferWorkspaceFilters = function(){
     state.filter = 'all';
