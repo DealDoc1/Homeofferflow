@@ -80,3 +80,28 @@ regressions. Full local regression passed 3,011 tests, two skipped, in 120.846
 seconds. No PR, deployment or v2 provider request has occurred. Work is preserved
 on codex/buyer-qa-canonical-json-2026-11-04 while the owner prioritizes the live
 My Offers search-focus defect.
+
+## Resume against the released search fix
+
+The owner-reported search defect is now production-verified. This QA transport
+candidate is rebased by a normal merge onto current production/main ab4037d8;
+the released search behavior and shell v134 are retained. No source or PDF/map
+change was added. The active isolated branch is
+codex/buyer-qa-transport-release-2026-11-04. Fixed failed v1 is not reset.
+
+The official create/send reference was rechecked November 4. It still specifies
+canonical paths without terminal slashes and explicit test mode for sending a
+draft. 100 focused tests pass with all private buyer/listing/lease sources,
+including actual serialization, QA-only activation boundary, value-free rejection
+classification, owner controls and the released search regression. No skips.
+The existing visible operator control is unchanged. Customer signing paths and
+API contracts are unchanged; this releases only the protected QA transport.
+
+Release baseline: ab4037d8a47f5ca98500d6d35c711f189734fef5. Use the existing
+intentional workflow after full regression and exact-head CI. Current live
+project/cost/schema checks must pass. One necessary controlled v2 test may run
+only after that release. It uses the already reviewed fixed fictional packet,
+existing owner-controlled inboxes, exact true test mode, private draft readback,
+no reminders and simultaneous invitations. No real customer or partner send.
+Completed-provider signatures are a separate unproven gate; do not claim them
+from a successful create/send alone.
