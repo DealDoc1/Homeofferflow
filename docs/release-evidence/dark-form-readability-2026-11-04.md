@@ -2,7 +2,7 @@
 
 Owner request: make My Offers search text white and review similar dark-on-dark
 text elsewhere. Baseline production ab4037d8a47f5ca98500d6d35c711f189734fef5,
-shell v134. Scope: existing shared dark form CSS in index.html and shell cache.
+shell v134. Scope: shared dark form CSS, calculator placeholder CSS and shell cache.
 No JavaScript, API, schema, PDF, signing or billing changes.
 
 The shared rule gave every input/select/textarea a dark background without a
@@ -60,3 +60,26 @@ of this candidate. Its 100 focused tests passed. Its full local run reached
 3,012 tests but one source case lacked HOF_BUYER_QA_IABS_SHA256 in the command;
 this is an identified test environment setup issue, not a passed full run or a
 provider finding. No new provider attempt or signing release occurred.
+
+
+## Complete tracked form-page inventory
+
+A tracked-file inventory (scripts removed before parsing) identifies all six
+pages with static non-checkbox/radio text controls: index (192), directory (2),
+brokerage enrollment (1), internal field mapper (17), seller review (2), seller
+net-proceeds calculator (7): 221 controls total. This supplements the seven
+public-page and four-path first-screen review, plus dynamic search/sort specimen.
+Field mapper and seller review have readable existing text (minimum screening
+ratios 12.5 and 21). No uploads, debug PDF filling or submissions were performed.
+
+The calculator's seven native gray placeholders screened at 4.11. Give them the
+page's existing muted light text at full opacity. The corrected minimum is
+10.69 (typed text stays 18.96). Desktop/390x844 calculator fields were visually
+reviewed. Existing calculator calculations and privacy contract are unchanged.
+Final focused run: 27 tests including seven existing calculator tests. The first
+frozen shared-CSS candidate's full regression passed 3,002 tests, 26 skipped,
+115.017 seconds. The subsequent calculator-only CSS rule has its focused tests;
+exact-head CI and the production workflow must test the final complete tree.
+No redundant local full rerun for this one CSS rule. Final calculator proof:
+/private/tmp/hof-calculator-contrast-mobile-2026-11-04.jpg and
+/private/tmp/hof-calculator-contrast-after-2026-11-04.json.
