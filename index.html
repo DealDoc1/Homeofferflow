@@ -5382,7 +5382,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       amendment: ['Amendment', 'send_amendment_signing_test', 'check_amendment_signing_test'],
       'listing-lead': ['ListingLead', 'send_listing_lead_signing_test', 'check_listing_lead_signing_test'],
       'listing-package': ['ListingPackage', 'send_listing_package_signing_test', 'check_listing_package_signing_test'],
-      'lease-listing': ['LeaseListing', 'send_lease_listing_signing_test', 'check_lease_listing_signing_test']
+      'lease-listing': ['LeaseListing', 'send_lease_listing_signing_test', 'check_lease_listing_signing_test'],
+      'buyer-package': ['BuyerPackage', 'send_buyer_package_signing_test', 'check_buyer_package_signing_test']
     };
     if (!Object.prototype.hasOwnProperty.call(controls, scope)) return;
     const [widget, sendAction, checkAction] = controls[scope];
@@ -5916,6 +5917,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <button id="adminLeaseListingSigningTestSend" type="button" class="admin-contact-action" style="min-height:44px" onclick="runPurchaseSigningTest(true, this, 'lease-listing')" disabled>Send one lease listing test</button>
             <button type="button" class="admin-contact-action" style="min-height:44px" onclick="runPurchaseSigningTest(false, this, 'lease-listing')">Check lease listing test</button>
             <div id="adminLeaseListingSigningTestStatus" class="admin-empty" role="status" aria-live="polite">Check first. Only the recorded attempt will be used.</div>
+          </details><details style="margin-top:1rem;">
+            <summary>Buyer representation package test</summary>
+            <p class="admin-muted">One fictional buyer agreement, consumer notice and your saved IABS. The two approved test inboxes sign independently. Your IABS is informational. No client document is changed.</p>
+            <button id="adminBuyerPackageSigningTestSend" type="button" class="admin-contact-action" style="min-height:44px" onclick="runPurchaseSigningTest(true, this, 'buyer-package')" disabled>Send one buyer package test</button>
+            <button type="button" class="admin-contact-action" style="min-height:44px" onclick="runPurchaseSigningTest(false, this, 'buyer-package')">Check buyer package test</button>
+            <div id="adminBuyerPackageSigningTestStatus" class="admin-empty" role="status" aria-live="polite">Check first. Only the recorded attempt will be used.</div>
           </details>` : ''}
         </div>
 

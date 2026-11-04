@@ -50,7 +50,10 @@ class OperatorListingLeadSigningQATests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('PRIVATE_KEY',str(result)+str(MODULE._patch.call_args_list))
 
     async def test_dropped_rules_changed_fields_or_foreign_identity_never_send(self):
-        mutations=[lambda d:d.pop('checkbox_groups'),lambda d:d.pop('conditional_rules'),
+        mutations=[lambda d:next(f for f in d['fields'][0] if f.get('required') is True).pop('required'),
+            lambda d:next(f for f in d['fields'][0] if f.get('required') is True).update(required=False),
+            lambda d:next(f for f in d['fields'][0] if f.get('required') is True).update(required=1),
+            lambda d:d.pop('checkbox_groups'),lambda d:d.pop('conditional_rules'),
             lambda d:d['checkbox_groups'][0].update(exact_value=2),
             lambda d:next(field for field in d['fields'][0] if field['type']=='text').pop('validation_regex'),
             lambda d:d['fields'][0][0].update(x=999),
