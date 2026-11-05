@@ -44,4 +44,27 @@ assert.doesNotMatch(summary.innerHTML,/Reset view/);
 root.hofSetOfferWorkspaceSearch('Oak');
 assert.equal(input.value,'Oak'); assert.match(cards.innerHTML,/456 Oak Road/);
 assert.match(summary.innerHTML,/Reset view/);
-console.log('Offer search: continuous typing, caret, composition, matching, empty state, clear and persistence passed.');
+root.hofRenderOfferWorkspaceV10([...offers,
+ {id:'fictional-c',property_address:'17 Saint-Clair Avenue',buyer_name:'María José O’Neal',buyer_email:'maria@example.test',status:'Draft',last_updated:'2026-11-02'},
+ {id:'fictional-d',property_address:'88 Sakura Way',buyer_name:'李小龙',status:'Draft',last_updated:'2026-11-01'}
+]);
+for (const [query,property] of [
+ ['Alex Maple','123 Maple Lane'], ['MAPLE   alex','123 Maple Lane'],
+ ['maria clair','17 Saint-Clair Avenue'], ['JOSE ONEAL','17 Saint-Clair Avenue'],
+ ["O'Neal maria",'17 Saint-Clair Avenue'], ['mari\u0301a@example.test','17 Saint-Clair Avenue'],
+ ['小龙 sakura','88 Sakura Way']
+]) {
+ root.hofSetOfferWorkspaceSearch(query);
+ assert.ok(cards.innerHTML.includes(property),'Search must combine words from the same offer and normalize accented names: '+query);
+ assert.match(summary.innerHTML,/<strong>1<\/strong> of 4/);
+ assert.equal(document.activeElement,input);
+}
+for (const query of ['Alex Clair','Maria Maple','小龙 Oak']) {
+ root.hofSetOfferWorkspaceSearch(query);
+ assert.match(cards.innerHTML,/No saved purchase offers/,'Words from separate offers must not combine into a match');
+}
+root.hofSetOfferWorkspaceSearch('   ');
+assert.match(summary.innerHTML,/<strong>4<\/strong> of 4/);
+assert.doesNotMatch(summary.innerHTML,/Reset view/);
+assert.equal(containerWrites,0);
+console.log('Offer search: focus/caret, multiword and Unicode matching, empty states, clearing and persistence passed.');
