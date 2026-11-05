@@ -19966,12 +19966,17 @@ function routeAfterMagicLinkIfNeeded() {
     return (bucket === 'draft' && ageDays >= 2) || ((bucket === 'generated' || bucket === 'signing') && ageDays >= 1);
   }
 
+  function normalizeOfferSearch(value){
+    return String(value || '').normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '').replace(/['’]/g, '').toLowerCase().trim();
+  }
+
   function matchesQuery(o){
-    const q = String(state.query || '').trim().toLowerCase();
-    if (!q) return true;
+    const terms = normalizeOfferSearch(state.query).split(/\s+/).filter(Boolean);
+    if (!terms.length) return true;
     const d = o.offer_data || {};
-    const hay = [o.property_address, o.property_city, o.buyer_name, o.buyer_email, o.status, d.propertyAddress, d.propAddress, d.buyerName, d.buyerEmail, d.email, d.offerPrice, d.financing].join(' ').toLowerCase();
-    return hay.includes(q);
+    const hay = normalizeOfferSearch([o.property_address, o.property_city, o.buyer_name, o.buyer_email, o.status, d.propertyAddress, d.propAddress, d.buyerName, d.buyerEmail, d.email, d.offerPrice, d.financing].join(' '));
+    return terms.every(term => hay.includes(term));
   }
 
   function sortedOffers(offers){
