@@ -8,7 +8,7 @@ HTML = (Path(__file__).resolve().parents[1] / "index.html").read_text(encoding="
 class OfferWorkspaceExportTests(unittest.TestCase):
     def test_export_is_available_from_the_filtered_workspace_view(self):
         self.assertIn("onclick=\"hofExportVisibleOffers()\"", HTML)
-        self.assertIn("Download the visible offers as CSV", HTML)
+        self.assertIn('id="offerWorkspaceExport"', HTML)
         self.assertIn("const offers = sortedOffers(state.offers || []);", HTML)
         self.assertIn('onclick="startAccountTransaction()">Choose Transaction</button>', HTML)
 
