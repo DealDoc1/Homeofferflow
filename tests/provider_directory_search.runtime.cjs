@@ -42,6 +42,13 @@ function setup({legacyProfile=false,strictPortrait=false}={}) {
 }
 async function run() {
   {
+    const s=setup();
+    s.requests[0].resolve({ok:true,json:async()=>({ok:true})});await tick();
+    assert.match(s.elements.status.textContent,/temporarily unavailable/);
+    assert(s.elements.results.innerHTML.includes('data-directory-retry'));
+    assert(!s.events.some(e=>e.event_type==='partner_directory_empty_search'));
+  }
+  {
     const broken=setup({legacyProfile:true,strictPortrait:true});broken.respond(0);await tick();
     assert(broken.elements.results.innerHTML.includes('data-directory-retry'));
     const fixed=setup({legacyProfile:true});fixed.respond(0);await tick();

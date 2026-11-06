@@ -49,7 +49,7 @@
         </nav>
       </section>
       <form class="filters" id="filters"><select id="category" aria-label="Service category"><option value="">All categories</option><option value="title">Title company / fee attorney</option><option value="lender">Mortgage lender</option><option value="inspection">Home inspection</option><option value="surveyor">Property surveyor</option><option value="home_warranty">Home warranty</option><option value="insurance">Home insurance</option><option value="roofing">Roofing</option><option value="hvac">HVAC</option><option value="plumbing">Plumbing</option><option value="electrical">Electrical</option><option value="foundation_structural">Foundation / structural</option><option value="general_contractor">General contractor / remodeling</option><option value="pest_termite">Pest control / termite</option><option value="septic_well">Septic / well service</option><option value="restoration">Restoration</option><option value="photography_video">Photography / video</option><option value="staging">Home staging</option><option value="repairs_handyman">Repairs / handyman</option><option value="cleaning">Cleaning</option><option value="moving_storage">Moving / storage</option><option value="lawn_pool">Lawn / pool</option><option value="security_smart_home">Security / smart home</option><option value="other">Other service</option></select><input id="market" maxlength="100" placeholder="City or market (optional)" aria-label="City or market"><button>Search providers</button></form>
-      <div id="status" class="status" role="status">Loading active provider profiles…</div>
+      <div id="status" class="status" role="status" tabindex="-1">Loading active provider profiles…</div>
       <section id="results" class="grid" aria-live="polite"></section>
       <details class="directory-about">
         <summary id="directory-questions">About this directory</summary>
@@ -140,7 +140,7 @@
         if (category && allowedCategories.has(category)) query.set('utm_content', category);
         return path + '?' + query.toString();
       };
-      const empty = category => {
+      const empty = (category, market) => {
         const categoryLabel = labels[category] || '';
         const applicationUrl = partnerApplicationUrl(category);
         const detailsUrl = partnerDetailsUrl(category);
@@ -149,7 +149,7 @@
         const action = categoryLabel ? `List your ${esc(categoryLabel)} business with HomeOfferFlow →` : 'Own a service business? Explore a founding placement →';
         const categoryChoices = !category ? `<p style="margin:.75rem 0 0">Choose the service you need so we can prioritize adding that category. We record only the category—not your search text or market.</p><div class="category-chips">${['title','lender','inspection','insurance','roofing','general_contractor'].map(key => `<button type="button" data-directory-category="${key}">${esc(labels[key])}</button>`).join('')}</div>` : '';
         const detailsAction = categoryLabel ? `See ${esc(categoryLabel)} placement options and launch pricing →` : 'See founding partner placement options and launch pricing →';
-        return `No active HomeOfferFlow provider profiles are available for this search yet. You may choose any qualified provider independently.${categoryChoices}<p style="margin:.75rem 0 0"><strong style="color:var(--w)">Need help with your own next step?</strong><br><a data-directory-consumer-cta data-consumer-path="buyer" href="${buyerUrl}" style="color:var(--gl);font-weight:800">Build a Texas buyer offer →</a> <span aria-hidden="true">·</span> <a data-directory-consumer-cta data-consumer-path="seller" href="${sellerUrl}" style="color:var(--gl);font-weight:800">Explore FSBO seller support →</a></p><details class="provider-join"><summary>Do you provide ${categoryLabel ? esc(categoryLabel) : 'a Texas home service'}?</summary><p><a data-directory-partner-details href="${detailsUrl}" style="color:var(--gl);font-weight:800">${detailsAction}</a><br><a data-directory-partner-cta href="${applicationUrl}" style="color:var(--m);font-weight:700">${action}</a></p></details>`;
+        return `No active HomeOfferFlow provider profiles are available for this search yet. You may choose any qualified provider independently.${category || market ? ' <button type="button" class="directory-retry" data-directory-reset>Clear filters and browse all providers</button>' : ''}${categoryChoices}<p style="margin:.75rem 0 0"><strong style="color:var(--w)">Need help with your own next step?</strong><br><a data-directory-consumer-cta data-consumer-path="buyer" href="${buyerUrl}" style="color:var(--gl);font-weight:800">Build a Texas buyer offer →</a> <span aria-hidden="true">·</span> <a data-directory-consumer-cta data-consumer-path="seller" href="${sellerUrl}" style="color:var(--gl);font-weight:800">Explore FSBO seller support →</a></p><details class="provider-join"><summary>Do you provide ${categoryLabel ? esc(categoryLabel) : 'a Texas home service'}?</summary><p><a data-directory-partner-details href="${detailsUrl}" style="color:var(--gl);font-weight:800">${detailsAction}</a><br><a data-directory-partner-cta href="${applicationUrl}" style="color:var(--m);font-weight:700">${action}</a></p></details>`;
       };
       const unavailable = category => {
         const categoryLabel = labels[category] || 'Texas home services';
@@ -224,6 +224,8 @@
       let latestSearch = 0, searchController;
       async function load(event) {
         event?.preventDefault();
+        const recoverFocus = event?.currentTarget?.matches('[data-directory-retry], [data-directory-reset]');
+        const restoreRetryFocus = () => recoverFocus && document.activeElement === document.body;
         const searchRevision = ++latestSearch;
         searchController?.abort();
         const controller = new AbortController();
@@ -248,11 +250,13 @@
           const response = await fetch('/api/fsbo-lead?'+query, {signal:controller.signal});
           const data = await response.json();
           if (searchRevision !== latestSearch) return;
-          if (!response.ok || !data.ok) throw Error();
-        const rows = Array.isArray(data.partners) ? data.partners : [];
+          if (!response.ok || data?.ok !== true || !Array.isArray(data.partners)) {
+            throw new Error('Provider profiles response was incomplete.');
+          }
+          const rows = data.partners;
           $('results').classList.toggle('single-provider', rows.length === 1);
           $('status').textContent = rows.length ? `${rows.length} active provider profile${rows.length === 1 ? '' : 's'} found.` : 'No active profiles match this search.';
-          $('results').innerHTML = rows.length ? rows.map(card).join('') : `<div class="empty">${empty(category)}</div>`;
+          $('results').innerHTML = rows.length ? rows.map(card).join('') : `<div class="empty">${empty(category, market)}</div>`;
           if (!rows.length) recordUnfilledDirectoryDemand(category);
           trackImpressions(rows);
           bindOutboundClicks();
@@ -260,11 +264,19 @@
           bindPartnerDetails();
           bindConsumerCtas();
           bindCategoryChoices();
+          $('results').querySelector('[data-directory-reset]')?.addEventListener('click', event => {
+            $('category').value = '';
+            $('market').value = '';
+            return load(event);
+          });
+          if (restoreRetryFocus()) $('status').focus({ preventScroll: true });
         } catch (_) {
           if (searchRevision !== latestSearch) return;
           $('status').textContent = 'Provider profiles are temporarily unavailable.';
           $('results').innerHTML = `<div class="empty">${unavailable(category)}</div>`;
-          $('results').querySelector('[data-directory-retry]')?.addEventListener('click', () => load());
+          const nextRetry = $('results').querySelector('[data-directory-retry]');
+          nextRetry?.addEventListener('click', load);
+          if (restoreRetryFocus()) nextRetry?.focus({ preventScroll: true });
           bindPartnerDetails();
           bindConsumerCtas();
         }

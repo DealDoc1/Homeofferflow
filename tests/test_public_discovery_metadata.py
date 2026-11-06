@@ -580,7 +580,7 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('const unavailable = category =>', DIRECTORY)
         self.assertIn('data-directory-retry', DIRECTORY)
         self.assertIn('Retry provider profiles', DIRECTORY)
-        self.assertIn("$('results').querySelector('[data-directory-retry]')?.addEventListener('click', () => load());", DIRECTORY)
+        self.assertIn("nextRetry?.addEventListener('click', load);", DIRECTORY)
         self.assertIn('Own a service business? Explore a founding placement', DIRECTORY)
         self.assertIn("query.set('partner_category', category)", DIRECTORY)
         self.assertIn('List your ${esc(categoryLabel)} business with HomeOfferFlow', DIRECTORY)
