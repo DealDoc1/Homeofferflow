@@ -912,6 +912,90 @@ async def _agent_iabs_profile_record(user, *, expected_id=None, expected_updated
     return row
 
 
+async def _require_agent_iabs_profile_owner(user):
+    """Require an agent-capable account before exposing IABS profile metadata."""
+    try:
+        owner = str(uuid.UUID(str(user.get("id") or "")))
+    except ValueError as exc:
+        raise ValueError("Sign in again before managing your IABS.") from exc
+    rows = await _get(
+        f"hof_profiles?id=eq.{urllib.parse.quote(owner, safe='')}&select=id,role&limit=1"
+    )
+    role = str((rows[0] if isinstance(rows, list) and rows else {}).get("role") or "agent").strip().lower()
+    if role not in {"agent", "broker", "brokerage_admin", "team_lead"}:
+        raise PermissionError("An agent account is required to manage an IABS.")
+    return owner
+
+
+async def _prepare_agent_iabs_upload(user, data):
+    """Issue a short-lived token for this agent's one private IABS object."""
+    owner = await _require_agent_iabs_profile_owner(user)
+    if set(data) != {"action", "content_type", "size_bytes"}:
+        raise ValueError("The IABS upload request accepts only its PDF type and size.")
+    content_type = str(data.get("content_type") or "").strip().lower()
+    size_bytes = data.get("size_bytes")
+    if content_type != "application/pdf":
+        raise ValueError("Choose a PDF file for your IABS.")
+    if type(size_bytes) is not int or not 1 <= size_bytes <= 10485760:
+        raise ValueError("Choose a PDF file up to 10 MB and try again.")
+    path = f"{owner}/iabs.pdf"
+    encoded_path = urllib.parse.quote(path, safe="/")
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.post(
+            f"{SUPABASE_URL}/storage/v1/object/upload/sign/agent-documents/{encoded_path}",
+            headers={**_headers(), "x-upsert": "true"},
+            json={},
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("Could not prepare the private IABS upload.")
+    result = response.json() if response.text else {}
+    token = str(result.get("token") or "").strip()
+    if not token:
+        raise RuntimeError("Could not prepare the private IABS upload.")
+    return {"bucket": "agent-documents", "path": path, "token": token}
+
+
+async def _agent_iabs_profile_metadata(user):
+    """Return the signed-in agent's IABS metadata, or None when not yet uploaded."""
+    await _require_agent_iabs_profile_owner(user)
+    try:
+        return await _agent_iabs_profile_record(user)
+    except AgentIabsProfileMissing:
+        return None
+
+
+async def _save_agent_iabs_profile_metadata(user, data):
+    """Persist only server-derived IABS metadata after the owner uploads its PDF."""
+    owner = await _require_agent_iabs_profile_owner(user)
+    if set(data) != {"action", "original_filename", "byte_size"}:
+        raise ValueError("The IABS profile save accepts only the PDF filename and size.")
+    filename = data.get("original_filename")
+    byte_size = data.get("byte_size")
+    if (not isinstance(filename, str) or not filename.strip() or len(filename) > 180
+            or any(ord(char) < 32 or ord(char) == 127 for char in filename)
+            or type(byte_size) is not int or not 1 <= byte_size <= 10485760):
+        raise ValueError("Choose a PDF file up to 10 MB and try again.")
+    payload = {
+        "user_id": owner,
+        "document_type": "iabs",
+        "storage_bucket": "agent-documents",
+        "storage_path": f"{owner}/iabs.pdf",
+        "original_filename": filename.strip(),
+        "mime_type": "application/pdf",
+        "byte_size": byte_size,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.post(
+            f"{SUPABASE_URL}/rest/v1/hof_agent_documents?on_conflict=user_id,document_type",
+            headers={**_headers(), "Prefer": "resolution=merge-duplicates,return=minimal"},
+            json=payload,
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("The IABS profile record could not be saved.")
+    return await _agent_iabs_profile_record(user)
+
+
 async def _agent_iabs_profile_pdf(user, *, expected_id, expected_updated_at):
     """Load only the authenticated agent's currently saved IABS PDF."""
     row = await _agent_iabs_profile_record(
@@ -5501,6 +5585,20 @@ class handler(BaseHTTPRequestHandler):
                 _pdf_response(self, pdf, "standalone-agreement-private-draft-preview.pdf")
                 return
             scope = str((query.get("scope") or [""])[0]).strip().lower()
+            if scope == "agent_iabs_profile":
+                try:
+                    document = asyncio.run(_agent_iabs_profile_metadata(user))
+                except PermissionError as exc:
+                    _json(self, 403, {"error": str(exc)})
+                    return
+                except ValueError as exc:
+                    _json(self, 400, {"error": str(exc)})
+                    return
+                except Exception:
+                    _json(self, 500, {"error": "Your saved IABS profile could not be loaded. Refresh and try again."})
+                    return
+                _json(self, 200, {"document": document})
+                return
             if scope == "standalone_signing_recipients":
                 agreement_id = str((query.get("agreement_id") or [""])[0]).strip()
                 try:
@@ -8273,6 +8371,34 @@ class handler(BaseHTTPRequestHandler):
                 return
             if length > MAX_BODY_BYTES:
                 _json(self, 400, {"error": "Invalid request size."})
+                return
+            if data.get("action") == "save_agent_iabs_metadata":
+                try:
+                    document = asyncio.run(_save_agent_iabs_profile_metadata(user, data))
+                except PermissionError as exc:
+                    _json(self, 403, {"error": str(exc)})
+                    return
+                except ValueError as exc:
+                    _json(self, 400, {"error": str(exc)})
+                    return
+                except Exception:
+                    _json(self, 500, {"error": "Your PDF uploaded, but we couldn’t confirm the profile save. Try the upload again."})
+                    return
+                _json(self, 200, {"ok": True, "document": document})
+                return
+            if data.get("action") == "prepare_agent_iabs_upload":
+                try:
+                    upload = asyncio.run(_prepare_agent_iabs_upload(user, data))
+                except PermissionError as exc:
+                    _json(self, 403, {"error": str(exc)})
+                    return
+                except ValueError as exc:
+                    _json(self, 400, {"error": str(exc)})
+                    return
+                except Exception:
+                    _json(self, 500, {"error": "We couldn’t prepare the private IABS upload. Please try again."})
+                    return
+                _json(self, 200, {"ok": True, "upload": upload})
                 return
             if data.get("action") == "create_brokerage_invite":
                 invite = asyncio.run(_create_brokerage_invite(user, data))
