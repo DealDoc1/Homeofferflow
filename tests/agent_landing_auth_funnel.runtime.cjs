@@ -93,3 +93,31 @@ test('auth callback cleanup preserves page settings, anchors and browser state',
     [state, '', 'https://fixture.test/?txr_qa=1'],
   ]);
 });
+
+test('a successful link can route without local intent and discards a delayed route after an account switch', () => {
+  const start = html.indexOf('function routeAfterMagicLinkIfNeeded(');
+  const end = html.indexOf('  function trackEvent(', start);
+  const calls = [], timers = [];
+  const hofAuth = {session:{user:{id:'first',user_metadata:{role:'broker'}}}};
+  const state = {data:{}};
+  const context = vm.createContext({
+    window:{location:{},hofNormalizeAccountRole:role=>role,hofOfferUserTypeForRole:()=> 'agent'},
+    hofAuth, state, setAudience(){}, closeAuthModal(){}, cleanSupabaseAuthUrlNoise(){},
+    localStorage:{getItem:()=>null,setItem(){},removeItem(){}},
+    setTimeout:callback=>timers.push(callback),
+    openAccountDashboard:options=>calls.push(options.tab)
+  });
+  const route = vm.runInContext(html.slice(start,end)+'\nrouteAfterMagicLinkIfNeeded',context);
+  route();
+  assert.equal(timers.length,0,'Ordinary visits leave the dashboard closed');
+  route(true);
+  assert.equal(state.data.userType,'agent');
+  timers.shift()();
+  assert.deepEqual(calls,['brokerage']);
+
+  hofAuth.routedAfterLogin = false;
+  route(true);
+  hofAuth.session = {user:{id:'second'}};
+  timers.shift()();
+  assert.deepEqual(calls,['brokerage']);
+});
