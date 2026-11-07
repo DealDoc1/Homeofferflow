@@ -9,9 +9,10 @@ function source(start,end){const a=html.indexOf(start),b=html.indexOf(end,a);ass
 function setup({quota=Infinity,blocked=false,readBlocked=false,silent=false,localFails=false}={}) {
   const store=new Map([['hofOfferData',JSON.stringify({address:'Previous property'})]]),events=[],requests=[],notices=[];
   const files=[{name:'survey.pdf',base64:'A'.repeat(32000),type:'survey',size:24000}];
-  const button={disabled:false,textContent:'Pay $99 & Continue',style:{},setAttribute(){}};
+  const attributes=new Map();
+  const button={disabled:false,textContent:'Pay $99 & Continue',style:{},setAttribute:(key,value)=>attributes.set(key,value),getAttribute:key=>attributes.get(key)};
   const email={value:'buyer@example.test',checkValidity:()=>true,setAttribute(){},focus(){}};
-  const c=vm.createContext({state:{selectedPlan:'self',selectedPrice:99,data:{userType:'homebuyer',address:'Current property',price:450000,
+  const c=vm.createContext({URL,AbortController,setTimeout,clearTimeout,state:{selectedPlan:'self',selectedPrice:99,data:{userType:'homebuyer',address:'Current property',price:450000,
     buyer1:'Current Buyer',buyerEmail:'buyer@example.test',repairsText:'José 🏡\u2028all debris removed',uploadedDocNames:['survey.pdf']}},
     window:{hofUploadedDisclosureDocs:files,location:{origin:'https://www.homeofferflow.test',pathname:'/',href:'original'},
       hofCustomerActionError:(error,fallback)=>/^Please\b/i.test(String(error?.message||error||''))?String(error?.message||error):fallback},
@@ -95,5 +96,51 @@ for (const status of [422,503]) test(`packet check failure ${status} preserves a
   assert.equal(x.requests.length,1);
   assert.equal(x.requests[0].offerData.financing,'assumption');
   assert.equal(x.requests[0].offerData.uploadedDisclosureDocs[0].base64,x.files[0].base64);
+  assert.equal(x.c.window.location.href,'https://checkout.example.test/current');
+});
+
+test('checkout rejects unusable redirect URLs and restores payment controls',async()=>{
+  for(const url of ['javascript:alert(1)','http://checkout.example.test/','/checkout','https://fake@checkout.example.test/']){
+    const x=setup();
+    x.c.fetch=async()=>({ok:true,headers:{get:()=> 'application/json'},json:async()=>({url})});
+    await x.c.handlePayment();
+    assert.equal(x.c.window.location.href,'original');
+    assert.equal(x.button.disabled,false);
+    assert.ok(x.notices.some(notice=>notice.includes('couldn’t open secure checkout')));
+  }
+});
+
+test('checkout can retry after the response body stalls',async()=>{
+  const x=setup(), originalFetch=x.c.fetch;
+  let expire;
+  let cleared=false;
+  x.c.setTimeout=(callback,delay)=>{
+    assert.equal(delay,60000);
+    expire=callback;
+    return 1;
+  };
+  x.c.clearTimeout=id=>{assert.equal(id,1);cleared=true;};
+  let readingBody;
+  const bodyStarted=new Promise(resolve=>{readingBody=resolve;});
+  x.c.fetch=async(url,{signal})=>({
+    ok:true,headers:{get:()=> 'application/json'},
+    json:()=>new Promise((resolve,reject)=>{
+      signal.addEventListener('abort',()=>reject(signal.reason),{once:true});
+      readingBody();
+    })
+  });
+  const attempt=x.c.handlePayment();
+  await bodyStarted;
+  assert.equal(x.button.disabled,true);
+  expire();
+  await attempt;
+  assert.equal(cleared,true);
+  assert.equal(x.button.disabled,false);
+  assert.equal(x.button.getAttribute('aria-busy'),'false');
+  assert.match(x.notices.at(-1),/took too long.*Your answers are still here/);
+  assert.equal(x.c.window.location.href,'original');
+  x.c.fetch=originalFetch;
+  await x.c.handlePayment();
+  assert.equal(x.requests[0].offerData.address,'Current property');
   assert.equal(x.c.window.location.href,'https://checkout.example.test/current');
 });

@@ -12817,6 +12817,9 @@ function routeAfterMagicLinkIfNeeded() {
 
   async function handlePayment() {
     const btn = document.getElementById('payBtn');
+    if (btn?.getAttribute('aria-busy') === 'true') return;
+    let checkoutController;
+    let checkoutTimeout;
     const oldText = btn ? btn.textContent : '';
 
     try {
@@ -12913,8 +12916,11 @@ function routeAfterMagicLinkIfNeeded() {
         btn.style.cursor = 'wait';
       }
 
+      checkoutController = new AbortController();
+      checkoutTimeout = setTimeout(() => checkoutController.abort(), 60000);
       const response = await fetch('/api/create-checkout', {
         method: 'POST',
+        signal: checkoutController.signal,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email,
@@ -12940,16 +12946,23 @@ function routeAfterMagicLinkIfNeeded() {
         throw new Error(result.error || result.message || 'Stripe checkout failed to start.');
       }
 
-      if (result.url) {
-        window.location.href = result.url;
-        return;
+      if (typeof result.url !== 'string' || !result.url) {
+        throw new Error('Stripe did not return a checkout URL.');
       }
-
-      throw new Error('Stripe did not return a checkout URL.');
+      const checkoutUrl = new URL(result.url);
+      if (checkoutUrl.protocol !== 'https:' || checkoutUrl.username || checkoutUrl.password) {
+        throw new Error('Stripe returned an invalid checkout URL.');
+      }
+      window.location.href = checkoutUrl.href;
+      return;
     } catch (err) {
       console.error('Payment error:', err);
       const checkoutFallback = 'We couldn’t open secure checkout. No payment was started. Review your details and try again.';
-      setPaymentStatus(window.hofCustomerActionError?.(err, checkoutFallback) || checkoutFallback);
+      if (checkoutController?.signal.aborted) {
+        setPaymentStatus('Secure checkout took too long to open. Your answers are still here. Try again.');
+      } else {
+        setPaymentStatus(window.hofCustomerActionError?.(err, checkoutFallback) || checkoutFallback);
+      }
       if (btn) {
         btn.disabled = false;
         btn.setAttribute('aria-disabled', 'false');
@@ -12958,6 +12971,8 @@ function routeAfterMagicLinkIfNeeded() {
         btn.style.opacity = '1';
         btn.style.cursor = 'pointer';
       }
+    } finally {
+      if (checkoutTimeout !== undefined) clearTimeout(checkoutTimeout);
     }
   }
 
