@@ -3231,6 +3231,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <button class="btn-secondary" type="button" aria-pressed="false" data-agent-workflow-choice="lease_listing" onclick="startAgentWorkflow('lease_listing')">Lease listing</button>
             <button class="btn-secondary" type="button" aria-pressed="false" data-agent-workflow-choice="lease_representation" onclick="startAgentWorkflow('lease_representation')">Tenant representation</button>
           </div>
+          <div class="account-actions-row" role="group" aria-label="Common client document" style="margin-top:.55rem;">
+            <button class="btn-secondary" type="button" onclick="startAgentBuyerRepresentation()">Prepare a buyer representation agreement</button>
+          </div>
           <button id="agentWorkflowResume" class="btn-secondary" type="button" style="display:none;margin-top:.65rem;" aria-label="Resume your last transaction path"></button>
           <p id="agentWorkflowStartStatus" role="status" aria-live="polite" style="color:var(--gray-light);font-size:.84rem;line-height:1.5;margin:.8rem 0 0;">Choose a transaction type to get started.</p>
         </div>
@@ -8219,6 +8222,16 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     return window.syncAgentTransactionPicker?.({ focus: true });
   };
 
+  // Give an agent a direct dashboard route to the already supported buyer
+  // representation agreement choice without making them open the broader
+  // purchase task menu first. The existing form-specific interview remains
+  // responsible for long/short selection, draft preparation, review and send.
+  window.startAgentBuyerRepresentation = function startAgentBuyerRepresentation() {
+    if (window.hofOpenAgentPackageInterview?.('purchase', { directPackage: 'representation' })) return true;
+    showAccountTab('relationships');
+    return false;
+  };
+
   // Every generic agent-account launch point returns to Question 1. Explicit
   // "New Buyer Offer" controls inside the offer workspace remain buyer-only;
   // this prevents a general dashboard action from silently choosing purchase.
@@ -8538,7 +8551,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     };
     const interview = packages[kind];
     if (!interview) return false;
-    if (kind === 'lease_representation' && directPackage === 'representation') {
+    if ((kind === 'lease_representation' || kind === 'purchase') && directPackage === 'representation') {
       openRelationshipPackage('representation', { direct: true });
       return true;
     }
