@@ -351,6 +351,17 @@ test('cancel snapshot rejects unrelated agent or malformed work before mutation'
     assert.equal(x.ctx.restoreBuyerCheckoutSnapshot(value),false);
   assert.equal(x.ctx.state.data,original);
 });
+test('cancelled checkout with no recoverable offer stays at the start',()=>{
+  const x=setup();enableCheckoutRecovery(x,null);const c=x.ctx;
+  x.get('paymentCheckoutMissingDraftNotice').hidden=true;
+  c.openWizard=(skipAuth,resume)=>assert.equal(resume,false);
+  c.showStep=()=>assert.fail('Unrecovered offer jumped to payment');
+  c.selectPlan=()=>assert.fail('Unrecovered offer selected a plan');
+  c.checkPaymentReturn();
+  assert.equal(x.get('paymentCheckoutMissingDraftNotice').hidden,false);
+  assert.notEqual(x.get('paymentCheckoutReturnNotice').style.display,'block');
+  assert.ok(x.calls.includes('clean-url'));
+});
 test('cancel fallback restores homebuyer fields but never an agent draft',()=>{
   const x=setup(),local=enableCheckoutRecovery(x,null);const c=x.ctx;
   c.checkPaymentReturn();assert.equal(x.get('propAddress').value,'Saved property');

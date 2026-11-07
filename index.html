@@ -289,11 +289,16 @@
     }
 
     openWizard(true, restoredLocalDraft);
-    const paymentStep = getCurrentSteps().indexOf('step9');
-    if (paymentStep >= 0) showStep(paymentStep);
-    if (state.selectedPlan && state.selectedPrice) selectPlan(state.selectedPlan, state.selectedPrice);
-    const notice = document.getElementById('paymentCheckoutReturnNotice');
-    if (notice) notice.style.display = 'block';
+    if (restoredLocalDraft) {
+      const paymentStep = getCurrentSteps().indexOf('step9');
+      if (paymentStep >= 0) showStep(paymentStep);
+      if (state.selectedPlan && state.selectedPrice) selectPlan(state.selectedPlan, state.selectedPrice);
+      const notice = document.getElementById('paymentCheckoutReturnNotice');
+      if (notice) notice.style.display = 'block';
+    } else {
+      const notice = document.getElementById('paymentCheckoutMissingDraftNotice');
+      if (notice) notice.hidden = false;
+    }
     try { trackEvent('Payment Checkout Cancelled Returned', { plan: state.selectedPlan || 'self' }); } catch (e) {}
     recordHomebuyerCheckoutEvent('homebuyer_checkout_cancelled');
 
@@ -3455,6 +3460,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
   <div class="wizard-body">
     <div class="wizard-step active" id="step0">
+      <div id="paymentCheckoutMissingDraftNotice" class="notice sage" hidden role="status">Checkout was cancelled. We couldn’t recover your offer in this browser. If you started it on another device or browser, return there to look for your saved offer. You can also start here.</div>
       <div class="hof-interview-guide" data-hof-guide="step0">
         <div class="hof-guide-kicker">✨ Welcome</div>
         <div class="hof-guide-title">Let’s build your offer together.</div>
@@ -8123,6 +8129,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
   function resetWizardForFreshOffer(role = 'agent') {
     window.__hofAutomaticDraftRestoreSettled = true;
+    const checkoutNotice = document.getElementById('paymentCheckoutMissingDraftNotice');
+    if (checkoutNotice) checkoutNotice.hidden = true;
     const normalizedRole = role === 'investor' ? 'investor' : (role === 'homebuyer' ? 'homebuyer' : 'agent');
 
     // Clear only offer-builder state. Do not sign the user out and do not wipe saved account profile/subscription data.
