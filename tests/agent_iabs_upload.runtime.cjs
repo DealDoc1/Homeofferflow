@@ -90,8 +90,8 @@ function failureSetup({ metadataFailure = false, metadataPayload, storageError =
 
 test('a successful response without matching IABS metadata does not confirm the upload', async () => {
   const {context,status,events,button} = failureSetup({metadataPayload: null});
-  assert.equal(await context.uploadAgentIabsDocument(null, { onStorageConfirmed: () => events.push('storage-confirmed') }),false);
-  assert.deepEqual(events,['prepare','storage','storage-confirmed','metadata']);
+  assert.equal(await context.uploadAgentIabsDocument(),false);
+  assert.deepEqual(events,['prepare','storage','metadata']);
   assert.equal(context.hofAuth.agentIabsDocument,null);
   assert.match(status.textContent,/couldn’t confirm the profile save/);
   assert.equal(button.disabled,false);
@@ -220,7 +220,9 @@ test('the Uploaded Documents action saves its selected IABS privately without at
 
 test('storage failure gives a retry hint and releases the upload control without a metadata write', async () => {
   const { context, status, button, events } = failureSetup();
+  context.state = { data: { includeAgentIabs: true } };
   await context.uploadAgentIabsDocument();
+  assert.equal(context.state.data.includeAgentIabs, true);
   assert.deepEqual(events, ['prepare', 'storage']);
   assert.equal(status.className, 'hof-iabs-status error');
   assert.match(status.textContent, /couldn’t upload this PDF.*Check your connection and try again/i);
@@ -268,6 +270,31 @@ test('known storage failures explain the recovery step without exposing provider
       assert.doesNotMatch(status.textContent, /provider internal detail|supabase|storage unreachable/i);
     });
   }
+});
+
+test('a profile replacement clears the active offer choice as soon as storage succeeds', async () => {
+  const { context } = failureSetup({ metadataFailure: true });
+  const checkbox = { checked: true };
+  const lookup = context.document.getElementById;
+  context.document.getElementById = id => id === 'includeAgentIabs' ? checkbox : lookup(id);
+  context.state = { data: { includeAgentIabs: true } };
+  context.loadAgentIabsDocument = async () => ({ original_filename: 'Previous IABS.pdf' });
+  context.confirm = () => true;
+  let reviews = 0;
+  context.renderReview = () => { reviews++; };
+  const callApi = context.callIabsProfileApi;
+  context.callIabsProfileApi = async (method, body) => {
+    if (body.action === 'save_agent_iabs_metadata') {
+      assert.equal(context.state.data.includeAgentIabs, false);
+      assert.equal(checkbox.checked, false);
+      assert.equal(reviews, 1);
+    }
+    return callApi(method, body);
+  };
+  assert.equal(await context.uploadAgentIabsDocument(), false);
+  assert.equal(context.state.data.includeAgentIabs, false);
+  assert.equal(checkbox.checked, false);
+  assert.equal(reviews, 1);
 });
 
 test('metadata failure explains that the private file uploaded and retry is idempotent', async () => {

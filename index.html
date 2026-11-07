@@ -23252,7 +23252,13 @@ function hofSpreadsheetCsvCell(value) {
       if (uploadError) throw uploadError;
       storageUploadConfirmed = true;
       if (!isCurrent()) return false;
-      options?.onStorageConfirmed?.();
+      const offerData = root.state?.data;
+      const include = document.getElementById('includeAgentIabs');
+      if (offerData && (offerData.includeAgentIabs || include?.checked)) {
+        offerData.includeAgentIabs = false;
+        if (include) include.checked = false;
+        try { root.renderReview?.(); } catch (_) {}
+      }
       const { document: payload } = await root.callIabsProfileApi('POST', {
         action: 'save_agent_iabs_metadata',
         original_filename: file.name.slice(0, 180),
