@@ -20094,7 +20094,7 @@ function hofSpreadsheetCsvCell(value) {
     const volume = safe.reduce((sum,o) => sum + Number(o.offer_price || o.offer_data?.offerPrice || 0), 0);
     const tab = (key,label) => `<button type="button" class="offer-filter-tab ${state.filter===key?'active':''}" aria-pressed="${state.filter===key ? 'true' : 'false'}" onclick="hofSetOfferWorkspaceFilter('${key}')">${label} <span>${c[key] || 0}</span></button>`;
     const { cards, summary, count } = renderSearchResults(safe);
-    const resultSummary = `<div class="offer-workspace-result-summary" aria-live="polite">${summary}</div>`;
+    const resultSummary = `<div class="offer-workspace-result-summary" tabindex="-1" aria-live="polite">${summary}</div>`;
     const canLoadMore = !!root.hofAuth?.myOffersHasMore;
     const loadMoreFailed = !!root.hofAuth?.myOffersLoadMoreError;
     const historyControl = canLoadMore
