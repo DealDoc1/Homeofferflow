@@ -380,7 +380,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         launcher_end = INDEX.index("const HOF_OFFER_WORKSPACE_PAGE_SIZE", launcher_start)
         launcher = INDEX[launcher_start:launcher_end]
         self.assertIn("const directPackage = String(options?.directPackage || '')", interview)
-        self.assertIn("kind === 'lease_representation' && directPackage === 'representation'", interview)
+        self.assertIn("(kind === 'lease_representation' || kind === 'purchase') && directPackage === 'representation'", interview)
         self.assertIn("openRelationshipPackage('representation', { direct: true });", interview)
         self.assertIn("agent_form_package_direct_question_opened", interview)
         self.assertIn("agent_form_package_direct_started", interview)
