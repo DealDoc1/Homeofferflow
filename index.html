@@ -4684,6 +4684,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       window.hofOfferWorkspaceV10.offers = [];
       window.hofOfferWorkspaceV10.query = '';
     }
+    hofAuth.routedAfterLogin = false;
     hofAuth.accountProfile = null;
     hofAuth.agentIabsDocument = null;
     hofAuth.authoritativeProfile = null;
@@ -6083,8 +6084,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   async function initSupabaseAuth() {
     if (supabaseAuthInitialization) return supabaseAuthInitialization;
     // The auth client can consume the callback URL during initialization.
-    const expiredLink = [window.location?.search, window.location?.hash?.slice(1)]
-      .some(value => new URLSearchParams(value).get('error_code') === 'otp_expired');
+    const callbackQuery = new URLSearchParams(window.location?.search);
+    const callbackHash = new URLSearchParams(window.location?.hash?.slice(1));
+    const expiredLink = [callbackQuery, callbackHash].some(params => params.get('error_code') === 'otp_expired');
+    const callbackHasError = [callbackQuery, callbackHash].some(params => params.has('error') || params.has('error_code'));
+    const returningFromSignIn = !callbackHasError && (callbackQuery.has('code')
+      || (callbackHash.has('access_token') && callbackHash.has('refresh_token')));
     supabaseAuthInitialization = (async () => {
       let client;
       try {
@@ -6112,7 +6117,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       if (hofAuth.session) {
         await ensureProfileShell(hofAuth.session);
         await flushSubscriptionCheckoutReturnEvent();
-        routeAfterMagicLinkIfNeeded();
+        routeAfterMagicLinkIfNeeded(returningFromSignIn);
       } else if (expiredLink) {
         let role;
         try { role = localStorage.getItem('hof_auth_pending'); } catch (_) {}
@@ -9390,14 +9395,20 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     try { window.history.replaceState(window.history.state, '', url.href); } catch (_) {}
   }
 
-function routeAfterMagicLinkIfNeeded() {
+function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     if (hofAuth.routedAfterLogin || !hofAuth.session) return;
     const pending = localStorage.getItem('hof_auth_pending');
     const hasAuthHash = /access_token|refresh_token|type=magiclink|type=recovery/.test(window.location.hash || window.location.href || '');
-    if (!pending && !hasAuthHash) return;
+    if (!pending && !hasAuthHash && !returningFromSignIn) return;
     window.__hofAccountRouteAuthPending = false;
     hofAuth.routedAfterLogin = true;
-    const role = (hofAuth.session.user?.user_metadata?.role || pending || hofAuth.role || 'agent') === 'investor' ? 'investor' : 'agent';
+    const owner = hofAuth.session.user?.id;
+    const epoch = window.__hofAccountProfileEpoch;
+    const afterSignIn = (action, delay) => setTimeout(() => {
+      if (owner && hofAuth.session?.user?.id === owner && window.__hofAccountProfileEpoch === epoch) action();
+    }, delay);
+    const accountRole = hofAuth.authoritativeRole || hofAuth.session.user?.user_metadata?.role || pending || hofAuth.role;
+    const role = window.hofNormalizeAccountRole(accountRole);
     const returnToHomebuyerReview = localStorage.getItem('hof_ai_review_return') === 'homebuyer';
     localStorage.removeItem('hof_ai_review_return');
     hofAuth.role = role;
@@ -9432,13 +9443,14 @@ function routeAfterMagicLinkIfNeeded() {
       ? 'texas_investor_offer_guide'
       : 'investor_landing';
     localStorage.removeItem('hof_investor_landing_source');
-    state.data.userType = returnToHomebuyerReview ? 'homebuyer' : role;
-    setAudience(returnToHomebuyerReview ? 'homebuyer' : role);
+    const audience = returnToHomebuyerReview ? 'homebuyer' : window.hofOfferUserTypeForRole(role);
+    state.data.userType = audience;
+    setAudience(audience);
     if (agentLandingWorkflow) window.hofAgentWorkflowContext = agentLandingWorkflow;
     closeAuthModal();
-    try { history.replaceState({}, document.title, window.location.origin + window.location.pathname); } catch(e) {}
+    cleanSupabaseAuthUrlNoise();
     if (returnToHomebuyerReview) {
-      setTimeout(() => {
+      afterSignIn(() => {
         renderInlineAiOfferReview();
         const status = document.getElementById('aiFoundationStatus');
         if (status) {
@@ -9448,9 +9460,14 @@ function routeAfterMagicLinkIfNeeded() {
       }, 250);
       return;
     }
-    setTimeout(() => openAccountDashboard({ postLogin: true, tab: agentLandingPackageWorkflow ? 'dashboard' : (openSellerLandingWorkspace ? 'seller' : (openRelationshipLandingWorkspace ? 'relationships' : 'dashboard')) }), 250);
+    let tab = role === 'broker' ? 'brokerage' : 'dashboard';
+    if (agentLandingPackageWorkflow) tab = 'dashboard';
+    else if (openSellerLandingWorkspace) tab = 'seller';
+    else if (openRelationshipLandingWorkspace) tab = 'relationships';
+    else if (startAgentLandingDraft) tab = 'dashboard';
+    afterSignIn(() => openAccountDashboard({ postLogin: true, tab }), 250);
     if (agentLandingPackageWorkflow && role !== 'investor') {
-      setTimeout(() => {
+      afterSignIn(() => {
         window.startAgentWorkflow?.(agentLandingPackageWorkflow);
         window.logOfferEvent?.(null, 'agent_landing_package_handoff', 'opened', 'Agent continued from the public transaction choice after sign-in.', { source: agentLandingSource, workflow: agentLandingPackageWorkflow });
       }, 450);
@@ -9459,23 +9476,23 @@ function routeAfterMagicLinkIfNeeded() {
     // authentication. It never assumes that a purchase offer is the work
     // currently in front of the agent.
     if (startAgentLandingDraft && !agentLandingPackageWorkflow && role !== 'investor') {
-      setTimeout(() => {
+      afterSignIn(() => {
         window.openAgentTransactionPicker?.();
         window.logOfferEvent?.(null, 'agent_landing_draft_handoff', 'opened', 'Agent landing visitor returned to the transaction chooser after sign-in.', { source: agentLandingSource, workflow: agentLandingWorkflow || 'transaction_picker' });
       }, 450);
     }
     if (openSellerLandingWorkspace && role !== 'investor') {
-      setTimeout(() => {
+      afterSignIn(() => {
         window.logOfferEvent?.(null, 'agent_landing_seller_workspace_handoff', 'opened', 'Agent opened Listing Tools from the public landing page after sign-in.', { source: agentLandingSource, workflow: agentLandingWorkflow || 'sale_listing' });
       }, 450);
     }
     if (openRelationshipLandingWorkspace && role !== 'investor') {
-      setTimeout(() => {
+      afterSignIn(() => {
         window.logOfferEvent?.(null, 'agent_landing_relationship_workspace_handoff', 'opened', 'Agent opened private relationship drafts from the public landing page after sign-in.', { source: agentLandingSource, workflow: agentLandingWorkflow || 'relationship_drafts' });
       }, 450);
     }
     if (openInvestorLandingWorkspace && role === 'investor') {
-      setTimeout(() => {
+      afterSignIn(() => {
         window.logOfferEvent?.(null, 'investor_landing_workspace_handoff', 'opened', 'Investor landing visitor continued to the workspace after sign-in.', { source: investorLandingSource });
       }, 450);
     }
