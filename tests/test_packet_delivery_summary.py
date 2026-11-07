@@ -34,7 +34,7 @@ class PacketDeliverySummaryTests(unittest.TestCase):
 
     def test_unconfirmed_checkout_does_not_claim_email_or_signatures_sent(self):
         result = self.summary({'checkoutConfirmationPending': True})
-        self.assertEqual(result['label'], 'Delivery email')
+        self.assertEqual(result['label'], 'Receipt email')
         self.assertIn('after payment is confirmed', result['message'])
         self.assertNotIn('has sent', result['signing'])
 
@@ -98,7 +98,7 @@ class PacketDeliverySummaryTests(unittest.TestCase):
         rendered = self.render_success({'checkoutConfirmationPending': True})
         self.assertEqual(rendered['removed'], [])
         self.assertEqual(rendered['elements']['successHeading']['textContent'], 'We’re confirming your checkout')
-        self.assertEqual(rendered['elements']['successEmailLabel']['textContent'], 'Delivery email')
+        self.assertEqual(rendered['elements']['successEmailLabel']['textContent'], 'Receipt email')
 
     def test_displaying_checkout_result_never_writes_offer_status_or_usage(self):
         for role in ('homebuyer', 'agent', 'investor', 'brokerage_admin'):

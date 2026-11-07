@@ -8,9 +8,8 @@ HTML = (Path(__file__).resolve().parents[1] / "index.html").read_text(encoding="
 class BuyerCheckoutReturnConfirmationTests(unittest.TestCase):
     def test_return_url_is_not_treated_as_payment_proof(self):
         self.assertIn("const checkoutReturned =", HTML)
-        self.assertIn("showPaymentSuccess(paymentEmail, { checkoutConfirmationPending: true });", HTML)
-        self.assertIn("A browser return parameter is not proof of payment", HTML)
-        self.assertIn("webhook is the source of truth", HTML)
+        self.assertIn("showPaymentSuccess(checkoutContact._paymentEmail || '', { checkoutConfirmationPending: true, checkoutContact });", HTML)
+        self.assertIn("The signed Stripe webhook confirms payment and delivers the packet.", HTML)
 
     def test_return_screen_uses_confirmation_copy_and_keeps_the_draft(self):
         self.assertIn("We’re confirming your checkout", HTML)
