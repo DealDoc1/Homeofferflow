@@ -20470,6 +20470,7 @@ function hofSpreadsheetCsvCell(value) {
   root.announceWorkspaceStatus = announceWorkspaceStatus;
 
   root.hofOpenOfferPdf = async function(offerId, button, signed = false) {
+    if (button?.disabled) return;
     const label = button?.textContent;
     const requestToken = root.hofAuth?.session?.access_token;
     const viewerIsCurrent = () => root.hofAuth?.session?.access_token === requestToken;
@@ -20478,9 +20479,12 @@ function hofSpreadsheetCsvCell(value) {
       return;
     }
     if (button) { button.disabled = true; button.textContent = 'Opening PDF…'; }
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
     try {
       const response = await fetch(signed ? '/api/signwell-status' : '/api/fill-pdf', {
         method: 'POST',
+        signal: controller.signal,
         headers: {'Content-Type': 'application/json', Authorization: `Bearer ${requestToken}`},
         body: JSON.stringify({offerId, action: signed ? 'download_completed_pdf' : 'print_offer_pdf'})
       });
@@ -20509,8 +20513,14 @@ function hofSpreadsheetCsvCell(value) {
         modal.querySelector('.hof-pdf-preview-header')?.after(note);
       }
     } catch (error) {
-      if (viewerIsCurrent()) root.announceWorkspaceStatus?.(error.message || 'The offer PDF could not be opened. Please try again.');
+      if (viewerIsCurrent()) {
+        const message = controller.signal.aborted
+          ? 'Opening the offer PDF took too long. Try opening it again.'
+          : error.message || 'The offer PDF could not be opened. Please try again.';
+        root.announceWorkspaceStatus?.(message);
+      }
     } finally {
+      clearTimeout(timeout);
       if (button) { button.disabled = false; button.textContent = label; }
     }
   };
