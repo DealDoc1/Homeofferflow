@@ -102,7 +102,7 @@ class FsboIntakeConversionTests(unittest.TestCase):
         ):
             self.assertIn(event, script)
 
-        self.assertIn("We couldn’t save your seller request. Check your connection and try again.", script)
+        self.assertIn("We couldn’t confirm your seller request was saved. Check your connection and try again.", script)
         self.assertNotIn("status.textContent = err.message || String(err);", script)
 
         self.assertIn("trackEvent(name, data)", script)

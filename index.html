@@ -18085,17 +18085,27 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
       button.textContent = 'Saving…';
     });
     if (status) { status.textContent = 'Saving seller request...'; status.className = 'platform-status'; }
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
     try {
-      const res = await fetch('/api/fsbo-lead', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+      const res = await fetch('/api/fsbo-lead', {
+        method: 'POST',
+        signal: controller.signal,
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
       const data = await res.json().catch(()=>({}));
-      if (!res.ok) throw new Error(data.error || 'Could not save seller request.');
+      if (!res.ok) throw new Error(data?.error || 'Could not save seller request.');
+      if (data?.ok !== true || typeof data.seller_lead_id !== 'string' || !data.seller_lead_id.trim()) {
+        throw new Error('The seller request receipt could not be confirmed.');
+      }
       // A server-side dedupe can safely restore a receipt after a connection
       // retry. Count the initial request as acquisition, not its confirmation
       // retry, so the seller funnel remains a reliable lead measure.
       if (!data.duplicate) {
         trackFsboFunnel('FSBO Seller Request Saved', { package: payload.service_level, source: source === 'quick' ? 'quick' : 'full', timeline: payload.timeline });
       }
-      try { sessionStorage.setItem(submissionKey, data.seller_lead_id || 'saved'); } catch (_) {}
+      try { sessionStorage.setItem(submissionKey, data.seller_lead_id); } catch (_) {}
       clearFsboDraft();
       const selected = fsboNeedCopy[fsboVal('fsboNeed')] || fsboNeedCopy.free_intake;
       saveFsboRequestReceipt(selected, payload.service_level);
@@ -18130,10 +18140,10 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     } catch (err) {
       trackFsboFunnel('FSBO Seller Request Save Failed', { package: payload.service_level, source: source === 'quick' ? 'quick' : 'full' });
       if (status) {
-        status.textContent = window.hofCustomerActionError?.(
-          err,
-          'We couldn’t save your seller request. Check your connection and try again. Your details are still saved on this device.'
-        ) || 'We couldn’t save your seller request. Check your connection and try again. Your details are still saved on this device.';
+        const fallback = 'We couldn’t confirm your seller request was saved. Check your connection and try again. Your details are still here.';
+        status.textContent = controller.signal.aborted
+          ? 'Saving your seller request took too long. Your details are still here. Try again.'
+          : window.hofCustomerActionError?.(err, fallback) || fallback;
         status.className = 'platform-status err';
       }
       submitButtons.forEach(button => {
@@ -18141,6 +18151,8 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
         button.setAttribute('aria-busy', 'false');
       });
       window.renderFsboNeedDetails?.();
+    } finally {
+      clearTimeout(timeout);
     }
   };
   fsboDraftFields.forEach(id => {
