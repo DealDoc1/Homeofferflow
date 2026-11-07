@@ -330,6 +330,31 @@ const cancelledBuyer={userType:'homebuyer',selectedPlan:'self',selectedPrice:99,
   buyerEmail:'buyer@example.test',_paymentEmail:'receipt@example.test',address:'Current property',price:450000,
   financing:'cash',earnest:0,optionFee:0,optionDays:0,repairsText:'Current repairs',_hofOfferId:'do-not-reuse',
   uploadedDocNames:['survey.pdf'],uploadedDisclosureDocs:[{name:'survey.pdf',type:'survey',base64:'JVBERg==',size:4}]};
+test('unrelated checkout markers do not open a buyer confirmation',()=>{
+  for(const search of ['?session_id=other','?subscription=&payment=success','?billing=returned&success=true','?partner_checkout=&payment=success']){
+    const x=setup();enableCheckoutRecovery(x,cancelledBuyer);
+    x.ctx.window.location.search=search;
+    x.ctx.showPaymentSuccess=()=>assert.fail('Unrelated checkout opened the buyer screen');
+    x.ctx.checkPaymentReturn();
+    assert.equal(x.ctx.window.__hofPaymentReturn,undefined);
+    assert.ok(!x.calls.includes('clean-url'));
+  }
+});
+test('buyer confirmation uses only contact details from the checkout snapshot',()=>{
+  for(const saved of [cancelledBuyer,{...cancelledBuyer,userType:'agent'},null]){
+    const x=setup();enableCheckoutRecovery(x,saved);
+    const c=x.ctx, original=c.state.data;
+    c.window.location.search='?payment=success&email=untrusted@example.test';
+    c.showPaymentSuccess=(email,options)=>{
+      assert.equal(options.checkoutConfirmationPending,true);
+      assert.equal(email,saved===cancelledBuyer?'receipt@example.test':'');
+      assert.deepEqual(Object.keys(options.checkoutContact).sort(),saved===cancelledBuyer?['_paymentEmail','buyerEmail']:[]);
+    };
+    c.checkPaymentReturn();
+    assert.equal(c.window.__hofPaymentReturn,true);
+    assert.equal(c.state.data,original);
+  }
+});
 test('cancelled checkout hydrates the actual interview fields and current attachments',()=>{
   const x=setup();enableCheckoutRecovery(x,cancelledBuyer);const c=x.ctx;
   x.get('propAddress').value='Wrong previous property';

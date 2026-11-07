@@ -267,11 +267,11 @@
 
   const params = new URLSearchParams(window.location.search);
 
-  if (params.get('subscription')) return;
+  if (params.has('subscription') || params.get('billing') === 'returned') return;
   // Founding-partner Checkout returns also carry Stripe's session_id. That
   // return is handled by the partner intake below and must never open the
   // buyer offer-packet success screen.
-  if (params.get('partner_checkout')) return;
+  if (params.has('partner_checkout')) return;
 
   if (params.get('payment') === 'cancelled') {
     let restoredLocalDraft = false;
@@ -309,32 +309,26 @@
 
   const checkoutReturned =
     params.get('payment') === 'success' ||
-    params.get('success') === 'true' ||
-    params.get('session_id');
+    params.get('success') === 'true';
 
   if (!checkoutReturned) return;
 
   // Prevent saved-draft restore from overriding the success screen after Stripe returns.
   window.__hofPaymentReturn = true;
 
+  const checkoutContact = {};
   try {
-    const saved = sessionStorage.getItem('hofOfferData');
-    if (saved) state.data = { ...state.data, ...JSON.parse(saved) };
+    const saved = JSON.parse(sessionStorage.getItem('hofOfferData') || 'null');
+    if (saved?.selectedPlan === 'self' && [undefined, 'homebuyer'].includes(saved.userType)) {
+      if (typeof saved._paymentEmail === 'string') checkoutContact._paymentEmail = saved._paymentEmail;
+      if (typeof saved.buyerEmail === 'string') checkoutContact.buyerEmail = saved.buyerEmail;
+    }
+  } catch (_) {}
 
-  } catch (e) {}
+  openWizard(true);
 
-  openWizard();
-
-  const paymentEmail =
-    params.get('email') ||
-    state.data.buyerEmail ||
-    state.data._paymentEmail ||
-    document.getElementById('paymentEmail')?.value ||
-    '';
-
-  // A browser return parameter is not proof of payment; the signed Stripe
-  // webhook is the source of truth and emails the packet after confirmation.
-  showPaymentSuccess(paymentEmail, { checkoutConfirmationPending: true });
+  // The signed Stripe webhook confirms payment and delivers the packet.
+  showPaymentSuccess(checkoutContact._paymentEmail || '', { checkoutConfirmationPending: true, checkoutContact });
 
   // Clean the URL so refreshes do not re-trigger the success state forever.
   const cleanUrl = window.location.origin + window.location.pathname;
@@ -11613,8 +11607,14 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
   function packetDeliverySummary(email, options = {}, data = {}) {
     const recipient = data.buyerEmail || email || 'the delivery email shown below';
     if (options.checkoutConfirmationPending) {
-      return { recipient, label: 'Delivery email',
+      const receipt = String(data._paymentEmail || email || 'the email you used at checkout');
+      const packetEmail = String(data.buyerEmail || receipt);
+      const separateEmails = packetEmail.toLowerCase() !== receipt.toLowerCase();
+      return { recipient: receipt, label: 'Receipt email',
         message: 'We’ll email a receipt and your offer packet after payment is confirmed.',
+        delivery: separateEmails
+          ? `1. Check ${receipt} for your receipt and ${packetEmail} for your offer packet, including spam.`
+          : `1. Check ${receipt}, including spam, for your receipt and offer packet.`,
         signing: '2. Signing invitations will follow when payment and packet preparation are complete.' };
     }
     if (options.packetGenerated === true) {
@@ -11662,9 +11662,9 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     const successHeading = document.getElementById('successHeading');
     const successSignatureStep = document.getElementById('successSignatureStep');
     const successDeliveryStep = document.getElementById('successDeliveryStep');
-    const deliverySummary = packetDeliverySummary(email, options, state.data);
+    const deliverySummary = packetDeliverySummary(email, options, options.checkoutContact || state.data);
     const successRevisionStep = document.getElementById('successRevisionStep');
-    const accountWorkflow = ['agent', 'investor'].includes(state.data.userType || '');
+    const accountWorkflow = !checkoutConfirmationPending && ['agent', 'investor'].includes(state.data.userType || '');
     const primaryAction = document.getElementById('successPrimaryAction');
     if (primaryAction) {
       primaryAction.textContent = accountWorkflow ? 'View My Offers' : 'Back to Home';
@@ -11714,7 +11714,10 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     const brandColor = /^#[0-9a-f]{6}$/i.test(String(brokerage.brand_color || state.data.brokerageBrandColor || ''))
       ? String(brokerage.brand_color || state.data.brokerageBrandColor)
       : '#c8973f';
-    if (brand && brandName) {
+    if (brand && checkoutConfirmationPending) {
+      brand.style.display = 'none';
+      brand.textContent = '';
+    } else if (brand && brandName) {
       brand.style.display = 'flex';
       brand.style.borderColor = brandColor;
       brand.innerHTML = (brandLogo ? '<img src="' + escapeAttr(brandLogo) + '" alt="" style="width:42px;height:42px;object-fit:contain;border-radius:8px;background:rgba(255,255,255,.08);">' : '') +
