@@ -104,13 +104,26 @@ class VercelDeploymentCapacityTests(unittest.TestCase):
             self.assertEqual(MODULE.main(),2)
         billing.assert_not_called()
 
+    def test_project_limit_blocks_at_twelve_before_reading_billing(self):
+        import io
+        from contextlib import redirect_stderr, redirect_stdout
+        with patch.object(MODULE.sys, 'argv', ['capacity', '--limit', '12']), \
+             patch.dict(MODULE.os.environ, {'VERCEL_TOKEN': 'fixture'}), \
+             patch.object(MODULE, 'fetch_deployment_count', return_value=12) as count, \
+             patch.object(MODULE, 'fetch_billing_usage') as billing, \
+             redirect_stdout(io.StringIO()) as output, redirect_stderr(io.StringIO()):
+            self.assertEqual(MODULE.main(), 1)
+        self.assertEqual(count.call_args.kwargs['stop_at'], 12)
+        self.assertIn('12 deployment(s) in the last 24 hour(s); limit 12.', output.getvalue())
+        billing.assert_not_called()
+
     def test_read_only_workflow_cannot_build_deploy_or_pull_app_environment(self):
         workflow=(ROOT/'.github/workflows/capacity-check.yml').read_text()
         self.assertIn("github.ref == 'refs/heads/main'",workflow)
         self.assertIn('contents: read',workflow)
         self.assertIn('persist-credentials: false',workflow)
         self.assertIn('environment: production',workflow)
-        self.assertIn('python scripts/check_vercel_deployment_capacity.py',workflow)
+        self.assertIn('python scripts/check_vercel_deployment_capacity.py --limit 12',workflow)
         for mutation in ('vercel deploy','vercel build','vercel pull','vercel env','SUPABASE_SECRET','SIGNWELL'):
             self.assertNotIn(mutation,workflow)
 
