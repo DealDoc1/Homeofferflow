@@ -35,7 +35,8 @@ class AiReviewCostControlTests(unittest.TestCase):
 
     def test_homebuyer_review_sign_in_returns_to_the_same_review_instead_of_an_agent_dashboard(self):
         self.assertIn("const returnToHomebuyerReview = localStorage.getItem('hof_ai_review_return') === 'homebuyer';", HTML)
-        self.assertIn("state.data.userType = returnToHomebuyerReview ? 'homebuyer' : role;", HTML)
+        self.assertIn("const audience = returnToHomebuyerReview ? 'homebuyer' : window.hofOfferUserTypeForRole(role);", HTML)
+        self.assertIn("state.data.userType = audience;", HTML)
         self.assertIn("status.textContent = 'You are signed in. Run Market Review when you are ready.';", HTML)
 
     def test_live_ai_review_has_a_schema_appropriate_output_ceiling(self):
