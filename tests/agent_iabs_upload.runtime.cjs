@@ -130,6 +130,7 @@ test('repeated upload clicks start only one storage and metadata write', async (
   const auth = { session: { user: { id: 'agent-1' } }, role: 'agent', agentIabsDocument: null };
   const file = { name: 'Brokerage IABS.pdf', type: 'application/pdf', size: 2048,
     slice: () => ({ arrayBuffer: async () => Uint8Array.from([37, 80, 68, 70]).buffer }) };
+  const input = { files: [file], disabled: false };
   const context = vm.createContext({
     MAX_BYTES: 10 * 1024 * 1024,
     BUCKET: 'agent-documents',
@@ -145,7 +146,7 @@ test('repeated upload clicks start only one storage and metadata write', async (
       from: table => ({ upsert: async payload => { events.push({ kind: 'metadata', table, payload }); return { error: null }; } })
     }),
     document: { getElementById: id => ({
-      agentIabsFile: { files: [file] }, agentIabsStatus: status,
+      agentIabsFile: input, agentIabsStatus: status,
       agentIabsUploadButton: button,
       agentIabsProfileCard: { remove() { events.push({ kind: 'remove-card' }); } }
     })[id] || null },
@@ -161,6 +162,7 @@ test('repeated upload clicks start only one storage and metadata write', async (
 
   const first = context.uploadAgentIabsDocument();
   assert.equal(button.disabled, true);
+  assert.equal(input.disabled, true);
   assert.equal(button.attributes['aria-busy'], 'true');
   await new Promise(setImmediate);
   await context.uploadAgentIabsDocument();
@@ -170,6 +172,7 @@ test('repeated upload clicks start only one storage and metadata write', async (
 
   assert.equal(events.filter(event => event.kind === 'metadata').length, 1);
   assert.equal(button.disabled, false);
+  assert.equal(input.disabled, false);
   assert.equal(button.attributes['aria-busy'], undefined);
 });
 

@@ -23062,14 +23062,14 @@ function hofSpreadsheetCsvCell(value) {
       <h4>My IABS</h4>
       <p>Store your brokerage-approved Information About Brokerage Services PDF privately in your profile. It is never attached automatically. For each offer, you choose whether to include it.</p>
       <div class="hof-iabs-actions">
-        <input id="agentIabsFile" type="file" accept="application/pdf,.pdf" aria-label="Upload IABS PDF">
+        <input id="agentIabsFile" type="file" accept="application/pdf,.pdf" aria-label="Choose IABS PDF" aria-describedby="agentIabsFileHelp">
         <button class="btn-secondary" type="button" id="agentIabsUploadButton">${doc ? 'Replace IABS PDF' : 'Upload IABS PDF'}</button>
         ${doc ? '<button class="btn-secondary" type="button" id="agentIabsRemoveButton">Remove</button>' : ''}
       </div>
-      <div id="agentIabsStatus" class="hof-iabs-status ${doc ? 'ready' : ''}">
+      <div id="agentIabsStatus" class="hof-iabs-status ${doc ? 'ready' : ''}" role="status" aria-live="polite" aria-atomic="true" tabindex="-1">
         ${doc ? `Saved privately: <strong>${escape(doc.original_filename)}</strong> (${Math.max(1, Math.round(Number(doc.byte_size || 0) / 1024)).toLocaleString()} KB).` : 'No IABS PDF saved yet.'}
       </div>
-      <small style="display:block;margin-top:.7rem;color:var(--muted);">PDF only, up to 10 MB. Upload only the brokerage-approved version. You remain responsible for deciding whether and when it should be provided.</small>`;
+      <small id="agentIabsFileHelp" style="display:block;margin-top:.7rem;color:var(--muted);">PDF only, up to 10 MB. Upload only the brokerage-approved version. You remain responsible for deciding whether and when it should be provided.</small>`;
     container.appendChild(card);
     card.querySelector('#agentIabsUploadButton')?.addEventListener('click', root.uploadAgentIabsDocument);
     card.querySelector('#agentIabsRemoveButton')?.addEventListener('click', root.removeAgentIabsDocument);
@@ -23092,16 +23092,21 @@ function hofSpreadsheetCsvCell(value) {
     if (!isPdf) return showError('Only PDF files can be used for your IABS.');
     if (!file.size || file.size > MAX_BYTES) return showError('Your IABS PDF must be 10 MB or smaller.');
     if (button?.disabled) return;
+    const uploadHadFocus = button && document.activeElement === button;
+    const inputWasDisabled = Boolean(input?.disabled);
+    if (input) input.disabled = true;
     if (button) { button.disabled = true; button.setAttribute('aria-busy', 'true'); }
     let storageUploadConfirmed = false;
     try {
       try {
         const signatureBytes = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+        if (!isCurrent()) return;
         if (String.fromCharCode(...signatureBytes) !== '%PDF') {
           showError('This file is not a readable PDF. Choose the original brokerage-approved IABS PDF.');
           return;
         }
       } catch (_) {
+        if (!isCurrent()) return;
         showError('We couldn’t read this PDF. Choose the original brokerage-approved IABS PDF and try again.');
         return;
       }
@@ -23130,9 +23135,16 @@ function hofSpreadsheetCsvCell(value) {
       if (recordError) throw recordError;
       if (!isCurrent()) return;
       root.hofAuth.agentIabsDocument = payload;
+      const focusConfirmation = uploadHadFocus &&
+        (document.activeElement === button || document.activeElement === document.body);
       document.getElementById('agentIabsProfileCard')?.remove();
       renderProfileIabsCard();
       mountIabsOfferOption();
+      const confirmation = document.getElementById('agentIabsStatus');
+      if (confirmation) {
+        confirmation.textContent = `Saved privately to your profile as “${payload.original_filename}”.`;
+        if (focusConfirmation) confirmation.focus();
+      }
     } catch (error) {
       if (!isCurrent()) return;
       console.error('IABS upload failed:', error);
@@ -23141,6 +23153,7 @@ function hofSpreadsheetCsvCell(value) {
         : 'We couldn’t upload this PDF. Check your connection and try again.';
       if (status) { status.className = 'hof-iabs-status error'; status.textContent = window.hofCustomerActionError?.(error, fallback) || fallback; }
     } finally {
+      if (input) input.disabled = inputWasDisabled;
       if (button) { button.disabled = false; button.removeAttribute('aria-busy'); }
     }
   };
