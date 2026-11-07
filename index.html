@@ -3229,7 +3229,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <button class="btn-secondary" type="button" aria-pressed="false" data-agent-workflow-choice="sale_listing" onclick="startAgentWorkflow('sale_listing')">Property listing</button>
             <button class="btn-secondary" type="button" aria-pressed="false" data-agent-workflow-choice="purchase" onclick="startAgentWorkflow('purchase')">Purchase</button>
             <button class="btn-secondary" type="button" aria-pressed="false" data-agent-workflow-choice="lease_listing" onclick="startAgentWorkflow('lease_listing')">Lease listing</button>
-            <button class="btn-secondary" type="button" aria-pressed="false" data-agent-workflow-choice="lease_representation" onclick="startAgentWorkflow('lease_representation')">Tenant representation</button>
+            <button class="btn-secondary" type="button" aria-pressed="false" data-agent-workflow-choice="lease_representation" onclick="startAgentWorkflow('lease_representation')">Tenant representation agreement</button>
           </div>
           <div class="account-actions-row" role="group" aria-label="Common client document" style="margin-top:.55rem;">
             <button class="btn-secondary" type="button" onclick="startAgentBuyerRepresentation()">Prepare a buyer representation agreement</button>
@@ -8199,10 +8199,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       lease_representation: 'Tenant representation'
     };
     const resume = document.getElementById('agentWorkflowResume');
-    if (labels[savedChoice]) {
-      document.querySelectorAll('[data-agent-workflow-choice]').forEach((button) => {
-        button.setAttribute('aria-pressed', button.dataset.agentWorkflowChoice === savedChoice ? 'true' : 'false');
-      });
+    const hasSavedChoice = Object.hasOwn(labels, savedChoice);
+    document.querySelectorAll('[data-agent-workflow-choice]').forEach((button) => {
+      button.setAttribute('aria-pressed', hasSavedChoice && button.dataset.agentWorkflowChoice === savedChoice ? 'true' : 'false');
+    });
+    if (hasSavedChoice) {
       if (resume) {
         resume.textContent = `Resume ${labels[savedChoice]}`;
         resume.style.display = 'inline-flex';
@@ -8212,9 +8213,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         };
       }
       if (status) status.textContent = `You’re working on: ${labels[savedChoice]}.`;
-    } else if (status) {
-      if (resume) resume.style.display = 'none';
-      status.textContent = 'Choose what you are working on to continue.';
+    } else {
+      if (resume) {
+        resume.style.display = 'none';
+        resume.onclick = null;
+      }
+      if (status) status.textContent = 'Choose what you are working on to continue.';
     }
   };
 
@@ -8637,8 +8641,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         action: () => window.hofOpenAgentPackageInterview('lease_representation', { directPackage: 'representation' }) || showAccountTab('relationships')
       }
     };
+    if (!Object.hasOwn(choices, kind)) return;
     const choice = choices[kind];
-    if (!choice) return;
     window.hofAgentWorkflowContext = kind;
     try { sessionStorage.setItem('hof_agent_workflow_choice', kind); } catch (_) {}
     if (Boolean(window.navigator?.standalone) || window.matchMedia?.('(display-mode: standalone)').matches) {

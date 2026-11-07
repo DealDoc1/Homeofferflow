@@ -291,7 +291,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         self.assertIn("resume.onclick = () => {", HTML)
         self.assertIn("startAgentWorkflow(savedChoice)", HTML)
         self.assertLess(HTML.index('id="agentWorkflowStart"'), HTML.index('id="agentActivationCard"'))
-        for label in ('>Purchase</button>', '>Property listing</button>', '>Lease listing</button>', '>Tenant representation</button>'):
+        for label in ('>Purchase</button>', '>Property listing</button>', '>Lease listing</button>', '>Tenant representation agreement</button>'):
             self.assertIn(label, HTML)
 
     def test_transaction_picker_uses_the_neutral_listing_first_order(self):
@@ -300,7 +300,7 @@ class AgentActivationDashboardTests(unittest.TestCase):
         picker = HTML[start:end]
         self.assertLess(picker.index(">Property listing</button>"), picker.index(">Purchase</button>"))
         self.assertLess(picker.index(">Purchase</button>"), picker.index(">Lease listing</button>"))
-        self.assertLess(picker.index(">Lease listing</button>"), picker.index(">Tenant representation</button>"))
+        self.assertLess(picker.index(">Lease listing</button>"), picker.index(">Tenant representation agreement</button>"))
 
     def test_workspace_note_explains_the_next_step_without_internal_document_state_language(self):
         self.assertIn("Review the completed packet before delivery, acceptance, and signatures.", HTML)
