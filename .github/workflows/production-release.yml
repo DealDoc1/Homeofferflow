@@ -137,7 +137,7 @@ jobs:
       - name: Check Vercel deployment and spend safety
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: python scripts/check_vercel_deployment_capacity.py
+        run: python scripts/check_vercel_deployment_capacity.py --limit 12
 
       - name: Build the exact production artifact
         env:
