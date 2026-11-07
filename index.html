@@ -25642,7 +25642,7 @@ function hofSpreadsheetCsvCell(value) {
       }
     } catch (_) {}
     card.querySelector('#hofPwaInstallDismiss')?.addEventListener('click', dismissInstallCard);
-    card.querySelector('#hofPwaInstallHelp')?.addEventListener('click', () => {
+    const showInstallHelp = () => {
       rememberPreferredLaunch(target.surface);
       const note = card.querySelector('#hofPwaInstallNote');
       if (note) {
@@ -25654,24 +25654,37 @@ function hofSpreadsheetCsvCell(value) {
         note.style.display = 'block';
         trackInstall('instructions_opened', { platform, surface: target.surface });
       }
-    });
+    };
+    card.querySelector('#hofPwaInstallHelp')?.addEventListener('click', showInstallHelp);
     card.querySelector('#hofPwaInstallButton')?.addEventListener('click', async () => {
-      if (!deferredInstallPrompt) return;
+      if (!deferredInstallPrompt) {
+        if (isAndroid()) showInstallHelp();
+        return;
+      }
       rememberPreferredLaunch(target.surface);
       const button = card.querySelector('#hofPwaInstallButton');
+      const startedWithFocus = button && document.activeElement === button;
       if (button) { button.disabled = true; button.textContent = 'Opening install…'; }
+      let accepted = false;
       try {
         const nativePromptMetadata = { platform: installPlatform(), surface: target.surface, cta: 'native_prompt', copy_version: 'install_explicit_v2' };
         trackInstall('cta_clicked', nativePromptMetadata);
         await deferredInstallPrompt.prompt();
         trackInstall('prompt_opened', { platform: installPlatform(), surface: target.surface });
         const choice = await deferredInstallPrompt.userChoice;
-        trackInstall(choice?.outcome === 'accepted' ? 'accepted' : 'dismissed', { platform: installPlatform(), surface: installSurface(card) });
+        accepted = choice?.outcome === 'accepted';
+        trackInstall(accepted ? 'accepted' : 'dismissed', { platform: installPlatform(), surface: installSurface(card) });
       } catch (error) {
         console.warn('PWA install prompt was unavailable:', error);
       } finally {
         deferredInstallPrompt = null;
-        renderInstallCard();
+        if (!accepted && isAndroid() && button?.isConnected) {
+          button.disabled = false;
+          button.textContent = installHelpLabel(target.surface);
+          if (startedWithFocus && document.activeElement === document.body) button.focus({ preventScroll: true });
+        } else {
+          renderInstallCard();
+        }
       }
     });
   }

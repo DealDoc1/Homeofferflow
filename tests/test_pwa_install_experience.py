@@ -137,7 +137,7 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("function installPlatform()", INDEX)
         self.assertIn("if (isAndroid()) return 'android';", INDEX)
         self.assertIn('In Chrome, open the ⋮ menu', INDEX)
-        self.assertIn("choice?.outcome === 'accepted' ? 'accepted' : 'dismissed'", INDEX)
+        self.assertIn("trackInstall(accepted ? 'accepted' : 'dismissed'", INDEX)
         self.assertIn("const installSurfaceKey = 'hof_pwa_install_surface';", INDEX)
         self.assertIn("function installSurface", INDEX)
         self.assertIn("trackInstall('installed', { platform: installPlatform(), surface: installSurface() })", INDEX)
