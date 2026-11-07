@@ -23022,6 +23022,22 @@ function hofSpreadsheetCsvCell(value) {
     });
   }
 
+  root.callIabsProfileApi = async function callIabsProfileApi(method, body = null) {
+    const token = root.hofAuth?.session?.access_token;
+    if (!token) throw Object.assign(new Error('Your sign-in expired. Sign in again and retry.'), { status: 401 });
+    const response = await fetch(method === 'GET'
+      ? '/api/admin-dashboard?scope=agent_iabs_profile'
+      : '/api/admin-dashboard', {
+      method,
+      headers: { Authorization: `Bearer ${token}`, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+      ...(body ? { body: JSON.stringify(body) } : {})
+    });
+    let result = {};
+    try { result = await response.json(); } catch (_) {}
+    if (!response.ok) throw Object.assign(new Error(result.error || 'The IABS profile request could not be completed.'), { status: response.status });
+    return result;
+  }
+
   root.loadAgentIabsDocument = async function loadAgentIabsDocument() {
     const client = root.getSupabaseClient?.();
     const user = root.hofAuth?.session?.user;
@@ -23029,32 +23045,100 @@ function hofSpreadsheetCsvCell(value) {
     const request = { userId: user.id, role: root.hofAuth.role,
       epoch: root.__hofAccountProfileEpoch || 0, document: root.hofAuth.agentIabsDocument };
     root.__hofIabsProfileLoad = request;
+    root.hofAuth.agentIabsDocumentLoadPending = true;
+    renderProfileIabsCard();
+    const stopStaleLookup = () => {
+      if (root.__hofIabsProfileLoad !== request || root.hofAuth?.session?.user?.id !== request.userId) return;
+      root.hofAuth.agentIabsDocumentLoadPending = false;
+      root.hofAuth.agentIabsDocumentLoadFailed = !root.hofAuth.agentIabsDocument;
+      renderProfileIabsCard();
+    };
     const isCurrent = () => root.__hofIabsProfileLoad === request &&
       root.hofAuth?.session?.user?.id === request.userId && root.hofAuth.role === request.role &&
       (root.__hofAccountProfileEpoch || 0) === request.epoch && root.hofAuth.agentIabsDocument === request.document;
     try {
-      const { data, error } = await client
-        .from('hof_agent_documents')
-        .select('document_type,storage_bucket,storage_path,original_filename,mime_type,byte_size,updated_at')
-        .eq('user_id', user.id)
-        .eq('document_type', 'iabs')
-        .maybeSingle();
-      if (!isCurrent()) return null;
-      if (error) throw error;
-      root.hofAuth.agentIabsDocument = data || null;
+      const { document: data } = await root.callIabsProfileApi('GET');
+      if (!isCurrent()) { stopStaleLookup(); return null; }
+      if (data !== null && (typeof data?.original_filename !== 'string' || !data.original_filename.trim())) {
+        throw new Error('The IABS profile response did not confirm the saved document.');
+      }
+      root.hofAuth.agentIabsDocument = data;
+      root.hofAuth.agentIabsDocumentLoadPending = false;
+      root.hofAuth.agentIabsDocumentLoadFailed = false;
+      renderProfileIabsCard();
       return root.hofAuth.agentIabsDocument;
     } catch (error) {
-      if (!isCurrent()) return null;
+      if (!isCurrent()) { stopStaleLookup(); return null; }
       console.warn('IABS profile document load skipped:', error);
       root.hofAuth.agentIabsDocument = null;
+      root.hofAuth.agentIabsDocumentLoadPending = false;
+      root.hofAuth.agentIabsDocumentLoadFailed = true;
+      renderProfileIabsCard();
       return null;
     }
   };
 
   function renderProfileIabsCard() {
     const container = document.getElementById('accountProfileForm');
-    if (!container || !isAgentAccount() || document.getElementById('agentIabsProfileCard')) return;
+    if (!container || !isAgentAccount()) return;
+    const retryLookup = async event => {
+      const button = event?.currentTarget;
+      const hadFocus = button && document.activeElement === button;
+      const card = document.getElementById('agentIabsProfileCard');
+      await root.loadAgentIabsDocument?.();
+      if (!hadFocus || card !== document.getElementById('agentIabsProfileCard') ||
+          (document.activeElement !== button && document.activeElement !== document.body)) return;
+      const target = card?.querySelector('#agentIabsRetryButton') || card?.querySelector('#agentIabsFile');
+      target?.focus();
+    };
     const doc = root.hofAuth?.agentIabsDocument;
+    const loading = !!root.hofAuth?.agentIabsDocumentLoadPending;
+    const loadFailed = !!root.hofAuth?.agentIabsDocumentLoadFailed;
+    const statusMessage = doc
+      ? `Saved privately: <strong>${escape(doc.original_filename)}</strong> (${Math.max(1, Math.round(Number(doc.byte_size || 0) / 1024)).toLocaleString()} KB).`
+      : (loading ? 'Checking for a saved IABS PDF…' : (loadFailed
+        ? 'We couldn’t check whether an IABS PDF is already saved. Try again before uploading.'
+        : 'No IABS PDF saved yet.'));
+    const existingCard = document.getElementById('agentIabsProfileCard');
+    if (existingCard) {
+      const status = existingCard.querySelector('#agentIabsStatus');
+      const uploadButton = existingCard.querySelector('#agentIabsUploadButton');
+      const actions = existingCard.querySelector('.hof-iabs-actions');
+      let removeButton = existingCard.querySelector('#agentIabsRemoveButton');
+      let retryButton = existingCard.querySelector('#agentIabsRetryButton');
+      if (status) {
+        status.className = `hof-iabs-status${doc ? ' ready' : (loadFailed ? ' error' : '')}`;
+        status.innerHTML = statusMessage;
+      }
+      if (uploadButton) {
+        uploadButton.textContent = doc ? 'Replace IABS PDF' : ((loading || loadFailed) ? 'Upload or Replace IABS PDF' : 'Upload IABS PDF');
+        uploadButton.disabled = loading || loadFailed || uploadButton.getAttribute?.('aria-busy') === 'true';
+      }
+      if (doc && actions && !removeButton) {
+        removeButton = document.createElement('button');
+        removeButton.className = 'btn-secondary';
+        removeButton.type = 'button';
+        removeButton.id = 'agentIabsRemoveButton';
+        removeButton.textContent = 'Remove';
+        actions.appendChild(removeButton);
+        removeButton.addEventListener('click', root.removeAgentIabsDocument);
+      } else if (!doc && removeButton) {
+        removeButton.remove();
+      }
+      if (loadFailed && actions && !retryButton) {
+        retryButton = document.createElement('button');
+        retryButton.className = 'btn-secondary';
+        retryButton.type = 'button';
+        retryButton.id = 'agentIabsRetryButton';
+        retryButton.textContent = 'Check again';
+        actions.appendChild(retryButton);
+        retryButton.addEventListener('click', retryLookup);
+      } else if (!loadFailed && retryButton) {
+        retryButton.remove();
+      }
+      if (retryButton) retryButton.disabled = loading;
+      return;
+    }
     const card = document.createElement('div');
     card.id = 'agentIabsProfileCard';
     card.className = 'account-card hof-iabs-card';
@@ -23063,35 +23147,52 @@ function hofSpreadsheetCsvCell(value) {
       <p>Store your brokerage-approved Information About Brokerage Services PDF privately in your profile. It is never attached automatically. For each offer, you choose whether to include it.</p>
       <div class="hof-iabs-actions">
         <input id="agentIabsFile" type="file" accept="application/pdf,.pdf" aria-label="Choose IABS PDF" aria-describedby="agentIabsFileHelp">
-        <button class="btn-secondary" type="button" id="agentIabsUploadButton">${doc ? 'Replace IABS PDF' : 'Upload IABS PDF'}</button>
+        <button class="btn-secondary" type="button" id="agentIabsUploadButton"${loading || loadFailed ? ' disabled' : ''}>${doc ? 'Replace IABS PDF' : ((loading || loadFailed) ? 'Upload or Replace IABS PDF' : 'Upload IABS PDF')}</button>
         ${doc ? '<button class="btn-secondary" type="button" id="agentIabsRemoveButton">Remove</button>' : ''}
+        ${loadFailed ? `<button class="btn-secondary" type="button" id="agentIabsRetryButton"${loading ? ' disabled' : ''}>Check again</button>` : ''}
       </div>
       <div id="agentIabsStatus" class="hof-iabs-status ${doc ? 'ready' : ''}" role="status" aria-live="polite" aria-atomic="true" tabindex="-1">
-        ${doc ? `Saved privately: <strong>${escape(doc.original_filename)}</strong> (${Math.max(1, Math.round(Number(doc.byte_size || 0) / 1024)).toLocaleString()} KB).` : 'No IABS PDF saved yet.'}
+        ${statusMessage}
       </div>
       <small id="agentIabsFileHelp" style="display:block;margin-top:.7rem;color:var(--muted);">PDF only, up to 10 MB. Upload only the brokerage-approved version. You remain responsible for deciding whether and when it should be provided.</small>`;
     container.appendChild(card);
-    card.querySelector('#agentIabsUploadButton')?.addEventListener('click', root.uploadAgentIabsDocument);
+    card.querySelector('#agentIabsUploadButton')?.addEventListener('click', () => root.uploadAgentIabsDocument());
     card.querySelector('#agentIabsRemoveButton')?.addEventListener('click', root.removeAgentIabsDocument);
+    card.querySelector('#agentIabsRetryButton')?.addEventListener('click', retryLookup);
   }
 
-  root.uploadAgentIabsDocument = async function uploadAgentIabsDocument() {
+  root.uploadAgentIabsDocument = async function uploadAgentIabsDocument(fileOverride = null, options = {}) {
     const client = root.getSupabaseClient?.();
     const user = root.hofAuth?.session?.user;
     const input = document.getElementById('agentIabsFile');
-    const status = document.getElementById('agentIabsStatus');
     const button = document.getElementById('agentIabsUploadButton');
-    const file = input?.files?.[0];
-    const showError = message => { if (status) { status.className = 'hof-iabs-status error'; status.textContent = message; } else window.announceWorkspaceStatus?.(message); };
-    if (!client || !user) return showError('Please sign in again before uploading your IABS PDF.');
+    const file = fileOverride || input?.files?.[0];
+    const reportStatus = (message, type = 'error') => {
+      const status = document.getElementById('agentIabsStatus');
+      if (status) {
+        status.className = `hof-iabs-status${type === 'ok' ? ' ready' : (type === 'error' ? ' error' : '')}`;
+        status.textContent = message;
+      } else window.announceWorkspaceStatus?.(message);
+      options?.onStatus?.(message, type);
+    };
+    const showError = message => reportStatus(message, 'error');
+    if (!client || !user) { showError('Please sign in again before uploading your IABS PDF.'); return false; }
     const uploadScope = { userId: user.id, role: root.hofAuth?.role, epoch: root.__hofAccountProfileEpoch || 0 };
     const isCurrent = () => root.hofAuth?.session?.user?.id === uploadScope.userId &&
       root.hofAuth?.role === uploadScope.role && (root.__hofAccountProfileEpoch || 0) === uploadScope.epoch;
-    if (!file) return showError('Choose your IABS PDF first.');
+    if (!file) { showError('Choose your IABS PDF first.'); return false; }
     const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name || '');
-    if (!isPdf) return showError('Only PDF files can be used for your IABS.');
-    if (!file.size || file.size > MAX_BYTES) return showError('Your IABS PDF must be 10 MB or smaller.');
-    if (button?.disabled) return;
+    if (!isPdf) { showError('Only PDF files can be used for your IABS.'); return false; }
+    if (!file.size || file.size > MAX_BYTES) { showError('Your IABS PDF must be 10 MB or smaller.'); return false; }
+    if (root.__hofPendingIabsRemovals?.has(user.id)) {
+      showError('Wait for IABS removal to finish before uploading another PDF.');
+      return false;
+    }
+    if (root.__hofIabsUploadInProgress || button?.disabled) {
+      showError('An IABS upload is already in progress. Wait for it to finish.');
+      return false;
+    }
+    root.__hofIabsUploadInProgress = true;
     const uploadHadFocus = button && document.activeElement === button;
     const inputWasDisabled = Boolean(input?.disabled);
     if (input) input.disabled = true;
@@ -23100,61 +23201,113 @@ function hofSpreadsheetCsvCell(value) {
     try {
       try {
         const signatureBytes = new Uint8Array(await file.slice(0, 4).arrayBuffer());
-        if (!isCurrent()) return;
+        if (!isCurrent()) return false;
         if (String.fromCharCode(...signatureBytes) !== '%PDF') {
           showError('This file is not a readable PDF. Choose the original brokerage-approved IABS PDF.');
-          return;
+          return false;
         }
       } catch (_) {
-        if (!isCurrent()) return;
+        if (!isCurrent()) return false;
         showError('We couldn’t read this PDF. Choose the original brokerage-approved IABS PDF and try again.');
-        return;
+        return false;
       }
-      if (!isCurrent()) return;
-      if (status) { status.className = 'hof-iabs-status'; status.textContent = 'Uploading your private IABS PDF…'; }
-      const path = filePath(user.id);
-      const { error: uploadError } = await client.storage.from(BUCKET).upload(path, file, {
-        contentType: 'application/pdf', upsert: true, cacheControl: '0'
+      if (!isCurrent()) return false;
+      if (typeof root.loadAgentIabsDocument !== 'function') {
+        showError('We couldn’t check whether an IABS PDF is already saved. Refresh this page to try again; no files were changed.');
+        return false;
+      }
+      const savedDocument = await root.loadAgentIabsDocument();
+      if (!isCurrent()) return false;
+      if (root.hofAuth?.agentIabsDocumentLoadFailed || root.hofAuth?.agentIabsDocumentLoadPending) {
+        const retry = document.getElementById('agentIabsRetryButton');
+        showError(retry
+          ? 'We couldn’t check whether an IABS PDF is already saved. Choose Check again to retry. Your selected file is still here.'
+          : 'We couldn’t check whether an IABS PDF is already saved. Refresh this page to try again; no files were changed.');
+        if (uploadHadFocus && (document.activeElement === button || document.activeElement === document.body)) {
+          retry?.focus({ preventScroll: true });
+        }
+        return false;
+      }
+      if (savedDocument) {
+        const priorName = String(savedDocument.original_filename || 'your saved IABS PDF');
+        const confirmReplace = window.confirm?.(`Replace ${priorName} with the selected IABS PDF? Existing packets will not change.`);
+        if (!confirmReplace) {
+          reportStatus('Your saved IABS was left unchanged.', 'info');
+          return false;
+        }
+      }
+      reportStatus('Uploading your private IABS PDF…', 'info');
+      const { upload } = await root.callIabsProfileApi('POST', {
+        action: 'prepare_agent_iabs_upload',
+        content_type: 'application/pdf',
+        size_bytes: file.size
       });
+      if (!isCurrent()) return false;
+      if (upload?.bucket !== BUCKET || upload?.path !== filePath(user.id) || !upload?.token) {
+        throw Object.assign(new Error('The private IABS upload could not be prepared.'), { status: 500 });
+      }
+      const { error: uploadError } = await client.storage.from(BUCKET).uploadToSignedUrl(
+        upload.path, upload.token, file, { contentType: 'application/pdf', cacheControl: '0' }
+      );
       if (uploadError) throw uploadError;
       storageUploadConfirmed = true;
-      if (!isCurrent()) return;
-      const payload = {
-        user_id: user.id,
-        document_type: 'iabs',
-        storage_bucket: BUCKET,
-        storage_path: path,
+      if (!isCurrent()) return false;
+      const offerData = root.state?.data;
+      const include = document.getElementById('includeAgentIabs');
+      if (offerData && (offerData.includeAgentIabs || include?.checked)) {
+        offerData.includeAgentIabs = false;
+        if (include) include.checked = false;
+        try { root.renderReview?.(); } catch (_) {}
+      }
+      const { document: payload } = await root.callIabsProfileApi('POST', {
+        action: 'save_agent_iabs_metadata',
         original_filename: file.name.slice(0, 180),
-        mime_type: 'application/pdf',
-        byte_size: file.size,
-        updated_at: new Date().toISOString()
-      };
-      const { error: recordError } = await client.from('hof_agent_documents').upsert(payload, {
-        onConflict: 'user_id,document_type'
+        byte_size: file.size
       });
-      if (recordError) throw recordError;
-      if (!isCurrent()) return;
+      if (!isCurrent()) return false;
+      if (!payload?.id || !payload.updated_at || payload.user_id !== user.id ||
+          payload.document_type !== 'iabs' || payload.storage_bucket !== BUCKET ||
+          payload.storage_path !== upload.path || payload.byte_size !== file.size) {
+        throw new Error('The IABS profile save returned an unexpected document.');
+      }
       root.hofAuth.agentIabsDocument = payload;
-      const focusConfirmation = uploadHadFocus &&
+      root.hofAuth.agentIabsDocumentLoadPending = false;
+      root.hofAuth.agentIabsDocumentLoadFailed = false;
+      const focusConfirmation = !fileOverride && uploadHadFocus &&
         (document.activeElement === button || document.activeElement === document.body);
       document.getElementById('agentIabsProfileCard')?.remove();
       renderProfileIabsCard();
       mountIabsOfferOption();
-      const confirmation = document.getElementById('agentIabsStatus');
-      if (confirmation) {
-        confirmation.textContent = `Saved privately to your profile as “${payload.original_filename}”.`;
-        if (focusConfirmation) confirmation.focus();
-      }
+      reportStatus(`Saved privately to your profile as “${payload.original_filename || file.name}”. It was not added to this offer; choose “Include my IABS?” if you want it in the packet.`, 'ok');
+      if (focusConfirmation) document.getElementById('agentIabsStatus')?.focus();
+      return true;
     } catch (error) {
-      if (!isCurrent()) return;
+      if (!isCurrent()) return false;
       console.error('IABS upload failed:', error);
-      const fallback = storageUploadConfirmed
+      const statusCode = String(error?.statusCode || error?.status || '');
+      let fallback = storageUploadConfirmed
         ? 'Your PDF uploaded, but we couldn’t confirm the profile save. Upload it again to finish; it updates the same private file.'
         : 'We couldn’t upload this PDF. Check your connection and try again.';
-      if (status) { status.className = 'hof-iabs-status error'; status.textContent = window.hofCustomerActionError?.(error, fallback) || fallback; }
+      if (!storageUploadConfirmed && /^(401|403)$/.test(statusCode)) {
+        fallback = statusCode === '401'
+          ? 'Your sign-in expired before the IABS upload finished. Sign in again, then upload it from your profile.'
+          : 'Your account couldn’t save this file to private document storage. Refresh your sign-in and retry; if it continues, contact support.';
+      } else if (!storageUploadConfirmed && statusCode === '413') {
+        fallback = 'This IABS PDF is larger than the 10 MB upload limit. Choose a smaller PDF and try again.';
+      } else if (!storageUploadConfirmed && statusCode === '415') {
+        fallback = 'Private document storage accepts PDF files only. Choose the brokerage-approved IABS PDF and try again.';
+      } else if (!storageUploadConfirmed && /^(500|502|503|504)$/.test(statusCode)) {
+        fallback = 'Private document storage is temporarily unavailable. Wait a moment, then try the upload again.';
+      }
+      showError(window.hofCustomerActionError?.(error, fallback) || fallback);
+      return false;
     } finally {
+      root.__hofIabsUploadInProgress = false;
       if (input) input.disabled = inputWasDisabled;
-      if (button) { button.disabled = false; button.removeAttribute('aria-busy'); }
+      if (button) {
+        button.disabled = isCurrent() && Boolean(root.hofAuth?.agentIabsDocumentLoadFailed || root.hofAuth?.agentIabsDocumentLoadPending);
+        button.removeAttribute('aria-busy');
+      }
     }
   };
 
@@ -23163,8 +23316,16 @@ function hofSpreadsheetCsvCell(value) {
     const user = root.hofAuth?.session?.user;
     const doc = root.hofAuth?.agentIabsDocument;
     if (!client || !user || !doc) return;
-    if (!window.confirm('Remove the saved IABS PDF from your profile? Existing packets will not change.')) return;
     const status = document.getElementById('agentIabsStatus');
+    const pendingRemovals = root.__hofPendingIabsRemovals ||= new Set();
+    if (pendingRemovals.has(user.id)) return;
+    if (root.__hofIabsUploadInProgress) {
+      if (status) status.textContent = 'Wait for the IABS upload to finish before removing the saved PDF.';
+      return;
+    }
+    if (!window.confirm('Remove the saved IABS PDF from your profile? Existing packets will not change.')) return;
+    pendingRemovals.add(user.id);
+    const epoch = root.__hofAccountProfileEpoch || 0;
     if (status) status.textContent = 'Removing saved IABS PDF…';
     try {
       const { error: storageError } = await client.storage.from(BUCKET).remove([doc.storage_path]);
@@ -23172,6 +23333,7 @@ function hofSpreadsheetCsvCell(value) {
       const { error: recordError } = await client.from('hof_agent_documents')
         .delete().eq('user_id', user.id).eq('document_type', 'iabs');
       if (recordError) throw recordError;
+      if (root.hofAuth?.session?.user?.id !== user.id || (root.__hofAccountProfileEpoch || 0) !== epoch) return;
       root.hofAuth.agentIabsDocument = null;
       if (root.state?.data) root.state.data.includeAgentIabs = false;
       document.getElementById('agentIabsProfileCard')?.remove();
@@ -23180,6 +23342,8 @@ function hofSpreadsheetCsvCell(value) {
     } catch (error) {
       console.error('IABS removal failed:', error);
       if (status) { status.className = 'hof-iabs-status error'; status.textContent = window.hofCustomerActionError?.(error, 'We couldn’t remove your IABS PDF. Please try again.') || 'We couldn’t remove your IABS PDF. Please try again.'; }
+    } finally {
+      pendingRemovals.delete(user.id);
     }
   };
 
@@ -23212,6 +23376,9 @@ function hofSpreadsheetCsvCell(value) {
     const client = root.getSupabaseClient?.();
     const user = root.hofAuth?.session?.user;
     const doc = root.hofAuth?.agentIabsDocument || await root.loadAgentIabsDocument();
+    if (!doc && root.hofAuth?.agentIabsDocumentLoadFailed) {
+      throw new Error('We couldn’t check your saved IABS PDF. Refresh this page to try again; your offer was not submitted.');
+    }
     if (!client || !user || !doc || doc.document_type !== 'iabs' || doc.storage_bucket !== BUCKET || doc.storage_path !== filePath(user.id)) {
       throw new Error('Your saved IABS PDF is unavailable. Open Profile to upload it again or uncheck “Include my IABS?”.');
     }
