@@ -6082,6 +6082,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
   async function initSupabaseAuth() {
     if (supabaseAuthInitialization) return supabaseAuthInitialization;
+    // The auth client can consume the callback URL during initialization.
+    const expiredLink = [window.location?.search, window.location?.hash?.slice(1)]
+      .some(value => new URLSearchParams(value).get('error_code') === 'otp_expired');
     supabaseAuthInitialization = (async () => {
       let client;
       try {
@@ -6110,6 +6113,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         await ensureProfileShell(hofAuth.session);
         await flushSubscriptionCheckoutReturnEvent();
         routeAfterMagicLinkIfNeeded();
+      } else if (expiredLink) {
+        let role;
+        try { role = localStorage.getItem('hof_auth_pending'); } catch (_) {}
+        window.openAuthModal(['agent', 'broker', 'investor'].includes(role) ? role : 'agent');
+        setAuthStatus('This sign-in link has expired or was already used. Enter your email to request a new link.', 'err');
       }
 
       client.auth.onAuthStateChange(async (event, session) => {
@@ -9365,10 +9373,21 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
   
   function cleanSupabaseAuthUrlNoise() {
-    const url = window.location.href;
-    const noisy = url.includes('error=access_denied') || url.includes('error_code=otp') || url.includes('access_token=') || url.includes('refresh_token=');
-    if (!noisy) return;
-    try { window.history.replaceState({}, document.title, window.location.origin + window.location.pathname); } catch (e) {}
+    const url = new URL(window.location.href);
+    const removeCallbackFields = params => {
+      if (!['code', 'access_token', 'refresh_token', 'error_code'].some(key => params.has(key))
+          && params.get('error') !== 'access_denied') return false;
+      ['code', 'access_token', 'refresh_token', 'provider_token', 'provider_refresh_token',
+        'expires_at', 'expires_in', 'token_type', 'type', 'error', 'error_code', 'error_description']
+        .forEach(key => params.delete(key));
+      return true;
+    };
+    const changedQuery = removeCallbackFields(url.searchParams);
+    const fragment = new URLSearchParams(url.hash.slice(1));
+    const changedFragment = removeCallbackFields(fragment);
+    if (!changedQuery && !changedFragment) return;
+    if (changedFragment) url.hash = fragment.toString();
+    try { window.history.replaceState(window.history.state, '', url.href); } catch (_) {}
   }
 
 function routeAfterMagicLinkIfNeeded() {

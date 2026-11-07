@@ -485,6 +485,7 @@ for(const edited of [false,true])test(`account initialization automatic restore 
   const x=setup();const {store}=enableLocalDraft(x,startupDraft),c=x.ctx;
   store.set('hof_offer_draft_owner','owner');
   Object.assign(c,{supabaseAuthInitialization:null,
+    URLSearchParams,
     ensureSupabaseClient:async()=>({auth:{getSession:async()=>({data:{session:{user:{id:'owner'}}}}),onAuthStateChange(){}}}),
     updateAuthUI(){},cleanSupabaseAuthUrlNoise(){},ensureProfileShell:async()=>{},flushSubscriptionCheckoutReturnEvent:async()=>{},routeAfterMagicLinkIfNeeded(){}});
   vm.runInContext(source('  async function initSupabaseAuth()', '  function isProfileMeaningful('),c);
