@@ -17571,11 +17571,14 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
   });
   const fsboDraftStorageKey = 'hof_fsbo_intake_draft_v1';
   const fsboDraftFields = ['fsboPropertyAddress', 'fsboPropertyCity', 'fsboPropertyCounty', 'fsboPropertyState', 'fsboPropertyZip', 'fsboSellerName', 'fsboSellerEmail', 'fsboSellerPhone', 'fsboAskingPrice', 'fsboTimeline', 'fsboGuidedGoal', 'fsboNeed', 'fsboPackagePrice', 'fsboNotes'];
+  function readFsboDraft(){
+    const fields = Object.fromEntries(fsboDraftFields.map(id => [id, document.getElementById(id)?.value || '']));
+    fields.partners = getFsboPartners();
+    return JSON.stringify(fields);
+  }
   function saveFsboDraft(){
     try {
-      const fields = Object.fromEntries(fsboDraftFields.map(id => [id, document.getElementById(id)?.value || '']));
-      fields.partners = getFsboPartners();
-      sessionStorage.setItem(fsboDraftStorageKey, JSON.stringify(fields));
+      sessionStorage.setItem(fsboDraftStorageKey, readFsboDraft());
       renderFsboDraftRecoveryNotice();
     } catch (_) {}
   }
@@ -18071,6 +18074,8 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
       }
     } catch (_) {}
     if (submitButtons.some(button => button.disabled)) return;
+    const submittedDraft = readFsboDraft();
+    let keepSubmittedState = false;
     trackFsboFunnel('FSBO Seller Request Submission Started', {
       package: payload.service_level,
       source: source === 'quick' ? 'quick' : 'full',
@@ -18106,10 +18111,17 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
         trackFsboFunnel('FSBO Seller Request Saved', { package: payload.service_level, source: source === 'quick' ? 'quick' : 'full', timeline: payload.timeline });
       }
       try { sessionStorage.setItem(submissionKey, data.seller_lead_id); } catch (_) {}
-      clearFsboDraft();
-      const selected = fsboNeedCopy[fsboVal('fsboNeed')] || fsboNeedCopy.free_intake;
+      const selected = fsboNeedCopy[payload.service_level] || fsboNeedCopy.free_intake;
       saveFsboRequestReceipt(selected, payload.service_level);
-      const steps = fsboNextSteps[fsboVal('fsboNeed')] || fsboNextSteps.free_intake;
+      if (readFsboDraft() !== submittedDraft) {
+        if (status) {
+          status.textContent = 'Your earlier seller request was saved. Your newer edits are still here and have not been submitted.';
+          status.className = 'platform-status ok';
+        }
+        return;
+      }
+      clearFsboDraft();
+      const steps = fsboNextSteps[payload.service_level] || fsboNextSteps.free_intake;
       const readiness = fsboReadinessPlan(payload.timeline);
       const scopeNote = payload.service_level === 'free_intake'
         ? 'Your free seller plan is ready to use. If you later request paid support, we will confirm the scope, provider involvement, availability, and final pricing with you before any payment is requested.'
@@ -18137,6 +18149,7 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
           '<button class="btn-secondary" type="button" onclick="closeFsboSellerModal()">Done</button></div>';
         window.setTimeout(() => window.renderPwaInstallCard?.(), 0);
       }
+      keepSubmittedState = true;
     } catch (err) {
       trackFsboFunnel('FSBO Seller Request Save Failed', { package: payload.service_level, source: source === 'quick' ? 'quick' : 'full' });
       if (status) {
@@ -18146,13 +18159,15 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
           : window.hofCustomerActionError?.(err, fallback) || fallback;
         status.className = 'platform-status err';
       }
-      submitButtons.forEach(button => {
-        button.disabled = false;
-        button.setAttribute('aria-busy', 'false');
-      });
-      window.renderFsboNeedDetails?.();
     } finally {
       clearTimeout(timeout);
+      if (!keepSubmittedState) {
+        submitButtons.forEach(button => {
+          button.disabled = false;
+          button.setAttribute('aria-busy', 'false');
+        });
+        window.renderFsboNeedDetails?.();
+      }
     }
   };
   fsboDraftFields.forEach(id => {
