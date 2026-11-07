@@ -9,7 +9,7 @@ function source(a,b) {const start=html.indexOf(a),end=html.indexOf(b,start);asse
 function deferred(){let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject};}
 const tick=()=>new Promise(setImmediate);
 function setup(kind='canonical') {
-  const reads=[],renders=[],removed=[];
+  const reads=[],iabsRequests=[],renders=[],removed=[];
   const c=vm.createContext({hofAuth:{session:{user:{id:'owner'}},role:'agent',accountProfile:null,agentIabsDocument:null},
     state:{data:{userType:'agent',includeAgentIabs:true}},
     document:{getElementById:id=>({remove:()=>removed.push(id)})},
@@ -18,6 +18,10 @@ function setup(kind='canonical') {
       const query={table,filters:[]};const chain={select:()=>chain,eq:(...filter)=>{query.filters.push(filter);return chain;},
         maybeSingle:()=>{const pending=deferred();reads.push({...query,...pending});return pending.promise;}};return chain;
     }}),
+    callIabsProfileApi:method=>{
+      assert.equal(method,'GET');
+      const request=deferred();iabsRequests.push(request);return request.promise;
+    },
     updateAuthUI:()=>renders.push('auth'),applyProfileDefaultsToWizard:()=>renders.push('defaults'),
     renderProfileIabsCard:()=>renders.push('iabs-card'),mountIabsOfferOption:()=>renders.push('iabs-option'),
     isAgentAccount:()=>['agent','broker'].includes(c.hofAuth.role)&&!!c.hofAuth.session?.user,
@@ -31,7 +35,9 @@ function setup(kind='canonical') {
   if(kind==='base')vm.runInContext(source('  async function loadAccountProfile()','  function isCurrentAdmin()'),c);
   else vm.runInContext(source('  root.hofResolveAgentProfileOwner =','  const oldIsProfileMeaningful ='),c);
   vm.runInContext(source('  root.loadAgentIabsDocument =','  function renderProfileIabsCard()'),c);
-  return {c,reads,renders,removed,reply:async(index,value)=>{reads[index].resolve(value);await tick();}};
+  return {c,reads,iabsRequests,renders,removed,
+    reply:async(index,value)=>{reads[index].resolve(value);await tick();},
+    replyIabs:async(index,document)=>{iabsRequests[index].resolve({document});await tick();}};
 }
 for(const kind of ['base','canonical']) {
   // Canonical loader resolves the profile alias first; isolate that separate
@@ -102,21 +108,21 @@ for(const fail of [false,true]) {
   test(`obsolete IABS ${fail?'error':'response'} cannot replace the current document`,async()=>{
     const x=setup(),pending=x.c.loadAgentIabsDocument();
     x.c.authChange({user:{id:'next'}});const next={original_filename:'Next.pdf'};x.c.hofAuth.agentIabsDocument=next;
-    if(fail){x.reads[0].reject(new Error('old failure'));await tick();}
-    else await x.reply(0,{data:{original_filename:'Old.pdf'}});
+    if(fail){x.iabsRequests[0].reject(new Error('old failure'));await tick();}
+    else await x.replyIabs(0,{original_filename:'Old.pdf'});
     await pending;assert.equal(x.c.hofAuth.agentIabsDocument,next);
   });
 }
 test('removing a cached IABS document prevents an older load from resurrecting it',async()=>{
   const x=setup();x.c.hofAuth.agentIabsDocument={original_filename:'Removed.pdf'};
   const pending=x.c.loadAgentIabsDocument();x.c.hofAuth.agentIabsDocument=null;
-  await x.reply(0,{data:{original_filename:'Removed.pdf'}});await pending;
+  await x.replyIabs(0,{original_filename:'Removed.pdf'});await pending;
   assert.equal(x.c.hofAuth.agentIabsDocument,null);
 });
 test('latest IABS query result wins',async()=>{
   const x=setup(),a=x.c.loadAgentIabsDocument(),b=x.c.loadAgentIabsDocument();
-  await x.reply(1,{data:{original_filename:'Latest.pdf'}});await b;
-  await x.reply(0,{data:{original_filename:'Old.pdf'}});await a;
+  await x.replyIabs(1,{original_filename:'Latest.pdf'});await b;
+  await x.replyIabs(0,{original_filename:'Old.pdf'});await a;
   assert.equal(x.c.hofAuth.agentIabsDocument.original_filename,'Latest.pdf');
 });
 test('profile wrapper does not start IABS loading after the account changes',async()=>{
