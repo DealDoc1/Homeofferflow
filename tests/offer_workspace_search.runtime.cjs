@@ -81,3 +81,23 @@ assert.equal(root.hofOfferWorkspaceV10.query,'');
 root.hofSetOfferWorkspaceSearch('Maple');
 assert.equal(exportButton.textContent,'Download CSV (1)');
 assert.equal(exportButton.disabled,false);
+
+const attentionOffers = [
+ {id:'attention-a',property_address:'Maple Lane',status:'Draft',last_updated:'2021-01-01',offer_price:100},
+ {id:'attention-b',property_address:'Oak Road',status:'Draft',last_updated:'2021-01-02',offer_price:200},
+ {id:'recent',property_address:'Pine Street',status:'Draft',last_updated:new Date().toISOString(),offer_price:300}
+];
+assert.match(root.hofRenderOfferWorkspaceV10(attentionOffers), /hofReviewAllOffersNeedingAttention\(\)">Review all 2 needing attention/);
+root.hofSetOfferWorkspaceSort('price_desc');
+root.hofSetOfferWorkspaceSearch('Maple');
+assert.doesNotMatch(cards.innerHTML,/Oak Road/);
+summary.focus=()=>{document.activeElement=summary;};
+document.querySelector=selector=>selector==='#myOffersList .offer-workspace-result-summary'?summary:null;
+root.hofReviewAllOffersNeedingAttention();
+assert.equal(root.hofOfferWorkspaceV10.query,'');
+assert.equal(root.hofOfferWorkspaceV10.filter,'attention');
+assert.equal(root.hofOfferWorkspaceV10.sort,'price_desc');
+assert.equal(document.activeElement,summary);
+root.hofSetOfferWorkspaceSearch('');
+assert.match(cards.innerHTML,/Oak Road[\s\S]*Maple Lane/);
+assert.doesNotMatch(cards.innerHTML,/Pine Street/);
