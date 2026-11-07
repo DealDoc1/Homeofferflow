@@ -117,3 +117,13 @@ test('tenant representation skips the redundant package question and opens the a
   assert.equal(page.window.hofAgentWorkflowContext, 'lease_representation');
   assert.equal(page.storage.get('hof_agent_workflow_choice'), 'lease_representation');
 });
+
+test('unknown transaction keys leave the current chooser untouched', () => {
+  const page = setup();
+  for (const key of ['', 'constructor', '__proto__', 'unsupported']) {
+    page.window.startAgentWorkflow(key);
+  }
+  assert.deepEqual(page.calls, []);
+  assert.equal(page.storage.size, 0);
+  assert.equal(page.window.hofAgentWorkflowContext, undefined);
+});
