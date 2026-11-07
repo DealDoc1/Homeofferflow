@@ -70,3 +70,26 @@ test('rejects unknown stages and normalizes an unknown channel', () => {
   assert.equal(x.requests.length, 1);
   assert.equal(JSON.parse(x.requests[0].options.body).channel, 'unspecified');
 });
+
+test('auth callback cleanup preserves page settings, anchors and browser state', () => {
+  const marker = '  function cleanSupabaseAuthUrlNoise()';
+  const next = 'function routeAfterMagicLinkIfNeeded(';
+  const start = html.indexOf(marker);
+  const state = { existing:true };
+  const calls = [];
+  const window = { location:{ href:'' }, history:{ state, replaceState:(...args) => calls.push(args) } };
+  const clean = vm.runInNewContext(html.slice(start, html.indexOf(next, start)) + '\ncleanSupabaseAuthUrlNoise', {window, URL, URLSearchParams});
+  window.location.href = 'https://fixture.test/?partner=1&code=fictional#pricing';
+  clean();
+  window.location.href = 'https://fixture.test/?partner=1#access_token=fictional&provider_token=fictional&type=magiclink';
+  clean();
+  window.location.href = 'https://fixture.test/?txr_qa=1#error_code=otp_expired&error_description=fictional';
+  clean();
+  window.location.href = 'https://fixture.test/?partner=1#pricing';
+  clean();
+  assert.deepEqual(calls, [
+    [state, '', 'https://fixture.test/?partner=1#pricing'],
+    [state, '', 'https://fixture.test/?partner=1'],
+    [state, '', 'https://fixture.test/?txr_qa=1'],
+  ]);
+});
