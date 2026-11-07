@@ -349,24 +349,42 @@
       trackPublicInstall('Dismissed');
       removeInstallCard();
     });
-    card.querySelector('#hofPublicPwaInstallButton')?.addEventListener('click', async () => {
+    const installButton = card.querySelector('#hofPublicPwaInstallButton');
+    installButton?.addEventListener('click', async () => {
+      if (installButton.disabled) return;
       rememberPreferredPublicLaunch();
       if (!deferredInstallPrompt) {
         const note = card.querySelector('#hofPublicPwaInstallNote');
         if (note) {
           note.style.display = 'block';
-          note.textContent = 'In Safari, tap Share, then choose Add to Home Screen. The lightweight HomeOfferFlow app will open from your new icon.';
+          note.textContent = isIosInstallSurface()
+            ? 'In Safari, tap Share, then choose Add to Home Screen. The lightweight HomeOfferFlow app will open from your new icon.'
+            : 'In Chrome, open the ⋮ menu and choose Install app or Add to Home screen, then confirm.';
         }
         trackPublicInstall('InstructionsOpened');
         return;
       }
       const prompt = deferredInstallPrompt;
       deferredInstallPrompt = null;
-      removeInstallCard();
-      trackPublicInstall('CtaClicked');
-      await prompt.prompt();
-      trackPublicInstall('PromptOpened');
-      await prompt.userChoice.then(choice => trackPublicInstall(choice?.outcome === 'accepted' ? 'Accepted' : 'Dismissed')).catch(() => {});
+      const startedWithFocus = document.activeElement === installButton;
+      installButton.disabled = true;
+      try {
+        trackPublicInstall('CtaClicked');
+        await prompt.prompt();
+        trackPublicInstall('PromptOpened');
+        const choice = await prompt.userChoice;
+        const accepted = choice?.outcome === 'accepted';
+        trackPublicInstall(accepted ? 'Accepted' : 'Dismissed');
+        if (accepted && card.isConnected) card.remove();
+      } catch (_) {
+        // The browser prompt can expire. Keep the manual steps available.
+      } finally {
+        if (installButton.isConnected) {
+          installButton.disabled = false;
+          installButton.textContent = deferredInstallPrompt ? 'Install app' : 'Show install steps';
+          if (startedWithFocus && document.activeElement === document.body) installButton.focus({ preventScroll: true });
+        }
+      }
     });
   };
   window.addEventListener('beforeinstallprompt', event => {

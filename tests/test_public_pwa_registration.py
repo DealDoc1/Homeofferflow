@@ -128,7 +128,7 @@ class PublicPwaRegistrationTests(unittest.TestCase):
     def test_public_install_prompt_records_privacy_safe_aggregate_funnel_events(self):
         self.assertIn("trackPublicInstall('Shown')", SCRIPT)
         self.assertIn("trackPublicInstall('CtaClicked')", SCRIPT)
-        self.assertIn("choice?.outcome === 'accepted' ? 'Accepted' : 'Dismissed'", SCRIPT)
+        self.assertIn("trackPublicInstall(accepted ? 'Accepted' : 'Dismissed')", SCRIPT)
         self.assertIn("trackPublicInstall('Installed')", SCRIPT)
         self.assertIn("surface: window.location.pathname", SCRIPT)
         self.assertIn("public_pwa_install_event", SCRIPT)
