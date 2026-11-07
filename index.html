@@ -3267,6 +3267,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     <div class="account-panel" id="accountPanelOffers">
       <div class="account-card">
         <h4>My Offers</h4>
+        <p id="myOffersRefreshNotice" class="offer-workspace-note" role="status" hidden>Couldn’t refresh offers. You’re viewing the last loaded results. Use Sync signing status to try again.</p>
         <div id="myOffersList" class="offer-empty">No saved offers yet. Create your first offer and future work will appear here.</div>
         <div class="account-actions-row">
           <button class="btn-primary" type="button" onclick="startAccountTransaction()">Choose Transaction</button>
@@ -4671,6 +4672,18 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   function resetProfileForSessionChange(session) {
     if ((hofAuth.session?.user?.id || null) === (session?.user?.id || null)) return;
     window.__hofAccountProfileEpoch = (window.__hofAccountProfileEpoch || 0) + 1;
+    hofAuth.myOffers = [];
+    hofAuth.myOffersHasMore = false;
+    hofAuth.myOffersLoadMoreError = false;
+    hofAuth.myOffersNextOffset = 0;
+    const refreshNotice = document.getElementById('myOffersRefreshNotice');
+    if (refreshNotice) refreshNotice.hidden = true;
+    const offersList = document.getElementById('myOffersList');
+    if (offersList) offersList.textContent = '';
+    if (window.hofOfferWorkspaceV10) {
+      window.hofOfferWorkspaceV10.offers = [];
+      window.hofOfferWorkspaceV10.query = '';
+    }
     hofAuth.accountProfile = null;
     hofAuth.agentIabsDocument = null;
     hofAuth.authoritativeProfile = null;
@@ -8632,12 +8645,17 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
   const HOF_OFFER_WORKSPACE_PAGE_SIZE = 25;
 
+  let activeOfferHistoryRequest = null;
+
   async function loadMyOffers({ append = false } = {}) {
     const client = getSupabaseClient();
     const user = hofAuth.session?.user;
     const list = document.getElementById('myOffersList');
     if (!list) return;
+    const refreshNotice = document.getElementById('myOffersRefreshNotice');
     if (!client || !user) {
+      activeOfferHistoryRequest = null;
+      if (refreshNotice) refreshNotice.hidden = true;
       hofAuth.myOffers = [];
       hofAuth.myOffersHasMore = false;
       hofAuth.myOffersLoadMoreError = false;
@@ -8645,7 +8663,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       list.textContent = 'Sign in to view offers.';
       return [];
     }
-    const existingOffers = append && Array.isArray(hofAuth.myOffers) ? hofAuth.myOffers : [];
+    const request = { userId: user.id, epoch: window.__hofAccountProfileEpoch || 0 };
+    activeOfferHistoryRequest = request;
+    const isCurrent = () => activeOfferHistoryRequest === request &&
+      hofAuth.session?.user?.id === request.userId && (window.__hofAccountProfileEpoch || 0) === request.epoch;
+    const currentOffers = Array.isArray(hofAuth.myOffers) ? hofAuth.myOffers : [];
+    const existingOffers = append ? currentOffers : [];
     // Keep the database cursor independent from unique rendered cards. An
     // offer can move between pages when a concurrent update changes its
     // last_updated value; using the card count would then repeat a page.
@@ -8658,6 +8681,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         .is('deleted_at', null)
         .order('last_updated', { ascending:false })
         .range(offset, offset + HOF_OFFER_WORKSPACE_PAGE_SIZE - 1);
+      if (!isCurrent()) return;
       if (error) throw error;
       const page = data || [];
       const byId = new Map(existingOffers.map(offer => [offer.id, offer]));
@@ -8667,17 +8691,34 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       hofAuth.myOffersHasMore = page.length === HOF_OFFER_WORKSPACE_PAGE_SIZE;
       hofAuth.myOffersLoadMoreError = false;
       hofAuth.myOffersNextOffset = offset + page.length;
+      if (!append && refreshNotice) refreshNotice.hidden = true;
       if (!loadedOffers.length) {
         list.className = 'offer-empty';
         list.textContent = 'No saved offers yet. Create your first offer and future offers will show here.';
         try { renderAgentActivationCard(); } catch (e) {}
         return [];
       }
+      const search = document.getElementById('offerWorkspaceSearch');
+      const selection = search && document.activeElement === search
+        ? [search.selectionStart, search.selectionEnd, search.selectionDirection]
+        : null;
       list.className = '';
       list.innerHTML = renderMyOffers(loadedOffers);
+      if (selection) {
+        const updatedSearch = document.getElementById('offerWorkspaceSearch');
+        updatedSearch?.focus({ preventScroll: true });
+        updatedSearch?.setSelectionRange(...selection);
+      }
       try { renderAgentActivationCard(); } catch (e) {}
       return loadedOffers;
     } catch (err) {
+      if (!isCurrent()) return;
+      if (!append && currentOffers.length) {
+        if (refreshNotice) refreshNotice.hidden = false;
+        console.warn('Offers refresh failed:', err);
+        return currentOffers;
+      }
+      if (!append && refreshNotice) refreshNotice.hidden = true;
       if (append && existingOffers.length) {
         hofAuth.myOffers = existingOffers;
         hofAuth.myOffersHasMore = true;
@@ -20089,12 +20130,12 @@ function hofSpreadsheetCsvCell(value) {
     const priorityNeedsBuyerReminder = priority && bucketForOffer(priority) === 'signing';
     const focusCard = priority ? `<section class="offer-focus-card" aria-label="Priority offer follow-up">
       <div><div class="offer-focus-kicker">Today’s priority</div><strong>${esc(priorityProperty)}</strong><p>${esc(nextAction(priority))}. This is the oldest active item that needs attention.</p></div>
-      <div class="offer-focus-actions">${priorityNeedsBuyerReminder ? '<button class="offer-action-btn" type="button" onclick="hofSyncPrioritySigningStatus(this)">Sync SignWell now</button>' : ''}<button class="offer-action-btn" type="button" onclick="hofOpenPriorityOffer('${esc(priority.id)}')">Open priority offer</button>${priorityNeedsBuyerReminder ? `<button class="offer-action-btn" type="button" onclick="copyBuyerSigningReminder('${esc(priority.id)}')">Copy buyer reminder</button>` : ''}<button class="offer-action-btn" type="button" onclick="hofSetOfferWorkspaceFilter('attention')">Review all ${c.attention} needing attention</button></div>
+      <div class="offer-focus-actions">${priorityNeedsBuyerReminder ? '<button class="offer-action-btn" type="button" onclick="hofSyncPrioritySigningStatus(this)">Sync SignWell now</button>' : ''}<button class="offer-action-btn" type="button" onclick="hofOpenPriorityOffer('${esc(priority.id)}')">Open priority offer</button>${priorityNeedsBuyerReminder ? `<button class="offer-action-btn" type="button" onclick="copyBuyerSigningReminder('${esc(priority.id)}')">Copy buyer reminder</button>` : ''}<button class="offer-action-btn" type="button" onclick="hofReviewAllOffersNeedingAttention()">Review all ${c.attention} needing attention</button></div>
     </section>` : '';
     const volume = safe.reduce((sum,o) => sum + Number(o.offer_price || o.offer_data?.offerPrice || 0), 0);
     const tab = (key,label) => `<button type="button" class="offer-filter-tab ${state.filter===key?'active':''}" aria-pressed="${state.filter===key ? 'true' : 'false'}" onclick="hofSetOfferWorkspaceFilter('${key}')">${label} <span>${c[key] || 0}</span></button>`;
     const { cards, summary, count } = renderSearchResults(safe);
-    const resultSummary = `<div class="offer-workspace-result-summary" aria-live="polite">${summary}</div>`;
+    const resultSummary = `<div class="offer-workspace-result-summary" tabindex="-1" aria-live="polite">${summary}</div>`;
     const canLoadMore = !!root.hofAuth?.myOffersHasMore;
     const loadMoreFailed = !!root.hofAuth?.myOffersLoadMoreError;
     const historyControl = canLoadMore
@@ -20189,6 +20230,11 @@ function hofSpreadsheetCsvCell(value) {
   };
 
   root.hofSetOfferWorkspaceFilter = function(filter){ state.filter = filter || 'all'; persistWorkspaceState(); rerender(); };
+  root.hofReviewAllOffersNeedingAttention = function(){
+    state.query = '';
+    root.hofSetOfferWorkspaceFilter('attention');
+    document.querySelector('#myOffersList .offer-workspace-result-summary')?.focus();
+  };
   root.hofSetOfferWorkspaceSearch = function(query){
     state.query = query || '';
     persistWorkspaceState();
