@@ -17,11 +17,17 @@ const hofAuth = {session:{user:{id:'first'}}, myOffers:[{id:'current'}], myOffer
 const pending = [];
 const query = {
   from:()=>query, select:()=>query, eq:()=>query, is:()=>query, order:()=>query,
-  range:()=>new Promise(resolve=>pending.push(resolve))
+  range:()=>query, abortSignal:signal=>new Promise(resolve=>{
+    pending.push(resolve);
+    signal.addEventListener('abort',()=>resolve({error:signal.reason}),{once:true});
+  })
 };
 const getSupabaseClient = () => query;
 const renderMyOffers = offers => offers.map(offer=>offer.id).join(',');
 const window = {};
+let expire;
+const setTimeout = (callback, delay) => { assert.equal(delay,60000); expire=callback; return callback; };
+const clearTimeout = callback => { if (expire===callback) expire=null; };
 """
         scenario = """
 (async () => {
@@ -48,6 +54,17 @@ const window = {};
   pending[3]({data:[{id:'old account'}]});
   await previousAccount;
   assert.equal(list.innerHTML,'new account');
+
+  const stalled = window.loadOlderOffers();
+  expire();
+  await stalled;
+  assert.equal(hofAuth.myOffersLoadMoreError,true);
+  assert.equal(hofAuth.myOffersNextOffset,1);
+  assert.equal(expire,null);
+  const retryOlder = window.loadOlderOffers();
+  pending[5]({data:[{id:'older'}]});
+  await retryOlder;
+  assert.equal(list.innerHTML,'updated,older');
 })().catch(error=>{console.error(error);process.exitCode=1;});
 """
         result = subprocess.run(

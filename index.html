@@ -8705,6 +8705,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     // offer can move between pages when a concurrent update changes its
     // last_updated value; using the card count would then repeat a page.
     const offset = append ? Number(hofAuth.myOffersNextOffset || existingOffers.length) : 0;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
     try {
       const { data, error } = await client
         .from('hof_offers')
@@ -8712,7 +8714,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         .eq('user_id', user.id)
         .is('deleted_at', null)
         .order('last_updated', { ascending:false })
-        .range(offset, offset + HOF_OFFER_WORKSPACE_PAGE_SIZE - 1);
+        .range(offset, offset + HOF_OFFER_WORKSPACE_PAGE_SIZE - 1)
+        .abortSignal(controller.signal);
       if (!isCurrent()) return;
       if (error) throw error;
       const page = data || [];
@@ -8769,6 +8772,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       console.warn('Offers load failed:', err);
       try { renderAgentActivationCard(); } catch (e) {}
       return [];
+    } finally {
+      clearTimeout(timeout);
     }
   }
 
