@@ -17362,7 +17362,7 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
       </div>
     </details>
     <div id="fsboDraftRecovery" class="platform-status" aria-live="polite"></div>
-    <div id="fsboSellerStatus" class="platform-status" role="status" aria-live="polite" aria-atomic="true"></div>
+    <div id="fsboSellerStatus" class="platform-status" role="status" aria-live="polite" aria-atomic="true" tabindex="-1"></div>
   </div>
 </div>
 
@@ -18074,6 +18074,7 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
       }
     } catch (_) {}
     if (submitButtons.some(button => button.disabled)) return;
+    const focusedSubmit = submitButtons.find(button => button === document.activeElement);
     const submittedDraft = readFsboDraft();
     let keepSubmittedState = false;
     trackFsboFunnel('FSBO Seller Request Submission Started', {
@@ -18167,6 +18168,9 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
           button.setAttribute('aria-busy', 'false');
         });
         window.renderFsboNeedDetails?.();
+      }
+      if (focusedSubmit && (document.activeElement === document.body || document.activeElement === focusedSubmit)) {
+        (keepSubmittedState ? status : focusedSubmit)?.focus();
       }
     }
   };
