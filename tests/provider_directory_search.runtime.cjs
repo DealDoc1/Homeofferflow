@@ -36,11 +36,21 @@ function setup({legacyProfile=false,strictPortrait=false}={}) {
   if(legacyProfile)context.window.hofPartnerProfile={...context.window.hofPartnerProfile,portrait:undefined};
   const renderSource=strictPortrait?source.replace('(window.hofPartnerProfile.portrait?.(provider, esc) || "")','window.hofPartnerProfile.portrait(provider, esc)'):source;
   vm.runInContext(renderSource,context);
+  elements.status.focus = () => { context.document.activeElement = elements.status; };
+  const submit = () => {
+    context.document.activeElement = button;
+    return elements.filters.listeners.submit({type:'submit',currentTarget:{matches:()=>false},preventDefault(){}});
+  };
   const respond=(index,partners=[fixture],ok=true)=>requests[index].resolve({ok,json:async()=>({ok,partners})});
   const search=category=>{elements.category.value=category;return elements.category.listeners.change({preventDefault(){}});};
-  return {requests,events,timers,elements,button,respond,search};
+  return {requests,events,timers,elements,button,respond,search,submit,document:context.document};
 }
 async function run() {
+  {
+    const s=setup();s.respond(0);await tick();
+    const search=s.submit();s.respond(1);await search;
+    assert.equal(s.document.activeElement,s.elements.status);
+  }
   {
     const s=setup();
     s.requests[0].resolve({ok:true,json:async()=>({ok:true})});await tick();
