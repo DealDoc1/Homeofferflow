@@ -10966,6 +10966,8 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
   }
 
   function selectPlan(plan, price) {
+    const btn = document.getElementById('payBtn');
+    if (btn.getAttribute('aria-busy') === 'true') return;
     state.selectedPlan = plan;
     state.selectedPrice = price;
     document.querySelectorAll('.pricing-card, .upsell-mini').forEach(c => c.classList.remove('selected'));
@@ -10980,7 +10982,6 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     document.getElementById('selectedPlanName').textContent = names[plan] || plan;
     document.getElementById('selectedPlanPrice').textContent = '$' + price.toLocaleString();
 
-    const btn = document.getElementById('payBtn');
     btn.textContent = `Pay $${price.toLocaleString()} & Continue →`;
     btn.style.opacity = '1';
     btn.style.cursor = 'pointer';
@@ -12935,6 +12936,24 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     return write(compact);
   }
 
+  let buyerCheckoutRedirected = false;
+
+  window.addEventListener('pageshow', event => {
+    if (!event.persisted || !buyerCheckoutRedirected) return;
+    buyerCheckoutRedirected = false;
+    const button = document.getElementById('payBtn');
+    if (!button || !state.selectedPlan) return;
+    button.setAttribute('aria-disabled', 'false');
+    button.setAttribute('aria-busy', 'false');
+    selectPlan(state.selectedPlan, state.selectedPrice);
+    const resume = document.getElementById('paymentCheckoutResumeButton');
+    if (resume) resume.disabled = false;
+    const recoveryHelp = document.getElementById('paymentCheckoutResumeHelp');
+    const message = 'You’re back from checkout. If you completed payment, check your receipt before trying again.';
+    if (recoveryHelp) recoveryHelp.textContent = message;
+    setPaymentStatus(message);
+  });
+
   async function handlePayment() {
     const btn = document.getElementById('payBtn');
     if (btn?.getAttribute('aria-busy') === 'true') return;
@@ -13074,6 +13093,7 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
         throw new Error('Stripe returned an invalid checkout URL.');
       }
       window.location.href = checkoutUrl.href;
+      buyerCheckoutRedirected = true;
       return;
     } catch (err) {
       console.error('Payment error:', err);

@@ -396,6 +396,7 @@ test('cancel fallback restores homebuyer fields but never an agent draft',()=>{
 test('compact quota fallback restores answers and explicitly identifies uncached files on cancellation',()=>{
   const x=setup();enableCheckoutRecovery(x,null);const c=x.ctx,cache=new Map();
   c.sessionStorage={setItem:(key,value)=>{if(value.length>2000)throw Error('QuotaExceededError');cache.set(key,value);},getItem:key=>cache.get(key)||null};
+  c.window.addEventListener=()=>{};
   vm.runInContext(source('  function cacheBuyerCheckoutSnapshot(', '  async function handlePayment()'),c);
   const packet={...cancelledBuyer,uploadedDisclosureDocs:[{...cancelledBuyer.uploadedDisclosureDocs[0],base64:'A'.repeat(16000)}]};
   assert.equal(c.cacheBuyerCheckoutSnapshot(packet),true);

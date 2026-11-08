@@ -14,7 +14,7 @@ function setup({quota=Infinity,blocked=false,readBlocked=false,silent=false,loca
   const email={value:'buyer@example.test',checkValidity:()=>true,setAttribute(){},focus(){}};
   const c=vm.createContext({URL,AbortController,setTimeout,clearTimeout,state:{selectedPlan:'self',selectedPrice:99,data:{userType:'homebuyer',address:'Current property',price:450000,
     buyer1:'Current Buyer',buyerEmail:'buyer@example.test',repairsText:'José 🏡\u2028all debris removed',uploadedDocNames:['survey.pdf']}},
-    window:{hofUploadedDisclosureDocs:files,location:{origin:'https://www.homeofferflow.test',pathname:'/',href:'original'},
+    window:{addEventListener(){},hofUploadedDisclosureDocs:files,location:{origin:'https://www.homeofferflow.test',pathname:'/',href:'original'},
       hofCustomerActionError:(error,fallback)=>/^Please\b/i.test(String(error?.message||error||''))?String(error?.message||error):fallback},
     document:{getElementById:id=>id==='payBtn'?button:id==='paymentEmail'?email:id==='oneTimePacketAck'?{checked:true}:null},
     console:{error(){}},collectAllData(){},confirmControlledLaunchSupport:()=>true,validateParagraph4LeaseInputs:()=>true,
