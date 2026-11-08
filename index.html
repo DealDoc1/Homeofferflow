@@ -9059,8 +9059,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   }
 
   async function refreshSignWellStatus(offerId, buttonEl, skipReload = false, suppressAlert = false) {
-    if (!offerId) return;
-    if (!hofAuth.session?.access_token) {
+    if (!offerId || buttonEl?.disabled) return;
+    const accessToken = hofAuth.session?.access_token;
+    if (!accessToken) {
       setAuthStatus('Please sign in before refreshing SignWell status.', 'err');
       return;
     }
@@ -9071,20 +9072,29 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       buttonEl.textContent = 'Checking...';
     }
 
+    const accountEpoch = window.__hofAccountProfileEpoch || 0;
+    const viewerIsCurrent = () => hofAuth.session?.access_token === accessToken &&
+      (window.__hofAccountProfileEpoch || 0) === accountEpoch;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
     try {
       const response = await fetch('/api/signwell-status', {
         method: 'POST',
+        signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${hofAuth.session.access_token}`
+          'Authorization': `Bearer ${accessToken}`
         },
         body: JSON.stringify({ offerId })
       });
 
       const result = await response.json().catch(() => ({}));
+      if (!viewerIsCurrent()) return;
+      if (controller.signal.aborted) throw controller.signal.reason;
       if (!response.ok || result.error) throw new Error(result.error || 'Could not refresh SignWell status.');
 
       if (!skipReload) await loadMyOffers();
+      if (!viewerIsCurrent()) return;
       const adminPanel = document.getElementById('accountPanelAdmin');
       if (adminPanel?.classList.contains('active')) {
         const adminContent = document.getElementById('adminDashboardContent');
@@ -9093,8 +9103,15 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       }
     } catch (err) {
       console.error('SignWell status refresh failed:', err);
-      if (!suppressAlert) window.announceWorkspaceStatus?.('Could not refresh SignWell status: ' + (err?.message || err));
+      if (!suppressAlert && viewerIsCurrent()) {
+        if (controller.signal.aborted) {
+          window.announceWorkspaceStatus?.('Checking signature status took too long. Try refreshing again.');
+        } else {
+          window.announceWorkspaceStatus?.('Could not refresh SignWell status: ' + (err?.message || err));
+        }
+      }
     } finally {
+      clearTimeout(timeout);
       if (buttonEl) {
         buttonEl.disabled = false;
         buttonEl.textContent = originalText || 'Refresh Status';
