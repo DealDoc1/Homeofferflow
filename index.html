@@ -6747,13 +6747,16 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       return;
     }
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
     try {
       setSubscriptionActionBusy('Opening secure Stripe Checkout…');
       try { sessionStorage.setItem(SUBSCRIPTION_CHECKOUT_SOURCE_KEY, normalizedSource); } catch (e) {}
-      await logOfferEvent(null, 'subscription_checkout_started', '', 'Stripe subscription checkout started.', { source: normalizedSource, plan: normalizedPlan, billing: normalizedBilling });
+      logOfferEvent(null, 'subscription_checkout_started', '', 'Stripe subscription checkout started.', { source: normalizedSource, plan: normalizedPlan, billing: normalizedBilling });
 
       const response = await fetch('/api/create-subscription-checkout', {
         method: 'POST',
+        signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ' + accessToken
@@ -6777,9 +6780,15 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     } catch (err) {
       window.__hofSubscriptionCheckoutInFlight = false;
       try { sessionStorage.removeItem(SUBSCRIPTION_CHECKOUT_SOURCE_KEY); } catch (e) {}
-      await logOfferEvent(null, 'subscription_checkout_failed', 'failed', 'Subscription checkout request failed before redirect.', { source: normalizedSource, plan: normalizedPlan, billing: normalizedBilling });
+      logOfferEvent(null, 'subscription_checkout_failed', 'failed', 'Subscription checkout request failed before redirect.', { source: normalizedSource, plan: normalizedPlan, billing: normalizedBilling });
       console.error('Subscription checkout failed:', err);
-      setSubscriptionActionStatus('Subscription checkout failed: ' + (err?.message || err));
+      if (controller.signal.aborted) {
+        setSubscriptionActionStatus('Opening subscription checkout took too long. Please try again.');
+      } else {
+        setSubscriptionActionStatus('Subscription checkout failed: ' + (err?.message || err));
+      }
+    } finally {
+      clearTimeout(timeout);
     }
   }
 
