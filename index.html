@@ -727,7 +727,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     .progress-fill { height: 100%; background: linear-gradient(90deg, var(--sage), var(--gold)); border-radius: 100px; transition: width 0.4s ease; }
     .progress-meta { display: flex; justify-content: space-between; margin-top: 0.45rem; font-size: 0.73rem; color: var(--gray); }
     .progress-meta .step-name { color: var(--gold-light); font-weight: 600; }
-    #saveStatus { color: var(--sage-light); font-weight: 600; margin: 0 0.75rem; white-space: nowrap; }
+    #saveStatus { color: var(--sage-light); font-weight: 600; margin: 0 0.75rem; min-width: 0; }
     #saveStatus.cloud-save-warning { color: var(--gold-light); }
     #saveStatus .save-retry-btn { border: 1px solid rgba(232,184,109,.55); border-radius: 999px; background: rgba(200,151,63,.12); color: var(--gold-light); cursor: pointer; font: 700 .68rem 'DM Sans', sans-serif; margin-left: .35rem; padding: .18rem .45rem; }
     #saveStatus .save-retry-btn:hover { background: rgba(200,151,63,.22); }
@@ -3449,7 +3449,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
   <div class="wizard-progress">
     <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:10%"></div></div>
-        <div class="progress-meta"><span class="step-name" id="stepName">Disclaimer</span><span id="saveStatus">All Changes Saved</span><span id="connectionStatus" role="status" aria-live="polite" hidden></span><span id="validationStatus" role="status" aria-live="polite" hidden></span><span id="stepCount">Step 1 of 11</span><button type="button" class="draft-clear-btn" onclick="startNewOffer()" title="Clear saved work and start a new offer">New Offer</button></div>
+        <div class="progress-meta"><span class="step-name" id="stepName">Disclaimer</span><span id="saveStatus" role="status"></span><span id="connectionStatus" role="status" aria-live="polite" hidden></span><span id="validationStatus" role="status" aria-live="polite" hidden></span><span id="stepCount">Step 1 of 11</span><button type="button" class="draft-clear-btn" onclick="startNewOffer()" title="Clear saved work and start a new offer">New Offer</button></div>
   </div>
 
   <div class="wizard-body">
@@ -14422,7 +14422,6 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
   // sequence is released, without discarding any saved answers.
   const HOF_WIZARD_ORDER_VERSION = 2;
   let __hofRestoringDraft = false;
-  let __hofSaveTimer = null;
   let __hofSaveDebounce = null;
   let __hofCloudDraftSaveInFlight = false;
   let __hofCloudDraftSaveQueued = false;
@@ -14435,18 +14434,11 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     if (!el) return;
     el.classList.remove('cloud-save-warning');
     el.textContent = text;
-    clearTimeout(__hofSaveTimer);
-    if (text !== 'Saving...') {
-      __hofSaveTimer = setTimeout(() => {
-        el.textContent = 'All Changes Saved';
-      }, 2200);
-    }
   }
 
   function showCloudSaveFailure() {
     const el = document.getElementById('saveStatus');
     if (!el) return;
-    clearTimeout(__hofSaveTimer);
     el.classList.add('cloud-save-warning');
     if (__hofCloudDraftSaveNeedsCopy) {
       el.innerHTML = 'Your original packet is unchanged. <button type="button" class="save-retry-btn" onclick="saveOfferChangesAsNewDraft()">Save changes as a new draft</button>';
@@ -14470,7 +14462,6 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     const saved = await syncCloudDraftSave();
     if (state.data !== savingDraft || hofAuth.session?.user?.id !== savingUserId) return saved;
     if (saved) {
-      updateSaveStatus('Cloud Saved');
       try { logOfferEvent(saved.id || null, 'cloud_draft_save_retried', 'success', 'Cloud draft save recovered from the retry action.'); } catch (e) {}
       return saved;
     }
@@ -14501,8 +14492,7 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
       const saved = await saveOfferDraftToSupabase('Draft');
       if (!isCurrentDraft()) return saved;
       if (saved) {
-        clearTimeout(__hofSaveTimer);
-        __hofSaveTimer = setTimeout(() => { if (isCurrentDraft()) updateSaveStatus('Cloud Saved'); }, 1200);
+        if (!__hofCloudDraftSaveQueued) updateSaveStatus('Cloud Saved');
       } else {
         showCloudSaveFailure();
       }
@@ -14566,7 +14556,7 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
       const ownerUserId = hofAuth?.session?.user?.id || '';
       if (ownerUserId) localStorage.setItem(HOF_STORAGE_OWNER_KEY, ownerUserId);
       else localStorage.removeItem(HOF_STORAGE_OWNER_KEY);
-      updateSaveStatus('✓ Saved');
+      updateSaveStatus('Saved on this device');
       if (navigator.onLine === false && ownerUserId && state.data.userType !== 'homebuyer' && hasMeaningfulCloudDraft()) {
         __hofOfflineDraftToSync = {draft: state.data, userId: ownerUserId, epoch: window.__hofAccountProfileEpoch || 0};
       }
