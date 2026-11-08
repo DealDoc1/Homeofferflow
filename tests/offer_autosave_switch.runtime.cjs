@@ -72,13 +72,24 @@ test('account switch during a read cannot start a write with a different session
   await x.release({data:{id:'offer-a',status:'Draft',last_updated:'version-a'}});
   assert.equal(x.calls.length,1); await saving; assert.deepEqual(x.notices,[]);
 });
-test('a delayed cloud-save toast cannot claim the newly opened offer was saved',async()=>{
-  const notices=[], timers=[];
-  const c=vm.createContext({state:{data:{_hofOfferId:'offer-a'}},hofAuth:{session:{user:{id:'owner'}}},
-    __hofCloudDraftSaveInFlight:false,__hofCloudDraftSaveQueued:false,__hofSaveTimer:null,
-    hasMeaningfulCloudDraft:()=>true, saveOfferDraftToSupabase:async()=>({id:'offer-a'}),
-    clearTimeout(){},setTimeout:fn=>{timers.push(fn);return 1;},updateSaveStatus:m=>notices.push(m),showCloudSaveFailure:()=>notices.push('failed')});
-  vm.runInContext(source('  async function syncCloudDraftSave()', '  function getDraftSnapshot()'),c);
-  await c.syncCloudDraftSave(); c.state.data={_hofOfferId:'offer-b'};
-  timers.forEach(fn=>fn()); assert.deepEqual(notices,[]);
+test('a cloud save that finishes after an offer switch cannot mark the new offer saved', async () => {
+  const notices = [];
+  let finishSave;
+  const pendingSave = new Promise(resolve => { finishSave = resolve; });
+  const context = vm.createContext({
+    state: {data: {_hofOfferId: 'offer-a'}},
+    hofAuth: {session: {user: {id: 'owner'}}},
+    __hofCloudDraftSaveInFlight: false,
+    __hofCloudDraftSaveQueued: false,
+    hasMeaningfulCloudDraft: () => true,
+    saveOfferDraftToSupabase: () => pendingSave,
+    updateSaveStatus: message => notices.push(message),
+    showCloudSaveFailure: () => notices.push('failed')
+  });
+  vm.runInContext(source('  async function syncCloudDraftSave()', '  function getDraftSnapshot()'), context);
+  const saving = context.syncCloudDraftSave();
+  context.state.data = {_hofOfferId: 'offer-b'};
+  finishSave({id: 'offer-a'});
+  await saving;
+  assert.deepEqual(notices, []);
 });
