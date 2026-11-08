@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const html = fs.readFileSync('index.html', 'utf8');
-const start = html.indexOf('  root.hofOpenOfferPdf = async function');
+const start = html.indexOf('  let activeOfferPdfRequest;');
 const end = html.indexOf('  root.hofRenderOfferWorkspaceV10', start);
 
 (async () => {
@@ -72,5 +72,28 @@ const end = html.indexOf('  root.hofRenderOfferWorkspaceV10', start);
   response={ok:true,headers:{get:()=> 'application/pdf'},blob:async()=>({pdf:true})};
   await root.hofOpenOfferPdf('saved-offer',button);
   assert.equal(previews.at(-1)[1],'Unsigned offer copy');
-  console.log('Offer PDF runtime: routing, recovery, and signed/unsigned session-change privacy passed.');
+  const previewCount = previews.length;
+  const noticeCount = notices.length;
+  let markOlderBodyStarted, finishOlderPdf, olderSignal;
+  const olderBodyStarted = new Promise(resolve=>{markOlderBodyStarted=resolve;});
+  response = signal => {
+    olderSignal = signal;
+    return {ok:true,headers:{get:()=> 'application/pdf'},blob:()=>new Promise(resolve=>{
+      finishOlderPdf=resolve;
+      markOlderBodyStarted();
+    })};
+  };
+  const older = root.hofOpenOfferPdf('older-offer',button);
+  await olderBodyStarted;
+  const nextButton = {textContent:'Signed PDF',disabled:false};
+  response = {ok:true,headers:{get:()=> 'application/pdf'},blob:async()=>({latest:true})};
+  await root.hofOpenOfferPdf('newer-offer',nextButton,true);
+  assert.equal(olderSignal.aborted,true);
+  finishOlderPdf({stale:true});
+  await older;
+  assert.deepEqual(previews.slice(previewCount),[[{latest:true},'Signed offer']]);
+  assert.equal(notices.length,noticeCount);
+  assert.equal(button.disabled,false);
+  assert.equal(nextButton.disabled,false);
+  console.log('Offer PDF runtime: routing, recovery, request ordering, and session-change privacy passed.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
