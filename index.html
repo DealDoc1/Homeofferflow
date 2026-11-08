@@ -9127,9 +9127,17 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const client = getSupabaseClient();
     const user = hofAuth.session?.user;
     if (!client || !user || !id) return null;
-    const { data, error } = await client.from('hof_offers').select('*').eq('user_id', user.id).eq('id', id).is('deleted_at', null).maybeSingle();
-    if (error) throw error;
-    return data;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
+    try {
+      const { data, error } = await client.from('hof_offers').select('*')
+        .eq('user_id', user.id).eq('id', id).is('deleted_at', null)
+        .abortSignal(controller.signal).maybeSingle();
+      if (error) throw error;
+      return data;
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
   function clearOfferInterviewFields() {
