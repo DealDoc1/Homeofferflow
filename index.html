@@ -20511,17 +20511,21 @@ function hofSpreadsheetCsvCell(value) {
 
   root.announceWorkspaceStatus = announceWorkspaceStatus;
 
+  let activeOfferPdfRequest;
   root.hofOpenOfferPdf = async function(offerId, button, signed = false) {
     if (button?.disabled) return;
     const label = button?.textContent;
     const requestToken = root.hofAuth?.session?.access_token;
-    const viewerIsCurrent = () => root.hofAuth?.session?.access_token === requestToken;
     if (!requestToken) {
       root.announceWorkspaceStatus?.('Sign in again before opening your offer PDF.');
       return;
     }
     if (button) { button.disabled = true; button.textContent = 'Opening PDF…'; }
     const controller = new AbortController();
+    activeOfferPdfRequest?.abort();
+    activeOfferPdfRequest = controller;
+    const viewerIsCurrent = () => activeOfferPdfRequest === controller &&
+      root.hofAuth?.session?.access_token === requestToken;
     const timeout = setTimeout(() => controller.abort(), 60000);
     try {
       const response = await fetch(signed ? '/api/signwell-status' : '/api/fill-pdf', {
@@ -20563,6 +20567,7 @@ function hofSpreadsheetCsvCell(value) {
       }
     } finally {
       clearTimeout(timeout);
+      if (activeOfferPdfRequest === controller) activeOfferPdfRequest = undefined;
       if (button) { button.disabled = false; button.textContent = label; }
     }
   };
