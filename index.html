@@ -6680,17 +6680,25 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
 
   async function openBillingPortal(source = 'subscription_card') {
+    if (window.__hofBillingPortalInFlight) return;
     const accessToken = hofAuth?.session?.access_token || '';
     if (!accessToken) {
       setAuthStatus('Please sign in again before opening billing.', 'err');
       return;
     }
 
+    const owner = hofAuth.session?.user?.id;
+    const epoch = window.__hofAccountProfileEpoch;
+    const isCurrent = () => hofAuth.session?.user?.id === owner && window.__hofAccountProfileEpoch === epoch;
+    window.__hofBillingPortalInFlight = true;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
     try {
       setSubscriptionActionBusy('Opening secure Stripe Billing…');
-      await logOfferEvent(null, 'billing_portal_opened', hofAuth?.subscription?.status || '', 'Opened Stripe Billing portal.', { source });
+      logOfferEvent(null, 'billing_portal_opened', hofAuth?.subscription?.status || '', 'Opened Stripe Billing portal.', { source });
       const response = await fetch('/api/create-billing-portal', {
         method: 'POST',
+        signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ' + accessToken
@@ -6701,6 +6709,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       });
 
       const result = await response.json();
+      if (!isCurrent()) return;
 
       if (!response.ok || result.error) {
         throw new Error(result.error || 'Could not open billing portal.');
@@ -6712,8 +6721,16 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
       window.location.href = result.url;
     } catch (err) {
+      if (!isCurrent()) return;
       console.error('Billing portal failed:', err);
-      setSubscriptionActionStatus('Could not open billing portal: ' + (err?.message || err));
+      if (controller.signal.aborted) {
+        setSubscriptionActionStatus('Opening billing took too long. Please try again.');
+      } else {
+        setSubscriptionActionStatus('Could not open billing portal: ' + (err?.message || err));
+      }
+    } finally {
+      clearTimeout(timeout);
+      window.__hofBillingPortalInFlight = false;
     }
   }
 
