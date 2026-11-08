@@ -67,6 +67,10 @@ class PacketDeliverySummaryTests(unittest.TestCase):
           const getCurrentSteps = () => ['stepSuccess'];
           let displayed = -1;
           const showStep = index => displayed = index;
+          elements.successHeading.focus = () => {
+            if (displayed !== 0) throw new Error('The confirmation must be visible before focusing its heading.');
+            elements.successHeading.focused = true;
+          };
           const renderNowWhatPartnerJourney = () => {};
           const navigation = [];
           const sideEffects = {saves:[], logs:[], usage:[]};
@@ -98,6 +102,7 @@ class PacketDeliverySummaryTests(unittest.TestCase):
         rendered = self.render_success({'checkoutConfirmationPending': True})
         self.assertEqual(rendered['removed'], [])
         self.assertEqual(rendered['elements']['successHeading']['textContent'], 'We’re confirming your checkout')
+        self.assertTrue(rendered['elements']['successHeading']['focused'])
         self.assertEqual(rendered['elements']['successEmailLabel']['textContent'], 'Receipt email')
 
     def test_displaying_checkout_result_never_writes_offer_status_or_usage(self):
