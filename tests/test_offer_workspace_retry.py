@@ -19,7 +19,7 @@ class OfferWorkspaceRetryTests(unittest.TestCase):
         end = HTML.index("function formatOfferDate", start)
         loader = HTML[start:end]
         self.assertIn("const HOF_OFFER_WORKSPACE_PAGE_SIZE = 25;", HTML)
-        self.assertIn(".range(offset, offset + HOF_OFFER_WORKSPACE_PAGE_SIZE - 1);", loader)
+        self.assertIn(".range(offset, offset + HOF_OFFER_WORKSPACE_PAGE_SIZE - 1)", loader)
         self.assertIn("const existingOffers = append", loader)
         self.assertIn("hofAuth.myOffersNextOffset", loader)
         self.assertIn("const offset = append ? Number(hofAuth.myOffersNextOffset", loader)
