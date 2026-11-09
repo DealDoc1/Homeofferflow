@@ -25164,6 +25164,8 @@ function hofSpreadsheetCsvCell(value) {
     if (!list) return;
     const searchRow = document.getElementById('privateDraftSearchRow');
     const search = document.getElementById('privateDraftSearch');
+    const searchStatus = document.getElementById('privateDraftSearchStatus');
+    if (searchStatus) searchStatus.textContent = '';
     if (searchRow) searchRow.hidden = true;
     if (search) {
       search.value = '';
@@ -25213,7 +25215,11 @@ function hofSpreadsheetCsvCell(value) {
           rows.forEach((row, index) => {
             row.hidden = !searchFields[index].some(field => field.includes(query));
           });
-          empty.hidden = rows.some(row => !row.hidden);
+          const visibleCount = rows.filter(row => !row.hidden).length;
+          empty.hidden = visibleCount > 0;
+          if (searchStatus) {
+            searchStatus.textContent = query ? `${visibleCount} of ${rows.length} loaded documents shown.` : '';
+          }
         };
         searchRow.hidden = false;
       }
@@ -25274,6 +25280,7 @@ function hofSpreadsheetCsvCell(value) {
       <p id="privateDraftSearchRow" hidden><label for="privateDraftSearch">Find a saved document</label>
         <input id="privateDraftSearch" type="search" placeholder="Client name or form number" autocomplete="off" class="form-input">
       </p>
+      <div id="privateDraftSearchStatus" class="hof-iabs-status" role="status" aria-atomic="true"></div>
       <div id="privateFormDraftsStatus" class="hof-iabs-status" role="status" aria-live="polite"></div>
       <ul id="privateFormDraftsList" class="hof-private-form-drafts-list" tabindex="-1"><li>Loading saved form drafts…</li></ul>`;
     panel.appendChild(card);
