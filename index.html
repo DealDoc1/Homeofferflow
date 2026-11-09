@@ -25159,7 +25159,7 @@ function hofSpreadsheetCsvCell(value) {
   }
 
   let latestPrivateDraftLoad;
-  async function refreshPrivateDrafts() {
+  async function refreshPrivateDrafts(restoreRetryFocus = false) {
     const list = document.getElementById('privateFormDraftsList');
     if (!list) return;
     const searchRow = document.getElementById('privateDraftSearchRow');
@@ -25174,6 +25174,9 @@ function hofSpreadsheetCsvCell(value) {
     const request = latestPrivateDraftLoad = {};
     const isCurrent = () => latestPrivateDraftLoad === request && list.isConnected &&
       root.hofAuth?.session?.user?.id === ownerId && root.__hofAccountProfileEpoch === epoch;
+    const restoreFocus = target => {
+      if (restoreRetryFocus && document.activeElement === document.body) target?.focus();
+    };
     list.innerHTML = '<li>Loading saved form drafts…</li>';
     try {
       const drafts = await loadPrivateDrafts();
@@ -25185,6 +25188,7 @@ function hofSpreadsheetCsvCell(value) {
           start?.scrollIntoView({ behavior:'smooth', block:'center' });
           start?.focus();
         });
+        restoreFocus(list);
         return;
       }
       list.innerHTML = drafts.map(draft => {
@@ -25213,6 +25217,7 @@ function hofSpreadsheetCsvCell(value) {
         };
         searchRow.hidden = false;
       }
+      restoreFocus(list);
       list.querySelectorAll('.hof-private-draft-preview').forEach(button => {
         button.addEventListener('click', async () => {
           const token = root.hofAuth?.session?.access_token;
@@ -25245,7 +25250,10 @@ function hofSpreadsheetCsvCell(value) {
     } catch (error) {
       if (!isCurrent()) return;
       console.error('Private form draft list failed:', error);
-      list.innerHTML = '<li>Could not load saved documents.</li>';
+      list.innerHTML = '<li>Couldn’t load saved documents. Check your connection and try again. <button type="button" class="btn-secondary" data-retry-private-drafts>Retry</button></li>';
+      const retry = list.querySelector('[data-retry-private-drafts]');
+      retry?.addEventListener('click', () => refreshPrivateDrafts(document.activeElement === retry));
+      restoreFocus(retry);
     }
   }
   root.hofRefreshPrivateDrafts = refreshPrivateDrafts;
@@ -25267,7 +25275,7 @@ function hofSpreadsheetCsvCell(value) {
         <input id="privateDraftSearch" type="search" placeholder="Client name or form number" autocomplete="off" class="form-input">
       </p>
       <div id="privateFormDraftsStatus" class="hof-iabs-status" role="status" aria-live="polite"></div>
-      <ul id="privateFormDraftsList" class="hof-private-form-drafts-list"><li>Loading saved form drafts…</li></ul>`;
+      <ul id="privateFormDraftsList" class="hof-private-form-drafts-list" tabindex="-1"><li>Loading saved form drafts…</li></ul>`;
     panel.appendChild(card);
     refreshPrivateDrafts();
   }
