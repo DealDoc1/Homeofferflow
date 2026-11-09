@@ -5,7 +5,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
-const start = html.indexOf('  root.hofClosePdfPreview = function');
+const start = html.indexOf('  let pdfPreviewOpener;');
 const end = html.indexOf('  async function loadPrivateDrafts()', start);
 assert.ok(start >= 0 && end > start, 'Production PDF preview helpers must exist');
 const source = html.slice(start, end);
@@ -62,4 +62,18 @@ test('Replacing and closing a preview releases its private object URLs', () => {
   context.root.hofClosePdfPreview();
   assert.deepEqual(context.revoked, ['blob:qa-1', 'blob:qa-2']);
   assert.equal(context.document.body.children.length, 0);
+});
+
+test('Escape returns focus to the opener and account cleanup leaves focus alone', () => {
+  const context = previewContext(false);
+  let focusCount = 0;
+  const opener = {isConnected:true, focus:()=>focusCount++};
+  context.root.hofShowPdfPreview({}, 'TXR-1508', opener);
+  const modal = context.document.getElementById('hofPdfPreviewModal');
+  modal.listeners.keydown({key:'Escape', preventDefault(){}, stopPropagation(){}});
+  assert.equal(focusCount,1);
+  assert.equal(context.document.getElementById('hofPdfPreviewModal'),undefined);
+  context.root.hofShowPdfPreview({}, 'TXR-1508', opener);
+  context.root.hofClosePdfPreview(false);
+  assert.equal(focusCount,1);
 });

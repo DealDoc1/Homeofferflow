@@ -4674,6 +4674,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
   function resetProfileForSessionChange(session) {
     if ((hofAuth.session?.user?.id || null) === (session?.user?.id || null)) return;
+    window.hofClosePdfPreview?.(false);
     window.__hofAccountProfileEpoch = (window.__hofAccountProfileEpoch || 0) + 1;
     hofAuth.myOffers = [];
     hofAuth.myOffersHasMore = false;
@@ -20619,7 +20620,7 @@ function hofSpreadsheetCsvCell(value) {
       if (!(response.headers.get('content-type') || '').includes('application/pdf')) throw new Error('The offer PDF could not be confirmed. Please try again.');
       const pdf = await response.blob();
       if (!viewerIsCurrent()) return;
-      root.hofShowPdfPreview(pdf, signed ? 'Signed offer' : 'Unsigned offer copy');
+      root.hofShowPdfPreview(pdf, signed ? 'Signed offer' : 'Unsigned offer copy', button);
       const modal = document.getElementById('hofPdfPreviewModal');
       if (modal) {
         const open = document.createElement('a');
@@ -24632,7 +24633,7 @@ function hofSpreadsheetCsvCell(value) {
         throw new Error(result.error || (isCompleted ? 'Completed PDF preview is unavailable.' : 'Document preview is unavailable.'));
       }
       if (!root.hofShowPdfPreview) throw new Error('PDF preview is temporarily unavailable.');
-      root.hofShowPdfPreview(await response.blob(), agreement.form_code);
+      root.hofShowPdfPreview(await response.blob(), agreement.form_code, button);
     } catch (error) {
       console.error('Document preview failed:', error);
       window.announceWorkspaceStatus?.(window.hofCustomerActionError?.(error, 'We couldn’t open the document preview. Please try again.') || 'We couldn’t open the document preview. Please try again.');
@@ -25064,17 +25065,22 @@ function hofSpreadsheetCsvCell(value) {
       return !!root.hofAuth?.session?.user && String(profile.role || '').toLowerCase() !== 'investor';
   };
 
-  root.hofClosePdfPreview = function hofClosePdfPreview() {
+  let pdfPreviewOpener;
+  root.hofClosePdfPreview = function hofClosePdfPreview(restoreFocus = true) {
     const modal = document.getElementById('hofPdfPreviewModal');
     if (!modal) return;
     const blobUrl = modal.dataset.blobUrl;
     modal.querySelector('iframe')?.setAttribute('src', 'about:blank');
     modal.remove();
     if (blobUrl) URL.revokeObjectURL(blobUrl);
+    const opener = pdfPreviewOpener;
+    pdfPreviewOpener = undefined;
+    if (restoreFocus && opener?.isConnected) opener.focus({ preventScroll: true });
   };
 
-  root.hofShowPdfPreview = function hofShowPdfPreview(blob, formCode) {
-    root.hofClosePdfPreview();
+  root.hofShowPdfPreview = function hofShowPdfPreview(blob, formCode, opener = document.activeElement) {
+    root.hofClosePdfPreview(false);
+    pdfPreviewOpener = opener;
     const blobUrl = URL.createObjectURL(blob);
     const modal = document.createElement('div');
     modal.id = 'hofPdfPreviewModal';
@@ -25094,7 +25100,7 @@ function hofSpreadsheetCsvCell(value) {
     close.type = 'button';
     close.className = 'btn-secondary';
     close.textContent = 'Close preview';
-    close.addEventListener('click', root.hofClosePdfPreview);
+    close.addEventListener('click', () => root.hofClosePdfPreview());
     const download = document.createElement('a');
     download.className = 'btn-secondary';
     download.textContent = 'Download PDF';
@@ -25118,6 +25124,12 @@ function hofSpreadsheetCsvCell(value) {
     }
     modal.appendChild(dialog);
     modal.addEventListener('click', event => { if (event.target === modal) root.hofClosePdfPreview(); });
+    modal.addEventListener('keydown', event => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      event.stopPropagation();
+      root.hofClosePdfPreview();
+    });
     document.body.appendChild(modal);
     close.focus();
   };
@@ -25168,7 +25180,7 @@ function hofSpreadsheetCsvCell(value) {
             if (!response.ok) throw new Error('Preview is unavailable.');
             const blob = await response.blob();
             const draft = drafts.find(item => item.id === button.dataset.agreementId);
-            root.hofShowPdfPreview(blob, draft?.form_code);
+            root.hofShowPdfPreview(blob, draft?.form_code, button);
           } catch (error) {
             console.error('Private draft preview failed:', error);
             const status = document.getElementById('privateFormDraftsStatus');
@@ -25568,7 +25580,7 @@ function hofSpreadsheetCsvCell(value) {
       if (!response.ok) throw new Error('Seller disclosure preview is unavailable.');
       const draft = draftCache.get(String(draftId));
       if (!root.hofShowPdfPreview) throw new Error('Seller disclosure preview is temporarily unavailable.');
-      root.hofShowPdfPreview(await response.blob(), draft?.property_address ? 'Seller disclosure preview' : 'Seller disclosure');
+      root.hofShowPdfPreview(await response.blob(), draft?.property_address ? 'Seller disclosure preview' : 'Seller disclosure', button);
       if (status) status.textContent = 'Disclosure saved. Review the completed PDF, then send it to the seller when you are ready.';
       return true;
     } catch (error) {
