@@ -4675,6 +4675,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   function resetProfileForSessionChange(session) {
     if ((hofAuth.session?.user?.id || null) === (session?.user?.id || null)) return;
     window.hofClosePdfPreview?.(false);
+    document.getElementById('privateFormDraftsCard')?.remove();
     window.__hofAccountProfileEpoch = (window.__hofAccountProfileEpoch || 0) + 1;
     hofAuth.myOffers = [];
     hofAuth.myOffersHasMore = false;
@@ -25051,6 +25052,7 @@ function hofSpreadsheetCsvCell(value) {
   .hof-private-form-drafts-list li { display:flex; justify-content:space-between; align-items:flex-start; gap:.7rem; padding:.65rem 0; border-bottom:1px solid rgba(255,255,255,.08); color:var(--gray-light); font-size:.84rem; line-height:1.4; }
   .hof-private-form-drafts-list strong { color:var(--white); }
   .hof-private-form-drafts-list small { color:var(--gray-light); }
+  .hof-private-form-drafts-list li[hidden] { display:none; }
   .hof-pdf-preview-modal { position:fixed; inset:0; z-index:10120; display:flex; align-items:center; justify-content:center; padding:1rem; background:rgba(0,0,0,.76); backdrop-filter:blur(5px); }
   .hof-pdf-preview-dialog { width:min(980px,100%); height:min(88vh,920px); display:flex; flex-direction:column; gap:.75rem; padding:1rem; border:1px solid rgba(255,255,255,.18); border-radius:16px; background:#07111d; box-shadow:0 24px 80px rgba(0,0,0,.5); }
   .hof-pdf-preview-header { display:flex; align-items:center; justify-content:space-between; gap:.75rem; }
@@ -25156,11 +25158,26 @@ function hofSpreadsheetCsvCell(value) {
     return data || [];
   }
 
+  let latestPrivateDraftLoad;
   async function refreshPrivateDrafts() {
     const list = document.getElementById('privateFormDraftsList');
     if (!list) return;
+    const searchRow = document.getElementById('privateDraftSearchRow');
+    const search = document.getElementById('privateDraftSearch');
+    if (searchRow) searchRow.hidden = true;
+    if (search) {
+      search.value = '';
+      search.oninput = null;
+    }
+    const ownerId = root.hofAuth?.session?.user?.id;
+    const epoch = root.__hofAccountProfileEpoch;
+    const request = latestPrivateDraftLoad = {};
+    const isCurrent = () => latestPrivateDraftLoad === request && list.isConnected &&
+      root.hofAuth?.session?.user?.id === ownerId && root.__hofAccountProfileEpoch === epoch;
+    list.innerHTML = '<li>Loading saved form drafts…</li>';
     try {
       const drafts = await loadPrivateDrafts();
+      if (!isCurrent()) return;
       if (!drafts.length) {
         list.innerHTML = '<li>No saved documents for review yet.<br><button type="button" class="btn-secondary" style="margin-top:.55rem" data-start-agent-transaction>Start a transaction</button></li>';
         list.querySelector('[data-start-agent-transaction]')?.addEventListener('click', () => {
@@ -25176,6 +25193,26 @@ function hofSpreadsheetCsvCell(value) {
           : 'Client name not available';
         return `<li><span><strong>${escape(draft.form_code)}</strong> · ${clients}<br><small>Approved source revision: ${escape(draft.source_revision)} · ${formatDate(draft.updated_at || draft.created_at)}</small></span><span><button type="button" class="btn-secondary hof-private-draft-preview" data-agreement-id="${escape(draft.id)}">Preview PDF</button></span></li>`;
       }).join('');
+      if (search && searchRow && drafts.length > 1) {
+        const rows = Array.from(list.children);
+        const empty = document.createElement('li');
+        empty.textContent = 'No saved documents match your search.';
+        empty.hidden = true;
+        list.appendChild(empty);
+        const normalize = value => String(value ?? '').normalize('NFKD')
+          .replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[-\s]+/g, '');
+        const searchFields = drafts.map(draft => [
+          draft.form_code, ...(Array.isArray(draft.client_names) ? draft.client_names : [])
+        ].map(normalize));
+        search.oninput = () => {
+          const query = normalize(search.value);
+          rows.forEach((row, index) => {
+            row.hidden = !searchFields[index].some(field => field.includes(query));
+          });
+          empty.hidden = rows.some(row => !row.hidden);
+        };
+        searchRow.hidden = false;
+      }
       list.querySelectorAll('.hof-private-draft-preview').forEach(button => {
         button.addEventListener('click', async () => {
           const token = root.hofAuth?.session?.access_token;
@@ -25206,6 +25243,7 @@ function hofSpreadsheetCsvCell(value) {
         });
       });
     } catch (error) {
+      if (!isCurrent()) return;
       console.error('Private form draft list failed:', error);
       list.innerHTML = '<li>Could not load saved documents.</li>';
     }
@@ -25225,6 +25263,9 @@ function hofSpreadsheetCsvCell(value) {
     card.innerHTML = `
       <h4>Saved documents for review</h4>
       <p>Review your saved documents here before choosing the next step for each one.</p>
+      <p id="privateDraftSearchRow" hidden><label for="privateDraftSearch">Find a saved document</label>
+        <input id="privateDraftSearch" type="search" placeholder="Client name or form number" autocomplete="off" class="form-input">
+      </p>
       <div id="privateFormDraftsStatus" class="hof-iabs-status" role="status" aria-live="polite"></div>
       <ul id="privateFormDraftsList" class="hof-private-form-drafts-list"><li>Loading saved form drafts…</li></ul>`;
     panel.appendChild(card);
