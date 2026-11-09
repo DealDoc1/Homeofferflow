@@ -10373,6 +10373,7 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
   }
 
   function returnHomeFromWizard() {
+    window.__hofBuyerCheckoutRequest?.abort('wizard_closed');
     const overlay = document.getElementById('wizardOverlay');
     const hasProgress = state.step > 0 || Object.keys(state.data || {}).length > 1;
 
@@ -13059,6 +13060,7 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
       }
 
       checkoutController = new AbortController();
+      window.__hofBuyerCheckoutRequest = checkoutController;
       checkoutTimeout = setTimeout(() => checkoutController.abort(), 60000);
       const response = await fetch('/api/create-checkout', {
         method: 'POST',
@@ -13084,6 +13086,7 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
         result = { error: text.slice(0, 300) };
       }
 
+      checkoutController.signal.throwIfAborted();
       if (!response.ok || result.error) {
         throw new Error(result.error || result.message || 'Stripe checkout failed to start.');
       }
@@ -13099,12 +13102,14 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
       buyerCheckoutRedirected = true;
       return;
     } catch (err) {
-      console.error('Payment error:', err);
-      const checkoutFallback = 'We couldn’t open secure checkout. No payment was started. Review your details and try again.';
-      if (checkoutController?.signal.aborted) {
-        setPaymentStatus('Secure checkout took too long to open. Your answers are still here. Try again.');
-      } else {
-        setPaymentStatus(window.hofCustomerActionError?.(err, checkoutFallback) || checkoutFallback);
+      if (checkoutController?.signal.reason !== 'wizard_closed') {
+        console.error('Payment error:', err);
+        const checkoutFallback = 'We couldn’t open secure checkout. No payment was started. Review your details and try again.';
+        if (checkoutController?.signal.aborted) {
+          setPaymentStatus('Secure checkout took too long to open. Your answers are still here. Try again.');
+        } else {
+          setPaymentStatus(window.hofCustomerActionError?.(err, checkoutFallback) || checkoutFallback);
+        }
       }
       if (btn) {
         btn.disabled = false;
@@ -13116,6 +13121,9 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
       }
     } finally {
       if (checkoutTimeout !== undefined) clearTimeout(checkoutTimeout);
+      if (window.__hofBuyerCheckoutRequest === checkoutController) {
+        delete window.__hofBuyerCheckoutRequest;
+      }
     }
   }
 
