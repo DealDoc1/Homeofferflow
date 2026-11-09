@@ -40,6 +40,32 @@ test('normal checkout keeps same-tab files and sends the complete packet',async(
   assert.equal(x.c.window.location.href,'https://checkout.example.test/current');
   assert.deepEqual(x.events,['session-save','local-save','fetch']);
 });
+test('closing the wizard prevents a late checkout redirect and keeps the draft', async () => {
+  const x = setup();
+  const {c} = x;
+  let finishResponse, signal;
+  c.fetch = (_, options) => {
+    signal = options.signal;
+    return new Promise(resolve => { finishResponse = resolve; });
+  };
+  c.document.body = {style: {}};
+  c.window.scrollTo = () => {};
+  c.refreshResumeOfferCtas = () => {};
+  c.scheduleDraftSave = () => x.events.push('save-on-close');
+  vm.runInContext(source('  function returnHomeFromWizard()', '  function startNewOffer()'), c);
+  const attempt = c.handlePayment();
+  c.returnHomeFromWizard();
+  assert.equal(signal.aborted, true);
+  finishResponse({ok:true, headers:{get:()=> 'application/json'},
+    json:async()=>({url:'https://checkout.example.test/late'})});
+  await attempt;
+  assert.equal(c.window.location.href, 'original');
+  assert.equal(x.button.disabled, false);
+  assert.equal(x.button.getAttribute('aria-busy'), 'false');
+  assert.equal(JSON.parse(x.store.get('hofOfferData')).address, 'Current property');
+  assert.ok(x.events.includes('save-on-close'));
+  assert.deepEqual(x.notices, []);
+});
 test('full cache quota falls back to answers without dropping server-bound attachments',async()=>{
   const x=setup({quota:2000});await x.c.handlePayment();
   assert.equal(x.requests.length,1,'Browser quota must not block supported packet checkout');
