@@ -41,7 +41,7 @@ class AgentLibraryFeedbackTests(unittest.TestCase):
         self.assertNotIn("window.open('', '_blank')", INDEX)
         self.assertIn("root.hofShowPdfPreview = function hofShowPdfPreview", INDEX)
         self.assertEqual(INDEX.count("root.hofShowPdfPreview(await response.blob()"), 2)
-        self.assertIn("root.hofShowPdfPreview(blob, draft?.form_code);", INDEX)
+        self.assertIn("root.hofShowPdfPreview(blob, draft?.form_code, button);", INDEX)
         self.assertIn("URL.revokeObjectURL(blobUrl)", INDEX)
 
 
