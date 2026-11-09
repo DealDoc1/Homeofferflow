@@ -24616,6 +24616,10 @@ function hofSpreadsheetCsvCell(value) {
   }
 
   async function previewAgreementPdf(agreement, button) {
+    const session = root.hofAuth?.session;
+    const epoch = root.__hofAccountProfileEpoch;
+    const isCurrent = () => root.hofAuth?.session === session &&
+      root.__hofAccountProfileEpoch === epoch && (!button || button.isConnected);
     button.disabled = true;
     try {
       const isCompleted = agreement.status === 'signed' && agreement.signwell_document_id;
@@ -24633,8 +24637,11 @@ function hofSpreadsheetCsvCell(value) {
         throw new Error(result.error || (isCompleted ? 'Completed PDF preview is unavailable.' : 'Document preview is unavailable.'));
       }
       if (!root.hofShowPdfPreview) throw new Error('PDF preview is temporarily unavailable.');
-      root.hofShowPdfPreview(await response.blob(), agreement.form_code, button);
+      const blob = await response.blob();
+      if (!isCurrent()) return;
+      root.hofShowPdfPreview(blob, agreement.form_code, button);
     } catch (error) {
+      if (!isCurrent()) return;
       console.error('Document preview failed:', error);
       window.announceWorkspaceStatus?.(window.hofCustomerActionError?.(error, 'We couldn’t open the document preview. Please try again.') || 'We couldn’t open the document preview. Please try again.');
     } finally {
@@ -25173,15 +25180,21 @@ function hofSpreadsheetCsvCell(value) {
         button.addEventListener('click', async () => {
           const token = root.hofAuth?.session?.access_token;
           if (!token) return;
+          const session = root.hofAuth?.session;
+          const epoch = root.__hofAccountProfileEpoch;
+          const isCurrent = () => root.hofAuth?.session === session &&
+            root.__hofAccountProfileEpoch === epoch && (!button || button.isConnected);
           const original = button.textContent;
           button.disabled = true; button.textContent = 'Loading…';
           try {
             const response = await fetch('/api/admin-dashboard?preview_agreement=' + encodeURIComponent(button.dataset.agreementId), { headers: { Authorization: `Bearer ${token}` } });
             if (!response.ok) throw new Error('Preview is unavailable.');
             const blob = await response.blob();
+            if (!isCurrent()) return;
             const draft = drafts.find(item => item.id === button.dataset.agreementId);
             root.hofShowPdfPreview(blob, draft?.form_code, button);
           } catch (error) {
+            if (!isCurrent()) return;
             console.error('Private draft preview failed:', error);
             const status = document.getElementById('privateFormDraftsStatus');
             console.error('Form preview failed:', error);
@@ -25574,16 +25587,23 @@ function hofSpreadsheetCsvCell(value) {
       if (status) status.textContent = 'Sign in and choose a seller disclosure first.';
       return false;
     }
+    const session = root.hofAuth?.session;
+    const epoch = root.__hofAccountProfileEpoch;
+    const isCurrent = () => root.hofAuth?.session === session &&
+      root.__hofAccountProfileEpoch === epoch && (!button || button.isConnected);
     if (button) { button.disabled = true; button.textContent = 'Loading…'; }
     try {
       const response = await fetch('/api/admin-dashboard?preview_seller_disclosure=' + encodeURIComponent(draftId), {headers:{Authorization:'Bearer ' + token}});
       if (!response.ok) throw new Error('Seller disclosure preview is unavailable.');
       const draft = draftCache.get(String(draftId));
       if (!root.hofShowPdfPreview) throw new Error('Seller disclosure preview is temporarily unavailable.');
-      root.hofShowPdfPreview(await response.blob(), draft?.property_address ? 'Seller disclosure preview' : 'Seller disclosure', button);
+      const blob = await response.blob();
+      if (!isCurrent()) return;
+      root.hofShowPdfPreview(blob, draft?.property_address ? 'Seller disclosure preview' : 'Seller disclosure', button);
       if (status) status.textContent = 'Disclosure saved. Review the completed PDF, then send it to the seller when you are ready.';
       return true;
     } catch (error) {
+      if (!isCurrent()) return;
       console.error('Seller disclosure preview failed:', error);
       if (status) status.textContent = window.hofCustomerActionError?.(error, 'We couldn’t open the seller disclosure preview. Please try again.') || 'We couldn’t open the seller disclosure preview. Please try again.';
       return false;
