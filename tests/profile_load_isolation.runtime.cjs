@@ -89,7 +89,7 @@ test('account change clears cached profile and optional IABS presentation immedi
   const x=setup();x.c.hofAuth.accountProfile={agent_name:'Old'};x.c.hofAuth.agentIabsDocument={original_filename:'Old.pdf'};
   x.c.authChange({user:{id:'next'}});
   assert.equal(x.c.hofAuth.accountProfile,null);assert.equal(x.c.hofAuth.agentIabsDocument,null);
-  assert.equal(x.c.state.data.includeAgentIabs,false);assert.deepEqual(x.removed,['agentIabsProfileCard','agentIabsOfferOption']);
+  assert.equal(x.c.state.data.includeAgentIabs,false);assert.deepEqual(x.removed,['privateFormDraftsCard','agentIabsProfileCard','agentIabsOfferOption']);
 });
 test('canonical alias lookup cannot continue under a changed account',async()=>{
   const x=setup(),pending=x.c.loadAccountProfile();
