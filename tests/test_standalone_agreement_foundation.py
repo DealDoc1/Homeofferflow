@@ -517,7 +517,7 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         self.assertIn("Review your saved documents here before choosing the next step for each one.", HTML)
         self.assertIn("Preview PDF", HTML)
         self.assertIn("preview_agreement=", HTML)
-        self.assertIn("root.hofShowPdfPreview(blob, draft?.form_code);", preview_scope)
+        self.assertIn("root.hofShowPdfPreview(blob, draft?.form_code, button);", preview_scope)
         self.assertIn("id = 'hofPdfPreviewModal'", preview_scope)
         self.assertIn("URL.revokeObjectURL(blobUrl)", preview_scope)
         self.assertNotIn("window.open('', '_blank')", preview_scope)

@@ -91,7 +91,7 @@ const end = html.indexOf('  root.hofRenderOfferWorkspaceV10', start);
   assert.equal(olderSignal.aborted,true);
   finishOlderPdf({stale:true});
   await older;
-  assert.deepEqual(previews.slice(previewCount),[[{latest:true},'Signed offer']]);
+  assert.deepEqual(previews.slice(previewCount),[[{latest:true},'Signed offer',nextButton]]);
   assert.equal(notices.length,noticeCount);
   assert.equal(button.disabled,false);
   assert.equal(nextButton.disabled,false);
