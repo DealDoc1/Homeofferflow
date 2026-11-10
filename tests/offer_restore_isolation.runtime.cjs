@@ -313,7 +313,7 @@ function enableCheckoutRecovery(x, offer) {
   const c=x.ctx;
   c.URLSearchParams=URLSearchParams;
   c.window.location={search:'?payment=cancelled',origin:'https://www.homeofferflow.test',pathname:'/'};
-  c.window.history={replaceState:()=>x.calls.push('clean-url')};
+  c.window.history={state:null,replaceState(value){this.state=value;x.calls.push('clean-url');}};
   c.sessionStorage={getItem:()=>offer===null?null:JSON.stringify(offer)};
   c.trackEvent=()=>{};c.recordHomebuyerCheckoutEvent=()=>{};
   c.setUploadedDisclosureStatus=message=>x.calls.push(['upload-status',message]);
@@ -354,6 +354,18 @@ test('buyer confirmation uses only contact details from the checkout snapshot',(
     assert.equal(c.window.__hofPaymentReturn,true);
     assert.equal(c.state.data,original);
   }
+});
+test('a refreshed checkout return restores pending confirmation without retaining a session ID',()=>{
+  const x=setup();enableCheckoutRecovery(x,cancelledBuyer);
+  const c=x.ctx, renders=[];
+  c.window.location.search='?payment=success&session_id=private-fixture';
+  c.showPaymentSuccess=(_email, options)=>renders.push(options.restoringConfirmation);
+  c.checkPaymentReturn();
+  assert.deepEqual({...c.window.history.state},{hofBuyerCheckoutPending:true});
+  c.window.location.search='';
+  c.checkPaymentReturn();
+  assert.deepEqual(renders,[false,true]);
+  assert.equal(x.calls.filter(call=>call==='clean-url').length,1);
 });
 test('cancelled checkout hydrates the actual interview fields and current attachments',()=>{
   const x=setup();enableCheckoutRecovery(x,cancelledBuyer);const c=x.ctx;

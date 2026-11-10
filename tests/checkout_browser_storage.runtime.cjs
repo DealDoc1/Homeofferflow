@@ -52,6 +52,8 @@ test('closing the wizard prevents a late checkout redirect and keeps the draft',
   c.window.scrollTo = () => {};
   c.refreshResumeOfferCtas = () => {};
   c.scheduleDraftSave = () => x.events.push('save-on-close');
+  c.window.history = {state:null};
+  vm.runInContext(source('  function clearPendingBuyerCheckoutReturn()', '  function backToHomeAfterPayment()'), c);
   vm.runInContext(source('  function returnHomeFromWizard()', '  function startNewOffer()'), c);
   const attempt = c.handlePayment();
   c.returnHomeFromWizard();
