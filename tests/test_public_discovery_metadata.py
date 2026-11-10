@@ -1,4 +1,5 @@
 import json
+import re
 import unittest
 from pathlib import Path
 
@@ -251,9 +252,22 @@ class PublicDiscoveryMetadataTests(unittest.TestCase):
         self.assertIn('"@type":"OfferCatalog"', PARTNERS)
         self.assertIn('"name":"HomeOfferFlow Complimentary Partner Placements"', PARTNERS)
         self.assertNotIn('beta partner placement', PARTNERS.lower())
-        self.assertIn('"name":"Founding Partner placement"', PARTNERS)
-        self.assertIn('"name":"Featured Partner founding placement"', PARTNERS)
-        self.assertIn('"name":"Premier Partner founding placement"', PARTNERS)
+        json_ld_blocks = re.findall(
+            r'<script type="application/ld\+json">\s*(.*?)\s*</script>',
+            PARTNERS,
+            re.DOTALL,
+        )
+        partner_json_ld = [json.loads(value) for value in json_ld_blocks]
+        partner_service = next(item for item in partner_json_ld if item.get('@type') == 'Service')
+        offers = partner_service['hasOfferCatalog']['itemListElement']
+        self.assertEqual([offer['name'] for offer in offers], [
+            'Founding Partner placement', 'Featured Partner placement', 'Premier Partner placement',
+        ])
+        self.assertIn('first active partner in its category is labeled Founding Partner', offers[0]['description'])
+        self.assertIn('first active partner in a category is labeled Founding Partner, regardless of tier', offers[1]['description'])
+        self.assertIn('first active partner in a category is labeled Founding Partner', offers[2]['description'])
+        self.assertIn('Only the single top active Premier appears in guided workflows and offer completion', offers[2]['description'])
+        self.assertIn('up to three profiles per category', partner_service['description'])
         for tier, price in (
             ('founding_pilot', '0'),
             ('monthly_placement', '0'),
