@@ -3220,9 +3220,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <div class="account-card">
         <h4 id="dashboardRoleLabel">Agent Dashboard</h4>
         <p id="dashboardWelcome" style="color:var(--gray-light); line-height:1.6; margin-bottom:1rem;">Welcome back.</p>
-        <div class="account-card" id="agentWorkflowStart" style="margin:0 0 1rem;" tabindex="-1">
+        <div class="account-card" id="agentWorkflowStart" role="region" aria-labelledby="agentWorkflowStartHeading" style="margin:0 0 1rem;" tabindex="-1">
           <div class="eyebrow" style="margin-bottom:.35rem;">Start here</div>
-          <h4>What type of transaction are you starting?</h4>
+          <h4 id="agentWorkflowStartHeading">What type of transaction are you starting?</h4>
           <p style="color:var(--gray-light);line-height:1.55;margin:0 0 .9rem;">Choose the transaction type. We’ll ask a few simple questions and prepare the documents that fit.</p>
           <div class="account-actions-row" role="group" aria-label="Transaction type" aria-describedby="agentWorkflowStartStatus" style="margin-top:0;">
             <button class="btn-secondary" type="button" aria-pressed="false" data-agent-workflow-choice="sale_listing" onclick="startAgentWorkflow('sale_listing')">Property listing</button>
@@ -3233,7 +3233,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="account-actions-row" role="group" aria-label="Common client document" style="margin-top:.55rem;">
             <button class="btn-secondary" type="button" onclick="startAgentBuyerRepresentation()">Prepare a buyer representation agreement</button>
           </div>
-          <button id="agentWorkflowResume" class="btn-secondary" type="button" style="display:none;margin-top:.65rem;" aria-label="Resume your last transaction path"></button>
+          <button id="agentWorkflowResume" class="btn-secondary" type="button" style="display:none;margin-top:.65rem;"></button>
           <p id="agentWorkflowStartStatus" role="status" aria-live="polite" style="color:var(--gray-light);font-size:.84rem;line-height:1.5;margin:.8rem 0 0;">Choose a transaction type to get started.</p>
         </div>
         <div id="agentActivationCard" class="agent-activation-card" aria-live="polite"></div>
