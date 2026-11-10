@@ -24710,6 +24710,7 @@ function hofSpreadsheetCsvCell(value) {
       const version = ++refreshVersion;
       more.disabled = true;
       moreStatus.textContent = append ? 'Loading older documents…' : '';
+      list.querySelector('[data-prepared-document-load-error]')?.remove();
       try {
         const payload = await loadAgreements(offset);
         if (!isCurrent() || version !== refreshVersion || !card.isConnected) return;
@@ -24774,10 +24775,24 @@ function hofSpreadsheetCsvCell(value) {
         if (append) {
           moreStatus.textContent = 'We couldn’t load older documents. Your current list is unchanged. Try again.';
         } else {
-          searchStatus.textContent = ''; loadedAgreements = []; nextOffset = null; more.hidden = true;
-          moreStatus.textContent = '';
           console.error('Prepared document list failed:', error);
-          list.innerHTML = `<div class="hof-iabs-status error">${escape(window.hofCustomerActionError?.(error, 'We couldn’t load your prepared documents. Refresh and try again.') || 'We couldn’t load your prepared documents. Refresh and try again.')}</div>`;
+          const hasSavedRows = loadedAgreements.length > 0;
+          if (!hasSavedRows) list.replaceChildren();
+          const message = hasSavedRows
+            ? 'We couldn’t refresh your prepared documents. Your last loaded results are still shown.'
+            : 'We couldn’t load your prepared documents. Try again.';
+          const recovery = document.createElement('div');
+          recovery.setAttribute('data-prepared-document-load-error', '');
+          recovery.innerHTML = `<div class="hof-iabs-status error" role="status">${escape(window.hofCustomerActionError?.(error, message) || message)}</div><button type="button" class="btn-secondary" data-retry-prepared-documents>Retry loading documents</button>`;
+          list.appendChild(recovery);
+          const retry = recovery.querySelector('[data-retry-prepared-documents]');
+          retry.addEventListener('click', () => {
+            if (!isCurrent() || retry.disabled) return;
+            retry.disabled = true;
+            retry.textContent = 'Loading prepared documents…';
+            search.focus();
+            return refresh();
+          });
         }
       } finally {
         if (isCurrent() && version === refreshVersion && card.isConnected) more.disabled = false;

@@ -34,6 +34,7 @@ let focused;
   ];
   const search=node(), clear=node(), status=node(), list=node(), panel=node(), more=node(), moreStatus=node();
   let rows=[], buttons={}, listHtml='';
+  let recovery;
   Object.defineProperty(list,'innerHTML',{get:()=>listHtml,set(value) {
     listHtml=value;
     rows=[...value.matchAll(/data-agreement-search="([^"]*)"/g)].map(match=>({...node(),dataset:{agreementSearch:decode(match[1])}}));
@@ -42,15 +43,26 @@ let focused;
       const key=attribute.replace(/-([a-z])/g,(_,c)=>c.toUpperCase());
       buttons[`[data-${attribute}]`]=[...value.matchAll(new RegExp(`data-${attribute}="([^"]*)"`,'g'))].map((match,index)=>({...node(),dataset:{[key]:decode(match[1])},closest:()=>rows[index]}));
     }
+    if (value.includes('data-retry-prepared-documents')) buttons['[data-retry-prepared-documents]'] = [node()];
   }});
   list.querySelectorAll=selector=>selector==='[data-agreement-search]'?rows:(buttons[selector]||[]);
+  list.querySelector=selector=>selector==='[data-prepared-document-load-error]'?recovery:list.querySelectorAll(selector)[0];
+  list.appendChild=element=>{ recovery=element; };
+  list.replaceChildren=()=>{ list.innerHTML=''; recovery=undefined; };
   let card;
   const children={'#hofStandaloneAgreementList':list,'#hofStandaloneAgreementSearch':search,
     '#hofStandaloneAgreementSearchClear':clear,'#hofStandaloneAgreementSearchStatus':status,
     '#hofStandaloneAgreementMore':more,'#hofStandaloneAgreementMoreStatus':moreStatus};
   const root={hofCustomerActionError:(_,fallback)=>fallback};
-  const context={root,window:root,document:{getElementById:id=>id==='accountPanelDashboard'?panel:id==='hofStandaloneAgreementCard'?card:null,
-    createElement:()=>{card=node();card.querySelectorAll=list.querySelectorAll;card.querySelector=selector=>children[selector]||buttons['[data-preview]']?.[0];return card;}},
+  const context={root,window:root,document:{get activeElement(){return focused;},body:node(),getElementById:id=>id==='accountPanelDashboard'?panel:id==='hofStandaloneAgreementCard'?card:null,
+    createElement:()=>{
+      if (card) {
+        const retry = node();
+        buttons['[data-retry-prepared-documents]'] = [retry];
+        return {...node(), setAttribute(){}, querySelector:()=>retry, remove(){ recovery=undefined; }};
+      }
+      card=node();card.querySelectorAll=list.querySelectorAll;card.querySelector=selector=>children[selector]||buttons['[data-preview]']?.[0];return card;
+    }},
     activeAgent:()=>true,captureViewer:()=>({id:'fictional-agent',epoch:0}),viewerIsCurrent:()=>active,
     escape:value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])),
     loadAgreements:async(offset=0)=>{loads++;offsets.push(offset);
@@ -107,8 +119,18 @@ let focused;
   paged=false;await root.hofOpenPreparedAgreement();
   input('Jordan');fail=true;
   buttons['[data-refresh-signing]'][0].events.click();await refreshPromise;
-  assert.equal(status.textContent,'');assert.equal(search.value,'Jordan');
-  assert.match(listHtml,/couldn’t load/);
+  assert.match(status.textContent,/3 of 5/);assert.equal(search.value,'Jordan');
+  assert.equal(visible(),3);
+  assert.match(recovery.innerHTML,/last loaded results/);
+  assert.equal(buttons['[data-download-completed]'].length,1);
+  const retry=list.querySelector('[data-retry-prepared-documents]');
+  fail=false;
+  let finishRetry;hold={offset:0,promise:new Promise(resolve=>finishRetry=resolve)};
+  const beforeRetry=loads;const retryRequest=retry.events.click();await retry.events.click();
+  assert.equal(loads,beforeRetry+1);assert.equal(retry.disabled,true);assert.equal(focused,search);
+  finishRetry();await retryRequest;
+  assert.equal(search.value,'Jordan');assert.equal(visible(),3);
+  assert.equal(recovery,undefined);
   fail=false;agreements=[];await root.hofOpenPreparedAgreement();
   assert.equal(status.textContent,'');assert.match(listHtml,/No standalone/);
   paged=true;await root.hofOpenPreparedAgreement();
