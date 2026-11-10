@@ -22,7 +22,7 @@ class IntakePathClarityAuditTests(unittest.TestCase):
                 self.assertIn("after offer completion", page)
         self.assertIn("up to three partners per category", PARTNERS)
         self.assertIn("up to two other partners", PARTNERS)
-        self.assertIn("A partner can carry the Founding Partner designation and still be the Premier shown in workflows.", PARTNERS)
+        self.assertIn("A partner can carry the Founding Partner designation and also be the Premier shown during the transaction.", PARTNERS)
         self.assertIn("Every other profile appears only in the directory.", PARTNERS)
         for stale in (
             "Sponsored education / CTA outside selector",
