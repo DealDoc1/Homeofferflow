@@ -83,7 +83,8 @@ class SellerCheckoutRequestTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("cleanUrl.searchParams.delete('seller_payment')", SELLERS)
 
     def test_admin_gets_a_safe_fallback_when_checkout_email_delivery_fails(self):
-        self.assertIn("const checkoutUrl = String(result?.sellerCheckout?.checkoutUrl || '');", INDEX)
+        self.assertIn("const checkoutUrl = typeof checkout?.checkoutUrl === 'string'", INDEX)
+        self.assertIn("!url.username && !url.password", INDEX)
         self.assertIn("await navigator.clipboard.writeText(checkoutUrl)", INDEX)
         self.assertIn("window.prompt('Copy the secure seller payment link:', checkoutUrl)", INDEX)
 
