@@ -26330,6 +26330,11 @@ function hofSpreadsheetCsvCell(value) {
     let hofPwaRegistration = null;
     const isHomeOfferFlowStandaloneApp = () => window.matchMedia?.('(display-mode: standalone)').matches === true
       || window.navigator.standalone === true;
+    const offerInterviewIsOpen = () => document.getElementById('wizardOverlay')?.classList.contains('active');
+    const deferUpdateForInterview = () => {
+      const note = document.getElementById('hofPwaUpdateCard')?.querySelector('p');
+      if (note) note.textContent = 'Close the offer interview before updating. You can keep working and update later.';
+    };
 
     function showHomeOfferFlowUpdate(registration, workerAlreadyActive = false) {
       // Reserve the update choice for an installed app. A regular browser
@@ -26345,6 +26350,10 @@ function hofSpreadsheetCsvCell(value) {
       card.querySelector('#hofPwaUpdateNow')?.addEventListener('click', () => {
         const waiting = registration.waiting;
         if (hofPwaRefreshRequested) return;
+        if (offerInterviewIsOpen()) {
+          deferUpdateForInterview();
+          return;
+        }
         hofPwaRefreshRequested = true;
         if (!waiting) {
           hofPwaRefreshRequested = false;
@@ -26377,6 +26386,11 @@ function hofSpreadsheetCsvCell(value) {
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (hofPwaRefreshRequested) {
         hofPwaRefreshRequested = false;
+        if (offerInterviewIsOpen()) {
+          showHomeOfferFlowUpdate(hofPwaRegistration, true);
+          deferUpdateForInterview();
+          return;
+        }
         window.location.reload();
         return;
       }

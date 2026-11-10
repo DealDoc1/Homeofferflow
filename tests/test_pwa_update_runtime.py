@@ -130,6 +130,27 @@ class PwaUpdateRuntimeTests(unittest.TestCase):
           assert.equal(reloads,1);
         ''', mode='standalone')
 
+    def test_workspace_update_waits_until_the_offer_interview_is_closed(self):
+        self.run_js('''
+          if (surface !== 'workspace') return;
+          const interview = {classList:{contains:name=>name==='active'}};
+          nodes.set('wizardOverlay',interview);
+          clickUpdate();
+          assert.equal(messages.length,0);
+          assert.equal(reloads,0);
+          assert.match(card().querySelector('p').textContent,/Close the offer interview/);
+          nodes.delete('wizardOverlay');
+          clickUpdate();
+          assert.deepEqual(messages,[{type:'HOF_SKIP_WAITING'}]);
+          nodes.set('wizardOverlay',interview);
+          registration.waiting=null;
+          activate();
+          assert.equal(reloads,0);
+          nodes.delete('wizardOverlay');
+          clickUpdate();
+          assert.equal(reloads,1);
+        ''', mode='standalone')
+
     def test_updatefound_prompts_when_the_browser_reports_a_waiting_worker(self):
         self.run_js('''
           assert.equal(nodes.size,0);
