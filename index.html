@@ -24623,18 +24623,25 @@ function hofSpreadsheetCsvCell(value) {
     const epoch = root.__hofAccountProfileEpoch;
     const isCurrent = () => root.hofAuth?.session === session &&
       root.__hofAccountProfileEpoch === epoch && (!button || button.isConnected);
+    const originalText = button.textContent;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
     button.disabled = true;
+    button.textContent = 'Opening PDF…';
     try {
       const isCompleted = agreement.status === 'signed' && agreement.signwell_document_id;
       const response = isCompleted
         ? await fetch('/api/signwell-status', {
             method: 'POST',
+            signal: controller.signal,
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
             body: JSON.stringify({ agreementId: agreement.id, action: 'download_completed_pdf' })
           })
         : await fetch('/api/admin-dashboard?preview_agreement=' + encodeURIComponent(agreement.id), {
+            signal: controller.signal,
             headers: { Authorization: `Bearer ${token()}` }
           });
+      if (!isCurrent()) return;
       if (!response.ok) {
         const result = await response.json().catch(() => ({}));
         throw new Error(result.error || (isCompleted ? 'Completed PDF preview is unavailable.' : 'Document preview is unavailable.'));
@@ -24646,9 +24653,15 @@ function hofSpreadsheetCsvCell(value) {
     } catch (error) {
       if (!isCurrent()) return;
       console.error('Document preview failed:', error);
-      window.announceWorkspaceStatus?.(window.hofCustomerActionError?.(error, 'We couldn’t open the document preview. Please try again.') || 'We couldn’t open the document preview. Please try again.');
+      const fallback = 'We couldn’t open the document preview. Please try again.';
+      const message = controller.signal.aborted
+        ? 'Opening the document took too long. Please try again.'
+        : (window.hofCustomerActionError?.(error, fallback) || fallback);
+      window.announceWorkspaceStatus?.(message);
     } finally {
+      clearTimeout(timeout);
       button.disabled = false;
+      button.textContent = originalText;
     }
   }
 
