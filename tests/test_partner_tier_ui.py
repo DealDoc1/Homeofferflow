@@ -14,7 +14,7 @@ class PartnerTierUiTests(unittest.TestCase):
         cls.html = INDEX_PATH.read_text(encoding="utf-8")
 
     def test_selected_tier_does_not_promise_the_category_founding_designation(self):
-        self.assertNotIn("Founding Partner badge and onboarding included", self.html)
+        self.assertNotIn("Founding Partner badge", self.html)
         self.assertIn("The first active partner in each category is labeled Founding Partner, regardless of selected tier.", self.html)
         modal = self.html[self.html.index('id="foundingPartnerModal"'):self.html.index('id="hof-founding-partner-intake-v1"')]
         essentials = modal[modal.index('id="foundingPartnerEssentials"'):modal.index('id="foundingPartnerRequiredCue"')]
