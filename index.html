@@ -24786,14 +24786,9 @@ function hofSpreadsheetCsvCell(value) {
         const byId = new Map((append ? loadedAgreements : []).map(agreement => [agreement.id, agreement]));
         payload.agreements.forEach(agreement => byId.set(agreement.id, agreement));
         const agreements = [...byId.values()];
-        loadedAgreements = agreements;
-        nextOffset = next;
-        more.hidden = nextOffset === null;
-        moreStatus.textContent = append ? 'Older documents loaded.' : '';
         const signingEnabled = payload.signingEnabled === true;
         const signingFormCodes = new Set(payload.signingFormCodes || []);
-        if (!agreements.length) { list.innerHTML = '<div class="hof-iabs-status">No standalone agreement drafts yet.</div>'; applySearch(); return; }
-        list.innerHTML = agreements.map(agreement => {
+        const markup = agreements.map(agreement => {
           // A failed record without a provider document was never delivered.
           // Let its owner retry after a temporary provider issue without
           // rebuilding the interview, but never create a duplicate invitation
@@ -24809,6 +24804,11 @@ function hofSpreadsheetCsvCell(value) {
           const title = agreement.form_code;
           return `<div data-agreement-search="${escape([agreement.form_code, title, names, agreement.status || 'draft'].join(' '))}" style="display:flex;justify-content:space-between;align-items:center;gap:.75rem;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.12);padding:.7rem 0"><span><strong>${escape(title)}</strong><small style="display:block;color:var(--gray-light)">${escape(names)} · ${escape(agreement.status || 'draft')}</small>${gate}</span><span style="display:flex;gap:.4rem;flex-wrap:wrap"><button type="button" class="btn-secondary" data-preview="${escape(agreement.id)}">Preview</button>${canRefresh ? `<button type="button" class="btn-secondary" data-refresh-signing="${escape(agreement.id)}">Refresh status</button>` : ''}${canDownloadCompleted ? `<button type="button" class="btn-secondary" data-download-completed="${escape(agreement.id)}">Download completed PDF</button>` : ''}${canSend ? `<button type="button" class="btn-primary" data-send="${escape(agreement.id)}">${sendLabel}</button>` : ''}</span></div>`;
         }).join('');
+        list.innerHTML = markup || '<div class="hof-iabs-status">No standalone agreement drafts yet.</div>';
+        loadedAgreements = agreements;
+        nextOffset = next;
+        more.hidden = nextOffset === null;
+        moreStatus.textContent = append ? 'Older documents loaded.' : '';
         applySearch();
         list.querySelectorAll('[data-preview]').forEach(button => button.addEventListener('click', () => {
           if (!isCurrent()) return;
@@ -24836,8 +24836,9 @@ function hofSpreadsheetCsvCell(value) {
           if (firstNew) firstNew.focus();
           else if (more.hidden) search.focus();
         }
+        return true;
       } catch (error) {
-        if (!isCurrent() || version !== refreshVersion) return;
+        if (!isCurrent() || version !== refreshVersion || !card.isConnected) return;
         if (append) {
           moreStatus.textContent = 'We couldn’t load older documents. Your current list is unchanged. Try again.';
         } else {
@@ -24866,11 +24867,21 @@ function hofSpreadsheetCsvCell(value) {
     };
     more.addEventListener('click', () => refresh({ append: true }));
     root.hofOpenPreparedAgreement = async function hofOpenPreparedAgreement(agreementId) {
-      await refresh();
+      const refreshed = await refresh();
       if (!isCurrent() || !card.isConnected) return false;
+      if (!refreshed) {
+        const retry = list.querySelector('[data-prepared-document-load-error]')
+          ?.querySelector('[data-retry-prepared-documents]');
+        if (!agreementId && retry) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          retry.focus();
+        }
+        return false;
+      }
+      const target = [...card.querySelectorAll('[data-preview]')].find(button => button.dataset.preview === agreementId);
+      if (agreementId && !target) return false;
       search.value = ''; applySearch();
       card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      const target = [...card.querySelectorAll('[data-preview]')].find(button => button.dataset.preview === agreementId);
       (target || card.querySelector('[data-send], [data-preview]'))?.focus();
       return true;
     };
