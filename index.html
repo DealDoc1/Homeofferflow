@@ -5194,6 +5194,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     }
   }
 
+  const pendingSellerCheckoutLeads = new Set();
+
   function sellerLeadCheckoutAction(row) {
     const leadId = String(row?.id || '');
     const packageKey = String(row?.service_level || '').toLowerCase();
@@ -5210,11 +5212,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       ? `Copy ${packageDetails.price} payment link`
       : `Send ${packageDetails.price} payment link`;
     const action = paymentStatus === 'sent' ? 'recover_seller_checkout_request' : 'create_seller_checkout_request';
-    return `<button type="button" class="admin-contact-action" onclick="sendSellerCheckoutRequest('${leadId}', '${action}', '${packageKey}')">${label}</button>`;
+    return `<button type="button" class="admin-contact-action" onclick="sendSellerCheckoutRequest('${leadId}', '${action}', '${packageKey}', this)">${label}</button>`;
   }
 
-  async function sendSellerCheckoutRequest(leadId, action = 'create_seller_checkout_request', packageKey = '') {
-    if (!hofAuth?.session?.access_token) return;
+  async function sendSellerCheckoutRequest(leadId, action = 'create_seller_checkout_request', packageKey = '', button = null) {
+    if (!hofAuth?.session?.access_token || pendingSellerCheckoutLeads.has(leadId)) return;
     const recovering = action === 'recover_seller_checkout_request';
     const packageDetails = packageKey === 'seller_prep'
       ? { name: 'Seller Prep Plan', price: '$299' }
@@ -5225,6 +5227,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       ? `Confirm that you reviewed the seller’s scope and ${packageDetails.price} fixed price for the ${packageDetails.name}. This will copy the existing private Stripe payment link. It will not create a new checkout or send another email.`
       : `Confirm that you reviewed the seller’s scope and ${packageDetails.price} fixed price for the ${packageDetails.name}. This will email a private Stripe payment link for that exact package.`;
     if (!window.confirm(confirmation)) return;
+    pendingSellerCheckoutLeads.add(leadId);
+    const buttonLabel = button?.textContent;
+    if (button) {
+      button.setAttribute('aria-disabled', 'true');
+      button.textContent = recovering ? 'Retrieving payment link…' : 'Sending payment link…';
+    }
     try {
       const response = await fetch('/api/admin-dashboard', {
         method: 'POST',
@@ -5259,6 +5267,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       await loadAdminDashboard(true);
     } catch (err) {
       window.announceWorkspaceStatus?.(err?.message || 'Could not create a seller payment link.');
+    } finally {
+      pendingSellerCheckoutLeads.delete(leadId);
+      if (button?.isConnected) {
+        button.removeAttribute('aria-disabled');
+        button.textContent = buttonLabel;
+      }
     }
   }
 
