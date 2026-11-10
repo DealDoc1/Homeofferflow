@@ -24587,12 +24587,19 @@ function hofSpreadsheetCsvCell(value) {
   }
 
   async function downloadCompletedAgreementPdf(agreement, button) {
+    const session = root.hofAuth?.session;
+    const epoch = root.__hofAccountProfileEpoch;
+    const isCurrent = () => root.hofAuth?.session === session &&
+      root.__hofAccountProfileEpoch === epoch && button.isConnected;
     const originalText = button.textContent;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
     button.disabled = true;
     button.textContent = 'Preparing…';
     try {
       const response = await fetch('/api/signwell-status', {
         method: 'POST',
+        signal: controller.signal,
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
         body: JSON.stringify({ agreementId: agreement.id, action: 'download_completed_pdf' })
       });
@@ -24600,7 +24607,11 @@ function hofSpreadsheetCsvCell(value) {
         const result = await response.json().catch(() => ({}));
         throw new Error(result.error || 'Could not download the completed PDF.');
       }
-      const url = URL.createObjectURL(await response.blob());
+      if (!isCurrent()) return;
+      if (response.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== 'application/pdf') throw new Error('Completed PDF response was not a PDF.');
+      const blob = await response.blob();
+      if (!isCurrent()) return;
+      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.download = `${agreement.form_code || 'HomeOfferFlow'}-completed.pdf`;
@@ -24608,21 +24619,29 @@ function hofSpreadsheetCsvCell(value) {
       link.click();
       link.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 60000);
-      window.announceWorkspaceStatus?.('Completed PDF downloaded. Review it before filing or sharing it.');
+      window.announceWorkspaceStatus?.('Download started. Check your browser’s downloads for the completed PDF.');
     } catch (error) {
+      if (!isCurrent()) return;
       console.error('Completed PDF download failed:', error);
-      window.announceWorkspaceStatus?.(window.hofCustomerActionError?.(error, 'We couldn’t download the completed PDF. Please try again.') || 'We couldn’t download the completed PDF. Please try again.');
+      const fallback = 'We couldn’t download the completed PDF. Please try again.';
+      const message = controller.signal.aborted
+        ? 'Downloading the completed PDF took too long. Please try again.'
+        : (window.hofCustomerActionError?.(error, fallback) || fallback);
+      window.announceWorkspaceStatus?.(message);
     } finally {
+      clearTimeout(timeout);
       button.disabled = false;
       button.textContent = originalText;
     }
   }
 
+  let latestAgreementPreview;
   async function previewAgreementPdf(agreement, button) {
+    const request = latestAgreementPreview = {};
     const session = root.hofAuth?.session;
     const epoch = root.__hofAccountProfileEpoch;
-    const isCurrent = () => root.hofAuth?.session === session &&
-      root.__hofAccountProfileEpoch === epoch && (!button || button.isConnected);
+    const isCurrent = () => latestAgreementPreview === request && root.hofAuth?.session === session &&
+      root.__hofAccountProfileEpoch === epoch && button.isConnected;
     const originalText = button.textContent;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 60000);
