@@ -13099,14 +13099,12 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
         })
       });
 
-      let result = {};
       const contentType = response.headers.get('content-type') || '';
-      if (contentType.includes('application/json')) {
-        result = await response.json();
-      } else {
-        const text = await response.text();
-        result = { error: text.slice(0, 300) };
+      if (!contentType.includes('application/json')) {
+        void response.body?.cancel().catch(() => {});
+        throw new Error('Checkout returned an unexpected response.');
       }
+      const result = await response.json();
 
       checkoutController.signal.throwIfAborted();
       if (!response.ok || result.error) {

@@ -136,6 +136,27 @@ test('checkout rejects unusable redirect URLs and restores payment controls',asy
   }
 });
 
+test('an unexpected checkout response is cancelled without reading or showing its body', async () => {
+  const x=setup(), originalFetch=x.c.fetch;
+  let bodyRead=false, cancelled=false;
+  x.c.fetch=async()=>({
+    ok:false,
+    headers:{get:()=> 'text/html'},
+    body:{cancel:async()=>{cancelled=true;}},
+    text:async()=>{bodyRead=true;return 'Please contact internal gateway support.';},
+  });
+  await x.c.handlePayment();
+  assert.equal(cancelled,true);
+  assert.equal(bodyRead,false);
+  assert.match(x.notices.at(-1),/couldn’t open secure checkout/);
+  assert.equal(x.c.window.location.href,'original');
+  assert.equal(x.button.disabled,false);
+  x.c.fetch=originalFetch;
+  await x.c.handlePayment();
+  assert.equal(x.requests[0].offerData.address,'Current property');
+  assert.equal(x.c.window.location.href,'https://checkout.example.test/current');
+});
+
 test('checkout can retry after the response body stalls',async()=>{
   const x=setup(), originalFetch=x.c.fetch;
   let expire;
