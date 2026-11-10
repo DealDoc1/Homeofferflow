@@ -14,16 +14,38 @@ function node() {
 }
 let focused;
 (async () => {
-  const loaderStart=html.indexOf('  async function loadAgreements(');
-  const loaderEnd=html.indexOf('  async function openSendDialog(',loaderStart);
-  let requested;
-  const pageLoader=vm.runInNewContext(html.slice(loaderStart,loaderEnd)+'\nloadAgreements;',{
-    token:()=> 'fictional-session',fetch:async(url,options)=>{requested={url,options};return {ok:true,json:async()=>({agreements:[]})};},
+  const loaderStart = html.indexOf('  async function loadAgreements(');
+  const loaderEnd = html.indexOf('  async function openSendDialog(', loaderStart);
+  let expire, request, cleared = 0, stallBody = true;
+  const loadPage = vm.runInNewContext(html.slice(loaderStart, loaderEnd) + '\nloadAgreements;', {
+    AbortController,
+    token: () => 'fictional-session',
+    setTimeout(callback, milliseconds) {
+      assert.equal(milliseconds, 30000);
+      expire = callback;
+      return 1;
+    },
+    clearTimeout(timer) { assert.equal(timer, 1); cleared++; },
+    fetch: async (url, { headers, signal }) => {
+      request = { url, headers, signal };
+      return { ok: true, json: () => stallBody
+        ? new Promise((_, reject) => signal.addEventListener('abort', () => reject(signal.reason), { once: true }))
+        : Promise.resolve({ agreements: [] }) };
+    }
   });
-  await pageLoader(100);
-  assert.equal(requested.url,'/api/admin-dashboard?scope=standalone_agreements&offset=100');
-  assert.equal(requested.options.headers.Authorization,'Bearer fictional-session');
-  await pageLoader();assert.ok(requested.url.endsWith('offset=0'));
+  const stalled = loadPage(100);
+  await Promise.resolve();
+  assert.equal(request.url, '/api/admin-dashboard?scope=standalone_agreements&offset=100');
+  assert.equal(request.headers.Authorization, 'Bearer fictional-session');
+  expire();
+  await assert.rejects(stalled, /Could not load/);
+  assert.equal(cleared, 1);
+  stallBody = false;
+  assert.deepEqual((await loadPage()).agreements, []);
+  assert.ok(request.url.endsWith('offset=0'));
+  assert.equal(request.signal.aborted, false);
+  assert.equal(cleared, 2);
+
   let active = true, refreshPromise, loads = 0, fail = false, paged = false, pages = {}, hold = null;
   const offsets = [];
   let agreements = [
@@ -128,7 +150,9 @@ let focused;
   let finishRetry;hold={offset:0,promise:new Promise(resolve=>finishRetry=resolve)};
   const beforeRetry=loads;const retryRequest=retry.events.click();await retry.events.click();
   assert.equal(loads,beforeRetry+1);assert.equal(retry.disabled,true);assert.equal(focused,search);
+  assert.equal(moreStatus.textContent,'Loading prepared documents…');
   finishRetry();await retryRequest;
+  assert.equal(moreStatus.textContent,'');
   assert.equal(search.value,'Jordan');assert.equal(visible(),3);
   assert.equal(recovery,undefined);
   fail=false;agreements=[];await root.hofOpenPreparedAgreement();

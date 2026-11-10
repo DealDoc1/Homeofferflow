@@ -24454,10 +24454,19 @@ function hofSpreadsheetCsvCell(value) {
   const viewerIsCurrent = actor => Boolean(actor.id) && actor.id === root.hofAuth?.session?.user?.id && actor.epoch === (root.__hofAccountProfileEpoch || 0);
 
   async function loadAgreements(offset = 0) {
-    const response = await fetch(`/api/admin-dashboard?scope=standalone_agreements&offset=${offset}`, { headers: { Authorization: `Bearer ${token()}` } });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(payload.error || 'Could not load standalone agreement drafts.');
-    return payload;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+    try {
+      const response = await fetch(`/api/admin-dashboard?scope=standalone_agreements&offset=${offset}`, {
+        headers: { Authorization: `Bearer ${token()}` },
+        signal: controller.signal
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || controller.signal.aborted) throw new Error(payload.error || 'Could not load standalone agreement drafts.');
+      return payload;
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
   async function openSendDialog(agreement, refresh) {
@@ -24685,7 +24694,7 @@ function hofSpreadsheetCsvCell(value) {
     card.dataset.viewerId = actor.id;
     card.dataset.viewerEpoch = String(actor.epoch);
     card.className = 'account-card hof-agreement-card';
-    card.innerHTML = '<h4>Texas REALTORS® forms</h4><p>Review your prepared documents here. When signature sending is available, confirm the recipients and signer plan before anything is sent.</p><label for="hofStandaloneAgreementSearch">Find a saved document</label><p id="hofStandaloneAgreementSearchHelp">Search this login’s listed documents by client, form number, or status. Load older documents to include earlier records.</p><div style="display:flex;gap:.5rem;flex-wrap:wrap;margin:.5rem 0"><input id="hofStandaloneAgreementSearch" type="search" placeholder="Client name, form number, or status" aria-describedby="hofStandaloneAgreementSearchHelp" style="flex:1;min-width:min(16rem,100%);width:100%"><button type="button" class="btn-secondary" id="hofStandaloneAgreementSearchClear">Clear search</button></div><p id="hofStandaloneAgreementSearchStatus" role="status" aria-live="polite" aria-atomic="true"></p><div id="hofStandaloneAgreementList"><div class="hof-iabs-status">Loading…</div></div><button type="button" class="btn-secondary" id="hofStandaloneAgreementMore" hidden>Load older documents</button><p id="hofStandaloneAgreementMoreStatus" role="status" aria-live="polite" aria-atomic="true"></p>';
+    card.innerHTML = '<h4>Texas REALTORS® forms</h4><p>Review your prepared documents here. When signature sending is available, confirm the recipients and signer plan before anything is sent.</p><label for="hofStandaloneAgreementSearch">Find a saved document</label><p id="hofStandaloneAgreementSearchHelp">Search this login’s listed documents by client, form number, or status. Load older documents to include earlier records.</p><div style="display:flex;gap:.5rem;flex-wrap:wrap;margin:.5rem 0"><input id="hofStandaloneAgreementSearch" type="search" placeholder="Client name, form number, or status" aria-describedby="hofStandaloneAgreementSearchHelp" style="flex:1;min-width:min(16rem,100%);width:100%"><button type="button" class="btn-secondary" id="hofStandaloneAgreementSearchClear">Clear search</button></div><p id="hofStandaloneAgreementSearchStatus" role="status" aria-live="polite" aria-atomic="true"></p><div id="hofStandaloneAgreementList"></div><button type="button" class="btn-secondary" id="hofStandaloneAgreementMore" hidden>Load older documents</button><p id="hofStandaloneAgreementMoreStatus" role="status" aria-live="polite" aria-atomic="true"></p>';
     panel.appendChild(card);
     const list = card.querySelector('#hofStandaloneAgreementList');
     const search = card.querySelector('#hofStandaloneAgreementSearch');
@@ -24709,7 +24718,7 @@ function hofSpreadsheetCsvCell(value) {
       const previousIds = new Set(loadedAgreements.map(agreement => agreement.id));
       const version = ++refreshVersion;
       more.disabled = true;
-      moreStatus.textContent = append ? 'Loading older documents…' : '';
+      moreStatus.textContent = append ? 'Loading older documents…' : 'Loading prepared documents…';
       list.querySelector('[data-prepared-document-load-error]')?.remove();
       try {
         const payload = await loadAgreements(offset);
@@ -24775,6 +24784,7 @@ function hofSpreadsheetCsvCell(value) {
         if (append) {
           moreStatus.textContent = 'We couldn’t load older documents. Your current list is unchanged. Try again.';
         } else {
+          moreStatus.textContent = '';
           console.error('Prepared document list failed:', error);
           const hasSavedRows = loadedAgreements.length > 0;
           if (!hasSavedRows) list.replaceChildren();
@@ -24789,7 +24799,6 @@ function hofSpreadsheetCsvCell(value) {
           retry.addEventListener('click', () => {
             if (!isCurrent() || retry.disabled) return;
             retry.disabled = true;
-            retry.textContent = 'Loading prepared documents…';
             search.focus();
             return refresh();
           });
