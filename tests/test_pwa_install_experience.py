@@ -21,7 +21,7 @@ class PwaInstallExperienceTests(unittest.TestCase):
     def test_install_prompt_is_reserved_for_meaningful_mobile_return_work(self):
         self.assertIn('id="hof-pwa-install-v1"', INDEX)
         self.assertIn("beforeinstallprompt", INDEX)
-        self.assertIn("deferredInstallPrompt.prompt()", INDEX)
+        self.assertIn("installPrompt.prompt()", INDEX)
         self.assertIn("Install HomeOfferFlow", INDEX)
         self.assertIn("function installCtaLabel(surface)", INDEX)
         self.assertIn("function installHelpLabel(surface)", INDEX)

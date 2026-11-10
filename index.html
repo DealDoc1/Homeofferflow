@@ -26174,6 +26174,16 @@ function hofSpreadsheetCsvCell(value) {
     // transaction milestone. Attribute availability when the prompt and a
     // relevant surface are both present, including a later dashboard refresh.
     if (target && deferredInstallPrompt) trackNativeInstallAvailability(target.surface);
+    const existing = document.getElementById('hofPwaInstallCard');
+    if (target && deferredInstallPrompt && existing?.parentElement === target.panel) {
+      const button = existing.querySelector('#hofPwaInstallButton');
+      if (button && !button.disabled) {
+        button.textContent = installCtaLabel(target.surface);
+        button.style.display = '';
+        const note = existing.querySelector('#hofPwaInstallNote');
+        if (note) note.style.display = 'none';
+      }
+    }
     if (!target || isStandalone() || isDismissed() || isRecentlyShown()) return;
     // Keep the prompt contextual: mobile users can install after a meaningful
     // return-work milestone, and desktop users see it only when their browser
@@ -26185,7 +26195,6 @@ function hofSpreadsheetCsvCell(value) {
       && Boolean(deferredInstallPrompt)
       && target.surface === 'agent_saved_offer';
     if (!mobileInstallSurface && !desktopNativeInstall) return;
-    const existing = document.getElementById('hofPwaInstallCard');
     if (existing) existing.remove();
     // Android browsers can still use the supported Home Screen path when the
     // native install prompt is unavailable after a browser-level dismissal.
@@ -26214,7 +26223,7 @@ function hofSpreadsheetCsvCell(value) {
         ${ios
           ? `<button class="btn-primary" type="button" id="hofPwaInstallHelp">${installHelpLabel(target.surface)}</button>`
           : isAndroid() && !deferredInstallPrompt
-          ? `<button class="btn-primary" type="button" id="hofPwaInstallHelp">${installHelpLabel(target.surface)}</button>`
+          ? `<button class="btn-primary" type="button" id="hofPwaInstallButton">${installHelpLabel(target.surface)}</button>`
           : `<button class="btn-primary" type="button" id="hofPwaInstallButton">${installCtaLabel(target.surface)}</button>`}
         <button class="btn-secondary" type="button" id="hofPwaInstallDismiss">Not now</button>
       </div>
@@ -26243,10 +26252,12 @@ function hofSpreadsheetCsvCell(value) {
     };
     card.querySelector('#hofPwaInstallHelp')?.addEventListener('click', showInstallHelp);
     card.querySelector('#hofPwaInstallButton')?.addEventListener('click', async () => {
-      if (!deferredInstallPrompt) {
+      const installPrompt = deferredInstallPrompt;
+      if (!installPrompt) {
         if (isAndroid()) showInstallHelp();
         return;
       }
+      deferredInstallPrompt = null;
       rememberPreferredLaunch(target.surface);
       const button = card.querySelector('#hofPwaInstallButton');
       const startedWithFocus = button && document.activeElement === button;
@@ -26255,19 +26266,27 @@ function hofSpreadsheetCsvCell(value) {
       try {
         const nativePromptMetadata = { platform: installPlatform(), surface: target.surface, cta: 'native_prompt', copy_version: 'install_explicit_v2' };
         trackInstall('cta_clicked', nativePromptMetadata);
-        await deferredInstallPrompt.prompt();
+        await installPrompt.prompt();
         trackInstall('prompt_opened', { platform: installPlatform(), surface: target.surface });
-        const choice = await deferredInstallPrompt.userChoice;
+        const choice = await installPrompt.userChoice;
         accepted = choice?.outcome === 'accepted';
         trackInstall(accepted ? 'accepted' : 'dismissed', { platform: installPlatform(), surface: installSurface(card) });
       } catch (error) {
         console.warn('PWA install prompt was unavailable:', error);
       } finally {
-        deferredInstallPrompt = null;
-        if (!accepted && isAndroid() && button?.isConnected) {
+        if (!accepted && button?.isConnected) {
           button.disabled = false;
-          button.textContent = installHelpLabel(target.surface);
-          if (startedWithFocus && document.activeElement === document.body) button.focus({ preventScroll: true });
+          button.textContent = deferredInstallPrompt ? installCtaLabel(target.surface) : installHelpLabel(target.surface);
+          if (desktop && !deferredInstallPrompt) {
+            const hadFocus = document.activeElement === button || (startedWithFocus && document.activeElement === document.body);
+            button.style.display = 'none';
+            const note = card.querySelector('#hofPwaInstallNote');
+            note.textContent = 'The install prompt closed. You can keep using this workspace in your browser.';
+            note.style.display = 'block';
+            if (hadFocus) card.querySelector('#hofPwaInstallDismiss')?.focus({ preventScroll: true });
+          } else if (startedWithFocus && document.activeElement === document.body) {
+            button.focus({ preventScroll: true });
+          }
         } else {
           renderInstallCard();
         }
