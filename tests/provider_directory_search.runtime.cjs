@@ -15,6 +15,7 @@ function setup({legacyProfile=false,strictPortrait=false}={}) {
   for(const id of ['category','market','filters','status','results']) {
     const classes=new Set(), listeners={};
     elements[id]={value:'',innerHTML:'',textContent:'',attributes:{},listeners,
+      insertAdjacentHTML(_position, markup){this.innerHTML += markup;},
       setAttribute(k,v){this.attributes[k]=v;},
       addEventListener(k,fn){listeners[k]=fn;},querySelector(){return null;},
       classList:{remove:k=>classes.delete(k),toggle(k,on){on?classes.add(k):classes.delete(k);},contains:k=>classes.has(k)}};
@@ -138,6 +139,19 @@ async function run() {
     assert(result.includes('class="card no-logo"'));
     assert(result.includes('&lt;img'));assert(!result.includes('<script>'));
     assert(!result.includes('javascript:'));assert(!result.includes('user:password'));
+  }
+  {
+    const s=setup();s.respond(0);await tick();
+    const refresh=s.search('');
+    s.requests[1].reject(new Error('Refresh failed'));await refresh;
+    assert.match(s.elements.status.textContent,/Showing results from your last search/);
+    assert.match(s.elements.results.innerHTML,/Test Roofing/);
+    assert.match(s.elements.results.innerHTML,/data-directory-retry/);
+    assert.equal(s.events.filter(e=>e.event_type==='partner_directory_impression').length,1);
+    const different=s.search('inspection');
+    assert.equal(s.elements.results.innerHTML,'');
+    s.requests[2].reject(new Error('New search failed'));await different;
+    assert.doesNotMatch(s.elements.results.innerHTML,/Test Roofing/);
   }
   console.log('12 actual-source provider search cases passed, including cached-library reproduction and recovery');
 }

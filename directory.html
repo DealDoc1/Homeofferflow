@@ -224,7 +224,7 @@
         if (market) url.searchParams.set('market', market); else url.searchParams.delete('market');
         history.replaceState({}, '', url);
       };
-      let latestSearch = 0, searchController;
+      let latestSearch = 0, searchController, displayedQuery;
       async function load(event) {
         event?.preventDefault();
         const searchButton = $('filters').querySelector('button');
@@ -240,6 +240,9 @@
         const query = new URLSearchParams({partner_directory:'1',surface:'directory'}), category = $('category').value, market = $('market').value.trim();
         if (category) query.set('category', category);
         if (market) query.set('market', market);
+        const queryKey = query.toString();
+        const results = $('results');
+        const keepResults = displayedQuery === queryKey;
         syncFiltersToUrl(category, market);
         trackSearchDemand(category, market);
         if (searchButton) {
@@ -249,8 +252,13 @@
         }
         $('status').textContent = 'Loading active provider profiles…';
         $('results').setAttribute('aria-busy', 'true');
-        $('results').classList.remove('single-provider');
-        $('results').innerHTML = '';
+        if (keepResults) {
+          results.querySelector('[data-directory-refresh-error]')?.remove();
+        } else {
+          displayedQuery = undefined;
+          results.classList.remove('single-provider');
+          results.innerHTML = '';
+        }
         try {
           const response = await fetch('/api/fsbo-lead?'+query, {signal:controller.signal});
           const data = await response.json();
@@ -262,6 +270,7 @@
           $('results').classList.toggle('single-provider', rows.length === 1);
           $('status').textContent = rows.length ? `${rows.length} active provider profile${rows.length === 1 ? '' : 's'} found.` : 'No active profiles match this search.';
           $('results').innerHTML = rows.length ? rows.map(card).join('') : `<div class="empty">${empty(category, market)}</div>`;
+          displayedQuery = rows.length ? queryKey : undefined;
           if (!rows.length) recordUnfilledDirectoryDemand(category);
           trackImpressions(rows);
           bindOutboundClicks();
@@ -281,13 +290,18 @@
           if (restoreRetryFocus()) $('status').focus({ preventScroll: true });
         } catch (_) {
           if (searchRevision !== latestSearch) return;
-          $('status').textContent = 'Provider profiles are temporarily unavailable.';
-          $('results').innerHTML = `<div class="empty">${unavailable(category)}</div>`;
+          if (keepResults) {
+            $('status').textContent = 'Couldn’t refresh provider profiles. Showing results from your last search.';
+            results.insertAdjacentHTML('beforeend', '<div class="empty" data-directory-refresh-error><button type="button" class="directory-retry" data-directory-retry>Retry provider profiles</button></div>');
+          } else {
+            $('status').textContent = 'Provider profiles are temporarily unavailable.';
+            results.innerHTML = `<div class="empty">${unavailable(category)}</div>`;
+            bindPartnerDetails();
+            bindConsumerCtas();
+          }
           const nextRetry = $('results').querySelector('[data-directory-retry]');
           nextRetry?.addEventListener('click', load);
           if (restoreRetryFocus()) nextRetry?.focus({ preventScroll: true });
-          bindPartnerDetails();
-          bindConsumerCtas();
         }
         finally {
           clearTimeout(timeout);
