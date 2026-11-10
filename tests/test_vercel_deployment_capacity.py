@@ -15,7 +15,7 @@ SPEC.loader.exec_module(MODULE)
 
 class VercelDeploymentCapacityTests(unittest.TestCase):
     def test_default_limit_is_the_conservative_release_safety_threshold(self):
-        self.assertEqual(MODULE.DEFAULT_LIMIT, 100)
+        self.assertEqual(MODULE.DEFAULT_LIMIT, 12)
 
     def test_counts_only_deployments_inside_rolling_window(self):
         now = 1_791_924_266_000
@@ -53,12 +53,12 @@ class VercelDeploymentCapacityTests(unittest.TestCase):
             self.assertNotIn('fixture-token',request.full_url)
             return io.StringIO(json.dumps(pages[len(calls)-1]))
         with patch.object(MODULE,'urlopen',side_effect=response):
-            count=MODULE.fetch_deployment_count(token='fixture-token',project_id='project',team_id='team',now_ms=100_000,window_seconds=10,stop_at=stop_at)
+            count=MODULE.fetch_deployment_window(token='fixture-token',project_id='project',team_id='team',now_ms=100_000,window_seconds=10,stop_at=stop_at)
         return count,calls
 
     def test_request_uses_current_since_until_filters_not_deprecated_from(self):
         count,calls=self._fetch([{'deployments':[{'uid':'a','created':95_000}], 'pagination':{'count':1}}])
-        self.assertEqual(count,1)
+        self.assertEqual(count,(1,95_000))
         self.assertEqual(calls[0]['since'],['89999'])
         self.assertEqual(calls[0]['until'],['100001'])
         self.assertNotIn('from',calls[0])
@@ -70,13 +70,13 @@ class VercelDeploymentCapacityTests(unittest.TestCase):
             {'deployments':[{'id':'a','created':98_000}], 'pagination':{'count':1,'next':97_000}},
             {'deployments':[{'id':'b','created':96_000}], 'pagination':{'count':1}},
         ])
-        self.assertEqual(count,2)
+        self.assertEqual(count,(2,96_000))
         self.assertEqual(calls[1]['until'],['97000'])
         self.assertEqual(calls[1]['since'],calls[0]['since'])
 
     def test_threshold_stops_further_api_reads_without_understating_capacity(self):
         count,calls=self._fetch([{'deployments':[{'id':str(i),'created':95_000} for i in range(100)]}],stop_at=100)
-        self.assertEqual(count,100)
+        self.assertEqual(count,(100,None))
         self.assertEqual(len(calls),1)
 
     def test_malformed_or_repeated_pagination_is_not_accepted_as_safe(self):
@@ -91,15 +91,15 @@ class VercelDeploymentCapacityTests(unittest.TestCase):
         import io
         snapshot=json.loads((ROOT/'tests/fixtures/vercel_deployment_window_2026_10_13.json').read_text())
         with patch.object(MODULE,'urlopen',return_value=io.StringIO(json.dumps(snapshot))):
-            count=MODULE.fetch_deployment_count(token='fixture-token',project_id='project',team_id='team',
+            count=MODULE.fetch_deployment_window(token='fixture-token',project_id='project',team_id='team',
                                                 now_ms=snapshot['now_ms'],window_seconds=snapshot['window_seconds'])
-        self.assertEqual(count,9)
+        self.assertEqual(count[0],9)
 
     def test_malformed_capacity_does_not_reach_billing_or_allow_a_release(self):
         import io
         from contextlib import redirect_stderr
         with patch.object(MODULE.sys,'argv',['capacity']), patch.dict(MODULE.os.environ,{'VERCEL_TOKEN':'fixture'}), \
-             patch.object(MODULE,'fetch_deployment_count',side_effect=ValueError('malformed response')), \
+             patch.object(MODULE,'fetch_deployment_window',side_effect=ValueError('malformed response')), \
              patch.object(MODULE,'fetch_billing_usage') as billing, redirect_stderr(io.StringIO()):
             self.assertEqual(MODULE.main(),2)
         billing.assert_not_called()
@@ -107,15 +107,28 @@ class VercelDeploymentCapacityTests(unittest.TestCase):
     def test_project_limit_blocks_at_twelve_before_reading_billing(self):
         import io
         from contextlib import redirect_stderr, redirect_stdout
-        with patch.object(MODULE.sys, 'argv', ['capacity', '--limit', '12']), \
+        with patch.object(MODULE.sys, 'argv', ['capacity']), \
              patch.dict(MODULE.os.environ, {'VERCEL_TOKEN': 'fixture'}), \
-             patch.object(MODULE, 'fetch_deployment_count', return_value=12) as count, \
+             patch.object(MODULE, 'fetch_deployment_window', return_value=(12,None)) as count, \
              patch.object(MODULE, 'fetch_billing_usage') as billing, \
              redirect_stdout(io.StringIO()) as output, redirect_stderr(io.StringIO()):
             self.assertEqual(MODULE.main(), 1)
         self.assertEqual(count.call_args.kwargs['stop_at'], 12)
         self.assertIn('12 deployment(s) in the last 24 hour(s); limit 12.', output.getvalue())
         billing.assert_not_called()
+
+    def test_capacity_output_shows_when_an_additional_slot_expires(self):
+        import io
+        from contextlib import redirect_stdout
+        with patch.object(MODULE.sys, 'argv', ['capacity', '--window-seconds', '10']), \
+             patch.dict(MODULE.os.environ, {'VERCEL_TOKEN': 'fixture'}), \
+             patch.object(MODULE, 'fetch_deployment_window', return_value=(11, 96_000)), \
+             patch.object(MODULE, 'fetch_billing_usage'), \
+             patch.object(MODULE, '_infrastructure_cost', return_value=0.03), \
+             redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(MODULE.main(), 0)
+        self.assertIn('next rolling slot opens at 1970-01-01T00:01:46.001+00:00', output.getvalue())
+        self.assertIn('$19.97 unconsumed', output.getvalue())
 
     def test_read_only_workflow_cannot_build_deploy_or_pull_app_environment(self):
         workflow=(ROOT/'.github/workflows/capacity-check.yml').read_text()

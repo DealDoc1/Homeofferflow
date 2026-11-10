@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Fail closed before an intentional Vercel production deployment.
 
-The release process intentionally stops after 100 deployments in a rolling
+The release process intentionally stops after 12 deployments in a rolling
 24-hour window. This conservative safety threshold remains in place across
 plan changes so a misconfigured release cannot create a burst of deployments.
 
@@ -27,7 +27,7 @@ from zoneinfo import ZoneInfo
 
 # The separate public-function bundle guard is enforced by the bundle tests.
 # It is independent of this deployment-frequency threshold.
-DEFAULT_LIMIT = 100
+DEFAULT_LIMIT = 12
 DEFAULT_WINDOW_SECONDS = 24 * 60 * 60
 DEFAULT_MONTHLY_CREDIT = 20.0
 DEFAULT_CREDIT_RESERVE = 3.0
@@ -63,10 +63,11 @@ def _deployment_count(payload: dict, *, now_ms: int, window_ms: int) -> int:
     return sum(cutoff <= _created_ms(deployment) <= now_ms for deployment in deployments)
 
 
-def fetch_deployment_count(
+def fetch_deployment_window(
     *, token: str, project_id: str, team_id: str, now_ms: int, window_seconds: int,
     stop_at: int = DEFAULT_LIMIT,
-) -> int:
+) -> tuple[int, int | float | None]:
+    """Return the count and oldest in-window timestamp when the count is complete."""
     if window_seconds <= 0 or now_ms <= 0 or stop_at <= 0:
         raise ValueError("Deployment window and threshold must be positive")
     cutoff = now_ms - window_seconds * 1000
@@ -74,6 +75,7 @@ def fetch_deployment_count(
     # boundary in the observed API and returned older history, falsely counting 0.
     upper = now_ms + 1
     count, seen = 0, set()
+    oldest = None
     for _ in range(50):
         query = urlencode({"projectId": project_id, "teamId": team_id,
                            "since": cutoff - 1, "until": upper, "limit": 100})
@@ -87,6 +89,8 @@ def fetch_deployment_count(
             created = _created_ms(row)
             if not cutoff - 1 <= created <= upper:
                 raise ValueError("Vercel response ignored the requested deployment window")
+            if cutoff <= created <= now_ms:
+                oldest = created if oldest is None else min(oldest, created)
             identity = row.get("uid") or row.get("id")
             if not isinstance(identity, str) or not identity or identity in seen:
                 raise ValueError("Vercel deployment identity is missing or repeated")
@@ -94,7 +98,7 @@ def fetch_deployment_count(
         count += page_count
         if count >= stop_at:
             # A lower bound is sufficient to reject a release at its threshold.
-            return count
+            return count, None
         pagination = payload.get("pagination")
         if not isinstance(pagination, dict):
             raise ValueError("Vercel response has no pagination metadata")
@@ -103,7 +107,7 @@ def fetch_deployment_count(
             raise ValueError("Vercel pagination count does not match the response")
         next_cursor = pagination.get("next")
         if next_cursor is None:
-            return count
+            return count, oldest
         if not rows or isinstance(next_cursor, bool) or not isinstance(next_cursor, (int, float)) or not math.isfinite(next_cursor) or not cutoff <= next_cursor < upper:
             raise ValueError("Vercel pagination cursor is invalid or did not advance")
         upper = next_cursor
@@ -201,7 +205,10 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--project-id", default="prj_LupoeEEcWigvtw6CII2bL46l0RB3")
     parser.add_argument("--team-id", default="team_BZUBDsoLMwlnaXtIES35YT4S")
-    parser.add_argument("--limit", type=int, default=DEFAULT_LIMIT)
+    parser.add_argument(
+        "--limit", type=int, default=DEFAULT_LIMIT,
+        help="Block at this many deployments in the rolling window (default: %(default)s).",
+    )
     parser.add_argument("--window-seconds", type=int, default=DEFAULT_WINDOW_SECONDS)
     parser.add_argument("--team-slug", default=DEFAULT_TEAM_SLUG)
     parser.add_argument(
@@ -220,7 +227,7 @@ def main() -> int:
 
     now_ms = int(time.time() * 1000)
     try:
-        count = fetch_deployment_count(
+        count, oldest = fetch_deployment_window(
             token=token,
             project_id=args.project_id,
             team_id=args.team_id,
@@ -243,6 +250,12 @@ def main() -> int:
             file=sys.stderr,
         )
         return 1
+    if oldest is not None:
+        # The lower bound is inclusive, so capacity returns after that
+        # deployment's timestamp is strictly outside the window.
+        next_slot_ms = math.floor(oldest) + args.window_seconds * 1000 + 1
+        next_slot = datetime.fromtimestamp(next_slot_ms / 1000, UTC)
+        print(f"Vercel next rolling slot opens at {next_slot.isoformat(timespec='milliseconds')} if no deployments are added.")
 
     try:
         cycle_start, cycle_end = _billing_cycle_dates(
