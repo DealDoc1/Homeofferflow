@@ -7,7 +7,7 @@ const start = html.indexOf('  async function runPurchaseSigningTest(');
 const end = html.indexOf('  async function loadAdminDashboard(', start);
 assert.ok(start >= 0 && end > start);
 
-function harness(phase) {
+function harness(phase, message = 'Scoped result') {
   const nodes = Object.fromEntries(['Purchase', 'Showing', 'Amendment', 'ListingLead', 'ListingPackage', 'LeaseListing', 'BuyerPackage'].flatMap(scope => [
     ['admin' + scope + 'SigningTestStatus', { textContent: '' }],
     ['admin' + scope + 'SigningTestSend', { textContent: 'Send', disabled: false }],
@@ -15,7 +15,7 @@ function harness(phase) {
   const requests = [];
   const ctx = vm.createContext({ hofAuth: { session: { access_token: 'FAKE' } },
     document: { getElementById: id => nodes[id] },
-    fetch: async (url, input) => { requests.push({ url, input }); return { ok: true, json: async () => ({ signingTest: { phase, message: 'Scoped result' } }) }; },
+    fetch: async (url, input) => { requests.push({ url, input }); return { ok: true, json: async () => ({ signingTest: { phase, message } }) }; },
   });
   vm.runInContext(html.slice(start, end), ctx);
   return { ctx, nodes, requests };
@@ -39,6 +39,17 @@ test('not-started status permits only the selected test send control', async () 
   const h = harness('not_started');
   await h.ctx.runPurchaseSigningTest(false, { textContent: 'Check' }, 'showing');
   assert.equal(h.nodes.adminShowingSigningTestSend.disabled, false);
+});
+
+test('buyer QA rejection shows the recorded status and keeps Send disabled', async () => {
+  const message = 'SignWell rejected the test request (HTTP 400). No document ID was returned. The attempt remains reserved.';
+  const h = harness('unconfirmed', message);
+  const check = {textContent: 'Check', disabled: false};
+  await h.ctx.runPurchaseSigningTest(false, check, 'buyer-package');
+  assert.deepEqual(JSON.parse(h.requests[0].input.body), {action: 'check_buyer_package_signing_test'});
+  assert.equal(h.nodes.adminBuyerPackageSigningTestStatus.textContent, message);
+  assert.equal(h.nodes.adminBuyerPackageSigningTestSend.disabled, true);
+  assert.equal(check.disabled, false);
 });
 
 test('an unknown or inherited scope never falls back to sending a purchase test', async () => {

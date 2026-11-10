@@ -6,6 +6,8 @@ import httpx
 from lib import listing_lead_signing_qa as qa
 from tests.test_operator_purchase_signing_qa import MODULE, USER, SCENARIO, DOCUMENT_ID, response
 
+PATCH_RECEIPT = MODULE._patch
+
 
 class OperatorListingLeadSigningQATests(unittest.IsolatedAsyncioTestCase):
     @classmethod
@@ -32,7 +34,9 @@ class OperatorListingLeadSigningQATests(unittest.IsolatedAsyncioTestCase):
 
     async def test_reserved_draft_is_persisted_verified_then_sent_once(self):
         events=[]
-        async def record(*args):events.append(json.loads(args[2]['notes'])['phase'])
+        async def record(*args, **kwargs):
+            self.assertEqual(kwargs, {'expected_id': 'run'})
+            events.append(json.loads(args[2]['notes'])['phase'])
         async def inspect(*args,**kwargs):events.append('inspect');return response(200,self.provider)
         MODULE._patch.side_effect=record;self.client.get.side_effect=inspect
         result=await MODULE._listing_lead_signing_qa(USER,send=True)
@@ -77,6 +81,20 @@ class OperatorListingLeadSigningQATests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result['phase'],'unconfirmed');self.assertEqual(result['document_id'],DOCUMENT_ID)
         self.client.get.assert_not_called();self.assertEqual(self.client.post.await_count,2)
         self.assertNotIn('PRIVATE_KEY',str(result)+str(MODULE._patch.call_args_list))
+
+    async def test_success_status_with_no_matching_checkpoint_row_never_sends(self):
+        MODULE._patch.side_effect = PATCH_RECEIPT
+        self.client.patch.side_effect = [
+            response(200, [{'id': 'run'}]), response(200, []), response(200, [{'id': 'run'}]),
+        ]
+        result = await MODULE._listing_lead_signing_qa(USER, send=True)
+        self.assertEqual(result['phase'], 'unconfirmed')
+        self.assertEqual(result['document_id'], DOCUMENT_ID)
+        self.assertEqual(self.client.post.await_count, 2)
+        self.assertEqual(self.client.get.await_count, 1)
+        for call in self.client.patch.call_args_list:
+            self.assertTrue(call.args[0].endswith('?id=eq.run&select=id'))
+            self.assertEqual(call.kwargs['headers']['Prefer'], 'return=representation')
 
     async def test_send_timeout_keeps_exact_document_and_never_retries(self):
         self.client.post.side_effect=[response(201,[{'id':'run'}]),

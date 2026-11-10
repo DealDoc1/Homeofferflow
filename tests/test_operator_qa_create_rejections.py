@@ -25,6 +25,14 @@ class OperatorQACreateRejectionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result['phase'], 'unconfirmed')
         self.assertNotIn('create_rejection', result)
         self.assertNotIn('PRIVATE_KEY', json.dumps(notes))
+        stored = MODULE._purchase_qa_receipt({'id': 'reserved-run', 'notes': json.dumps(notes)})
+        self.assertEqual(stored['message'], result['message'])
+        self.assertNotIn('PRIVATE_', result['message'])
+        if rejected.status_code == 400:
+            self.assertIn('HTTP 400', result['message'])
+            self.assertIn('remains reserved', result['message'])
+        else:
+            self.assertIn('outcome is unconfirmed', result['message'])
         return notes
 
     async def test_400_keeps_allowlisted_paths_and_discards_values(self):

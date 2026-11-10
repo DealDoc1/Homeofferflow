@@ -496,16 +496,24 @@ async def _record_offer_event(user_id, event_type, message, metadata=None):
         return
 
 
-async def _patch(table, query, payload):
+async def _patch(table, query, payload, *, expected_id=None):
     """Patch a service-owned row and fail closed on non-success responses."""
+    prefer = "return=minimal"
+    if expected_id is not None:
+        query += "&select=id"
+        prefer = "return=representation"
     async with httpx.AsyncClient(timeout=12) as client:
         response = await client.patch(
             f"{SUPABASE_URL}/rest/v1/{table}?{query}",
-            headers={**_headers(), "Prefer": "return=minimal"},
+            headers={**_headers(), "Prefer": prefer},
             json=payload,
         )
     if response.status_code >= 300:
+        if expected_id is not None:
+            raise RuntimeError("The signing test checkpoint could not be confirmed.")
         raise RuntimeError(f"Supabase update failed: {table} {response.status_code} {response.text[:300]}")
+    if expected_id is not None and response.json() != [{"id": expected_id}]:
+        raise RuntimeError("The signing test checkpoint did not match its reserved row.")
 
 
 async def _verified_user(auth_header):
@@ -650,6 +658,12 @@ def _purchase_qa_receipt(run, qa_revision=None, reviewed_source_commit=None):
         receipt = {}
     if not isinstance(receipt, dict) or receipt.get("qa_revision") != qa_revision:
         receipt = {}
+    message = "A test attempt is recorded. Check its status; it will not be sent again."
+    if receipt.get("phase") == "unconfirmed":
+        message = "The test outcome is unconfirmed. Check SignWell before taking any further action; it will not be sent again."
+        http_status = receipt.get("http_status")
+        if not receipt.get("document_id") and type(http_status) is int and http_status in {400, 401, 402, 403, 413, 422, 429}:
+            message = f"SignWell rejected the test request (HTTP {http_status}). No document ID was returned. The attempt remains reserved."
     return {"run_id": str(run.get("id") or ""),
             "phase": receipt.get("phase") or "unconfirmed",
             "document_id": receipt.get("document_id") or "",
@@ -659,7 +673,7 @@ def _purchase_qa_receipt(run, qa_revision=None, reviewed_source_commit=None):
                 and receipt.get("visual_review") == "passed"
                 and receipt.get("reviewed_source_commit") == reviewed_source_commit
                 and bool(re.fullmatch(r"[0-9a-f]{64}", str(receipt.get("completed_pdf_sha256") or ""))),
-            "message": "A test attempt is recorded. Check its status; it will not be sent again."}
+            "message": message}
 
 
 async def _verify_and_send_fixed_qa_draft(client, run_id, receipt, payload):
@@ -670,7 +684,7 @@ async def _verify_and_send_fixed_qa_draft(client, run_id, receipt, payload):
     from lib.signwell_qa_transport import send_verified_qa_draft
     document_id=receipt['document_id']
     receipt['phase']='draft_unverified'
-    await _patch('hof_qa_runs',f'id=eq.{run_id}',{'notes':json.dumps(receipt)})
+    await _patch('hof_qa_runs', f'id=eq.{run_id}', {'notes': json.dumps(receipt)}, expected_id=run_id)
     response=await client.get('https://www.signwell.com/api/v1/documents/'+document_id,
         headers={'X-Api-Key':SIGNWELL_API_KEY})
     if response.status_code!=200:return
@@ -684,7 +698,7 @@ async def _verify_and_send_fixed_qa_draft(client, run_id, receipt, payload):
             or not controls_match(document,payload['fields'],payload['checkbox_groups'],payload['conditional_rules'])):
         return
     receipt.update(controls_verified=True,phase='send_started')
-    await _patch('hof_qa_runs',f'id=eq.{run_id}',{'notes':json.dumps(receipt)})
+    await _patch('hof_qa_runs', f'id=eq.{run_id}', {'notes': json.dumps(receipt)}, expected_id=run_id)
     # The durable reservation prevents a retry after an ambiguous response.
     receipt['phase']='unconfirmed'
     response=await send_verified_qa_draft(client, document_id,
@@ -740,24 +754,31 @@ async def _purchase_signing_qa(user, *, send=False, _spec=None):
         result = receipt_for(runs[0])
         if send or not result["document_id"]:
             return result
+        stored_visual_review = result["visual_review_passed"]
+        result.update(provider_status="unknown", visual_review_passed=False)
         # Read only the exact recorded QA document. Never create/resend here.
-        async with httpx.AsyncClient(timeout=20) as client:
-            response = await client.get(
-                "https://www.signwell.com/api/v1/documents/" + urllib.parse.quote(result["document_id"], safe=""),
-                headers={"X-Api-Key": SIGNWELL_API_KEY},
-            )
-        if response.status_code != 200:
+        try:
+            async with httpx.AsyncClient(timeout=20) as client:
+                response = await client.get(
+                    "https://www.signwell.com/api/v1/documents/" + urllib.parse.quote(result["document_id"], safe=""),
+                    headers={"X-Api-Key": SIGNWELL_API_KEY},
+                )
+            document = response.json() if response.status_code == 200 else None
+        except (httpx.RequestError, ValueError):
+            document = None
+        if not isinstance(document, dict):
             result["message"] = "The recorded test could not be checked. Nothing new was sent."
             return result
-        document = response.json()
-        recipients = document.get("recipients") or []
+        metadata = document.get("metadata")
+        recipients = document.get("recipients")
         if (document.get("id") != result["document_id"] or document.get("test_mode") is not True
                 or not str(document.get("name") or "").startswith(document_prefix)
-                or (document.get("metadata") or {}).get("qa_revision") != QA_REVISION
+                or not isinstance(metadata, dict) or metadata.get("qa_revision") != QA_REVISION
                 or (getattr(spec,"VERIFY_DRAFT",False) and (
-                    (document.get('metadata') or {}).get('layout_sha256')!=spec.LAYOUT_SHA256
-                    or (document.get('metadata') or {}).get('release_sha')!=REVIEWED_SOURCE_COMMIT))
-                or len(recipients) != 2
+                    metadata.get('layout_sha256')!=spec.LAYOUT_SHA256
+                    or metadata.get('release_sha')!=REVIEWED_SOURCE_COMMIT))
+                or not isinstance(recipients, list) or len(recipients) != 2
+                or not all(isinstance(recipient, dict) for recipient in recipients)
                 or {str(r.get("email") or "").lower() for r in recipients} != {r["email"] for r in QA_RECIPIENTS}):
             result["message"] = "The provider response did not match the recorded signing test. Nothing new was sent."
             return result
@@ -778,6 +799,7 @@ async def _purchase_signing_qa(user, *, send=False, _spec=None):
             result["message"] = "The provider response did not match the recorded signing test. Nothing new was sent."
             return result
         if status == "completed":
+            result["visual_review_passed"] = stored_visual_review
             result["message"] = ("Signing and placement review passed for this test."
                                  if result["visual_review_passed"] else
                                  "The test is complete; its signed PDF still needs visual review.")
@@ -862,17 +884,16 @@ async def _purchase_signing_qa(user, *, send=False, _spec=None):
         # Never persist/log provider bodies, exception text, keys or signing URLs.
         receipt.update(phase="unconfirmed", error_type=type(error).__name__)
     try:
-        await _patch("hof_qa_runs", f"id=eq.{run['id']}", {"notes": json.dumps(receipt)})
+        await _patch("hof_qa_runs", f"id=eq.{run['id']}", {"notes": json.dumps(receipt)}, expected_id=run["id"])
     except Exception:
         result = receipt_for({"id": run["id"], "notes": json.dumps(receipt)})
         result["message"] = "The test attempt is reserved, but the final receipt could not be saved. Inspect SignWell before taking any further action; do not resend."
         return result
     result = receipt_for({"id": run["id"], "notes": json.dumps(receipt)})
-    result["message"] = ("One nonbinding test was created for the two approved inboxes. Both recipients may sign independently."
-                         if receipt["phase"] == "created"
-                         else "The test draft was retained without invitations because its completion controls were not verified. Inspect the recorded draft; do not create another."
-                         if receipt["phase"] == "draft_unverified"
-                         else "The test outcome is unconfirmed. Check SignWell before taking any further action; it will not be sent again.")
+    if receipt["phase"] == "created":
+        result["message"] = "One nonbinding test was created for the two approved inboxes. Both recipients may sign independently."
+    elif receipt["phase"] == "draft_unverified":
+        result["message"] = "The test draft was retained without invitations because its completion controls were not verified. Inspect the recorded draft; do not create another."
     return result
 
 
