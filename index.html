@@ -24716,7 +24716,7 @@ function hofSpreadsheetCsvCell(value) {
     }
   }
 
-  function filterPreparedAgreementRows(list, query, status) {
+  function filterPreparedAgreementRows(list, query, status, hasOlderDocuments) {
     const normalize = value => String(value || '').normalize('NFKD')
       .replace(/[\u0300-\u036f]/g, '').toLowerCase()
       .replace(/\b(txr|trec)[\s-]+(?=\d)/g, '$1').trim();
@@ -24731,7 +24731,9 @@ function hofSpreadsheetCsvCell(value) {
       if (matches) visible += 1;
     });
     status.textContent = rows.length === 0 ? '' : visible === 0
-      ? 'No documents match your search. Clear the search to see the full list.'
+      ? (hasOlderDocuments
+        ? 'No loaded documents match. Load older documents below to search more of your history.'
+        : 'No documents match your search. Clear the search to see all saved documents.')
       : `${visible} of ${rows.length} listed document${rows.length === 1 ? '' : 's'} shown.`;
     return visible;
   }
@@ -24757,7 +24759,7 @@ function hofSpreadsheetCsvCell(value) {
     const search = card.querySelector('#hofStandaloneAgreementSearch');
     const searchStatus = card.querySelector('#hofStandaloneAgreementSearchStatus');
     const applySearch = () => {
-      if (isCurrent() && card.isConnected) filterPreparedAgreementRows(list, search.value, searchStatus);
+      if (isCurrent() && card.isConnected) filterPreparedAgreementRows(list, search.value, searchStatus, nextOffset !== null);
     };
     search.addEventListener('input', applySearch);
     card.querySelector('#hofStandaloneAgreementSearchClear').addEventListener('click', () => {
@@ -24774,6 +24776,9 @@ function hofSpreadsheetCsvCell(value) {
       const offset = append ? nextOffset : 0;
       const previousIds = new Set(loadedAgreements.map(agreement => agreement.id));
       const version = ++refreshVersion;
+      const pagingHadFocus = append && document.activeElement === more;
+      const canRestorePagingFocus = () => pagingHadFocus &&
+        (document.activeElement === more || document.activeElement === document.body);
       more.disabled = true;
       moreStatus.textContent = append ? 'Loading older documents…' : 'Loading prepared documents…';
       list.querySelector('[data-prepared-document-load-error]')?.remove();
@@ -24830,7 +24835,7 @@ function hofSpreadsheetCsvCell(value) {
           const agreement = agreements.find(item => item.id === button.dataset.downloadCompleted);
           if (agreement) downloadCompletedAgreementPdf(agreement, button);
         }));
-        if (append) {
+        if (canRestorePagingFocus()) {
           const firstNew = [...list.querySelectorAll('[data-preview]')].find(button =>
             !previousIds.has(button.dataset.preview) && !button.closest('[data-agreement-search]')?.hidden);
           if (firstNew) firstNew.focus();
@@ -24862,7 +24867,10 @@ function hofSpreadsheetCsvCell(value) {
           });
         }
       } finally {
-        if (isCurrent() && version === refreshVersion && card.isConnected) more.disabled = false;
+        if (isCurrent() && version === refreshVersion && card.isConnected) {
+          more.disabled = false;
+          if (!more.hidden && canRestorePagingFocus()) more.focus();
+        }
       }
     };
     more.addEventListener('click', () => refresh({ append: true }));
