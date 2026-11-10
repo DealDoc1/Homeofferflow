@@ -10390,7 +10390,11 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
   }
 
   function returnHomeFromWizard() {
-    window.__hofBuyerCheckoutRequest?.abort('wizard_closed');
+    const checkout = window.__hofBuyerCheckoutRequest;
+    if (checkout) {
+      checkout.abort('wizard_closed');
+      setPaymentStatus('');
+    }
     const overlay = document.getElementById('wizardOverlay');
     const hasProgress = state.step > 0 || Object.keys(state.data || {}).length > 1;
 
@@ -12916,7 +12920,7 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     const el = document.getElementById('paymentActionStatus');
     if (!el) return;
     el.textContent = message || '';
-    el.className = message ? 'platform-status show ' + (type === 'err' ? 'err' : 'ok') : 'platform-status';
+    el.className = message ? 'platform-status show ' + (type === 'info' ? 'info' : type === 'err' ? 'err' : 'ok') : 'platform-status';
   }
 
 
@@ -13079,6 +13083,7 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
       checkoutController = new AbortController();
       window.__hofBuyerCheckoutRequest = checkoutController;
       checkoutTimeout = setTimeout(() => checkoutController.abort(), 60000);
+      setPaymentStatus('Opening secure checkout…', 'info');
       const response = await fetch('/api/create-checkout', {
         method: 'POST',
         signal: checkoutController.signal,
