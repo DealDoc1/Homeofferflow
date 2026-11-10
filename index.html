@@ -26175,9 +26175,14 @@ function hofSpreadsheetCsvCell(value) {
     // relevant surface are both present, including a later dashboard refresh.
     if (target && deferredInstallPrompt) trackNativeInstallAvailability(target.surface);
     const existing = document.getElementById('hofPwaInstallCard');
-    if (target && deferredInstallPrompt && isAndroid() && existing?.parentElement === target.panel) {
+    if (target && deferredInstallPrompt && existing?.parentElement === target.panel) {
       const button = existing.querySelector('#hofPwaInstallButton');
-      if (button && !button.disabled) button.textContent = installCtaLabel(target.surface);
+      if (button && !button.disabled) {
+        button.textContent = installCtaLabel(target.surface);
+        button.style.display = '';
+        const note = existing.querySelector('#hofPwaInstallNote');
+        if (note) note.style.display = 'none';
+      }
     }
     if (!target || isStandalone() || isDismissed() || isRecentlyShown()) return;
     // Keep the prompt contextual: mobile users can install after a meaningful
@@ -26269,10 +26274,19 @@ function hofSpreadsheetCsvCell(value) {
       } catch (error) {
         console.warn('PWA install prompt was unavailable:', error);
       } finally {
-        if (!accepted && isAndroid() && button?.isConnected) {
+        if (!accepted && button?.isConnected) {
           button.disabled = false;
           button.textContent = deferredInstallPrompt ? installCtaLabel(target.surface) : installHelpLabel(target.surface);
-          if (startedWithFocus && document.activeElement === document.body) button.focus({ preventScroll: true });
+          if (desktop && !deferredInstallPrompt) {
+            const hadFocus = document.activeElement === button || (startedWithFocus && document.activeElement === document.body);
+            button.style.display = 'none';
+            const note = card.querySelector('#hofPwaInstallNote');
+            note.textContent = 'The install prompt closed. You can keep using this workspace in your browser.';
+            note.style.display = 'block';
+            if (hadFocus) card.querySelector('#hofPwaInstallDismiss')?.focus({ preventScroll: true });
+          } else if (startedWithFocus && document.activeElement === document.body) {
+            button.focus({ preventScroll: true });
+          }
         } else {
           renderInstallCard();
         }
