@@ -24789,7 +24789,12 @@ function hofSpreadsheetCsvCell(value) {
         const next = payload.pagination?.hasMore === true ? payload.pagination.nextOffset : null;
         if (next !== null && (!Number.isInteger(next) || next <= offset || next > 1000000)) throw new Error('Document history is unavailable.');
         const byId = new Map((append ? loadedAgreements : []).map(agreement => [agreement.id, agreement]));
-        payload.agreements.forEach(agreement => byId.set(agreement.id, agreement));
+        payload.agreements.forEach(agreement => {
+          const currentUpdated = Date.parse(byId.get(agreement.id)?.updated_at);
+          const incomingUpdated = Date.parse(agreement.updated_at);
+          if (Number.isFinite(currentUpdated) && !(incomingUpdated >= currentUpdated)) return;
+          byId.set(agreement.id, agreement);
+        });
         const agreements = [...byId.values()];
         const signingEnabled = payload.signingEnabled === true;
         const signingFormCodes = new Set(payload.signingFormCodes || []);
