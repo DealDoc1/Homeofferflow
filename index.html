@@ -26369,9 +26369,12 @@ function hofSpreadsheetCsvCell(value) {
     const isHomeOfferFlowStandaloneApp = () => window.matchMedia?.('(display-mode: standalone)').matches === true
       || window.navigator.standalone === true;
     const offerInterviewIsOpen = () => document.getElementById('wizardOverlay')?.classList.contains('active');
-    const deferUpdateForInterview = () => {
+    const updatePauseReason = () => navigator.onLine === false
+      ? 'Reconnect to update HomeOfferFlow. You can keep this page open.'
+      : offerInterviewIsOpen() ? 'Close the offer interview before updating. You can keep working and update later.' : '';
+    const showUpdatePauseReason = reason => {
       const note = document.getElementById('hofPwaUpdateCard')?.querySelector('p');
-      if (note) note.textContent = 'Close the offer interview before updating. You can keep working and update later.';
+      if (note) note.textContent = reason;
     };
 
     function showHomeOfferFlowUpdate(registration, workerAlreadyActive = false) {
@@ -26388,8 +26391,9 @@ function hofSpreadsheetCsvCell(value) {
       card.querySelector('#hofPwaUpdateNow')?.addEventListener('click', () => {
         const waiting = registration.waiting;
         if (hofPwaRefreshRequested) return;
-        if (offerInterviewIsOpen()) {
-          deferUpdateForInterview();
+        const pauseReason = updatePauseReason();
+        if (pauseReason) {
+          showUpdatePauseReason(pauseReason);
           return;
         }
         hofPwaRefreshRequested = true;
@@ -26424,9 +26428,10 @@ function hofSpreadsheetCsvCell(value) {
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (hofPwaRefreshRequested) {
         hofPwaRefreshRequested = false;
-        if (offerInterviewIsOpen()) {
+        const pauseReason = updatePauseReason();
+        if (pauseReason) {
           showHomeOfferFlowUpdate(hofPwaRegistration, true);
-          deferUpdateForInterview();
+          showUpdatePauseReason(pauseReason);
           return;
         }
         window.location.reload();
