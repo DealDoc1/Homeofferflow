@@ -19121,9 +19121,12 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     const message = document.getElementById('foundingPartnerCheckoutSetupMessage');
     if (confirmation) confirmation.style.display = 'block';
     if (message) message.textContent = 'Preparing your secure setup…';
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 30000);
     try {
-      const response = await fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({request_type:'founding_partner_checkout_setup', session_id:sessionId})});
+      const response = await fetch('/api/fsbo-lead', {method:'POST', headers:{'Content-Type':'application/json'}, signal:controller.signal, body:JSON.stringify({request_type:'founding_partner_checkout_setup', session_id:sessionId})});
       const result = await response.json().catch(() => ({}));
+      if (controller.signal.aborted) throw controller.signal.reason;
       if (response.status === 202 || result.state === 'processing') {
         if (attempt < 4) {
           if (message) message.textContent = `Your payment is being confirmed securely. Retrying setup automatically (${attempt + 1} of 5)…`;
@@ -19143,7 +19146,11 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
       if (message) message.textContent = 'Your secure setup is ready.';
       window.openPartnerOnboarding();
     } catch (error) {
-      if (message) message.textContent = `${error?.message || 'Partner setup is unavailable.'} Please use the secure setup email or contact support for a fresh link.`;
+      if (message) message.textContent = controller.signal.aborted
+        ? 'Opening secure setup took too long. Use the secure setup email or contact support for a fresh link.'
+        : `${error?.message || 'Partner setup is unavailable.'} Please use the secure setup email or contact support for a fresh link.`;
+    } finally {
+      window.clearTimeout(timeout);
     }
   }
   document.addEventListener('DOMContentLoaded', function(){
