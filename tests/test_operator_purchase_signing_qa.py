@@ -162,6 +162,49 @@ class OperatorPurchaseSigningQATests(unittest.IsolatedAsyncioTestCase):
                 self.assertFalse(result["visual_review_passed"])
                 self.assertNotIn("SECRET_LINK", str(result))
 
+    async def test_stored_review_requires_a_current_matching_completed_document(self):
+        notes = json.dumps({
+            "qa_revision": qa.QA_REVISION, "phase": "created", "document_id": DOCUMENT_ID,
+            "test_mode": True, "provider_status": "completed",
+            "reviewed_source_commit": qa.REVIEWED_SOURCE_COMMIT, "visual_review": "passed",
+            "completed_pdf_sha256": "a" * 64,
+        })
+        document = {
+            "id": DOCUMENT_ID, "test_mode": True, "status": "completed",
+            "name": "QA ONLY - purchase placement - ee90d4d",
+            "metadata": {"qa_revision": qa.QA_REVISION}, "recipients": list(qa.QA_RECIPIENTS),
+        }
+        for reply, status in (
+            (response(503, {}), "unknown"),
+            (response(200, []), "unknown"),
+            (response(200, {**document, "test_mode": False}), "unknown"),
+            (response(200, {**document, "metadata": ["PRIVATE_METADATA"]}), "unknown"),
+            (response(200, {**document, "recipients": [None, "PRIVATE_EMAIL"]}), "unknown"),
+            (response(200, {**document, "status": "sent"}), "sent"),
+        ):
+            with self.subTest(status=status, http_status=reply.status_code):
+                MODULE._get.side_effect = [SCENARIO, [{"id": "run-one", "notes": notes}]]
+                self.client.get.return_value = reply
+                result = await MODULE._purchase_signing_qa(USER)
+                self.assertEqual(result["provider_status"], status)
+                self.assertFalse(result["visual_review_passed"])
+                self.assertNotIn("placement review passed", result["message"])
+                self.assertNotIn("PRIVATE_", json.dumps(result))
+        for error in (httpx.ReadTimeout("PRIVATE_TRANSPORT_DETAIL"), ValueError("PRIVATE_RESPONSE_BODY")):
+            with self.subTest(error=type(error).__name__):
+                MODULE._get.side_effect = [SCENARIO, [{"id": "run-one", "notes": notes}]]
+                self.client.get.side_effect = error if isinstance(error, httpx.RequestError) else None
+                def invalid_json():
+                    raise error
+                self.client.get.return_value = SimpleNamespace(status_code=200, json=invalid_json)
+                result = await MODULE._purchase_signing_qa(USER)
+                self.assertEqual(result["provider_status"], "unknown")
+                self.assertFalse(result["visual_review_passed"])
+                self.assertIn("could not be checked", result["message"])
+                self.assertNotIn("PRIVATE_", json.dumps(result))
+        self.client.post.assert_not_called()
+        MODULE._patch.assert_not_called()
+
     async def test_provider_status_casing_and_terminal_states_are_reported_correctly(self):
         cases = [
             ("Completed", "completed", "still needs visual review"),
