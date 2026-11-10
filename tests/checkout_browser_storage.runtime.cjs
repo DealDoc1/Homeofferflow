@@ -64,7 +64,7 @@ test('closing the wizard prevents a late checkout redirect and keeps the draft',
   assert.equal(x.button.getAttribute('aria-busy'), 'false');
   assert.equal(JSON.parse(x.store.get('hofOfferData')).address, 'Current property');
   assert.ok(x.events.includes('save-on-close'));
-  assert.deepEqual(x.notices, []);
+  assert.deepEqual(x.notices, ['Opening secure checkout…', '']);
 });
 test('full cache quota falls back to answers without dropping server-bound attachments',async()=>{
   const x=setup({quota:2000});await x.c.handlePayment();
@@ -136,6 +136,27 @@ test('checkout rejects unusable redirect URLs and restores payment controls',asy
   }
 });
 
+test('an unexpected checkout response is cancelled without reading or showing its body', async () => {
+  const x=setup(), originalFetch=x.c.fetch;
+  let bodyRead=false, cancelled=false;
+  x.c.fetch=async()=>({
+    ok:false,
+    headers:{get:()=> 'text/html'},
+    body:{cancel:async()=>{cancelled=true;}},
+    text:async()=>{bodyRead=true;return 'Please contact internal gateway support.';},
+  });
+  await x.c.handlePayment();
+  assert.equal(cancelled,true);
+  assert.equal(bodyRead,false);
+  assert.match(x.notices.at(-1),/couldn’t open secure checkout/);
+  assert.equal(x.c.window.location.href,'original');
+  assert.equal(x.button.disabled,false);
+  x.c.fetch=originalFetch;
+  await x.c.handlePayment();
+  assert.equal(x.requests[0].offerData.address,'Current property');
+  assert.equal(x.c.window.location.href,'https://checkout.example.test/current');
+});
+
 test('checkout can retry after the response body stalls',async()=>{
   const x=setup(), originalFetch=x.c.fetch;
   let expire;
@@ -157,6 +178,7 @@ test('checkout can retry after the response body stalls',async()=>{
   });
   const attempt=x.c.handlePayment();
   await bodyStarted;
+  assert.equal(x.notices.at(-1),'Opening secure checkout…');
   assert.equal(x.button.disabled,true);
   expire();
   await attempt;
