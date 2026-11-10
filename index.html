@@ -24635,11 +24635,13 @@ function hofSpreadsheetCsvCell(value) {
     }
   }
 
+  let latestAgreementPreview;
   async function previewAgreementPdf(agreement, button) {
+    const request = latestAgreementPreview = {};
     const session = root.hofAuth?.session;
     const epoch = root.__hofAccountProfileEpoch;
-    const isCurrent = () => root.hofAuth?.session === session &&
-      root.__hofAccountProfileEpoch === epoch && (!button || button.isConnected);
+    const isCurrent = () => latestAgreementPreview === request && root.hofAuth?.session === session &&
+      root.__hofAccountProfileEpoch === epoch && button.isConnected;
     const originalText = button.textContent;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 60000);

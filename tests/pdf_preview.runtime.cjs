@@ -84,7 +84,7 @@ test('Escape returns focus to the opener and account cleanup leaves focus alone'
 });
 
 test('a stalled prepared document restores the Preview button for retry', async () => {
-  const start = html.indexOf('  async function previewAgreementPdf(');
+  const start = html.indexOf('  let latestAgreementPreview;');
   const end = html.indexOf('  function filterPreparedAgreementRows(', start);
   const root = { hofAuth: { session: {} } };
   const button = { isConnected: true, disabled: false, textContent: 'Preview' };
@@ -118,4 +118,27 @@ test('a stalled prepared document restores the Preview button for retry', async 
   await preview(agreement, button);
   assert.deepEqual(previews, ['fictional-pdf']);
   assert.equal(expire, undefined);
+});
+
+test('a late prepared document cannot replace the newer preview or its print link', async () => {
+  const start = html.indexOf('  let latestAgreementPreview;');
+  const end = html.indexOf('  function filterPreparedAgreementRows(', start);
+  const context = previewContext(true);
+  const reads = new Map();
+  const preview = vm.runInNewContext(html.slice(start, end) + '\npreviewAgreementPdf;', {
+    ...context, window: context.root, AbortController, token: () => 'fixture',
+    setTimeout, clearTimeout,
+    fetch: url => new Promise(resolve => reads.set(url, resolve)),
+  });
+  const opener = () => ({ isConnected: true, disabled: false, textContent: 'Preview' });
+  const older = preview({ id: 'older', form_code: 'TXR-1507' }, opener());
+  const newer = preview({ id: 'newer', form_code: 'TXR-1506' }, opener());
+  reads.get('/api/admin-dashboard?preview_agreement=newer')({ ok: true, blob: async () => ({}) });
+  await newer;
+  const modal = context.document.getElementById('hofPdfPreviewModal');
+  reads.get('/api/admin-dashboard?preview_agreement=older')({ ok: true, blob: async () => ({}) });
+  await older;
+  assert.equal(context.document.getElementById('hofPdfPreviewModal'), modal);
+  assert.equal(modal.querySelector('h4').textContent, 'TXR-1506 preview');
+  assert.equal(modal.querySelector('a').href, modal.querySelector('iframe').src);
 });
