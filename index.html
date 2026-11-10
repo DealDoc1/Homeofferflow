@@ -20624,13 +20624,6 @@ function hofSpreadsheetCsvCell(value) {
       root.hofShowPdfPreview(pdf, signed ? 'Signed offer' : 'Unsigned offer copy', button);
       const modal = document.getElementById('hofPdfPreviewModal');
       if (modal) {
-        const open = document.createElement('a');
-        open.href = modal.dataset.blobUrl;
-        open.target = '_blank';
-        open.rel = 'noopener noreferrer';
-        open.className = 'btn-secondary';
-        open.textContent = 'Open to print';
-        modal.querySelector('.hof-pdf-preview-actions')?.prepend(open);
         const note = document.createElement('p');
         note.style.color = '#cbd5e1';
         note.style.lineHeight = '1.5';
@@ -25139,9 +25132,15 @@ function hofSpreadsheetCsvCell(value) {
     download.textContent = 'Download PDF';
     download.href = blobUrl;
     download.download = `HomeOfferFlow-${String(formCode || 'document').replace(/[^a-zA-Z0-9_-]+/g, '-')}.pdf`;
+    const open = document.createElement('a');
+    open.className = 'btn-secondary';
+    open.textContent = 'Open to print';
+    open.href = blobUrl;
+    open.target = '_blank';
+    open.rel = 'noopener noreferrer';
     const actions = document.createElement('div');
     actions.className = 'hof-pdf-preview-actions';
-    actions.append(download, close);
+    actions.append(open, download, close);
     const frame = document.createElement('iframe');
     frame.className = 'hof-pdf-preview-frame';
     frame.title = `${formCode || 'Form'} PDF preview`;

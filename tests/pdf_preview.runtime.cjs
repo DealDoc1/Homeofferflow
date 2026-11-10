@@ -39,8 +39,13 @@ test('PDF-capable browsers show the frame and a same-document download', () => {
   context.root.hofShowPdfPreview({}, 'TXR-1508');
   const modal = context.document.getElementById('hofPdfPreviewModal');
   assert.equal(modal.querySelector('iframe').src, 'blob:qa-1');
-  assert.equal(modal.querySelector('a').href, 'blob:qa-1');
-  assert.equal(modal.querySelector('a').download, 'HomeOfferFlow-TXR-1508.pdf');
+  const [open, download] = modal.querySelector('h4').parent.children[1].children;
+  assert.equal(open.textContent, 'Open to print');
+  assert.equal(open.href, 'blob:qa-1');
+  assert.equal(open.target, '_blank');
+  assert.equal(open.rel, 'noopener noreferrer');
+  assert.equal(download.href, 'blob:qa-1');
+  assert.equal(download.download, 'HomeOfferFlow-TXR-1508.pdf');
   assert.equal(modal.querySelector('button').focused, true);
 });
 
