@@ -22,15 +22,27 @@ function setup(role='homebuyer',{blank=false,storageFails=false}={}){
    updateSaveStatus:x=>events.push(x),console:{error:()=>events.push('storage error')},
    confirm:()=>{throw Error('Exit must not ask for confirmation');},
    setTimeout:(fn,delay)=>{const id=next++;timers.set(id,{fn,at:clock+delay});return id;},clearTimeout:id=>timers.delete(id),
-   window:{setHofModalIsolation:(el,active)=>events.push(['isolation',active]),scrollTo:()=>events.push('home'),__hofAccountProfileEpoch:0}};
+   window:{setHofModalIsolation:(el,active)=>events.push(['isolation',active]),scrollTo:()=>events.push('home'),__hofAccountProfileEpoch:0,
+     history:{state:null,replaceState(value){this.state=value;}}}};
  vm.createContext(c);
  vm.runInContext(source('  function resumableLocalOfferDraft()', '  function resumableAccountOfferDraft('),c);
  vm.runInContext(source('  function refreshResumeOfferCtas()', '  function resumeLocalOfferDraft('),c);
  vm.runInContext(source('  function getDraftSnapshot()', '  function updateConnectionStatus()'),c);
  vm.runInContext(source('  function closeWizard()', '  function startNewOffer()'),c);
+ vm.runInContext(source('  function clearPendingBuyerCheckoutReturn()', '  function backToHomeAfterPayment()'),c);
  const tick=time=>{clock=time;for(const [id,t]of [...timers].sort((a,b)=>a[1].at-b[1].at))if(t.at<=clock){timers.delete(id);t.fn();}};
  return {c,get,stored,events,tick,inputs};
 }
+test('closing checkout clears the return marker without saving the confirmation as a draft step',()=>{
+ const x=setup();
+ x.stored.set('draft','{"step":1}');
+ x.c.window.history.state={hofBuyerCheckoutPending:true,unrelated:'keep'};
+ x.c.closeWizard();
+ x.tick(300);
+ assert.deepEqual({...x.c.window.history.state},{unrelated:'keep'});
+ assert.equal(x.stored.get('draft'),'{"step":1}');
+ assert.ok(!x.events.includes('Saving...'));
+});
 for(const role of ['homebuyer','agent','investor'])test(`${role} exits without a prompt and preserves the actual saved answers`,()=>{
  const x=setup(role), before=JSON.stringify(x.c.state);x.c.closeWizard();
  assert.equal(x.get('wizardOverlay').classList.contains('active'),false);assert.equal(x.get('wizardOverlay')['aria-hidden'],'true');

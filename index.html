@@ -311,7 +311,8 @@
     params.get('payment') === 'success' ||
     params.get('success') === 'true';
 
-  if (!checkoutReturned) return;
+  const restoringConfirmation = !checkoutReturned && window.history.state?.hofBuyerCheckoutPending === true;
+  if (!checkoutReturned && !restoringConfirmation) return;
 
   // Prevent saved-draft restore from overriding the success screen after Stripe returns.
   window.__hofPaymentReturn = true;
@@ -326,13 +327,16 @@
   } catch (_) {}
 
   openWizard(true);
+  const paymentEmail = checkoutContact._paymentEmail || '';
 
-  // The signed Stripe webhook confirms payment and delivers the packet.
-  showPaymentSuccess(checkoutContact._paymentEmail || '', { checkoutConfirmationPending: true, checkoutContact });
+  // A browser return parameter is not proof of payment; the signed Stripe
+  // webhook is the source of truth and emails the packet after confirmation.
+  showPaymentSuccess(paymentEmail, { checkoutConfirmationPending: true, restoringConfirmation, checkoutContact });
 
-  // Clean the URL so refreshes do not re-trigger the success state forever.
+  // Keep only a pending-screen marker on this history entry after removing
+  // the checkout return parameters. A refresh does not prove fulfillment.
   const cleanUrl = window.location.origin + window.location.pathname;
-  window.history.replaceState({}, document.title, cleanUrl);
+  if (checkoutReturned) window.history.replaceState({ ...window.history.state, hofBuyerCheckoutPending: true }, document.title, cleanUrl);
 }
 
   window.addEventListener('load', () => { try { if (typeof checkSubscriptionReturn === 'function') checkSubscriptionReturn(); } catch (e) { console.warn('Subscription return check skipped:', e); } });
@@ -10395,10 +10399,11 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
       checkout.abort('wizard_closed');
       setPaymentStatus('');
     }
+    const dismissedCheckout = clearPendingBuyerCheckoutReturn();
     const overlay = document.getElementById('wizardOverlay');
     const hasProgress = state.step > 0 || Object.keys(state.data || {}).length > 1;
 
-    if (hasProgress) {
+    if (hasProgress && !dismissedCheckout) {
       // Exiting only hides the interview; it does not discard the draft.
       // Keep this one click and retain the existing guarded autosave.
       try { scheduleDraftSave?.(); } catch (e) {}
@@ -11721,7 +11726,7 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
   function showPaymentSuccess(email, options = {}) {
     const checkoutConfirmationPending = options.checkoutConfirmationPending === true;
     window.__hofPaymentReturn = true;
-    trackEvent(
+    if (!options.restoringConfirmation) trackEvent(
       checkoutConfirmationPending ? 'Payment Checkout Returned' : 'Payment Success Returned',
       { userType: state.data.userType || 'homebuyer' }
     );
@@ -11817,7 +11822,16 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     window.setTimeout(() => window.renderPwaInstallCard?.(), 0);
   }
 
+  function clearPendingBuyerCheckoutReturn() {
+    if (window.history.state?.hofBuyerCheckoutPending !== true) return false;
+    const next = { ...window.history.state };
+    delete next.hofBuyerCheckoutPending;
+    try { window.history.replaceState(next, document.title); } catch (_) {}
+    return true;
+  }
+
   function backToHomeAfterPayment() {
+    clearPendingBuyerCheckoutReturn();
     const overlay = document.getElementById('wizardOverlay');
     overlay.classList.remove('active');
     overlay.setAttribute('aria-hidden', 'true');
