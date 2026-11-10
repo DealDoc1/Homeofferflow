@@ -39,8 +39,13 @@ test('PDF-capable browsers show the frame and a same-document download', () => {
   context.root.hofShowPdfPreview({}, 'TXR-1508');
   const modal = context.document.getElementById('hofPdfPreviewModal');
   assert.equal(modal.querySelector('iframe').src, 'blob:qa-1');
-  assert.equal(modal.querySelector('a').href, 'blob:qa-1');
-  assert.equal(modal.querySelector('a').download, 'HomeOfferFlow-TXR-1508.pdf');
+  const [open, download] = modal.querySelector('h4').parent.children[1].children;
+  assert.equal(open.textContent, 'Open to print');
+  assert.equal(open.href, 'blob:qa-1');
+  assert.equal(open.target, '_blank');
+  assert.equal(open.rel, 'noopener noreferrer');
+  assert.equal(download.href, 'blob:qa-1');
+  assert.equal(download.download, 'HomeOfferFlow-TXR-1508.pdf');
   assert.equal(modal.querySelector('button').focused, true);
 });
 
@@ -76,4 +81,41 @@ test('Escape returns focus to the opener and account cleanup leaves focus alone'
   context.root.hofShowPdfPreview({}, 'TXR-1508', opener);
   context.root.hofClosePdfPreview(false);
   assert.equal(focusCount,1);
+});
+
+test('a stalled prepared document restores the Preview button for retry', async () => {
+  const start = html.indexOf('  async function previewAgreementPdf(');
+  const end = html.indexOf('  function filterPreparedAgreementRows(', start);
+  const root = { hofAuth: { session: {} } };
+  const button = { isConnected: true, disabled: false, textContent: 'Preview' };
+  const notices = [], previews = [];
+  let expire, stall = true;
+  root.announceWorkspaceStatus = message => notices.push(message);
+  root.hofShowPdfPreview = blob => previews.push(blob);
+  const preview = vm.runInNewContext(html.slice(start, end) + '\npreviewAgreementPdf;', {
+    root, window: root, AbortController, token: () => 'fixture', console: { error() {} },
+    setTimeout: (callback, ms) => { assert.equal(ms, 60000); expire = callback; return 1; },
+    clearTimeout: id => { assert.equal(id, 1); expire = undefined; },
+    fetch: async (_, { signal }) => ({
+      ok: true,
+      blob: () => stall
+        ? new Promise((_, reject) => signal.addEventListener('abort', () => reject(signal.reason), { once: true }))
+        : Promise.resolve('fictional-pdf'),
+    }),
+  });
+  const agreement = { id: 'fictional', form_code: 'TXR-1507' };
+  const pending = preview(agreement, button);
+  assert.equal(button.textContent, 'Opening PDF…');
+  await new Promise(setImmediate);
+  expire();
+  await pending;
+  assert.match(notices[0], /took too long/);
+  assert.deepEqual(previews, []);
+  assert.equal(button.disabled, false);
+  assert.equal(button.textContent, 'Preview');
+  assert.equal(expire, undefined);
+  stall = false;
+  await preview(agreement, button);
+  assert.deepEqual(previews, ['fictional-pdf']);
+  assert.equal(expire, undefined);
 });
