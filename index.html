@@ -8208,6 +8208,20 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   // as the dashboard opens.  Only an explicit "Choose Transaction" action
   // scrolls to Question 1 or moves focus; routine dashboard rendering must
   // never interrupt a resume, billing, or signed-document task.
+  function agentTransactionChoiceKey() {
+    const owner = window.hofAuth?.session?.user?.id;
+    return owner ? `hof_agent_workflow_choice:${owner}` : '';
+  }
+
+  window.rememberAgentTransactionChoice = function rememberAgentTransactionChoice(kind, persist = false) {
+    const key = agentTransactionChoiceKey();
+    if (!key) return;
+    try { sessionStorage.setItem(key, kind); } catch (_) {}
+    if (persist && (Boolean(window.navigator?.standalone) || window.matchMedia?.('(display-mode: standalone)').matches)) {
+      try { localStorage.setItem(key, kind); } catch (_) {}
+    }
+  };
+
   window.syncAgentTransactionPicker = function syncAgentTransactionPicker({ focus = false } = {}) {
     const picker = document.getElementById('agentWorkflowStart');
     if (!picker) return;
@@ -8218,9 +8232,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const status = document.getElementById('agentWorkflowStartStatus');
     let savedChoice = '';
     const installedApp = Boolean(window.navigator?.standalone) || window.matchMedia?.('(display-mode: standalone)').matches;
-    try { savedChoice = sessionStorage.getItem('hof_agent_workflow_choice') || ''; } catch (_) {}
-    if (!savedChoice && installedApp) {
-      try { savedChoice = localStorage.getItem('hof_agent_workflow_choice') || ''; } catch (_) {}
+    const key = agentTransactionChoiceKey();
+    if (key) {
+      try { savedChoice = sessionStorage.getItem(key) || ''; } catch (_) {}
+      if (!savedChoice && installedApp) {
+        try { savedChoice = localStorage.getItem(key) || ''; } catch (_) {}
+      }
     }
     const labels = {
       purchase: 'Purchase',
@@ -8238,6 +8255,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         resume.textContent = `Resume ${labels[savedChoice]}`;
         resume.style.display = 'inline-flex';
         resume.onclick = () => {
+          if (agentTransactionChoiceKey() !== key) return;
           window.logOfferEvent?.(null, 'agent_workflow_resume_clicked', 'resumed', 'Agent resumed the last transaction path from the workspace.', { workflow: savedChoice, surface: 'agent_dashboard' });
           startAgentWorkflow(savedChoice);
         };
@@ -8674,10 +8692,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     if (!Object.hasOwn(choices, kind)) return;
     const choice = choices[kind];
     window.hofAgentWorkflowContext = kind;
-    try { sessionStorage.setItem('hof_agent_workflow_choice', kind); } catch (_) {}
-    if (Boolean(window.navigator?.standalone) || window.matchMedia?.('(display-mode: standalone)').matches) {
-      try { localStorage.setItem('hof_agent_workflow_choice', kind); } catch (_) {}
-    }
+    window.rememberAgentTransactionChoice(kind, true);
     document.querySelectorAll('[data-agent-workflow-choice]').forEach((button) => {
       button.setAttribute('aria-pressed', button.dataset.agentWorkflowChoice === kind ? 'true' : 'false');
     });
@@ -26460,7 +26475,7 @@ function hofSpreadsheetCsvCell(value) {
     const workflow = shortcutWorkflow();
     if (!workflow) return '';
     try {
-      sessionStorage.setItem('hof_agent_workflow_choice', workflow);
+      window.rememberAgentTransactionChoice(workflow);
       sessionStorage.removeItem(pendingWorkflowKey);
     } catch (_) {}
     return workflow;
