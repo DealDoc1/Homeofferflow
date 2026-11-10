@@ -5241,11 +5241,24 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || result.error) throw new Error(result.error || 'Could not create a seller payment link.');
-      const delivery = result?.sellerCheckout?.delivery;
-      const checkoutUrl = String(result?.sellerCheckout?.checkoutUrl || '');
+      const checkout = result?.sellerCheckout;
+      const delivery = checkout?.delivery;
+      const expectedDelivery = recovering ? delivery === 'existing' : ['sent', 'failed', 'not_configured'].includes(delivery);
+      const checkoutUrl = typeof checkout?.checkoutUrl === 'string' ? checkout.checkoutUrl : '';
+      let secureCheckoutUrl = false;
+      try {
+        const url = new URL(checkoutUrl);
+        secureCheckoutUrl = url.protocol === 'https:' && !url.username && !url.password;
+      } catch (_) {}
+      if (!expectedDelivery || checkout.sellerLeadId !== leadId.toLowerCase() ||
+          (packageKey && checkout.package !== packageKey) || !secureCheckoutUrl) {
+        window.announceWorkspaceStatus?.('The seller payment link could not be confirmed. Check the updated lead status before trying again.');
+        await loadAdminDashboard(true);
+        return;
+      }
       if (delivery === 'sent') {
         window.announceWorkspaceStatus?.('Seller payment link sent.');
-      } else if (delivery === 'existing' && checkoutUrl) {
+      } else if (delivery === 'existing') {
         try {
           await navigator.clipboard.writeText(checkoutUrl);
           window.announceWorkspaceStatus?.('The existing seller payment link was copied. No new checkout or email was created.');
@@ -5253,7 +5266,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           window.prompt('Copy the existing secure seller payment link:', checkoutUrl);
           window.announceWorkspaceStatus?.('Copy the existing seller payment link shown above. No new checkout or email was created.');
         }
-      } else if (checkoutUrl) {
+      } else {
         try {
           await navigator.clipboard.writeText(checkoutUrl);
           window.announceWorkspaceStatus?.('Email delivery was unavailable. The secure seller payment link was copied so you can send it directly.');
@@ -5261,8 +5274,6 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           window.prompt('Copy the secure seller payment link:', checkoutUrl);
           window.announceWorkspaceStatus?.('Email delivery was unavailable. Copy the secure seller payment link shown above to send it directly.');
         }
-      } else {
-        window.announceWorkspaceStatus?.('Seller payment link was created, but its delivery needs attention.');
       }
       await loadAdminDashboard(true);
     } catch (err) {
