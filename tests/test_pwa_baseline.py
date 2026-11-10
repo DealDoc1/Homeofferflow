@@ -1,4 +1,5 @@
 import json
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -11,6 +12,13 @@ VERCEL = json.loads((ROOT / "vercel.json").read_text(encoding="utf-8"))
 
 
 class PwaBaselineTests(unittest.TestCase):
+    def test_offline_shell_runtime(self):
+        result = subprocess.run(
+            ['node', '--test', str(ROOT / 'tests/service_worker_offline_shell.runtime.cjs')],
+            capture_output=True, text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_all_installable_guide_pages_have_consistent_ios_and_worker_support(self):
         for filename in (
             "texas-home-service-partner-guide.html",
@@ -103,7 +111,7 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertIn("const PUBLIC_PAGE_PATHS = new Set", WORKER)
         self.assertIn("requestUrl.pathname.startsWith('/api/')", WORKER)
         self.assertIn("contentType.includes('text/html')", WORKER)
-        self.assertIn("cache.put(cacheKey, response.clone())", WORKER)
+        self.assertIn("cache.put(cacheKey, offlineCopy)", WORKER)
         self.assertNotIn("caches.match(event.request)", WORKER)
 
     def test_install_precaches_only_low_cost_app_essentials(self):
@@ -120,7 +128,7 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertIn("if (!cacheKey || !response.ok || !contentType.includes('text/html')) return;", WORKER)
         self.assertIn("event.waitUntil", WORKER)
         self.assertIn("? caches.match(cacheKey).then(response => response || caches.match('/index.html'))", WORKER)
-        self.assertIn("cache.put(cacheKey, response.clone())", WORKER)
+        self.assertIn("cache.put(cacheKey, offlineCopy)", WORKER)
         self.assertNotIn("cache.put(event.request", WORKER)
 
     def test_worker_keeps_public_pages_separate_in_the_offline_cache(self):

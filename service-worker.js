@@ -1,7 +1,7 @@
 // Bump the shell whenever a released public workflow changes. That makes an
 // already-installed app fetch the new worker and retire stale public pages.
 // The worker activates in the background but never reloads an open workflow.
-const SHELL_CACHE = 'homeofferflow-shell-v178';
+const SHELL_CACHE = 'homeofferflow-shell-v179';
 const SHELL_ASSETS = [
   // Keep installation lightweight. Public pages cache after the visitor has
   // actually opened them; preloading every guide would spend bandwidth for
@@ -83,13 +83,25 @@ self.addEventListener('fetch', event => {
   // Never cache API, authenticated, signed-document, or third-party requests.
   if (requestUrl.origin !== self.location.origin || requestUrl.pathname.startsWith('/api/')) return;
 
+  if (event.request.mode !== 'navigate' &&
+      SHELL_ASSETS.includes(requestUrl.pathname + requestUrl.search) &&
+      !event.request.headers.has('Authorization') && !event.request.headers.has('Range')) {
+    event.respondWith(fetch(event.request).catch(async error => {
+      const cache = await caches.open(SHELL_CACHE);
+      const cached = await cache.match(event.request);
+      if (cached) return cached;
+      throw error;
+    }));
+    return;
+  }
+
   // The shell stays network-first and bypasses the browser HTTP cache, so a
   // completed deploy is visible immediately even when the prior public page
   // was recently opened in an installed app or browser tab.
   // Refresh the cached *public* HTML shell after a successful navigation. That
   // lets a recently used installed app open the current interface when it goes
   // offline, without ever caching API, document, or account-specific responses.
-  // Only a navigation request can fall back to the cached shell while offline.
+  // Only navigation requests can fall back to cached HTML while offline.
   if (event.request.mode === 'navigate') {
     const networkResponse = fetch(event.request, { cache: 'no-store' });
     const cacheKey = PUBLIC_PAGE_PATHS.has(requestUrl.pathname) ? requestUrl.pathname : '';
@@ -102,7 +114,8 @@ self.addEventListener('fetch', event => {
       networkResponse.then(response => {
         const contentType = response.headers.get('content-type') || '';
         if (!cacheKey || !response.ok || !contentType.includes('text/html')) return;
-        return caches.open(SHELL_CACHE).then(cache => cache.put(cacheKey, response.clone()));
+        const offlineCopy = response.clone();
+        return caches.open(SHELL_CACHE).then(cache => cache.put(cacheKey, offlineCopy));
       }).catch(() => undefined)
     );
   }
