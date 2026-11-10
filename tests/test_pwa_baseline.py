@@ -157,7 +157,7 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertEqual(buyer_offer["icons"][0]["src"], "/assets/homeofferflow-app-icon-192.png")
         self.assertIn("const validActions = new Set(['workspace', 'brokerage_setup', 'transaction_start', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'investor_workspace', 'partner_marketplace', 'buyer_offer']);", INDEX)
         self.assertIn("const validTransactionWorkflows = new Set(['purchase', 'sale_listing', 'lease_listing', 'lease_representation']);", INDEX)
-        self.assertIn("sessionStorage.setItem('hof_agent_workflow_choice', workflow)", INDEX)
+        self.assertIn("window.rememberAgentTransactionChoice(workflow)", INDEX)
         self.assertIn("if (action === 'transaction_start')", INDEX)
         self.assertIn("if (action === 'buyer_offer')", INDEX)
         self.assertIn("window.beginOfferFrom?.('pwa_buyer_offer');", INDEX)

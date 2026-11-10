@@ -8,7 +8,9 @@ const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const start = html.indexOf('  window.startAgentWorkflow = function startAgentWorkflow(kind) {');
 const end = html.indexOf('\n  }\n\n  const HOF_OFFER_WORKSPACE_PAGE_SIZE', start);
 assert.ok(start >= 0 && end > start, 'Agent transaction launcher must be present');
-const source = html.slice(start, end + '\n  }'.length);
+const pickerStart = html.indexOf('  function agentTransactionChoiceKey()');
+const pickerEnd = html.indexOf('  window.openAgentTransactionPicker =', pickerStart);
+const source = html.slice(pickerStart, pickerEnd) + html.slice(start, end + '\n  }'.length);
 
 function setup() {
   const calls = [];
@@ -25,6 +27,7 @@ function setup() {
   };
   const window = {
     document,
+    hofAuth: {session: {user: {id: 'agent-a'}}},
     navigator: {standalone: false},
     matchMedia: () => ({matches: false}),
     setTimeout: callback => { timers.push(callback); return timers.length; },
@@ -53,7 +56,7 @@ for (const [workflow, packageLabel] of [
     ['event', `agent_workflow_${workflow}_selected`, 'selected', 'Agent selected a transaction workflow from the workspace start.', {workflow}],
     ['tab', 'seller'],
   ]);
-  assert.equal(page.storage.get('hof_agent_workflow_choice'), workflow);
+  assert.equal(page.storage.get('hof_agent_workflow_choice:agent-a'), workflow);
   assert.equal(page.window.hofAgentWorkflowContext, workflow);
   assert.equal(page.choices.find(choice => choice.dataset.agentWorkflowChoice === workflow)['aria-pressed'], 'true');
 
@@ -96,7 +99,7 @@ for (const [workflow, expectedInterview] of [
     assert.deepEqual(opened, [expectedInterview]);
     assert.equal(page.calls.filter(call => call[0] === 'tab').length, 0);
     assert.equal(page.window.hofAgentWorkflowContext, workflow);
-    assert.equal(page.storage.get('hof_agent_workflow_choice'), workflow);
+    assert.equal(page.storage.get('hof_agent_workflow_choice:agent-a'), workflow);
   });
 }
 
@@ -115,7 +118,7 @@ test('tenant representation skips the redundant package question and opens the a
   ]]);
   assert.equal(page.calls.filter(call => call[0] === 'tab').length, 0);
   assert.equal(page.window.hofAgentWorkflowContext, 'lease_representation');
-  assert.equal(page.storage.get('hof_agent_workflow_choice'), 'lease_representation');
+  assert.equal(page.storage.get('hof_agent_workflow_choice:agent-a'), 'lease_representation');
 });
 
 test('unknown transaction keys leave the current chooser untouched', () => {
@@ -126,4 +129,27 @@ test('unknown transaction keys leave the current chooser untouched', () => {
   assert.deepEqual(page.calls, []);
   assert.equal(page.storage.size, 0);
   assert.equal(page.window.hofAgentWorkflowContext, undefined);
+});
+
+test('the saved path belongs to the current login and a stale Resume click is ignored', () => {
+  const page = setup();
+  const resume = {style: {}};
+  page.elements.set('agentWorkflowStart', {});
+  page.elements.set('agentWorkflowResume', resume);
+  page.window.rememberAgentTransactionChoice('lease_representation');
+  page.window.syncAgentTransactionPicker();
+  assert.equal(resume.textContent, 'Resume Tenant representation');
+  const staleClick = resume.onclick;
+  page.window.hofAuth.session.user.id = 'agent-b';
+  staleClick();
+  assert.deepEqual(page.calls, []);
+  page.window.syncAgentTransactionPicker();
+  assert.equal(resume.style.display, 'none');
+  assert.equal(resume.onclick, null);
+  page.window.rememberAgentTransactionChoice('purchase');
+  page.window.syncAgentTransactionPicker();
+  assert.equal(resume.textContent, 'Resume Purchase');
+  page.window.hofAuth.session.user.id = 'agent-a';
+  page.window.syncAgentTransactionPicker();
+  assert.equal(resume.textContent, 'Resume Tenant representation');
 });
