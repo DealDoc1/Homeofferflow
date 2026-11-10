@@ -120,7 +120,15 @@ let focused;
   assert.equal(search.value,'');assert.equal(visible(),5);assert.equal(focused.dataset.preview,'notice');
   paged=true;
   const firstPage=Array.from({length:100},(_,i)=>({id:'page-'+i,form_code:'TXR-1507',client_names:['Recent QA '+i],status:'draft'}));
-  const secondPage=[{...firstPage[0],status:'signed',signwell_document_id:'tracked'},...Array.from({length:99},(_,i)=>({id:'old-'+i,form_code:'TXR-1506',client_names:[i===0?'Older Client':'Archive QA '+i],status:'draft'}))];
+  for (const index of [1, 2]) {
+    Object.assign(firstPage[index], {status:'signed',signwell_document_id:'tracked-'+index,updated_at:'2026-11-10T18:00:00Z'});
+  }
+  const secondPage=[
+    {...firstPage[0],status:'signed',signwell_document_id:'tracked',updated_at:'2026-11-10T17:00:00Z'},
+    {...firstPage[1],status:'draft',signwell_document_id:null,updated_at:'2026-11-10T17:00:00Z'},
+    {...firstPage[2],status:'draft',signwell_document_id:null,updated_at:null},
+    ...Array.from({length:97},(_,i)=>({id:'old-'+i,form_code:'TXR-1506',client_names:[i===0?'Older Client':'Archive QA '+i],status:'draft'})),
+  ];
   pages={0:{agreements:firstPage,pagination:{hasMore:true,nextOffset:100}},100:{agreements:secondPage,pagination:{hasMore:true,nextOffset:200}},200:{agreements:[],pagination:{hasMore:false,nextOffset:null}}};
   await root.hofOpenPreparedAgreement();assert.equal(more.hidden,false);
   input('Older Client');assert.equal(visible(),0);
@@ -133,8 +141,9 @@ let focused;
   more.focus();
   const beforePage=loads;const pageRequest=more.events.click();await more.events.click();
   assert.equal(loads,beforePage+1);assert.equal(more.disabled,true);resume();await pageRequest;
-  assert.equal(search.value,'Older Client');assert.equal(rows.length,199);assert.equal(visible(),1);
-  assert.equal(offsets.at(-1),100);assert.equal(buttons['[data-download-completed]'].length,1);assert.equal(focused.dataset.preview,'old-0');
+  assert.equal(search.value,'Older Client');assert.equal(rows.length,197);assert.equal(visible(),1);
+  assert.equal(offsets.at(-1),100);
+  assert.deepEqual(buttons['[data-download-completed]'].map(button=>button.dataset.downloadCompleted),['page-0','page-1','page-2']);assert.equal(focused.dataset.preview,'old-0');
   await root.hofOpenPreparedAgreement();
   let finishWhileTyping;
   hold={offset:100,promise:new Promise(resolve=>finishWhileTyping=resolve)};
@@ -145,7 +154,7 @@ let focused;
   pages[200]={agreements:[],pagination:{hasMore:true,nextOffset:200}};
   const beforeBadPage=listHtml;await more.events.click();assert.equal(listHtml,beforeBadPage);assert.equal(more.hidden,false);
   pages[200]={agreements:[],pagination:{hasMore:false,nextOffset:null}};
-  await more.events.click();assert.equal(more.hidden,true);assert.equal(rows.length,199);
+  await more.events.click();assert.equal(more.hidden,true);assert.equal(rows.length,197);
   await root.hofOpenPreparedAgreement();
   let finishOld;hold={offset:100,promise:new Promise(resolve=>finishOld=resolve)};
   const oldPage=more.events.click();await root.hofOpenPreparedAgreement('page-0');
