@@ -219,9 +219,14 @@
     notice.innerHTML = '<strong style="display:block;color:#bce8d0;margin-bottom:.2rem">A newer HomeOfferFlow version is ready</strong><span style="display:block;color:#b6c4d5;margin-bottom:.55rem">Refresh when you are finished with this page to use the latest version.</span><button type="button" id="hofPublicPwaUpdateButton" style="padding:.45rem .65rem;border:0;border-radius:7px;background:#6db38f;color:#102033;font-weight:800;cursor:pointer">Refresh for latest version</button>';
     document.body.appendChild(notice);
     let refreshRequested = false;
+    const waitForConnection = () => {
+      if (navigator.onLine !== false) return false;
+      notice.querySelector('span').textContent = 'Reconnect to update HomeOfferFlow. You can keep this page open.';
+      return true;
+    };
     notice.querySelector('#hofPublicPwaUpdateButton')?.addEventListener('click', () => {
       const waiting = registration.waiting;
-      if (refreshRequested) return;
+      if (refreshRequested || waitForConnection()) return;
       refreshRequested = true;
       if (!waiting) {
         window.location.reload();
@@ -231,6 +236,8 @@
       const reloadAfterActivation = () => {
         if (refreshed) return;
         refreshed = true;
+        refreshRequested = false;
+        if (waitForConnection()) return;
         window.location.reload();
       };
       navigator.serviceWorker.addEventListener('controllerchange', reloadAfterActivation, { once: true });

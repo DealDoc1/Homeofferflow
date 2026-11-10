@@ -151,6 +151,25 @@ class PwaUpdateRuntimeTests(unittest.TestCase):
           assert.equal(reloads,1);
         ''', mode='standalone')
 
+    def test_update_waits_for_connection_before_activation_and_reload(self):
+        self.run_js('''
+          navigator.onLine=false;
+          clickUpdate();
+          assert.equal(messages.length,0);
+          assert.equal(reloads,0);
+          assert.match(card().querySelector(surface === 'workspace' ? 'p' : 'span').textContent,/Reconnect/);
+          navigator.onLine=true;
+          clickUpdate();
+          assert.equal(messages.length,1);
+          navigator.onLine=false;
+          registration.waiting=null;
+          activate();
+          assert.equal(reloads,0);
+          navigator.onLine=true;
+          clickUpdate();
+          assert.equal(reloads,1);
+        ''', mode='standalone')
+
     def test_updatefound_prompts_when_the_browser_reports_a_waiting_worker(self):
         self.run_js('''
           assert.equal(nodes.size,0);
