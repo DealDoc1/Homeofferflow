@@ -144,7 +144,7 @@ async function run() {
     const s=setup();s.respond(0);await tick();
     const refresh=s.search('');
     s.requests[1].reject(new Error('Refresh failed'));await refresh;
-    assert.match(s.elements.status.textContent,/Showing results from your last search/);
+    assert.match(s.elements.status.textContent,/Showing earlier results for All categories · All Texas markets/);
     assert.match(s.elements.results.innerHTML,/Test Roofing/);
     assert.match(s.elements.results.innerHTML,/data-directory-retry/);
     assert.equal(s.events.filter(e=>e.event_type==='partner_directory_impression').length,1);
@@ -152,6 +152,16 @@ async function run() {
     assert.equal(s.elements.results.innerHTML,'');
     s.requests[2].reject(new Error('New search failed'));await different;
     assert.doesNotMatch(s.elements.results.innerHTML,/Test Roofing/);
+  }
+  {
+    const s=setup();
+    s.elements.market.value='Denton';
+    const search=s.search('roofing');
+    assert.match(s.elements.status.textContent,/Loading provider profiles for Roofing · Denton/);
+    s.elements.market.value='Plano';
+    s.respond(1);await search;
+    assert.match(s.elements.status.textContent,/found for Roofing · Denton/);
+    assert.doesNotMatch(s.elements.status.textContent,/Plano/);
   }
   console.log('12 actual-source provider search cases passed, including cached-library reproduction and recovery');
 }
