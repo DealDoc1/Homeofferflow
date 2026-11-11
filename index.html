@@ -289,16 +289,23 @@
     }
 
     openWizard(true, restoredLocalDraft);
+    const notice = document.getElementById(restoredLocalDraft
+      ? 'paymentCheckoutReturnNotice' : 'paymentCheckoutMissingDraftNotice');
     if (restoredLocalDraft) {
       const paymentStep = getCurrentSteps().indexOf('step9');
       if (paymentStep >= 0) showStep(paymentStep);
       if (state.selectedPlan && state.selectedPrice) selectPlan(state.selectedPlan, state.selectedPrice);
-      const notice = document.getElementById('paymentCheckoutReturnNotice');
       if (notice) notice.style.display = 'block';
     } else {
-      const notice = document.getElementById('paymentCheckoutMissingDraftNotice');
       if (notice) notice.hidden = false;
     }
+    if (notice) setTimeout(() => {
+      const wizard = document.getElementById('wizardOverlay');
+      if (wizard?.classList.contains('active') && notice.closest('.wizard-step')?.classList.contains('active') &&
+          (document.activeElement === wizard || document.activeElement === document.body)) {
+        notice.focus({ preventScroll: true });
+      }
+    }, 0);
     try { trackEvent('Payment Checkout Cancelled Returned', { plan: state.selectedPlan || 'self' }); } catch (e) {}
     recordHomebuyerCheckoutEvent('homebuyer_checkout_cancelled');
 
@@ -3458,7 +3465,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
   <div class="wizard-body">
     <div class="wizard-step active" id="step0">
-      <div id="paymentCheckoutMissingDraftNotice" class="notice sage" hidden role="status">Checkout was cancelled. We couldn’t recover your offer in this browser. If you started it on another device or browser, return there to look for your saved offer. You can also start here.</div>
+      <div id="paymentCheckoutMissingDraftNotice" class="notice sage" hidden role="status" tabindex="-1">Checkout was cancelled. We couldn’t recover your offer in this browser. If you started it on another device or browser, return there to look for your saved offer. You can also start here.</div>
       <div class="hof-interview-guide" data-hof-guide="step0">
         <div class="hof-guide-kicker">✨ Welcome</div>
         <div class="hof-guide-title">Let’s build your offer together.</div>
@@ -4390,7 +4397,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       </div>
       <h2>Review your packet</h2>
       <p class="step-desc">Your self-service Texas buyer-offer packet is ready to purchase for $99.</p>
-      <div id="paymentCheckoutReturnNotice" class="notice sage" style="display:none; margin-bottom:1rem;" role="status" aria-live="polite"><strong>Your offer is still saved.</strong> Checkout was not completed, and no charge was made. To resume, confirm the one-time packet acknowledgement and receipt email below; payment is not restarted until you submit your application.<br><span id="paymentCheckoutResumeHelp" style="display:block;margin-top:.45rem;color:var(--gray-light);font-size:.82rem;">You can review and update those details before resuming.</span><button id="paymentCheckoutResumeButton" class="btn-secondary" type="button" style="margin-top:.65rem;" onclick="resumeCancelledBuyerCheckout()">Review confirmations and resume secure checkout</button></div>
+      <div id="paymentCheckoutReturnNotice" tabindex="-1" class="notice sage" style="display:none; margin-bottom:1rem;" role="status" aria-live="polite"><strong>Your offer is still saved.</strong> Checkout was not completed, and no charge was made. To resume, confirm the one-time packet acknowledgement and receipt email below; payment is not restarted until you submit your application.<br><span id="paymentCheckoutResumeHelp" style="display:block;margin-top:.45rem;color:var(--gray-light);font-size:.82rem;">You can review and update those details before resuming.</span><button id="paymentCheckoutResumeButton" class="btn-secondary" type="button" style="margin-top:.65rem;" onclick="resumeCancelledBuyerCheckout()">Review confirmations and resume secure checkout</button></div>
       <div id="packetGenerationRecoveryNotice" class="notice gold" style="display:none; margin-bottom:1rem;" role="status" aria-live="polite"><strong>Check your packet status.</strong><span id="packetGenerationRecoveryMessage" style="display:block; margin-top:.35rem;"></span><button id="packetGenerationRetryButton" class="btn-secondary" type="button" style="margin-top:.65rem;">View next step</button></div>
       <div style="display:grid; grid-template-columns:1fr; gap:0.6rem; margin-bottom:1.5rem;">
         <div class="pricing-card popular" id="plan-self" onclick="selectPlan('self', 99)"><div class="popular-badge">Current packet</div><div class="plan-name">Self-Serve Buyer Offer Packet</div><div class="plan-price">$99</div><div class="plan-features"><div class="plan-feature">✓ Guided buyer-offer questions</div><div class="plan-feature">✓ Supported purchase addenda</div><div class="plan-feature">✓ Buyer-side signing delivery</div></div></div>
