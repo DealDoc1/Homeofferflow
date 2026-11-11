@@ -54,7 +54,7 @@ class PacketDeliverySummaryTests(unittest.TestCase):
         end = HTML.index('  function backToHomeAfterPayment(', start)
         harness = '''
           const elements = Object.fromEntries(['successEmail', 'successEmailLabel',
-            'successMessage', 'successHeading', 'successDeliveryStep',
+            'successMessage', 'successCheckoutHelp', 'successHeading', 'successDeliveryStep',
             'successSignatureStep', 'successRevisionStep', 'successPrimaryAction',
             'successPendingDocuments'].map(id => [id, {textContent:'', hidden:id === 'successPendingDocuments'}]));
           const document = {getElementById: id => elements[id] || null};
@@ -95,6 +95,7 @@ class PacketDeliverySummaryTests(unittest.TestCase):
         fields = rendered['elements']
         self.assertEqual(fields['successEmail']['textContent'], 'buyer@example.com')
         self.assertEqual(fields['successHeading']['textContent'], 'Packet generated')
+        self.assertTrue(fields['successCheckoutHelp']['hidden'])
         self.assertIn('Retry signing', fields['successSignatureStep']['textContent'])
         self.assertEqual(rendered['displayed'], 0)
 
@@ -104,6 +105,7 @@ class PacketDeliverySummaryTests(unittest.TestCase):
         self.assertEqual(rendered['elements']['successHeading']['textContent'], 'We’re confirming your checkout')
         self.assertTrue(rendered['elements']['successHeading']['focused'])
         self.assertEqual(rendered['elements']['successEmailLabel']['textContent'], 'Receipt email')
+        self.assertFalse(rendered['elements']['successCheckoutHelp']['hidden'])
 
     def test_displaying_checkout_result_never_writes_offer_status_or_usage(self):
         for role in ('homebuyer', 'agent', 'investor', 'brokerage_admin'):
