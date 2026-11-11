@@ -12,7 +12,7 @@ function setup(kind='canonical') {
   const reads=[],iabsRequests=[],renders=[],removed=[];
   const c=vm.createContext({hofAuth:{session:{user:{id:'owner'}},role:'agent',accountProfile:null,agentIabsDocument:null},
     state:{data:{userType:'agent',includeAgentIabs:true}},
-    document:{getElementById:id=>({remove:()=>removed.push(id)})},
+    document:{getElementById:id=>({dataset:{},remove:()=>removed.push(id)})},
     normalizeAccountRole:role=>role||'agent',
     getSupabaseClient:()=>({from:table=>{
       const query={table,filters:[]};const chain={select:()=>chain,eq:(...filter)=>{query.filters.push(filter);return chain;},
