@@ -4689,6 +4689,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     window.hofClosePdfPreview?.(false);
     document.getElementById('privateFormDraftsCard')?.remove();
     window.__hofAccountProfileEpoch = (window.__hofAccountProfileEpoch || 0) + 1;
+    const adminContent = document.getElementById('adminDashboardContent');
+    if (adminContent) {
+      adminContent.dataset.loaded = '0';
+      adminContent.textContent = 'Click Refresh Admin Data to load the dashboard.';
+    }
+    window.hofAdminTrackerPayload = null;
     hofAuth.myOffers = [];
     hofAuth.myOffersHasMore = false;
     hofAuth.myOffersLoadMoreError = false;
@@ -4713,6 +4719,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       window.hofPlatform.brokerageMembership = null;
       window.hofPlatform.brokerageAgents = [];
       window.hofPlatform.brokerageLoadError = '';
+      window.hofPlatform.roadmap = [];
+      window.hofPlatform.qaScenarios = [];
+      window.hofPlatform.releases = [];
     }
     window.__hofBrokerageLoad = null;
     window.__hofBrokerageRender = null;
@@ -5487,6 +5496,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     }
   }
 
+  let adminDashboardRequestVersion = 0;
+
   async function loadAdminDashboard(force = false) {
     const target = document.getElementById('adminDashboardContent');
     if (!target) return;
@@ -5498,8 +5509,14 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       target.innerHTML = '<div class="admin-empty">Admin access is not enabled for this account.</div>';
       return;
     }
-    if (!force && target.dataset.loaded === '1') return;
+    if (!force && target.dataset.loaded === '1') return true;
 
+    const requestVersion = ++adminDashboardRequestVersion;
+    const accountId = hofAuth.session.user?.id;
+    const accountEpoch = window.__hofAccountProfileEpoch;
+    const isCurrent = () => requestVersion === adminDashboardRequestVersion &&
+      accountId === hofAuth.session?.user?.id && accountEpoch === window.__hofAccountProfileEpoch &&
+      target === document.getElementById('adminDashboardContent') && isCurrentAdmin();
     target.dataset.loaded = '0';
     target.innerHTML = '<div class="admin-empty">Loading admin dashboard...</div>';
     try {
@@ -5521,6 +5538,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       } finally {
         window.clearTimeout(requestTimeout);
       }
+      if (!isCurrent()) return;
       if (!response.ok || result?.error || !result?.metrics || typeof result.metrics !== 'object' ||
           Array.isArray(result.metrics)) {
         throw new Error(result?.error || 'Admin dashboard failed to load. Use Refresh Admin Data to try again.');
@@ -6027,7 +6045,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         </div>
       `;
       target.dataset.loaded = '1';
+      return true;
     } catch (err) {
+      if (!isCurrent()) return;
       console.error('Admin dashboard load failed:', err);
       const message = err?.name === 'AbortError'
         ? 'Admin dashboard timed out. Refresh to try again; no data was changed.'
@@ -17388,10 +17408,18 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
   const hofOriginalLoadAdminDashboard = typeof loadAdminDashboard === 'function' ? loadAdminDashboard : null;
   if (hofOriginalLoadAdminDashboard) {
     loadAdminDashboard = async function(force = false) {
-      await hofOriginalLoadAdminDashboard(force);
+      const accountId = hofAuth.session?.user?.id;
+      const accountEpoch = window.__hofAccountProfileEpoch;
+      const loading = hofOriginalLoadAdminDashboard(force);
+      const requestVersion = adminDashboardRequestVersion;
+      if (!await loading) return;
       const target = document.getElementById('adminDashboardContent');
-      if (target?.dataset.loaded === '1' && isCurrentAdmin()) {
+      const isCurrent = () => requestVersion === adminDashboardRequestVersion &&
+        accountId === hofAuth.session?.user?.id && accountEpoch === window.__hofAccountProfileEpoch &&
+        target === document.getElementById('adminDashboardContent') && isCurrentAdmin();
+      if (target?.dataset.loaded === '1' && isCurrent()) {
         const roadmapHtml = await renderRoadmapFoundationBlock();
+        if (!isCurrent()) return;
         if (!target.innerHTML.includes('Revenue-Led Product Roadmap — Supabase Source of Truth')) target.insertAdjacentHTML('beforeend', roadmapHtml);
       }
     };
