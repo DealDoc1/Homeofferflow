@@ -5216,7 +5216,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   }
 
   async function sendSellerCheckoutRequest(leadId, action = 'create_seller_checkout_request', packageKey = '', button = null) {
-    if (!hofAuth?.session?.access_token || pendingSellerCheckoutLeads.has(leadId)) return;
+    const accessToken = hofAuth?.session?.access_token;
+    if (!accessToken || pendingSellerCheckoutLeads.has(leadId)) return;
+    const accountId = hofAuth.session.user?.id;
+    const accountEpoch = window.__hofAccountProfileEpoch;
+    const isCurrent = () => Boolean(hofAuth?.session?.access_token) &&
+      hofAuth.session.user?.id === accountId && window.__hofAccountProfileEpoch === accountEpoch;
     const recovering = action === 'recover_seller_checkout_request';
     const packageDetails = packageKey === 'seller_prep'
       ? { name: 'Seller Prep Plan', price: '$299' }
@@ -5236,10 +5241,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     try {
       const response = await fetch('/api/admin-dashboard', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${hofAuth.session.access_token}`},
+        headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}`},
         body: JSON.stringify({action, seller_lead_id: leadId, scope_confirmed: true})
       });
       const result = await response.json().catch(() => ({}));
+      if (!isCurrent()) return;
       if (!response.ok || result.error) throw new Error(result.error || 'Could not create a seller payment link.');
       const checkout = result?.sellerCheckout;
       const delivery = checkout?.delivery;
@@ -5261,23 +5267,27 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       } else if (delivery === 'existing') {
         try {
           await navigator.clipboard.writeText(checkoutUrl);
+          if (!isCurrent()) return;
           window.announceWorkspaceStatus?.('The existing seller payment link was copied. No new checkout or email was created.');
         } catch (_) {
+          if (!isCurrent()) return;
           window.prompt('Copy the existing secure seller payment link:', checkoutUrl);
           window.announceWorkspaceStatus?.('Copy the existing seller payment link shown above. No new checkout or email was created.');
         }
       } else {
         try {
           await navigator.clipboard.writeText(checkoutUrl);
+          if (!isCurrent()) return;
           window.announceWorkspaceStatus?.('Email delivery was unavailable. The secure seller payment link was copied so you can send it directly.');
         } catch (_) {
+          if (!isCurrent()) return;
           window.prompt('Copy the secure seller payment link:', checkoutUrl);
           window.announceWorkspaceStatus?.('Email delivery was unavailable. Copy the secure seller payment link shown above to send it directly.');
         }
       }
       await loadAdminDashboard(true);
     } catch (err) {
-      window.announceWorkspaceStatus?.(err?.message || 'Could not create a seller payment link.');
+      if (isCurrent()) window.announceWorkspaceStatus?.(err?.message || 'Could not create a seller payment link.');
     } finally {
       pendingSellerCheckoutLeads.delete(leadId);
       if (button?.isConnected) {
