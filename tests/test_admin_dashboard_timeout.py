@@ -12,3 +12,10 @@ class AdminDashboardTimeoutTests(unittest.TestCase):
         self.assertIn("signal: controller.signal", INDEX)
         self.assertIn("window.clearTimeout(requestTimeout)", INDEX)
         self.assertIn("Admin dashboard timed out. Refresh to try again; no data was changed.", INDEX)
+
+    def test_timeout_covers_reading_the_dashboard_response_body(self):
+        start = INDEX.index("  async function loadAdminDashboard(")
+        end = INDEX.index("  async function sendMagicLink(", start)
+        loader = INDEX[start:end]
+        self.assertLess(loader.index("await response.json()"), loader.index("window.clearTimeout(requestTimeout)"))
+        self.assertLess(loader.index("if (controller.signal.aborted)"), loader.index("window.clearTimeout(requestTimeout)"))

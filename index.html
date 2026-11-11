@@ -5500,6 +5500,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     }
     if (!force && target.dataset.loaded === '1') return;
 
+    target.dataset.loaded = '0';
     target.innerHTML = '<div class="admin-empty">Loading admin dashboard...</div>';
     try {
       const token = hofAuth.session.access_token;
@@ -5508,20 +5509,24 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       // 15 seconds. Keep a finite timeout without treating a healthy cold
       // start as a failed dashboard.
       const requestTimeout = window.setTimeout(() => controller.abort(), 30000);
-      let response;
+      let response, result;
       try {
         response = await fetch('/api/admin-dashboard', {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}` },
           signal: controller.signal
         });
+        result = await response.json().catch(() => ({}));
+        if (controller.signal.aborted) throw controller.signal.reason;
       } finally {
         window.clearTimeout(requestTimeout);
       }
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok || result.error) throw new Error(result.error || 'Admin dashboard failed to load.');
+      if (!response.ok || result?.error || !result?.metrics || typeof result.metrics !== 'object' ||
+          Array.isArray(result.metrics)) {
+        throw new Error(result?.error || 'Admin dashboard failed to load. Use Refresh Admin Data to try again.');
+      }
 
-      const metrics = result.metrics || {};
+      const metrics = result.metrics;
       const offers = result.offers || [];
       const showings = result.showings || [];
       const subscriptions = result.subscriptions || [];
@@ -5563,7 +5568,6 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       }).join(' · ');
       const calibrationReviewActions = metrics.aiCalibrationReady ? '' : missingCalibrationIds.map(id => `<button type="button" class="admin-contact-action" onclick="startAiCalibrationReview('${id}')">Review ${id}</button>`).join(' ');
 
-      target.dataset.loaded = '1';
       target.innerHTML = `
         <div class="admin-grid">
           <div class="admin-metric">
@@ -6022,6 +6026,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           ${renderAdminRows(prioritizeSellerFollowUpQueue(sellerLeads).slice(0, 24), 'seller-leads')}
         </div>
       `;
+      target.dataset.loaded = '1';
     } catch (err) {
       console.error('Admin dashboard load failed:', err);
       const message = err?.name === 'AbortError'
@@ -17385,7 +17390,7 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     loadAdminDashboard = async function(force = false) {
       await hofOriginalLoadAdminDashboard(force);
       const target = document.getElementById('adminDashboardContent');
-      if (target && isCurrentAdmin()) {
+      if (target?.dataset.loaded === '1' && isCurrentAdmin()) {
         const roadmapHtml = await renderRoadmapFoundationBlock();
         if (!target.innerHTML.includes('Revenue-Led Product Roadmap — Supabase Source of Truth')) target.insertAdjacentHTML('beforeend', roadmapHtml);
       }
