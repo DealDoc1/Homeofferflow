@@ -24808,11 +24808,25 @@ function hofSpreadsheetCsvCell(value) {
     }
   }
 
+  async function readAgreementPdf(response, signal) {
+    signal.throwIfAborted();
+    const mimeType = response.headers.get('content-type')?.split(';')[0].trim().toLowerCase();
+    const invalidPdf = 'Please try again. The response did not contain a PDF.';
+    if (mimeType !== 'application/pdf') throw new Error(invalidPdf);
+    const blob = await response.blob();
+    signal.throwIfAborted();
+    if (!blob.size) throw new Error('Please try again. The document download was empty.');
+    const header = await blob.slice(0, 5).text();
+    signal.throwIfAborted();
+    if (header !== '%PDF-') throw new Error(invalidPdf);
+    return blob;
+  }
+
   async function downloadCompletedAgreementPdf(agreement, button) {
     const session = root.hofAuth?.session;
-    const epoch = root.__hofAccountProfileEpoch;
+    const actor = captureViewer();
     const isCurrent = () => root.hofAuth?.session === session &&
-      root.__hofAccountProfileEpoch === epoch && button.isConnected;
+      viewerIsCurrent(actor) && button.isConnected;
     const originalText = button.textContent;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 60000);
@@ -24830,8 +24844,7 @@ function hofSpreadsheetCsvCell(value) {
         throw new Error(result.error || 'Could not download the completed PDF.');
       }
       if (!isCurrent()) return;
-      if (response.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== 'application/pdf') throw new Error('Completed PDF response was not a PDF.');
-      const blob = await response.blob();
+      const blob = await readAgreementPdf(response, controller.signal);
       if (!isCurrent()) return;
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -24861,9 +24874,9 @@ function hofSpreadsheetCsvCell(value) {
   async function previewAgreementPdf(agreement, button) {
     const request = latestAgreementPreview = {};
     const session = root.hofAuth?.session;
-    const epoch = root.__hofAccountProfileEpoch;
+    const actor = captureViewer();
     const isCurrent = () => latestAgreementPreview === request && root.hofAuth?.session === session &&
-      root.__hofAccountProfileEpoch === epoch && button.isConnected;
+      viewerIsCurrent(actor) && button.isConnected;
     const originalText = button.textContent;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 60000);
@@ -24888,7 +24901,7 @@ function hofSpreadsheetCsvCell(value) {
         throw new Error(result.error || (isCompleted ? 'Completed PDF preview is unavailable.' : 'Document preview is unavailable.'));
       }
       if (!root.hofShowPdfPreview) throw new Error('PDF preview is temporarily unavailable.');
-      const blob = await response.blob();
+      const blob = await readAgreementPdf(response, controller.signal);
       if (!isCurrent()) return;
       root.hofShowPdfPreview(blob, agreement.form_code, button);
     } catch (error) {

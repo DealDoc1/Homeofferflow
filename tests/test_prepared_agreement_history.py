@@ -2,6 +2,7 @@
 import asyncio
 import copy
 import importlib.util
+import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
@@ -15,6 +16,13 @@ OWNER = '11111111-1111-4111-8111-111111111111'
 
 
 class PreparedAgreementHistoryTests(unittest.TestCase):
+    def test_pdf_controls_recover_and_keep_downloads_account_scoped(self):
+        result = subprocess.run(
+            ['node', '--test', str(ROOT / 'tests/standalone_document_viewer.runtime.cjs')],
+            capture_output=True, text=True, timeout=20,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def row(self, index=0):
         return {'id':str(index), 'form_code':'TXR-1507', 'client_names':['QA Client'],
                 'status':'signed', 'signwell_document_id':'qa-document',
