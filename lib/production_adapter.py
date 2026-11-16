@@ -495,6 +495,19 @@ def validate_supported_offer(offer):
     verified.hoa_addendum_layout.validate_hoa_answers(offer)
     blocked = []
 
+    water_status = verified.seller_water_disclosure_status(offer)
+    if water_status == "exempt":
+        provider = verified.seller_water_provider(offer)
+        if not provider:
+            blocked.append("city, district, or water supplier for Paragraph 7I(3)(e)")
+        elif len(provider) > 60 or verified.stringWidth(provider, "Helvetica", 7) > 434:
+            blocked.append("water provider name of up to 60 characters for Paragraph 7I(3)(e)")
+    elif water_status == "notReceived":
+        days = str(verified.first_present(offer.get("waterDisclosureDays"),
+                                          offer.get("sellerWaterDisclosureDays"), "3")).strip()
+        if not re.fullmatch(r"[0-9]{1,3}", days) or int(days) < 1:
+            blocked.append("water disclosure delivery days (1 to 999) for Paragraph 7I(2)")
+
     financing = verified.normalize_financing(
         offer.get("financing") or offer.get("financingType") or ""
     )

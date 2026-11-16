@@ -126,6 +126,36 @@ class ControlledLaunchTests(unittest.TestCase):
         packet = adapter.fill_and_merge_20_19(minimal_offer())
         self.assertEqual(len(PdfReader(BytesIO(packet)).pages), 12)
 
+    def test_water_exemption_requires_the_named_provider(self):
+        for answers in (
+            {"sellerWaterDisclosure": "exempt", "sellerWaterProvider": "  "},
+            {"waterDisclosure": "not_required"},
+            {"sellerWaterDisclosureStatus": "notRequired", "waterProvider": 17},
+        ):
+            with self.subTest(answers=answers), self.assertRaisesRegex(
+                adapter.UnsupportedOfferPathError, r"water supplier for Paragraph 7I"
+            ):
+                adapter.fill_and_merge_20_19(minimal_offer(**{"sellerWaterDisclosure": "", **answers}))
+
+    def test_water_exemption_prints_the_legacy_provider_and_omits_stale_days(self):
+        provider = "Municipal Utility District of San José de la Sierra No. 12"
+        packet = adapter.fill_and_merge_20_19(minimal_offer(
+            sellerWaterDisclosure="", waterDisclosure="not_required",
+            waterSourceProvider=provider, waterDisclosureDays="27"
+        ))
+        water_page = PdfReader(BytesIO(packet)).pages[4].extract_text()
+        self.assertIn(provider, water_page)
+        self.assertNotIn("27", water_page)
+
+    def test_water_delivery_days_only_apply_when_disclosure_is_pending(self):
+        answers = {"waterDisclosureDays": "0", "sellerWaterProvider": "Unused Water District"}
+        with self.assertRaisesRegex(adapter.UnsupportedOfferPathError, "water disclosure delivery days"):
+            adapter.validate_supported_offer(minimal_offer(sellerWaterDisclosure="notReceived", **answers))
+        packet = adapter.fill_and_merge_20_19(minimal_offer(
+            sellerWaterDisclosure="received", **answers
+        ))
+        self.assertNotIn("Unused Water District", PdfReader(BytesIO(packet)).pages[4].extract_text())
+
     def test_conventional_packet_appends_two_page_financing_addendum(self):
         packet = adapter.fill_and_merge_20_19(
             minimal_offer(financing="conventional", loanAmount="400000")

@@ -26,6 +26,7 @@ class SubscriberPartialDeliveryRuntimeTests(unittest.TestCase):
         const preflightUsage = async()=>true;
         const collectAllData = ()=>{};
         const confirmControlledLaunchSupport = ()=>true;
+        const validateOfferWaterDisclosureInputs = ()=>true;
         const validateParagraph4LeaseInputs = ()=>true;
         const validateSellerTemporaryLeaseInputs = ()=>true;
         const validateUploadedDisclosureDocs = ()=>true;
