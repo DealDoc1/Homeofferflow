@@ -23,6 +23,13 @@ SPEC.loader.exec_module(MODULE)
 
 
 class ProductionSchemaReadinessTests(unittest.TestCase):
+    def test_listing_migration_preserves_the_core_contract_used_by_disclosure(self):
+        migrations = ROOT / "supabase/migrations"
+        listing = (migrations / "20261017131634_add_txr1101_listing_drafts.sql").read_text()
+        seller = (migrations / "20261018134817_seller_disclosure_questionnaire_access.sql").read_text()
+        self.assertIn("'contract', 'homeofferflow-release-schema-v1'", listing)
+        self.assertIn("baseline ->> 'contract' is distinct from 'homeofferflow-release-schema-v1'", seller)
+
     def test_readiness_probes_new_public_profile_columns_without_reading_rows(self):
         import json
         from contextlib import contextmanager

@@ -99,11 +99,13 @@ AI_CALIBRATION_SCENARIOS = {
 }
 MAX_BODY_BYTES = 12_000
 MAX_AGENT_OFFER_DRAFT_BODY_BYTES = 512 * 1024
+MAX_LISTING_BODY_BYTES = 128_000
 MAX_SOURCE_UPLOAD_BODY_BYTES = 15 * 1024 * 1024
 PUBLIC_APP_ORIGIN = (os.environ.get("PUBLIC_APP_URL") or "https://www.homeofferflow.com").rstrip("/")
 BROKERAGE_INVITE_EMAIL_RE = re.compile(r"(?=.{3,254}$)[^@\s]+@[^@\s]+\.[^@\s]+$")
 BROKERAGE_BRAND_COLOR_RE = re.compile(r"#[0-9a-fA-F]{6}$")
 BROKERAGE_BRANDING_BUCKET = "brokerage-branding"
+TXR_1101_FORM_CODE = "TXR-1101"
 TXR_1501_FORM_CODE = "TXR-1501"
 TXR_1506_FORM_CODE = "TXR-1506"
 TXR_1507_FORM_CODE = "TXR-1507"
@@ -178,6 +180,7 @@ TXR_RENDER_REVISIONS = {
 }
 
 TXR_SIGNING_MAP_REVISIONS = {
+    TXR_1101_FORM_CODE: "txr-1101-2026-06-15-execution-v1",
     TXR_1948_FORM_CODE: "txr-1948-2026-09-18-continuation-candidate-v2",
     TXR_1917_FORM_CODE: "txr-1917-2026-09-18-execution-candidate-v2",
     TXR_1905_FORM_CODE: "txr-1905-2026-09-18-execution-candidate-v2",
@@ -209,6 +212,10 @@ TXR_SIGNING_MAP_REVISION_ENFORCED_FORM_CODES = {
     TREC_38_8_FORM_CODE,
     TREC_39_11_FORM_CODE,
 }
+
+
+class ListingSaveUnconfirmed(RuntimeError):
+    """A listing draft write did not return a verifiable owner-scoped row."""
 
 
 def _current_txr_signing_map_revision(form_code, agreement_data):
@@ -3700,6 +3707,37 @@ def _parse_txr_1507_draft(data):
     }
 
 
+def _parse_txr_1101_draft(data):
+    """Validate source-backed seller-listing answers at the API boundary."""
+    from lib.txr_1101 import validate_answers
+    if data.get("formCode") != TXR_1101_FORM_CODE:
+        raise ValueError("Only TXR-1101 is available through this action.")
+    try:
+        source_id = str(uuid.UUID(str(data.get("formSourceId") or "")))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("Choose an available sale-listing agreement from the HomeOfferFlow library.")
+    answers = data.get("agreementData")
+    if not isinstance(answers, dict) or "client_names" in answers or "_for_signing" in answers:
+        raise ValueError("Enter the listing agreement details using the named seller fields.")
+    parsed = validate_answers({**answers, "client_names": data.get("clientNames")})
+    return {"form_source_id": source_id, "client_names": parsed.pop("client_names"), "agreement_data": parsed}
+
+
+def _txr1101_stored_answers(agreement_data, client_names=None):
+    """Validate saved answers while excluding only server-owned delivery metadata."""
+    from lib.txr_1101 import validate_answers
+    metadata = {signwell_delivery.JOURNAL_KEY, "client_emails", "broker_signer", "signing_map_revision",
+                "signwellStatus", "signwellDocumentId", "signwellLastStatusRefresh"}
+    if not isinstance(agreement_data, dict):
+        raise ValueError("The saved listing agreement details are unavailable.")
+    answers = {key: value for key, value in agreement_data.items() if key not in metadata}
+    if client_names is not None:
+        if "client_names" in answers and answers["client_names"] != client_names:
+            raise ValueError("The saved listing agreement parties do not match.")
+        answers["client_names"] = client_names
+    return validate_answers(answers)
+
+
 def _parse_txr_1501_draft(data):
     if data.get("formCode") != TXR_1501_FORM_CODE:
         raise ValueError("Only TXR-1501 is available through this action.")
@@ -4783,6 +4821,81 @@ async def _create_representation_draft(user, data, form_code, parser):
     rows = response.json()
     if not isinstance(rows, list) or not rows:
         raise RuntimeError("Agreement draft was not returned after saving.")
+    return rows[0]
+
+
+async def _create_txr_1101_draft(user, data):
+    try:
+        record = await _create_representation_draft(user, data, TXR_1101_FORM_CODE, _parse_txr_1101_draft)
+    except (RuntimeError, httpx.RequestError, json.JSONDecodeError) as exc:
+        raise ListingSaveUnconfirmed("The save could not be confirmed. Check your saved documents before trying again.") from exc
+    parsed = _parse_txr_1101_draft(data)
+    expected_answers = {**parsed["agreement_data"],
+                        "signing_map_revision": TXR_SIGNING_MAP_REVISIONS[TXR_1101_FORM_CODE]}
+    if (not isinstance(record, dict) or record.get("agent_user_id") != user["id"]
+            or record.get("form_code") != TXR_1101_FORM_CODE
+            or record.get("form_source_id") != parsed["form_source_id"]
+            or record.get("client_names") != parsed["client_names"]
+            or record.get("agreement_data") != expected_answers
+            or not record.get("id") or record.get("status") != "draft"):
+        raise ListingSaveUnconfirmed("The saved listing agreement could not be confirmed. Refresh your saved documents before trying again.")
+    return record
+
+
+async def _update_txr_1101_draft(user, data):
+    parsed = _parse_txr_1101_draft(data)
+    try:
+        agreement_id = str(uuid.UUID(str(data.get("agreementId") or "")))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("Choose a valid listing agreement draft.")
+    expected = _agreement_text(data.get("updatedAt"), "Saved document version", 80)
+    query = (f"id=eq.{urllib.parse.quote(agreement_id)}"
+             f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
+             f"&form_code=eq.{TXR_1101_FORM_CODE}&status=in.(draft,failed)&signwell_document_id=is.null")
+    existing = await _get("hof_standalone_agreements?" + query + "&select=id,updated_at&limit=1")
+    if not existing:
+        raise PermissionError("That unsent listing agreement is unavailable. Sent or tracked documents cannot be changed.")
+    if str(existing[0].get("updated_at") or "") != expected:
+        raise ValueError("This document changed in another window. Refresh it before saving your changes.")
+    sources = await _get(
+        "hof_brokerage_form_sources?"
+        f"id=eq.{urllib.parse.quote(parsed['form_source_id'])}&form_code=eq.{TXR_1101_FORM_CODE}"
+        "&status=eq.approved&authorization_attested=is.true&select=id,brokerage_id,source_revision&limit=1"
+    )
+    if not sources:
+        raise ValueError("Choose an available sale-listing agreement from the HomeOfferFlow library.")
+    source = sources[0]
+    record = {"brokerage_id": source["brokerage_id"], "form_source_id": source["id"],
+              "source_revision": source["source_revision"], "status": "draft",
+              "client_names": parsed["client_names"],
+              "agreement_data": {**parsed["agreement_data"],
+                                 "signing_map_revision": TXR_SIGNING_MAP_REVISIONS[TXR_1101_FORM_CODE]},
+              "updated_at": datetime.now(timezone.utc).isoformat()}
+    try:
+        async with httpx.AsyncClient(timeout=12) as client:
+            response = await client.patch(
+                f"{SUPABASE_URL}/rest/v1/hof_standalone_agreements?{query}"
+                f"&updated_at=eq.{urllib.parse.quote(expected, safe='')}",
+                headers={**_headers(), "Prefer": "return=representation"}, json=record)
+    except httpx.RequestError as exc:
+        raise ListingSaveUnconfirmed("The changes could not be confirmed. Refresh this document before trying again.") from exc
+    if response.status_code >= 300:
+        raise ListingSaveUnconfirmed("The changes could not be confirmed. Refresh this document before trying again.")
+    try:
+        rows = response.json()
+    except json.JSONDecodeError as exc:
+        raise ListingSaveUnconfirmed("The changes could not be confirmed. Refresh this document before trying again.") from exc
+    try:
+        version_confirmed = (isinstance(rows, list) and len(rows) == 1
+            and datetime.fromisoformat(str(rows[0].get("updated_at") or "").replace("Z", "+00:00"))
+            == datetime.fromisoformat(record["updated_at"]))
+    except (TypeError, ValueError, AttributeError):
+        version_confirmed = False
+    if (not isinstance(rows, list) or len(rows) != 1 or not isinstance(rows[0], dict)
+            or rows[0].get("id") != agreement_id or rows[0].get("agent_user_id") != user["id"]
+            or rows[0].get("form_code") != TXR_1101_FORM_CODE or not version_confirmed
+            or any(rows[0].get(key) != value for key, value in record.items() if key != "updated_at")):
+        raise ListingSaveUnconfirmed("The saved changes could not be confirmed. Refresh this document before trying again.")
     return rows[0]
 
 
@@ -6813,6 +6926,26 @@ class handler(BaseHTTPRequestHandler):
                         "attested": len([link for link in links if link.get("sellerAttestedAt")]),
                     }
                 _json(self, 200, {"drafts": rows})
+                return
+            if scope == "txr1101_draft":
+                try:
+                    agreement_id = str(uuid.UUID(str((query.get("agreement_id") or [""])[0])))
+                except (TypeError, ValueError, AttributeError):
+                    _json(self, 400, {"error": "Choose a saved listing agreement."})
+                    return
+                rows = asyncio.run(_get(
+                    "hof_standalone_agreements?"
+                    f"id=eq.{agreement_id}&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
+                    "&form_code=eq.TXR-1101&status=in.(draft,failed)&signwell_document_id=is.null"
+                    "&select=id,form_code,form_source_id,client_names,agreement_data,status,updated_at&limit=1"
+                ))
+                if not rows:
+                    _json(self, 404, {"error": "That unsent listing agreement is unavailable. Refresh your saved documents."})
+                    return
+                row = rows[0]
+                answers = _txr1101_stored_answers(row.get("agreement_data"), row.get("client_names"))
+                answers.pop("client_names", None)
+                _json(self, 200, {"agreement": {**row, "agreement_data": answers}})
                 return
             if scope == "standalone_agreements":
                 try:
@@ -9553,8 +9686,10 @@ class handler(BaseHTTPRequestHandler):
                 _json(self, 201 if offer.get("created") else 200, {"ok": True, "offer": offer})
                 return
             if length > MAX_BODY_BYTES:
-                _json(self, 400, {"error": "Invalid request size."})
-                return
+                listing_action = data.get("action") in {"create_txr_1101_draft", "update_txr_1101_draft"}
+                if not listing_action or length > MAX_LISTING_BODY_BYTES:
+                    _json(self, 400, {"error": "Invalid request size."})
+                    return
             if data.get("action") in {
                 "save_listing_workspace_offer_comparison",
                 "update_listing_workspace_offer_status",
@@ -9765,6 +9900,14 @@ class handler(BaseHTTPRequestHandler):
                 draft = asyncio.run(_create_txr_1507_draft(user, data))
                 _json(self, 201, {"status": "ok", "agreement": draft})
                 return
+            if data.get("action") == "create_txr_1101_draft":
+                draft = asyncio.run(_create_txr_1101_draft(user, data))
+                _json(self, 201, {"status": "ok", "agreement": draft})
+                return
+            if data.get("action") == "update_txr_1101_draft":
+                draft = asyncio.run(_update_txr_1101_draft(user, data))
+                _json(self, 200, {"status": "ok", "agreement": draft})
+                return
             if data.get("action") == "create_txr_1501_draft":
                 draft = asyncio.run(_create_txr_1501_draft(user, data))
                 _json(self, 201, {"status": "ok", "agreement": draft})
@@ -9918,6 +10061,8 @@ class handler(BaseHTTPRequestHandler):
             lead_id, status, onboarding_status = _parse_partner_lead_update(data)
             row = asyncio.run(_update_partner_lead(lead_id, status, onboarding_status))
             _json(self, 200, {"ok": True, "lead": row})
+        except ListingSaveUnconfirmed as exc:
+            _json(self, 409, {"error": str(exc)[:300], "refreshRequired": True})
         except ValueError as exc:
             _json(self, 400, {"error": str(exc)[:300]})
         except PermissionError as exc:
