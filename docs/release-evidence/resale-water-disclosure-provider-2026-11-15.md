@@ -51,3 +51,18 @@ This candidate requires exact-head GitHub CI, the existing release workflow
 checks, and canonical smoke after deployment. Rollback is the prior Ready
 production deployment above. No external writes, checkout, provider send,
 or deployment occurred during local preparation.
+
+## Standard checkout follow-up
+
+The full PDF checkout preflight applies to loan assumptions. This follow-up
+adds a local server validation to the standard checkout route so incomplete
+water disclosures are rejected before storage or Stripe. Checkout identifies
+a missing or overlength provider and invalid pending delivery days. It
+preserves legacy aliases and the three-day default. Rendered font and fit
+checks remain with the packet generator.
+
+Mocked checkout exercised all supported financing paths and confirmed there
+were no payload saves or Stripe sessions for invalid water answers. Phone
+and desktop offline Chrome repeated the water-disclosure interview check.
+Full regression on the updated candidate ran 3,035 tests with 27 skips and
+no failures. GitHub CI and production verification remain pending.
