@@ -3,11 +3,15 @@ from contextlib import ExitStack
 from copy import deepcopy
 from io import BytesIO
 import json
+import os
+from pathlib import Path
 import unittest
 from unittest.mock import patch
 
 import httpx
+from pypdf import PdfReader, PdfWriter
 
+from lib.txr_1101 import render_txr_1101
 from tests.test_standalone_recipient_preview import MODULE as api
 from tests.test_txr_1101 import sample_answers
 
@@ -41,6 +45,8 @@ class Store:
         self.source={'id':SOURCE_ID,'brokerage_id':'source-host-only','form_code':'TXR-1101',
                      'source_revision':'06-15-26','status':'approved','authorization_attested':True,
                      'storage_bucket':'brokerage-form-sources','storage_path':'source-host/1101.pdf'}
+        self.source_pdf=b'%PDF-fixture'
+        self.iabs_pdf=None
         self.record=None;self.requests=[];self.empty_create=False;self.wrong_owner_create=False
         self.empty_update=False;self.race_update=False;self.normalize_timestamp=False
 
@@ -56,6 +62,17 @@ class Store:
             if request.method=='GET':
                 if path.endswith('/hof_brokerage_form_sources'):row=self.source
                 elif path.endswith('/hof_standalone_agreements'):row=self.record
+                elif path.endswith('/hof_agent_profiles'):
+                    row={'user_id':USER['id'],'agent_name':'QA Associate','brokerage_name':'QA Realty'}
+                elif path.endswith(('/hof_profiles','/hof_agent_profile_aliases')):
+                    row=None
+                elif path.endswith('/hof_agent_documents'):
+                    row={'user_id':USER['id'],'document_type':'iabs','storage_bucket':'agent-documents',
+                         'storage_path':USER['id']+'/iabs.pdf','mime_type':'application/pdf'} if self.iabs_pdf else None
+                elif path=='/storage/v1/object/brokerage-form-sources/source-host/1101.pdf':
+                    return httpx.Response(200,content=self.source_pdf)
+                elif path=='/storage/v1/object/agent-documents/'+USER['id']+'/iabs.pdf':
+                    return httpx.Response(200,content=self.iabs_pdf)
                 else:raise AssertionError('Unexpected fixture read '+path)
                 return httpx.Response(200,json=[deepcopy(row)] if row and matches(row,params) else [])
             if path.endswith('/hof_standalone_agreements'):
@@ -114,6 +131,55 @@ class Txr1101ApiTests(unittest.TestCase):
             handler.do_GET()
         self.assertEqual(len(result),1)
         return result[0]
+
+    def preview(self,token='qa-token'):
+        handler=api.handler.__new__(api.handler)
+        handler.path='/api/admin-dashboard?preview_agreement='+AGREEMENT_ID
+        handler.headers={'authorization':'Bearer '+token}
+        handler.wfile=BytesIO()
+        with patch.object(handler,'send_response') as status, patch.object(handler,'send_header') as headers, \
+                patch.object(handler,'end_headers'):
+            handler.do_GET()
+        return status.call_args.args[0],dict(call.args for call in headers.call_args_list),handler.wfile.getvalue()
+
+    def test_listing_pdf_preview_is_private_and_only_reads_for_the_verified_owner(self):
+        self.create()
+        writer=PdfWriter()
+        for _ in range(10):
+            writer.add_blank_page(width=612,height=792)
+        pdf=BytesIO()
+        writer.write(pdf)
+        self.render.return_value=pdf.getvalue()
+        self.store.requests.clear()
+        status,headers,body=self.preview()
+        self.assertEqual(status,200)
+        self.assertEqual(headers['Content-Type'],'application/pdf')
+        self.assertEqual(headers['Cache-Control'],'private, no-store')
+        self.assertEqual(len(PdfReader(BytesIO(body)).pages),10)
+        self.assertEqual(self.render.call_args.args[1]['listing_price'],'625000')
+        self.assertTrue(all(request.method=='GET' for request in self.store.requests))
+        self.store.requests.clear()
+        self.assertEqual(self.preview(token='other-token')[0],403)
+        self.assertFalse(any('/storage/' in request.url.path for request in self.store.requests))
+
+    @unittest.skipUnless(os.environ.get('HOF_TXR1101_SOURCE'),'Private exact-source QA is opt-in.')
+    def test_listing_preview_combines_exact_source_saved_iabs_and_lead_disclosure(self):
+        self.store.source_pdf=Path(os.environ['HOF_TXR1101_SOURCE']).read_bytes()
+        self.render.side_effect=render_txr_1101
+        writer=PdfWriter()
+        writer.add_blank_page(width=612,height=792)
+        iabs=BytesIO()
+        writer.write(iabs)
+        self.store.iabs_pdf=iabs.getvalue()
+        self.create(client_names=['QA Single Seller'],built_before_1978='yes')
+        status,_,body=self.preview()
+        self.assertEqual(status,200)
+        pages=PdfReader(BytesIO(body)).pages
+        self.assertGreaterEqual(len(pages),12)
+        self.assertIn('QA Single Seller',pages[0].extract_text())
+        self.assertTrue(any('LEAD-BASED PAINT' in page.extract_text().upper() for page in pages[10:]))
+        self.assertTrue(any(request.url.path.endswith('/'+USER['id']+'/iabs.pdf')
+                            for request in self.store.requests))
 
     def test_saved_listing_answers_can_be_reopened_without_delivery_bookkeeping(self):
         self.create(built_before_1978='yes',request_hoa_information='yes',hoa='yes')

@@ -163,6 +163,7 @@ TXR_SIGNING_FORM_CODES = {
 # source form needs a placement correction.  Older provider documents simply
 # have no map revision and are therefore never mistaken for current-map QA.
 TXR_RENDER_REVISIONS = {
+    TXR_1101_FORM_CODE: "txr-1101-2026-06-15-overlay-v2",
     "TXR-1501": "txr-1501-2026-09-18-continuation-pagination-v2",
     "TXR-1506": "txr-1506-2026-09-18-answer-continuation-v2",
     "TXR-1507": "txr-1507-2026-09-18-continuation-pagination-v3",
@@ -5710,7 +5711,7 @@ async def _standalone_agreement_page(user, offset=0):
                            "nextOffset": offset + len(page) if has_more else None}}
 
 
-async def _representation_professional_context(user):
+async def _representation_professional_context(user, *, include_listing_contacts=False):
     """Resolve the agent's own identity, never the shared PDF source's host.
 
     A brokerage seat is optional. Without an active linked organization, use
@@ -5720,8 +5721,22 @@ async def _representation_professional_context(user):
     # Library-source drafts are intentionally available to every signed-in
     # agent; an optional organization only supplies that agent's own details.
     user_id = urllib.parse.quote(str(user["id"]), safe="")
+    profile_user_id = user_id
+    if include_listing_contacts:
+        aliases = await _get(
+            f"hof_agent_profile_aliases?login_user_id=eq.{user_id}"
+            "&select=login_user_id,canonical_user_id&limit=1"
+        )
+        if aliases:
+            alias = aliases[0]
+            if str(alias.get("login_user_id") or "") != str(user["id"]):
+                raise PermissionError("Your saved professional profile could not be confirmed.")
+            try:
+                profile_user_id = str(uuid.UUID(str(alias.get("canonical_user_id") or "")))
+            except (TypeError, ValueError, AttributeError) as exc:
+                raise PermissionError("Your saved professional profile could not be confirmed.") from exc
     profiles = await _get(
-        f"hof_agent_profiles?user_id=eq.{user_id}"
+        f"hof_agent_profiles?user_id=eq.{profile_user_id}"
         "&select=agent_name,license_number,agent_email,brokerage_name,brokerage_license&limit=1"
     )
     profile = profiles[0] if profiles else {}
@@ -5740,13 +5755,78 @@ async def _representation_professional_context(user):
             "&status=eq.active&select=id&limit=1"
         )
         if memberships:
+            contact_columns = ",contact_phone,office_address,office_city,office_state,office_zip" if include_listing_contacts else ""
             organizations = await _get(
                 f"hof_brokerages?id=eq.{quoted_id}&is_active=eq.true"
-                "&select=id,name,dba_name,license_number,contact_name,contact_email&limit=1"
+                f"&select=id,name,dba_name,license_number,contact_name,contact_email{contact_columns}&limit=1"
             )
             if organizations:
                 brokerage = organizations[0]
+                if include_listing_contacts:
+                    city = str(brokerage.get("office_city") or "").strip()
+                    region = " ".join(filter(None, [str(brokerage.get("office_state") or "").strip(),
+                                                   str(brokerage.get("office_zip") or "").strip()]))
+                    brokerage = {**brokerage, "address": brokerage.get("office_address") or "",
+                                 "city_state_zip": ", ".join(filter(None, [city, region])),
+                                 "phone": brokerage.get("contact_phone") or "",
+                                 "email": brokerage.get("contact_email") or ""}
     return {"brokerage": brokerage, "profile": profile}
+
+
+async def _txr1101_notice_context(user):
+    from lib.brokerage_defaults import broker_license
+    from lib.txr_1101 import NOTICE_CONTACT_LIMITS
+    context = await _representation_professional_context(user, include_listing_contacts=True)
+    brokerage = context.get("brokerage") or {}
+    name = brokerage.get("legal_name") or brokerage.get("name") or brokerage.get("dba_name") or ""
+    return {"brokerage": {"name": name,
+            "license_number": broker_license(name, brokerage.get("license_number"))},
+            "noticeContacts": {key: str(brokerage.get(key) or "") for key in NOTICE_CONTACT_LIMITS}}
+
+
+async def _assemble_owned_listing_packet(user, render_data, listing_pdf):
+    from lib.listing_packet import PreparedDocument, assemble_listing_packet
+    from lib.txr_1101 import build_signwell_fields_txr1101
+    documents = []
+    if "A" in render_data["addenda"]:
+        rows = await _get(
+            "hof_agent_documents?"
+            f"user_id=eq.{urllib.parse.quote(str(user['id']), safe='')}&document_type=eq.iabs"
+            "&select=user_id,document_type,storage_bucket,storage_path,mime_type&limit=1"
+        )
+        if rows:
+            document = rows[0]
+            expected_path = str(user["id"]) + "/iabs.pdf"
+            if (document.get("user_id") != user["id"] or document.get("document_type") != "iabs"
+                    or document.get("storage_bucket") != "agent-documents"
+                    or document.get("storage_path") != expected_path
+                    or document.get("mime_type") != "application/pdf"):
+                raise PermissionError("Your saved IABS document could not be confirmed.")
+            async with httpx.AsyncClient(timeout=20) as client:
+                response = await client.get(
+                    f"{SUPABASE_URL}/storage/v1/object/agent-documents/"
+                    f"{urllib.parse.quote(expected_path, safe='/')}", headers=_headers())
+            if response.status_code == 404:
+                response = None
+            elif (response.status_code != 200 or not response.content.startswith(b"%PDF")
+                    or len(response.content) > 10_485_760):
+                raise RuntimeError("Your saved IABS PDF could not be loaded. The listing draft remains saved.")
+            if response is not None:
+                documents.append(PreparedDocument("A", response.content, [], {}, hashlib.sha256(response.content).hexdigest()))
+    base_count = len(PdfReader(BytesIO(listing_pdf)).pages)
+    if "C" in render_data["addenda"]:
+        from pathlib import Path
+        from lib.listing_lead_disclosure import prepare_listing_lead
+        source = (Path(__file__).resolve().parents[1] / "lead_based_paint_56-0.pdf").read_bytes()
+        lead = prepare_listing_lead(source, render_data)
+        role = "associate" if render_data["signer_plan"] == "clients_and_associate" else "broker"
+        mapping = {str(number): str(number) for number in range(1, len(render_data["client_names"]) + 1)}
+        mapping[role] = role
+        documents.append(PreparedDocument("C", lead.pdf, lead.fields, mapping, lead.content_fingerprint,
+                                          lead.checkbox_groups, lead.conditional_rules))
+    fields = build_signwell_fields_txr1101(render_data,
+        client_count=len(render_data["client_names"]), page_count=base_count)
+    return assemble_listing_packet(render_data, listing_pdf, fields, documents=documents)
 
 
 async def _render_owned_representation_agreement(user, agreement, *, for_signing=False, fingerprint_context=None, professional_context=None):
@@ -5782,11 +5862,12 @@ async def _render_owned_representation_agreement(user, agreement, *, for_signing
             f"The approved {agreement.get('form_code') or 'TXR'} source could not be loaded."
         )
     if professional_context is None:
-        professional_context = (
-            {"brokerage": {}, "profile": {}}
-            if agreement.get("form_code") in (TXR_BUYER_SELLER_SIGNING_FORM_CODES | SELLER_ONLY_SIGNING_FORM_CODES | BUYER_ONLY_SIGNING_FORM_CODES)
-            else await _representation_professional_context(user)
-        )
+        if agreement.get("form_code") in (TXR_BUYER_SELLER_SIGNING_FORM_CODES | SELLER_ONLY_SIGNING_FORM_CODES | BUYER_ONLY_SIGNING_FORM_CODES):
+            professional_context = {"brokerage": {}, "profile": {}}
+        elif agreement.get("form_code") == TXR_1101_FORM_CODE:
+            professional_context = await _representation_professional_context(user, include_listing_contacts=True)
+        else:
+            professional_context = await _representation_professional_context(user)
     brokerage = professional_context["brokerage"]
     profile = professional_context["profile"]
     agreement_data = agreement.get("agreement_data") or {}
@@ -5800,6 +5881,11 @@ async def _render_owned_representation_agreement(user, agreement, *, for_signing
         "_for_signing": bool(for_signing),
         "compensation": {key: agreement_data.get(key, "") for key in compensation_keys},
     }
+    if agreement.get("form_code") == TXR_1101_FORM_CODE:
+        render_data = _txr1101_stored_answers(agreement_data, agreement.get("client_names") or [])
+        render_data["_for_signing"] = bool(for_signing)
+        if "broker_notice_contacts" in render_data:
+            brokerage = {**brokerage, **render_data["broker_notice_contacts"]}
     if fingerprint_context is not None:
         # Broker contact is already bound through the resolved brokerage and
         # recipients. Exclude its persisted duplicate from overlay answers so
@@ -5816,6 +5902,17 @@ async def _render_owned_representation_agreement(user, agreement, *, for_signing
         render_revision = TXR_RENDER_REVISIONS.get(agreement.get("form_code"))
         if render_revision:
             fingerprint_context["render_revision"] = render_revision
+    if agreement.get("form_code") == TXR_1101_FORM_CODE:
+        from lib.txr_1101 import render_txr_1101
+        listing_pdf = render_txr_1101(response.content, render_data, brokerage, profile)
+        packet = await _assemble_owned_listing_packet(user, render_data, listing_pdf)
+        if fingerprint_context is not None:
+            fingerprint_context["listing_packet"] = packet.manifest
+            fingerprint_context["listing_packet_fingerprint"] = packet.content_fingerprint
+            fingerprint_context["listing_packet_fields"] = packet.fields
+            fingerprint_context["listing_packet_checkbox_groups"] = packet.checkbox_groups
+            fingerprint_context["listing_packet_conditional_rules"] = packet.conditional_rules
+        return packet.pdf
     if agreement.get("form_code") == TXR_1507_FORM_CODE:
         from lib.txr_1507 import render_txr_1507
         return render_txr_1507(response.content, render_data, brokerage, profile)
@@ -6714,7 +6811,14 @@ class handler(BaseHTTPRequestHandler):
                 return
             preview_agreement = str((query.get("preview_agreement") or [""])[0]).strip()
             if preview_agreement:
-                pdf = asyncio.run(_render_representation_draft_preview(user, preview_agreement))
+                try:
+                    pdf = asyncio.run(_render_representation_draft_preview(user, preview_agreement))
+                except PermissionError as exc:
+                    _json(self, 403, {"error": str(exc)})
+                    return
+                except ValueError as exc:
+                    _json(self, 400, {"error": str(exc)})
+                    return
                 _pdf_response(self, pdf, "standalone-agreement-private-draft-preview.pdf")
                 return
             scope = str((query.get("scope") or [""])[0]).strip().lower()
@@ -6926,6 +7030,9 @@ class handler(BaseHTTPRequestHandler):
                         "attested": len([link for link in links if link.get("sellerAttestedAt")]),
                     }
                 _json(self, 200, {"drafts": rows})
+                return
+            if scope == "txr1101_context":
+                _json(self, 200, asyncio.run(_txr1101_notice_context(user)))
                 return
             if scope == "txr1101_draft":
                 try:
