@@ -98,6 +98,18 @@ function call(body, origin = 'https://www.homeofferflow.com') {
     const result = await call({email:'buyer@example.com', plan:'self', offerData:{...baseOffer,financing:'cash',...water}});
     if (result.status !== 200) throw new Error('valid water disclosure was rejected');
   }
+  const terms = {sellerWaterDisclosure:"exempt", sellerWaterProvider:"City of Sherman", price: '500000', earnest: '5000', optionFee: '250', optionDays: '7', financing: 'cash'};
+  for (const contribution of [
+    {buyerBrokerCompType:'amount', buyerBrokerCompAmount:'0'},
+    {buyerBrokerCompType:'amount'},
+    {buyerBrokerCompType:'percent', buyerBrokerCompPercent:'101'},
+  ]) {
+    createdSession = null;
+    const failure = await call({email:'buyer@example.com', plan:'self', offerData:{...terms,...contribution}});
+    if (failure.status !== 400 || !failure.payload.error.includes('Buyer contribution') || createdSession) {
+      throw new Error('invalid buyer contribution reached Stripe');
+    }
+  }
 
   const badOrigin = await call({ email: 'buyer@example.com', plan: 'self', offerData: {price: '500000', earnest: '5000', optionFee: '250', optionDays: '7', financing: 'cash'} }, 'https://evil.example');
   if (badOrigin.status !== 200 || createdSession.success_url.indexOf('https://www.homeofferflow.com/') !== 0) throw new Error('untrusted request origin was accepted');

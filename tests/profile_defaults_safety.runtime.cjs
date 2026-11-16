@@ -70,7 +70,8 @@ test('saving profile and extras preserves the current offer, while new blanks re
   for(const id of ['titleCompany','escrowAgent','possession','earnestMoney','brokerFeeAmount'])x.get(id).value='';
   delete x.radios.financing;delete x.radios.brokerFeeType;
   x.c.applyProfileDefaultsToWizard(false);
-  assert.equal(x.get('titleCompany').value,'New Title');assert.equal(x.radios.financing,'cash');assert.equal(x.radios.brokerFeeType,'percent');
+  assert.equal(x.get('titleCompany').value,'New Title');assert.equal(x.radios.financing,'cash');assert.equal(x.radios.brokerFeeType,undefined);
+  assert.equal(x.get('brokerFeeAmount').value,'');
 });
 test('OnDemand profile defaults do not assign its broker license to another firm',()=>{
   const x=setup(); x.c.hofAuth.accountProfile={brokerage_name:'OnDemand Realty',brokerage_license:'9010832'};
@@ -89,12 +90,11 @@ test('signed-out visitors do not receive account extra defaults',()=>{
   const x=setup();x.c.hofAuth.session=null;x.c.applyProfileExtraDefaultsToWizard(false);
   assert.equal(x.get('possession').value,'');assert.deepEqual(x.radios,{});
 });
-test('price changes preserve financing and fee choices and matching conditional fields',()=>{
+test('price changes preserve financing and transaction-specific fee choices',()=>{
   const x=setup(); x.radios.financing='fha';x.radios.brokerFeeType='amount';x.get('brokerFeeAmount').value='8000';
   x.events.input.forEach(fn=>fn({target:x.get('offerPrice')}));
   assert.equal(x.radios.financing,'fha');assert.equal(x.radios.brokerFeeType,'amount');
-  assert.equal(x.get('brokerFeeAmount').value,'8000');assert.equal(x.get('brokerFeeAmountField').style.display,'block');
-  assert.equal(x.get('brokerFeePercentField').style.display,'none');
+  assert.equal(x.get('brokerFeeAmount').value,'8000');
 });
 test('fresh matching investor blanks still receive saved preferences',()=>{
   const x=setup({role:'investor'});x.c.applyProfileExtraDefaultsToWizard(false);

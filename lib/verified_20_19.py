@@ -880,7 +880,7 @@ def build_pages_data(
         (seller_broker_comp_type == "amount" and has_positive_money(seller_broker_comp_amount))
         or (seller_broker_comp_type == "percent" and has_positive_money(seller_broker_comp_percent))
     )
-    buyer_12b_active = has_buyer_agent and (
+    buyer_12b_active = (
         (buyer_broker_comp_type == "amount" and has_positive_money(buyer_broker_comp_amount))
         or (buyer_broker_comp_type == "percent" and has_positive_money(buyer_broker_comp_percent))
     )
@@ -888,18 +888,18 @@ def build_pages_data(
         (129, 751, addr_full),
 
         # 12B(1): Seller contribution toward Buyer broker compensation.
-        (62, 646, ck(seller_12b_active), "check_small"),
-        (286, 646, ck(seller_12b_active and seller_broker_comp_type == "amount"), "check_small"),
+        (64, 646, ck(seller_12b_active), "check_cell"),
+        (288, 646, ck(seller_12b_active and seller_broker_comp_type == "amount"), "check_cell"),
         (310, 644, fmt_money(seller_broker_comp_amount) if seller_12b_active and seller_broker_comp_type == "amount" else "", 8),
-        (390, 646, ck(seller_12b_active and seller_broker_comp_type == "percent"), "check_small"),
-        (420, 644, str(seller_broker_comp_percent) if seller_12b_active and seller_broker_comp_type == "percent" else "", 8),
+        (393, 646, ck(seller_12b_active and seller_broker_comp_type == "percent"), "check_cell"),
+        (410, 644, str(seller_broker_comp_percent) if seller_12b_active and seller_broker_comp_type == "percent" else "", 8),
 
         # 12B(2): Buyer contribution toward Seller broker compensation.
-        (62, 627, ck(buyer_12b_active), "check_small"),
-        (286, 627, ck(buyer_12b_active and buyer_broker_comp_type == "amount"), "check_small"),
+        (64, 625, ck(buyer_12b_active), "check_cell"),
+        (289, 625, ck(buyer_12b_active and buyer_broker_comp_type == "amount"), "check_cell"),
         (310, 625, fmt_money(buyer_broker_comp_amount) if buyer_12b_active and buyer_broker_comp_type == "amount" else "", 8),
-        (390, 627, ck(buyer_12b_active and buyer_broker_comp_type == "percent"), "check_small"),
-        (420, 625, str(buyer_broker_comp_percent) if buyer_12b_active and buyer_broker_comp_type == "percent" else "", 8),
+        (393, 625, ck(buyer_12b_active and buyer_broker_comp_type == "percent"), "check_cell"),
+        (410, 625, str(buyer_broker_comp_percent) if buyer_12b_active and buyer_broker_comp_type == "percent" else "", 8),
     ]
 
     contacts = contact_answer_layout(s)
