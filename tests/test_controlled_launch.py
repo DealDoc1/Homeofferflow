@@ -172,6 +172,27 @@ class ControlledLaunchTests(unittest.TestCase):
         )
         self.assertEqual(len(PdfReader(BytesIO(packet)).pages), 12)
 
+    def test_buyer_broker_contribution_does_not_require_a_buyers_broker(self):
+        packet = adapter.fill_and_merge_20_19(minimal_offer(
+            userType="homebuyer", hasBuyerAgent="no", buyerBrokerCompType="amount",
+            buyerBrokerCompAmount="1234.56", buyerBrokerCompPercent="8.7654"
+        ))
+        page = PdfReader(BytesIO(packet)).pages[6].extract_text()
+        self.assertIn("1,234.56", page)
+        self.assertNotIn("8.7654", page)
+
+    def test_selected_buyer_contribution_requires_a_valid_value(self):
+        for overrides in (
+            {"buyerBrokerCompType": "amount", "buyerBrokerCompAmount": ""},
+            {"buyerBrokerCompType": "amount", "buyerBrokerCompAmount": "0"},
+            {"buyerBrokerCompType": "percent", "buyerBrokerCompPercent": "100.01"},
+            {"buyerBrokerCompType": "percent", "buyerBrokerCompPercent": "0.00001"},
+        ):
+            with self.subTest(overrides=overrides), self.assertRaisesRegex(
+                adapter.UnsupportedOfferPathError, r"Paragraph 12B"
+            ):
+                adapter.validate_supported_offer(minimal_offer(**overrides))
+
     def test_verified_percentage_contributions_render_both_12b_paths(self):
         """Keep both 20-19 Paragraph 12B percentage paths covered.
 

@@ -508,6 +508,18 @@ def validate_supported_offer(offer):
         if not re.fullmatch(r"[0-9]{1,3}", days) or int(days) < 1:
             blocked.append("water disclosure delivery days (1 to 999) for Paragraph 7I(2)")
 
+    buyer_contribution_type = _normalized(offer.get("buyerBrokerCompType"))
+    if buyer_contribution_type in {"amount", "dollar", "dollars", "$"}:
+        buyer_amount = verified.first_present(offer.get("buyerBrokerCompAmount"),
+                                              offer.get("buyerToSellerBrokerCompAmount"))
+        if verified.currency_amount(buyer_amount) <= 0:
+            blocked.append("buyer contribution to the seller’s broker in dollars for Paragraph 12B(2)")
+    elif buyer_contribution_type in {"percent", "percentage", "%"}:
+        buyer_percent = str(verified.first_present(offer.get("buyerBrokerCompPercent"),
+                                                   offer.get("buyerToSellerBrokerCompPercent"))).strip()
+        if not re.fullmatch(r"[0-9]+(?:[.][0-9]{1,4})?", buyer_percent) or not 0 < Decimal(buyer_percent) <= 100:
+            blocked.append("buyer contribution to the seller’s broker as a percentage for Paragraph 12B(2)")
+
     financing = verified.normalize_financing(
         offer.get("financing") or offer.get("financingType") or ""
     )

@@ -3571,15 +3571,15 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="field"><label for="agentBrokerLicenseQuick">Brokerage License No. <span style="color:var(--gray);font-weight:500;">(optional)</span></label><input type="text" id="agentBrokerLicenseQuick" placeholder="Brokerage license #" oninput="syncAgentQuickFields()"/></div>
           </div>
           <div style="margin-top:0.85rem; padding-top:0.85rem; border-top:1px solid rgba(255,255,255,0.07);">
-            <div class="radio-group-label">Page 10 Broker Fee Disclosure</div>
-            <div class="notice gold">This controls the broker fee disclosure at the top of Page 10. Only complete it if there is already a separate written agreement stating the Listing Broker will pay your brokerage. If it is unknown or handled separately, choose that option.</div>
+            <div class="radio-group-label">§12B(1) — Seller pays toward buyer’s broker</div>
+            <div class="notice gold">Enter only a contribution from the seller toward compensation the buyer owes their broker. An agreement to pay between brokerages is handled separately.</div>
             <div class="radio-cards" style="margin-bottom:0.75rem;">
-              <label class="radio-card" onclick="selectCard(this,'brokerFeeType','none')"><input type="radio" name="brokerFeeType" value="none"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No / not known / handled separately</strong><small>Leaves broker fee disclosure blank</small></div></label>
-              <label class="radio-card" onclick="selectCard(this,'brokerFeeType','amount')"><input type="radio" name="brokerFeeType" value="amount"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — dollar amount</strong><small>Fill the $ broker-fee disclosure</small></div></label>
-              <label class="radio-card" onclick="selectCard(this,'brokerFeeType','percent')"><input type="radio" name="brokerFeeType" value="percent"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — percentage of sales price</strong><small>Fill the % broker-fee disclosure</small></div></label>
+              <label class="radio-card" onclick="selectCard(this,'brokerFeeType','none')"><input type="radio" name="brokerFeeType" value="none"/><div class="radio-dot"></div><div class="radio-card-text"><strong>No seller contribution</strong><small>Leaves §12B(1) blank</small></div></label>
+              <label class="radio-card" onclick="selectCard(this,'brokerFeeType','amount')"><input type="radio" name="brokerFeeType" value="amount"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — dollar amount</strong><small>Seller contributes a fixed amount</small></div></label>
+              <label class="radio-card" onclick="selectCard(this,'brokerFeeType','percent')"><input type="radio" name="brokerFeeType" value="percent"/><div class="radio-dot"></div><div class="radio-card-text"><strong>Yes — percentage of sales price</strong><small>Seller contributes a percentage</small></div></label>
             </div>
-            <div id="brokerFeeAmountField" style="display:none;"><div class="field"><label for="brokerFeeAmount">Broker Fee Amount ($)</label><input type="number" id="brokerFeeAmount" placeholder="0"/></div></div>
-            <div id="brokerFeePercentField" style="display:none;"><div class="field"><label for="brokerFeePercent">Broker Fee Percentage (%)</label><input type="number" id="brokerFeePercent" placeholder="3" step="0.01"/></div></div>
+            <div id="brokerFeeAmountField" style="display:none;"><div class="field"><label for="brokerFeeAmount">Seller contribution ($)</label><input type="number" id="brokerFeeAmount" placeholder="0"/></div></div>
+            <div id="brokerFeePercentField" style="display:none;"><div class="field"><label for="brokerFeePercent">Seller contribution (%)</label><input type="number" id="brokerFeePercent" placeholder="3" step="0.01"/></div></div>
           </div>
         </div>
       </div>
@@ -4267,7 +4267,6 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <div id="agentPathInfoHeader" style="display:none;">
           <div class="radio-group-label">Your Agent Details</div>
           <div class="notice sage" style="margin-bottom:0.75rem;">This information will be used in the broker information section of the offer packet.</div>
-          <div id="brokerFeeReminderOnClosing" class="notice gold" style="margin-bottom:0.75rem;"><strong>Page 10 broker fee disclosure:</strong> If the Listing Broker has already agreed in a separate written agreement to pay your brokerage, enter that amount or percentage in the broker compensation section on the Client & Agent Info screen. Otherwise, leave it as “No / not known / handled separately.”</div>
         </div>
 
         <div id="agentFields" style="display:none;">
@@ -4276,6 +4275,24 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <div class="field-row"><div class="field"><label>Agent Email</label><input type="email" id="agentEmail" placeholder="agent@example.com"/></div><div class="field"><label>Agent Phone</label><input type="tel" id="agentPhone" placeholder="(214) 555-0000"/></div></div>
             <div class="field-row"><div class="field"><label>Brokerage / Team Name <span style="color:var(--gray);font-weight:500;">(if applicable)</span></label><input type="text" id="agentBrokerage" placeholder="Brokerage or team name"/></div><div class="field"><label>Brokerage License No. <span style="color:var(--gray);font-weight:500;">(if applicable)</span></label><input type="text" id="agentBrokerLicense" placeholder="Brokerage license #"/></div></div>
           </div>
+        </div>
+      </div>
+
+      <div class="field" style="margin-bottom:1.25rem;">
+        <label for="buyerBrokerCompType">§12B(2) — Buyer pays toward seller’s broker</label>
+        <select id="buyerBrokerCompType" onchange="updateBuyerBrokerContributionFields()" aria-describedby="buyerBrokerCompHelp">
+          <option value="none">No buyer contribution</option>
+          <option value="amount">Dollar amount</option>
+          <option value="percent">Percentage of sales price</option>
+        </select>
+        <small class="field-note" id="buyerBrokerCompHelp">Use this for a buyer contribution to compensation the seller owes their broker. Use the buyer representation agreement for compensation the buyer owes their own broker.</small>
+        <div id="buyerBrokerCompAmountField" class="field" style="display:none;margin-top:.75rem;">
+          <label for="buyerBrokerCompAmount">Buyer contribution ($)</label>
+          <input id="buyerBrokerCompAmount" type="number" min="0.01" step="0.01" inputmode="decimal">
+        </div>
+        <div id="buyerBrokerCompPercentField" class="field" style="display:none;margin-top:.75rem;">
+          <label for="buyerBrokerCompPercent">Buyer contribution (%)</label>
+          <input id="buyerBrokerCompPercent" type="number" min="0.0001" max="100" step="0.0001" inputmode="decimal">
         </div>
       </div>
 
@@ -9280,6 +9297,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       if (input.id === 'termsAccepted') return;
       if (input.type === 'radio' || input.type === 'checkbox') input.checked = false;
       else input.value = input.id === 'sellerWaterDisclosure' ? 'notReceived' :
+        input.id === 'buyerBrokerCompType' ? 'none' :
         input.id === 'waterDisclosureDays' ? input.defaultValue : '';
       delete input._userEdited;
       delete input.dataset.validationInvalid;
@@ -9380,6 +9398,17 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     if (waterDays) waterDays.value = data.waterDisclosureDays || data.sellerWaterDisclosureDays || '3';
     if (waterProvider) waterProvider.value = data.sellerWaterProvider || data.waterSourceProvider ||
       data.waterProvider || data.waterDisclosureProvider || '';
+    const buyerContributionAmount = document.getElementById('buyerBrokerCompAmount');
+    const buyerContributionPercent = document.getElementById('buyerBrokerCompPercent');
+    const buyerContributionChoice = document.getElementById('buyerBrokerCompType');
+    if (buyerContributionAmount) buyerContributionAmount.value = data.buyerBrokerCompAmount || data.buyerToSellerBrokerCompAmount || '';
+    if (buyerContributionPercent) buyerContributionPercent.value = data.buyerBrokerCompPercent || data.buyerToSellerBrokerCompPercent || '';
+    if (buyerContributionChoice) {
+      const savedChoice = String(data.buyerBrokerCompType || '').trim().toLowerCase();
+      buyerContributionChoice.value = ['amount','dollar','dollars','$'].includes(savedChoice) ? 'amount' :
+        ['percent','percentage','%'].includes(savedChoice) ? 'percent' : savedChoice ? 'none' :
+        moneyNumber(buyerContributionAmount?.value) > 0 ? 'amount' : moneyNumber(buyerContributionPercent?.value) > 0 ? 'percent' : 'none';
+    }
     restoreAssumptionAnswers(data);
     restoreSellerFinancingAnswers(data);
     const residentialLease = document.getElementById('leaseResidential');
@@ -9869,12 +9898,17 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
       buyerApprovalDays: ['buyer approval days', false, true],
       appraisalPartialValue: ['partial waiver appraisal value'],
       appraisalTerminateDays: ['appraisal termination days', false, true],
-      appraisalTerminateValue: ['appraisal termination value']
+      appraisalTerminateValue: ['appraisal termination value'],
+      buyerBrokerCompAmount: ['buyer contribution amount', true]
     };
     const raw = String(el?.value ?? '').trim();
     if (el?.id === 'waterDisclosureDays') {
       return raw && (!/^[0-9]{1,3}$/.test(raw) || Number(raw) < 1) ?
         'water disclosure delivery days as a whole number from 1 to 999' : '';
+    }
+    if (el?.id === 'buyerBrokerCompPercent' && raw) {
+      return /^[0-9]+(?:[.][0-9]{1,4})?$/.test(raw) && Number(raw) > 0 && Number(raw) <= 100
+        ? '' : 'buyer contribution as a percentage greater than 0 and no more than 100';
     }
     const rule = rules[el?.id];
     if (!rule || !raw) return '';
@@ -9886,7 +9920,7 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
       return integer ? `${label} as a whole number of 0 or more`
         : `${label} ${positive ? 'greater than 0' : 'of 0 or more'}`;
     }
-    const currencyFields = ['offerPrice','earnestMoney','optionFee','loanAmount','downPayment','appraisalPartialValue','appraisalTerminateValue'];
+    const currencyFields = ['offerPrice','earnestMoney','optionFee','loanAmount','downPayment','appraisalPartialValue','appraisalTerminateValue','buyerBrokerCompAmount'];
     if (currencyFields.includes(el.id) && (value !== Number(value.toFixed(2)) || !Number.isSafeInteger(Math.round(value * 100)))) {
       return `${label} with no more than two decimal places and a valid dollar amount`;
     }
@@ -10197,6 +10231,8 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     if (stepId === 'step7') {
       requireField('closingDate', 'closing date', missing);
       requireField('possession', 'possession timing', missing);
+      if (getVal('buyerBrokerCompType') === 'amount') requireField('buyerBrokerCompAmount', 'buyer contribution amount', missing);
+      if (getVal('buyerBrokerCompType') === 'percent') requireField('buyerBrokerCompPercent', 'buyer contribution percentage', missing);
       if (userType !== 'agent') requireRadioSelection('hasBuyerAgent', 'buyer’s agent status', missing);
       requireRadioSelection('wantsConcessions', 'seller concession choice', missing);
       requireRadioSelection('homeWarranty', 'home warranty choice', missing);
@@ -11081,6 +11117,12 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
         s.brokerFeeAmount = moneyNumber(getVal('brokerFeeAmount')) || s.brokerFeeAmount || '';
         s.brokerFeePercent = getVal('brokerFeePercent') || s.brokerFeePercent || '';
 
+        s.buyerBrokerCompType = getVal('buyerBrokerCompType') || 'none';
+        s.buyerBrokerCompAmount = s.buyerBrokerCompType === 'amount' ? getVal('buyerBrokerCompAmount') : '';
+        s.buyerBrokerCompPercent = s.buyerBrokerCompType === 'percent' ? getVal('buyerBrokerCompPercent') : '';
+        delete s.buyerToSellerBrokerCompAmount;
+        delete s.buyerToSellerBrokerCompPercent;
+
         s.wantsConcessions = getRadio('wantsConcessions');
 
         if (s.wantsConcessions === 'yes') s.concessionAmount = moneyNumber(getVal('concessionAmount'));
@@ -11293,7 +11335,8 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
         <div class="review-row"><span class="rl">Title Company</span><span class="rv">${text(s.titleCompany || 'TBD')}</span></div>
         <div class="review-row"><span class="rl">Buyer's Agent</span><span class="rv">${text(s.hasBuyerAgent === 'yes' ? (s.agentName || 'Yes — name not entered') : 'None')}</span></div>
         ${s.hasBuyerAgent === 'yes' && s.agentBrokerage ? `<div class="review-row"><span class="rl">Brokerage</span><span class="rv">${text(s.agentBrokerage)}</span></div>` : ''}
-        ${s.brokerFeeType && s.brokerFeeType !== 'none' ? `<div class="review-row"><span class="rl">Broker Fee Disclosure</span><span class="rv">${text(s.brokerFeeType === 'amount' ? '$' + Number(s.brokerFeeAmount || 0).toLocaleString() : (s.brokerFeePercent || '0') + '%')}</span></div>` : ''}
+        ${s.brokerFeeType && s.brokerFeeType !== 'none' ? `<div class="review-row"><span class="rl">§12B(1) Seller pays toward buyer’s broker</span><span class="rv">${text(s.brokerFeeType === 'amount' ? '$' + Number(s.brokerFeeAmount || 0).toLocaleString() : (s.brokerFeePercent || '0') + '%')}</span></div>` : ''}
+        ${['amount','percent'].includes(s.buyerBrokerCompType) ? `<div class="review-row"><span class="rl">§12B(2) Buyer pays toward seller’s broker</span><span class="rv">${s.buyerBrokerCompType === 'amount' ? fmtM(s.buyerBrokerCompAmount) : fmt(s.buyerBrokerCompPercent ? s.buyerBrokerCompPercent + '%' : '')}</span></div>` : ''}
         ${s.wantsConcessions === 'yes' ? `<div class="review-row"><span class="rl">Seller Concessions</span><span class="rv">${fmtM(s.concessionAmount)}</span></div>` : ''}
         ${s.homeWarranty === 'yes' ? `<div class="review-row"><span class="rl">Home Warranty Request</span><span class="rv">${fmtM(s.homeWarrantyAmount)}</span></div>` : ''}
       </div>
@@ -15041,8 +15084,17 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     return false;
   }
 
+  function updateBuyerBrokerContributionFields() {
+    const choice = getVal('buyerBrokerCompType');
+    for (const [type, id] of [['amount','buyerBrokerCompAmountField'], ['percent','buyerBrokerCompPercentField']]) {
+      const field = document.getElementById(id);
+      if (field) field.style.display = choice === type ? 'block' : 'none';
+    }
+  }
+
   function restoreConditionalSections() {
     updateOfferWaterDisclosureFields();
+    updateBuyerBrokerContributionFields();
     updateHydrostaticVisibility();
     updateMineralVisibility();
     updateEnvironmentalVisibility();
@@ -19829,14 +19881,6 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
             <option value="usda" ${x.default_financing === 'usda' ? 'selected' : ''}>USDA</option>
             <option value="cash" ${x.default_financing === 'cash' ? 'selected' : ''}>Cash</option>
           </select></div>
-          ${isInvestor ? '' : `
-          <div class="field"><label>Broker Fee Disclosure Default</label><select id="profDefaultBrokerFeeType">
-            <option value="none" ${(x.default_broker_fee_type || 'none') === 'none' ? 'selected' : ''}>No / not known / handled separately</option>
-            <option value="amount" ${x.default_broker_fee_type === 'amount' ? 'selected' : ''}>Dollar amount</option>
-            <option value="percent" ${x.default_broker_fee_type === 'percent' ? 'selected' : ''}>Percentage</option>
-          </select></div>
-          <div class="field"><label>Broker Fee Amount / Percent</label><input id="profDefaultBrokerFeeValue" type="number" step="0.01" value="${escapeHtml(x.default_broker_fee_value || '')}" placeholder="Example: 3 or 7500"></div>
-          `}
         </div>
         <div class="defaults-v8-mini-note"><strong style="color:var(--gold-light);">Saved preferences:</strong> these answers only prefill fields in your next offer. You can review and change every detail before you prepare the final documents.</div>
       </div>`;
@@ -19859,9 +19903,7 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
       default_earnest_rule: val('profDefaultEarnestRule') || 'amount',
       default_earnest_percent: val('profDefaultEarnestPercent') || '1',
       default_possession: val('profDefaultPossession') || 'funding',
-      default_financing: val('profDefaultFinancing'),
-      default_broker_fee_type: val('profDefaultBrokerFeeType') || 'none',
-      default_broker_fee_value: val('profDefaultBrokerFeeValue')
+      default_financing: val('profDefaultFinancing')
     };
   }
 
@@ -19900,18 +19942,6 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
       if (earnestEl && Number.isFinite(pct) && offerPrice > 0 && (force || !String(earnestEl.value || '').trim())) {
         earnestEl.value = roundCurrency(offerPrice * pct / 100);
       }
-    }
-
-    if (window.hofAuth?.role === 'agent') {
-      const defaultType = x.default_broker_fee_type || 'none';
-      if (force || !selectedRadio('brokerFeeType')) setRadio('brokerFeeType', defaultType);
-      const type = selectedRadio('brokerFeeType');
-      if (type === defaultType && type === 'amount') setVal('brokerFeeAmount', x.default_broker_fee_value, force);
-      if (type === defaultType && type === 'percent') setVal('brokerFeePercent', x.default_broker_fee_value, force);
-      try {
-        document.getElementById('brokerFeeAmountField').style.display = type === 'amount' ? 'block' : 'none';
-        document.getElementById('brokerFeePercentField').style.display = type === 'percent' ? 'block' : 'none';
-      } catch(_) {}
     }
   }
 

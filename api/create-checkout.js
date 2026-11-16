@@ -51,6 +51,16 @@ function offerNumberIssues(offer) {
       requireNumber(['appraisalTerminateValue'], 'Appraisal termination value', { money: true });
     }
   }
+  const buyerContributionType = String(offer.buyerBrokerCompType || '').trim().toLowerCase();
+  if (['amount', 'dollar', 'dollars', '$'].includes(buyerContributionType)) {
+    requireNumber(['buyerBrokerCompAmount', 'buyerToSellerBrokerCompAmount'],
+      'Buyer contribution to the seller’s broker', { positive: true, money: true });
+  } else if (['percent', 'percentage', '%'].includes(buyerContributionType)) {
+    const percent = String(offer.buyerBrokerCompPercent || offer.buyerToSellerBrokerCompPercent || '').trim();
+    if (!/^[0-9]+(?:[.][0-9]{1,4})?$/.test(percent) || Number(percent) <= 0 || Number(percent) > 100) {
+      issues.push('Buyer contribution to the seller’s broker must be a percentage greater than 0 and no more than 100.');
+    }
+  }
   // Check populated optional money before a payable session can be created.
   // Percentages and deadlines deliberately do not use currency precision.
   const optionalMoney = [
