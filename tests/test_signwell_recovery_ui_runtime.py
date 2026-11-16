@@ -39,9 +39,10 @@ class SignwellRecoveryUiTests(unittest.TestCase):
           let handler, refreshes=0, requests=0, removals=0;
           const status={textContent:'',className:''}, submit={disabled:false};
           const formElement={querySelector:()=>submit,addEventListener:(_,fn)=>handler=fn};
-          const modal={querySelector:key=>key==='#hofStandaloneSendForm'?formElement:status,remove:()=>removals++};
-          const actor={id:'qa-agent'}, viewerIsCurrent=value=>value===actor;
+          const modal={isConnected:true,querySelector:key=>key==='#hofStandaloneSendForm'?formElement:status,remove:()=>removals++};
           const root={}, agreement={id:'draft-id',form_code:'TXR-1507'};
+          const actor={id:'test-agent'};
+          const viewerIsCurrent=viewer=>viewer===actor;
           const token=()=> 'test-session';
           const signers=[{id:'1',name:'Customer',emailEditable:true}];
           const FormData=class {get(){return 'customer@example.com'}};
