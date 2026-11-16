@@ -15,7 +15,7 @@ v192 to v193.
 
 The existing public TREC 20-19 resale form, revision 05-04-2026, remains in
 `20-19_0.pdf`. SHA-256
-`be3fa154f00476a674c73ba40f6c589111a905bc1e0894e0d5786b714f16f8d4`.
+`be3fa154f00476a674c73ba20f6c589111a905bc1e0894e0d5786b714f16f8d4`.
 The release fills the existing source blanks and adds no document, migration,
 brokerage permission, or new source. TREC's water-disclosure FAQ confirms
 that Paragraph 7I(3)(e) must be completed when the exception applies.
@@ -65,4 +65,7 @@ Mocked checkout exercised all supported financing paths and confirmed there
 were no payload saves or Stripe sessions for invalid water answers. Phone
 and desktop offline Chrome repeated the water-disclosure interview check.
 Full regression on the updated candidate ran 3,035 tests with 27 skips and
-no failures. GitHub CI and production verification remain pending.
+no failures. GitHub CI run 43878634091 passed on the runtime patch.
+This release retains the exact form source bundled in production. The
+newer download’s source replacement is a separate signing review.
+Production verification remains pending.
