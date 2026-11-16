@@ -83,24 +83,34 @@ test('Escape returns focus to the opener and account cleanup leaves focus alone'
   assert.equal(focusCount,1);
 });
 
+const actorStart = html.indexOf('  const captureViewer =');
+const actorEnd = html.indexOf('  async function loadAgreements(', actorStart);
+const readerStart = html.indexOf('  async function readAgreementPdf(');
+const readerEnd = html.indexOf('  async function downloadCompletedAgreementPdf(', readerStart);
+const previewStart = html.indexOf('  let latestAgreementPreview;');
+const previewEnd = html.indexOf('  function filterPreparedAgreementRows(', previewStart);
+const preparedPreview = html.slice(actorStart, actorEnd) + html.slice(readerStart, readerEnd)
+  + html.slice(previewStart, previewEnd) + '\npreviewAgreementPdf;';
+const preparedPdf = new Blob(['%PDF-1.7\nfictional-pdf'], { type: 'application/pdf' });
+const pdfHeaders = { get: () => 'application/pdf' };
+
 test('a stalled prepared document restores the Preview button for retry', async () => {
-  const start = html.indexOf('  let latestAgreementPreview;');
-  const end = html.indexOf('  function filterPreparedAgreementRows(', start);
-  const root = { hofAuth: { session: {} } };
+  const root = { hofAuth: { session: { user: { id: 'fictional-agent' } } } };
   const button = { isConnected: true, disabled: false, textContent: 'Preview' };
   const notices = [], previews = [];
   let expire, stall = true;
   root.announceWorkspaceStatus = message => notices.push(message);
   root.hofShowPdfPreview = blob => previews.push(blob);
-  const preview = vm.runInNewContext(html.slice(start, end) + '\npreviewAgreementPdf;', {
+  const preview = vm.runInNewContext(preparedPreview, {
     root, window: root, AbortController, token: () => 'fixture', console: { error() {} },
     setTimeout: (callback, ms) => { assert.equal(ms, 60000); expire = callback; return 1; },
     clearTimeout: id => { assert.equal(id, 1); expire = undefined; },
     fetch: async (_, { signal }) => ({
       ok: true,
+      headers: pdfHeaders,
       blob: () => stall
         ? new Promise((_, reject) => signal.addEventListener('abort', () => reject(signal.reason), { once: true }))
-        : Promise.resolve('fictional-pdf'),
+        : Promise.resolve(preparedPdf),
     }),
   });
   const agreement = { id: 'fictional', form_code: 'TXR-1507' };
@@ -116,16 +126,15 @@ test('a stalled prepared document restores the Preview button for retry', async 
   assert.equal(expire, undefined);
   stall = false;
   await preview(agreement, button);
-  assert.deepEqual(previews, ['fictional-pdf']);
+  assert.deepEqual(previews, [preparedPdf]);
   assert.equal(expire, undefined);
 });
 
 test('a late prepared document cannot replace the newer preview or its print link', async () => {
-  const start = html.indexOf('  let latestAgreementPreview;');
-  const end = html.indexOf('  function filterPreparedAgreementRows(', start);
   const context = previewContext(true);
+  context.root.hofAuth = { session: { user: { id: 'fictional-agent' } } };
   const reads = new Map();
-  const preview = vm.runInNewContext(html.slice(start, end) + '\npreviewAgreementPdf;', {
+  const preview = vm.runInNewContext(preparedPreview, {
     ...context, window: context.root, AbortController, token: () => 'fixture',
     setTimeout, clearTimeout,
     fetch: url => new Promise(resolve => reads.set(url, resolve)),
@@ -133,10 +142,10 @@ test('a late prepared document cannot replace the newer preview or its print lin
   const opener = () => ({ isConnected: true, disabled: false, textContent: 'Preview' });
   const older = preview({ id: 'older', form_code: 'TXR-1507' }, opener());
   const newer = preview({ id: 'newer', form_code: 'TXR-1506' }, opener());
-  reads.get('/api/admin-dashboard?preview_agreement=newer')({ ok: true, blob: async () => ({}) });
+  reads.get('/api/admin-dashboard?preview_agreement=newer')({ ok: true, headers: pdfHeaders, blob: async () => preparedPdf });
   await newer;
   const modal = context.document.getElementById('hofPdfPreviewModal');
-  reads.get('/api/admin-dashboard?preview_agreement=older')({ ok: true, blob: async () => ({}) });
+  reads.get('/api/admin-dashboard?preview_agreement=older')({ ok: true, headers: pdfHeaders, blob: async () => preparedPdf });
   await older;
   assert.equal(context.document.getElementById('hofPdfPreviewModal'), modal);
   assert.equal(modal.querySelector('h4').textContent, 'TXR-1506 preview');
