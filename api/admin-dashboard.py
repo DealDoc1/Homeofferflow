@@ -143,6 +143,7 @@ BROKERAGE_TXR_FORM_CODES = (
     "TREC-39-11",
 )
 TXR_SIGNING_FORM_CODES = {
+    TXR_1101_FORM_CODE,
     TXR_1501_FORM_CODE,
     TXR_1506_FORM_CODE,
     TXR_1507_FORM_CODE,
@@ -205,6 +206,7 @@ TXR_SIGNING_MAP_REVISIONS = {
 # under an older map have naturally aged out. This protects a recipient from
 # receiving an otherwise valid document with stale signature geometry.
 TXR_SIGNING_MAP_REVISION_ENFORCED_FORM_CODES = {
+    TXR_1101_FORM_CODE,
     TXR_1501_FORM_CODE,
     TXR_1506_FORM_CODE,
     TXR_1507_FORM_CODE,
@@ -5829,6 +5831,15 @@ async def _assemble_owned_listing_packet(user, render_data, listing_pdf):
     return assemble_listing_packet(render_data, listing_pdf, fields, documents=documents)
 
 
+def _listing_packet_confirmation(user, agreement, context):
+    value = {"owner": user["id"], "agreement": agreement["id"],
+        "packet": context["listing_packet_fingerprint"], "source": context["source_sha256"],
+        "render": context.get("render_revision"), "profile": context["profile"],
+        "brokerage": {key: item for key, item in context["brokerage"].items()
+                      if key not in {"contact_name", "contact_email"}}}
+    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+
+
 async def _render_owned_representation_agreement(user, agreement, *, for_signing=False, fingerprint_context=None, professional_context=None):
     """Render one server-loaded, owner-scoped draft snapshot.
 
@@ -6039,7 +6050,7 @@ def _standalone_signer_labels(agreement):
     """Return non-sensitive signer labels in stored recipient order."""
     names = agreement.get("client_names") or []
     form_code = str(agreement.get("form_code") or "")
-    if form_code in SELLER_ONLY_SIGNING_FORM_CODES:
+    if form_code == TXR_1101_FORM_CODE or form_code in SELLER_ONLY_SIGNING_FORM_CODES:
         return [f"Seller {index}" for index in range(1, len(names) + 1)]
     if form_code in BUYER_ONLY_SIGNING_FORM_CODES:
         return [f"Buyer {index}" for index in range(1, len(names) + 1)]
@@ -6112,7 +6123,9 @@ async def _standalone_signing_recipients(user, agreement, client_emails, *, prof
         raise ValueError("This document does not request a separate broker signer.")
     if role is None:
         return _txr_signwell_recipients(agreement, client_emails, {}, {})
-    context = await _representation_professional_context(user)
+    context = (await _representation_professional_context(user, include_listing_contacts=True)
+               if agreement.get("form_code") == TXR_1101_FORM_CODE
+               else await _representation_professional_context(user))
     saved_broker = (agreement.get("agreement_data") or {}).get("broker_signer")
     if role == "broker":
         selected = _parse_broker_signer(saved_broker) if saved_broker is not None else None
@@ -6142,7 +6155,7 @@ async def _standalone_signing_recipients(user, agreement, client_emails, *, prof
 
 
 async def _standalone_signing_recipient_preview(user, agreement_id):
-    """Return only the signing contacts for one owned, unsent draft."""
+    """Return signing contacts and, for listings, the current packet for review."""
     try:
         agreement_uuid = str(uuid.UUID(str(agreement_id or "")))
     except (TypeError, ValueError, AttributeError):
@@ -6152,7 +6165,7 @@ async def _standalone_signing_recipient_preview(user, agreement_id):
         f"id=eq.{urllib.parse.quote(agreement_uuid)}"
         f"&agent_user_id=eq.{urllib.parse.quote(user['id'])}"
         "&status=in.(draft,failed)"
-        "&select=id,brokerage_id,form_code,client_names,agreement_data,status,signwell_document_id&limit=1"
+        "&select=id,brokerage_id,form_code,form_source_id,source_revision,client_names,agreement_data,status,signwell_document_id&limit=1"
     )
     if not rows:
         raise PermissionError("That document is unavailable or has already been sent.")
@@ -6167,7 +6180,15 @@ async def _standalone_signing_recipient_preview(user, agreement_id):
     saved_emails = (agreement.get("agreement_data") or {}).get("client_emails")
     emails = saved_emails if (_tracked_signature_journal(agreement) and isinstance(saved_emails, list)
                              and len(saved_emails) == len(names)) else [""] * len(names)
-    recipients = await _standalone_signing_recipients(user, agreement, emails, allow_incomplete_broker=True)
+    if agreement.get("form_code") == TXR_1101_FORM_CODE and not _tracked_signature_journal(agreement):
+        answers = _txr1101_stored_answers(agreement.get("agreement_data") or {}, names)
+        if answers["foreign_person"] == "unanswered":
+            return {"agreementId": agreement_uuid, "recipients": [],
+                    "requiredAnswer": "foreign_person"}
+        emails = [answers["client_email"], answers["client_email_2"]][:len(names)]
+    professional_context = {}
+    recipients = await _standalone_signing_recipients(user, agreement, emails,
+        professional_context=professional_context, allow_incomplete_broker=True)
     labels = _standalone_signer_labels(agreement)
     for index, recipient in enumerate(recipients):
         editable = index < len(names)
@@ -6178,7 +6199,18 @@ async def _standalone_signing_recipient_preview(user, agreement_id):
         if recipient["id"] == "broker" and not recipient["email"]:
             recipient["emailEditable"] = True
             recipient["nameEditable"] = True
-    return {"agreementId": agreement_uuid, "recipients": recipients}
+    result = {"agreementId": agreement_uuid, "recipients": recipients}
+    if agreement.get("form_code") == TXR_1101_FORM_CODE:
+        packet_context = {}
+        await _render_owned_representation_agreement(user, agreement,
+            fingerprint_context=packet_context, professional_context=professional_context or None)
+        manifest = packet_context["listing_packet"]
+        result["packet"] = {"pageCount": manifest["page_count"],
+            "included": [row["label"] for row in manifest["included"]],
+            "pending": [row["label"] for row in manifest["pending"]],
+            "otherDocuments": manifest["other_documents"]}
+        result["packetFingerprint"] = _listing_packet_confirmation(user, agreement, packet_context)
+    return result
 
 
 def _validate_confirmed_signing_recipients(recipients, confirmed):
@@ -6291,10 +6323,19 @@ async def _deliver_tracked_signwell_request(user, table, record, data_field, pre
         rows = await _get(f"{table}?{base_query}&signwell_document_id=eq.{urllib.parse.quote(doc_id, safe='')}&select=id,status&limit=1")
         return bool(rows and rows[0].get("status") in {"sent", "signed", "void"})
 
+    def matches(document, fields, recipients):
+        if not _signwell_document_matches_signing_request(document, fields, recipients):
+            return False
+        if payload.get("checkbox_groups") or payload.get("conditional_rules"):
+            from lib.signwell_controls import controls_match
+            return controls_match(document, fields, payload.get("checkbox_groups") or [],
+                                  payload.get("conditional_rules") or [])
+        return True
+
     return await signwell_delivery.deliver_verified_document(
         payload=payload, context=context, document_id=document_id, journal=journal,
         create=create, inspect=inspect, send=send, checkpoint=checkpoint, finish=finish,
-        matches=_signwell_document_matches_signing_request,
+        matches=matches,
     )
 
 
@@ -6357,6 +6398,12 @@ async def _send_txr_agreement_for_signature(user, data):
     form_code = str(agreement.get("form_code") or "")
     if form_code not in TXR_SIGNING_FORM_CODES:
         raise ValueError("This standalone form is not available for signing.")
+    listing_answers = None
+    if form_code == TXR_1101_FORM_CODE:
+        listing_answers = _txr1101_stored_answers(agreement.get("agreement_data") or {},
+                                                   agreement.get("client_names") or [])
+        if listing_answers.get("foreign_person") == "unanswered":
+            raise ValueError("Confirm the seller's foreign-person status before sending. The draft remains saved for review.")
     client_names = agreement.get("client_names") or []
     client_emails = data.get("clientEmails")
     if not isinstance(client_emails, list):
@@ -6369,6 +6416,8 @@ async def _send_txr_agreement_for_signature(user, data):
         legacy_email = str((agreement.get("agreement_data") or {}).get("client_email") or "").strip()
         if legacy_email:
             client_emails = [legacy_email]
+    if form_code == TXR_1101_FORM_CODE and not client_emails:
+        client_emails = [listing_answers["client_email"], listing_answers["client_email_2"]][:len(client_names)]
     if len(client_emails) != len(client_names) or any(not _valid_email(email) for email in client_emails):
         raise ValueError("Provide one valid signing email for each signer.")
     if len({email.casefold() for email in client_emails}) != len(client_emails):
@@ -6388,8 +6437,15 @@ async def _send_txr_agreement_for_signature(user, data):
     rendered = await _render_owned_representation_agreement(
         user, agreement, for_signing=True, fingerprint_context=render_context,
         professional_context=professional_context or None)
-    fields = _txr_signwell_fields(form_code, {"client_names": client_names, **agreement_data}, client_count,
-                                 rendered_pdf=rendered)
+    if form_code == TXR_1101_FORM_CODE:
+        expected_packet = _listing_packet_confirmation(user, agreement, render_context)
+        confirmed_packet = data.get("confirmedPacketFingerprint")
+        if (not isinstance(confirmed_packet, str) or not re.fullmatch(r"[0-9a-f]{64}", confirmed_packet)
+                or not secrets.compare_digest(expected_packet, confirmed_packet)):
+            raise ValueError("The document package changed. Reopen Send for signature to review its current contents. Nothing was sent.")
+    fields = (render_context["listing_packet_fields"] if form_code == TXR_1101_FORM_CODE
+              else _txr_signwell_fields(form_code, {"client_names": client_names, **agreement_data}, client_count,
+                                        rendered_pdf=rendered))
     address_label = form_code.replace("-", " ")
     payload = {
         "test_mode": SIGNWELL_TEST_MODE,
@@ -6422,6 +6478,10 @@ async def _send_txr_agreement_for_signature(user, data):
             "test_mode": str(SIGNWELL_TEST_MODE).lower(),
         },
     }
+    if form_code == TXR_1101_FORM_CODE:
+        for name in ("checkbox_groups", "conditional_rules"):
+            if render_context.get("listing_packet_" + name):
+                payload[name] = render_context["listing_packet_" + name]
     fingerprint_data = {key: value for key, value in agreement_data.items()
                         if key not in {signwell_delivery.JOURNAL_KEY, "signwellStatus",
                                        "signwellDocumentId", "signwellLastStatusRefresh"}}
