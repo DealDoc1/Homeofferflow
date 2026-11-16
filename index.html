@@ -8698,7 +8698,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         choices: [
           { label: 'Start a listing workspace', copy: 'Begin with the seller, property, timing, and next steps.', primary: true, action: () => openListingWorkspace(true), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceStartCard')) },
           { label: 'Create seller disclosures', copy: 'Answer the property and seller questions, then review the completed disclosure.', action: () => { showAccountTab('seller'); window.setTimeout(() => window.openSellerDisclosureDraftWorkspace?.(), 0); }, isWorkspaceOpen: () => Boolean(document.getElementById('hofSellerDisclosureCard')) },
-          { label: 'Compare a buyer offer', copy: 'Compare price, financing, deadlines, concessions, and possession.', action: () => window.hofOpenListingOfferComparison?.(), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceOfferComparisonCard')) }
+          { label: 'Compare a buyer offer', copy: 'Review an incoming contract and compare price, deadlines, and other terms.', action: () => window.hofOpenListingOfferComparison?.(), isWorkspaceOpen: () => Boolean(document.getElementById('listingWorkspaceOfferComparisonCard')) }
         ]
       },
       lease_representation: {
@@ -11253,6 +11253,8 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
       const raw = String(v ?? '').trim().replace(/,/g, '');
       return raw && Number.isFinite(Number(raw)) ? '$' + Number(raw).toLocaleString() : '';
     };
+    const hasUploadedSellerDisclosure = (window.hofUploadedDisclosureDocs || [])
+      .some(doc => doc.type === 'seller_disclosure');
     const atag = (label, on) => on ? `<span class="addendum-tag ">✓ ${label}</span>` : '';
     const hasLoan = ['conventional','fha','va','usda'].includes(s.financing);
     const hasAppraisal = hasLoan && !['fha','va'].includes(s.financing) && ['waiver','partial','additional'].includes(s.appraisalAddendum);
@@ -11322,6 +11324,7 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
         ${s.leadBuiltBefore1978 === 'yes' || s.leadBuiltBefore1978 === 'unknown' ? `<div class="review-row"><span class="rl">Lead Disclosure</span><span class="rv">${hasLeadDisclosureUpload() ? `Completed TREC Form 56-0 included — ${text((window.hofUploadedDisclosureDocs || []).find(d => d.type === 'lead_based_paint')?.name || 'attached PDF')}` : 'Blank TREC Form 56-0 included for completion'}</span></div>` : ''}
         ${s.mud === 'yes' || s.mud === 'unknown' ? `<div class="review-row"><span class="rl">MUD / PID notices</span><span class="rv">${s.mud === 'yes' ? 'Confirm the applicable district notices with the listing side.' : 'Confirm district status and any applicable notices with the listing side.'} Upload notices to include them in this package.</span></div>` : ''}
         <div class="review-row"><span class="rl">Seller Disclosure</span><span class="rv">${text(s.sellerDisclosure === 'received' ? 'Received' : s.sellerDisclosure === 'notReceived' ? `Not received — ${s.disclosureDays || '—'} days` : s.sellerDisclosure === 'exempt' ? 'Seller exempt' : '—')}</span></div>
+        ${hasUploadedSellerDisclosure ? `<div class="review-row"><span class="rl">Uploaded Seller’s Disclosure</span><span class="rv">Verify the seller’s signing date and form edition. The current TREC form is 55-1. Confirm your brokerage’s requirements.</span></div>` : ''}
         <div class="review-row"><span class="rl">Seller’s Water Disclosure</span><span class="rv">${text(s.sellerWaterDisclosure === 'exempt' ?
           'Not required — ' + (s.sellerWaterProvider || 'water provider needed') : s.sellerWaterDisclosure === 'received' ?
           'Received' : 'Not received — seller to deliver within ' + (s.waterDisclosureDays || '3') + ' days')}</span></div>
@@ -12342,6 +12345,26 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     return true;
   }
 
+  function previewUploadedSellerDisclosure(doc, button) {
+    if (doc.type !== 'seller_disclosure' || !doc.base64) return;
+    try {
+      const bytes = Uint8Array.from(atob(doc.base64), byte => byte.charCodeAt(0));
+      window.hofShowPdfPreview(new Blob([bytes], {type:'application/pdf'}), 'Uploaded Seller’s Disclosure', button);
+      const note = document.createElement('p');
+      note.className = 'field-note';
+      note.append('Check the seller’s signing date and the form number in the PDF. Compare with the ');
+      const reference = document.createElement('a');
+      reference.href = 'https://www.trec.texas.gov/forms/sellers-disclosure-notice';
+      reference.target = '_blank';
+      reference.rel = 'noopener noreferrer';
+      reference.textContent = 'current TREC form 55-1';
+      note.append(reference, '. Confirm older or unfamiliar versions with your brokerage.');
+      document.querySelector('#hofPdfPreviewModal .hof-pdf-preview-header')?.after(note);
+    } catch (_) {
+      setUploadedDisclosureStatus('Could not preview this attachment. Open the original PDF to check its signing date and form edition.');
+    }
+  }
+
   function renderUploadedDocsList() {
     window.hofRenderPurchaseDisclosureSelection?.();
     const box = document.getElementById('uploadedDocsList');
@@ -12363,15 +12386,19 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
         <span style="min-width:1.25rem;font-weight:800;">${i + 1}.</span>
         <span style="flex:1;min-width:12rem;">${escapeAttr(d.name)} <small>(${Math.round((d.size || 0) / 1024).toLocaleString()} KB)</small></span>
         <select class="uploaded-doc-type" aria-label="Document type for ${escapeAttr(d.name)}">${uploadedDisclosureTypes.map(([code, label]) => `<option value="${code}"${d.type === code ? ' selected' : ''}>${label}</option>`).join('')}</select>
+        <button type="button" class="btn-secondary uploaded-doc-review-edition" aria-label="Check form edition for ${escapeAttr(d.name)}" style="display:${d.type === 'seller_disclosure' ? '' : 'none'}">Check form edition</button>
         <button type="button" class="btn-secondary uploaded-doc-up" ${i === 0 ? 'disabled' : ''}>↑</button>
         <button type="button" class="btn-secondary uploaded-doc-down" ${i === docs.length - 1 ? 'disabled' : ''}>↓</button>
         <button type="button" class="btn-secondary uploaded-doc-remove" aria-label="Remove ${escapeAttr(d.name)}">Remove</button>
       </div>`).join('');
     box.querySelectorAll('.uploaded-doc-row').forEach(row => {
       const index = Number(row.dataset.uploadedIndex);
+      const reviewEdition = row.querySelector('.uploaded-doc-review-edition');
+      reviewEdition?.addEventListener('click', () => previewUploadedSellerDisclosure(docs[index], reviewEdition));
       row.querySelector('.uploaded-doc-type')?.addEventListener('change', event => {
         docs[index].type = event.target.value;
         resetUploadedDisclosureAcknowledgement();
+        if (reviewEdition) reviewEdition.style.display = docs[index].type === 'seller_disclosure' ? '' : 'none';
         if (ackRow) ackRow.style.display = docs.some(doc => doc.type !== 'lead_based_paint') ? 'flex' : 'none';
         refreshLeadDisclosureUploadStatus();
         try { renderReview(); } catch (e) {}
@@ -15567,7 +15594,50 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
           <div class="field"><label for="listingOfferOptionDays">Option period (days)</label><input id="listingOfferOptionDays" type="number" min="0" max="365" step="1" placeholder="7"></div>
           <div class="field"><label for="listingOfferStatus">Worksheet status</label><select id="listingOfferStatus"><option value="received">Received</option><option value="reviewing">Reviewing</option><option value="preferred">Preferred for discussion</option><option value="declined">Declined / no longer active</option></select></div>
         </div>
-        <div class="field" style="margin-top:.8rem;"><label for="listingOfferContingencies">Contingencies / terms to verify</label><textarea id="listingOfferContingencies" rows="2" maxlength="2000" placeholder="Appraisal, sale-of-other-property, inspection, financing, or other terms to verify with the proper professional."></textarea></div>
+        <details id="listingOfferContractReview" style="margin-top:1rem;">
+          <summary>Review incoming TREC 20-19 offer</summary>
+          <p>Use the contract and its attachments to record your findings. They’ll be saved with the offer’s terms to verify.</p>
+          <div class="platform-grid">
+            <div class="field">
+              <label for="listingOfferWaterReview">§7I Water disclosure</label>
+              <select id="listingOfferWaterReview">
+                <option value="">Not reviewed</option>
+                <option value="reviewed">Disclosure and provider reviewed</option>
+                <option value="provider">Required provider is blank</option>
+                <option value="followup">Clarify water disclosure</option>
+              </select>
+              <small>If §7I(3)(e) is checked, look for the named city or district.</small>
+            </div>
+            <div class="field">
+              <label for="listingOfferBrokerReview">§12B Brokerage compensation</label>
+              <select id="listingOfferBrokerReview">
+                <option value="">Not reviewed</option>
+                <option value="reviewed">Payer and broker reviewed</option>
+                <option value="followup">Clarify payer or receiving broker</option>
+              </select>
+              <small>§12B(2) is for the buyer’s contribution toward the listing broker’s compensation.</small>
+            </div>
+            <div class="field">
+              <label for="listingOfferAddendaReview">§22 Addenda and notices</label>
+              <select id="listingOfferAddendaReview">
+                <option value="">Not reviewed</option>
+                <option value="reviewed">Compared checklist to attachments</option>
+                <option value="followup">Missing or unmarked attachment</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="listingOfferDisclosureReview">Seller’s Disclosure Notice</label>
+              <select id="listingOfferDisclosureReview">
+                <option value="">Not reviewed</option>
+                <option value="reviewed">Signing date and form edition reviewed</option>
+                <option value="not-applicable">Does not apply to this offer</option>
+                <option value="followup">Notice needs follow-up</option>
+              </select>
+              <small>Flag a missing notice, date, or edition. Check the signing date and printed edition against your brokerage’s requirements. <a href="https://www.trec.texas.gov/forms/sellers-disclosure-notice" target="_blank" rel="noopener noreferrer" style="color:var(--gold-light)">View TREC’s Seller’s Disclosure Notice</a>.</small>
+            </div>
+          </div>
+        </details>
+        <div class="field" style="margin-top:.8rem;"><label for="listingOfferContingencies">Contingencies / terms to verify</label><textarea id="listingOfferContingencies" rows="2" maxlength="2000" placeholder="Missing attachments, appraisal, inspection, or other terms to verify."></textarea></div>
         <div class="field" style="margin-top:.8rem;"><label for="listingOfferNotes">Comparison notes</label><textarea id="listingOfferNotes" rows="2" maxlength="4000" placeholder="Net-impact questions, missing documents, follow-up items, or seller discussion notes."></textarea></div>
         <div class="platform-actions"><button type="button" id="saveListingWorkspaceOfferButton" onclick="saveListingWorkspaceOffer()">Save Offer Comparison</button><button type="button" onclick="loadListingWorkspaceOffersFoundation()">Refresh Comparisons</button><button type="button" onclick="copyListingWorkspaceOfferSummary()">Copy Seller Review Summary</button></div>
         <div id="listingOfferStatusMessage" class="platform-status" role="status" aria-live="polite" aria-atomic="true"></div>
@@ -16158,7 +16228,7 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
         <span class="platform-pill ${row.status === 'preferred' ? 'good' : ''}">${escapeAttr(listingWorkspaceLabel(row.status || 'received'))}</span>
         <span class="platform-pill">${escapeAttr(listingOfferMoney(row.offer_price))}</span><br>
         ${escapeAttr(row.financing_type || 'Financing not entered')}${row.seller_concessions != null ? ' · concessions ' + escapeAttr(listingOfferMoney(row.seller_concessions)) : ''}${row.closing_date ? ' · close ' + escapeAttr(row.closing_date) : ''}${row.option_days != null ? ' · option ' + escapeAttr(row.option_days) + ' days' : ''}
-        ${row.contingency_notes ? '<br><small>Terms to verify: ' + escapeAttr(row.contingency_notes) + '</small>' : ''}
+        ${row.contingency_notes ? '<br><small style="white-space:pre-line">Terms to verify: ' + escapeAttr(row.contingency_notes) + '</small>' : ''}
         ${/^[0-9a-f-]{20,80}$/i.test(String(row.id || '')) ? `<div class="seller-lead-actions"><select id="listingOfferStatus-${escapeAttr(row.id)}" aria-label="Offer comparison status">${listingOfferStatusOptions(row.status || 'received')}</select><button type="button" class="brokerage-access-button" id="listingOfferStatusButton-${escapeAttr(row.id)}" onclick="updateListingWorkspaceOfferStatus('${escapeAttr(row.id)}')">Save status</button><button type="button" class="brokerage-access-button" id="deleteListingWorkspaceOfferButton-${escapeAttr(row.id)}" onclick="deleteListingWorkspaceOffer('${escapeAttr(row.id)}')">Remove</button></div>` : ''}
       </div>`).join('') : '<div class="platform-list-item">No comparison notes for this workspace yet.</div>';
   }
@@ -16215,6 +16285,8 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     }
   };
 
+  let listingOfferLoadRequest = 0;
+
   async function loadListingWorkspaceOffersFoundation() {
     const client = getSupabaseClient();
     const user = platformUser();
@@ -16222,19 +16294,31 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     const list = document.getElementById('listingWorkspaceOfferList');
     if (!client || !user || !select || !list) return;
     const workspaceId = String(select.value || '');
+    const request = ++listingOfferLoadRequest;
+    const isCurrent = () => request === listingOfferLoadRequest && select.isConnected
+      && select.value === workspaceId && platformUser()?.id === user.id;
+    const review = document.getElementById('listingOfferContractReview');
+    if (review && review.dataset.workspaceId !== workspaceId) {
+      resetListingOfferContractReview(review);
+      review.dataset.workspaceId = workspaceId;
+      document.getElementById('listingOfferStatusMessage')?.classList.remove('show');
+    }
+    hofPlatform.listingWorkspaceOffers = [];
     if (!workspaceId) {
-      hofPlatform.listingWorkspaceOffers = [];
       list.innerHTML = '<div class="platform-list-item">Select a workspace to load comparison notes.</div>';
       return;
     }
+    list.innerHTML = '<div class="platform-list-item">Loading offer comparisons…</div>';
     try {
       const { data, error } = await client.from('hof_listing_workspace_offers')
         .select('id,workspace_id,offer_label,offer_price,financing_type,seller_concessions,closing_date,option_days,contingency_notes,status,private_notes,created_at,updated_at')
         .eq('workspace_id', workspaceId).order('updated_at', { ascending:false }).limit(20);
+      if (!isCurrent()) return;
       if (error) throw error;
       hofPlatform.listingWorkspaceOffers = data || [];
       renderListingWorkspaceOfferRows(hofPlatform.listingWorkspaceOffers);
     } catch (err) {
+      if (!isCurrent()) return;
       console.warn('Listing workspace offer comparison load failed:', err);
       list.innerHTML = '<div class="platform-list-item">We couldn’t load the offer comparisons. Refresh the workspace and try again.</div>';
     }
@@ -16355,10 +16439,22 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     platformStatus('listingOfferNetStatus', 'Printable estimated proceeds worksheet opened.', 'ok');
   };
 
+  function resetListingOfferContractReview(review) {
+    if (!review) return;
+    review.querySelectorAll('select').forEach(field => { field.value = ''; });
+    review.open = false;
+  }
+
+  function listingOfferContractReviewText(review) {
+    const fields = Array.from(review?.querySelectorAll('select') || []);
+    if (!fields.some(field => field.value)) return '';
+    const lines = fields.map(field => field.labels[0].textContent + ' — ' + field.selectedOptions[0].textContent);
+    return ['Agent review of incoming TREC 20-19 offer', ...lines].join('\n');
+  }
+
   async function saveListingWorkspaceOffer() {
     const client = getSupabaseClient();
     const user = platformUser();
-    const status = document.getElementById('listingOfferStatusMessage');
     const saveButton = document.getElementById('saveListingWorkspaceOfferButton');
     if (saveButton?.disabled) return;
     const workspaceId = String(getVal('listingOfferWorkspace') || '');
@@ -16366,6 +16462,12 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     if (!client || !user) return platformStatus('listingOfferStatusMessage', 'Sign in before saving an offer comparison.', 'err');
     if (!workspaceId) return platformStatus('listingOfferStatusMessage', 'Choose a listing workspace first.', 'err');
     if (!label) return platformStatus('listingOfferStatusMessage', 'Add a short label for this offer.', 'err');
+    const review = document.getElementById('listingOfferContractReview');
+    const reviewText = review?.dataset.workspaceId === workspaceId ? listingOfferContractReviewText(review) : '';
+    const contingencyNotes = [reviewText, String(getVal('listingOfferContingencies') || '').trim()].filter(Boolean).join('\n\n');
+    if (contingencyNotes.length > 2000) {
+      return platformStatus('listingOfferStatusMessage', 'Shorten the terms to verify so the notes and contract findings fit together.', 'err');
+    }
     const numericOrNull = value => String(value || '').trim() ? Number(value) : null;
     const payload = {
       workspace_id: workspaceId,
@@ -16376,22 +16478,28 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
       seller_concessions: numericOrNull(getVal('listingOfferConcessions')),
       closing_date: getVal('listingOfferClosingDate') || null,
       option_days: numericOrNull(getVal('listingOfferOptionDays')),
-      contingency_notes: String(getVal('listingOfferContingencies') || '').trim() || null,
+      contingency_notes: contingencyNotes || null,
       status: getVal('listingOfferStatus') || 'received',
       private_notes: String(getVal('listingOfferNotes') || '').trim() || null
     };
+    const isCurrent = () => saveButton?.isConnected && platformUser()?.id === user.id
+      && String(getVal('listingOfferWorkspace') || '') === workspaceId;
     if (saveButton) { saveButton.disabled = true; saveButton.setAttribute('aria-busy', 'true'); saveButton.textContent = 'Saving comparison…'; }
-    if (status) { status.className = 'platform-status'; status.textContent = 'Saving offer comparison…'; }
+    platformStatus('listingOfferStatusMessage', 'Saving offer comparison…', 'info');
     try {
       const { error } = await client.from('hof_listing_workspace_offers').insert(payload);
+      if (!isCurrent()) return;
       if (error) throw error;
-      if (status) { status.className = 'platform-status ok'; status.textContent = 'Offer comparison saved. It is not a recommendation or contract decision.'; }
+      platformStatus('listingOfferStatusMessage', 'Offer comparison saved. It is not a recommendation or contract decision.');
+      resetListingOfferContractReview(review);
       ['listingOfferLabel','listingOfferPrice','listingOfferFinancing','listingOfferConcessions','listingOfferClosingDate','listingOfferOptionDays','listingOfferContingencies','listingOfferNotes'].forEach(id => { const field = document.getElementById(id); if (field) field.value = ''; });
       const state = document.getElementById('listingOfferStatus'); if (state) state.value = 'received';
       await loadListingWorkspaceOffersFoundation();
     } catch (err) {
       console.error('Listing workspace offer comparison save failed:', err);
-      if (status) { status.className = 'platform-status err'; status.textContent = platformCustomerError(err, 'We couldn’t save the offer comparison. Review the details and try again.'); }
+      if (isCurrent()) {
+        platformStatus('listingOfferStatusMessage', platformCustomerError(err, 'We couldn’t save the offer comparison. Review the details and try again.'), 'err');
+      }
     } finally {
       if (saveButton) { saveButton.disabled = false; saveButton.setAttribute('aria-busy', 'false'); saveButton.textContent = 'Save Offer Comparison'; }
     }
