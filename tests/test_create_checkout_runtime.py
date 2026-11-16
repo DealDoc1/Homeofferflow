@@ -11,9 +11,13 @@ NODE_TEST = r"""
 const Module = require('module');
 const originalLoad = Module._load;
 let createdSession = null;
+let savedPayloads = 0;
 Module._load = function(request, parent, isMain) {
   if (request === '../lib/checkout_payload') return {
-    saveCheckoutPayload: async () => ({id:'private-ref', fingerprint:'hash'}),
+    saveCheckoutPayload: async () => {
+      savedPayloads++;
+      return {id:'private-ref', fingerprint:'hash'};
+    },
     bindCheckoutPayload: async () => {}
   };
   if (request === 'stripe') {
@@ -63,6 +67,37 @@ function call(body, origin = 'https://www.homeofferflow.com') {
   if (createdSession.success_url !== 'https://www.homeofferflow.com/?payment=success') throw new Error('success redirect was not anchored');
   if (createdSession.cancel_url !== 'https://www.homeofferflow.com/?payment=cancelled') throw new Error('cancel redirect was not anchored');
   if (createdSession.metadata.plan !== 'self') throw new Error('metadata plan was not normalized');
+
+  const baseOffer = {price: '500000', earnest: '5000', optionFee: '250', optionDays: '7'};
+  for (const financing of ['cash', 'conventional', 'fha', 'va', 'usda', 'assumption']) {
+    const offer = {...baseOffer, financing, loanAmount:'400000', loanYears:'30',
+      interestRateCap:'7', interestFirstYears:'30', originationCap:'1', buyerApprovalDays:'20'};
+    for (const [water, paragraph] of [
+      [{sellerWaterDisclosure:'exempt', sellerWaterProvider:'   '}, '7I(3)(e)'],
+      [{waterDisclosure:'not_required', waterProvider:23}, '7I(3)(e)'],
+      [{sellerWaterDisclosureStatus:'notRequired', waterDisclosureProvider:'X'.repeat(61)}, '7I(3)(e)'],
+      [{sellerWaterDisclosure:'notReceived', waterDisclosureDays:'0'}, '7I(2)'],
+      [{waterDisclosure:'no', sellerWaterDisclosureDays:'1.5'}, '7I(2)'],
+    ]) {
+      createdSession = null;
+      const savedBefore = savedPayloads;
+      const result = await call({email:'buyer@example.com', plan:'self', offerData:{...offer,...water}});
+      if (result.status !== 400 || !result.payload.error.includes(paragraph) ||
+          !result.payload.error.includes('No payment was started') || createdSession || savedPayloads !== savedBefore) {
+        throw new Error('invalid water disclosure reached checkout or lost its correction message');
+      }
+    }
+  }
+  for (const water of [
+    {},
+    {sellerWaterDisclosure:'received', waterDisclosureDays:'0'},
+    {waterDisclosure:'not_required', waterSourceProvider:'Distrito de Agua de San José'},
+    {sellerWaterDisclosure:'exempt', sellerWaterProvider:'City of Sherman'},
+    {sellerWaterDisclosure:'notReceived', waterDisclosureDays:'12'},
+  ]) {
+    const result = await call({email:'buyer@example.com', plan:'self', offerData:{...baseOffer,financing:'cash',...water}});
+    if (result.status !== 200) throw new Error('valid water disclosure was rejected');
+  }
 
   const badOrigin = await call({ email: 'buyer@example.com', plan: 'self', offerData: {price: '500000', earnest: '5000', optionFee: '250', optionDays: '7', financing: 'cash'} }, 'https://evil.example');
   if (badOrigin.status !== 200 || createdSession.success_url.indexOf('https://www.homeofferflow.com/') !== 0) throw new Error('untrusted request origin was accepted');

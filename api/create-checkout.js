@@ -77,6 +77,25 @@ function offerNumberIssues(offer) {
   return issues;
 }
 
+function waterDisclosureIssue(offer) {
+  // Match the purchase renderer's optional legacy aliases and defaults.
+  const firstAnswer = (...keys) => keys.map(key => offer[key]).find(value => value != null && value !== '');
+  const status = String(firstAnswer('sellerWaterDisclosure', 'waterDisclosure', 'sellerWaterDisclosureStatus') ?? '').trim().toLowerCase();
+  if (['exempt', 'notrequired', 'not_required'].includes(status)) {
+    const value = firstAnswer('sellerWaterProvider', 'waterSourceProvider', 'waterProvider', 'waterDisclosureProvider');
+    const provider = typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : '';
+    if (!provider || [...provider].length > 60) {
+      return 'Please enter the city, district, or water supplier (up to 60 characters) for Paragraph 7I(3)(e). No payment was started.';
+    }
+  } else if (!['received', 'yes'].includes(status)) {
+    const days = String(firstAnswer('waterDisclosureDays', 'sellerWaterDisclosureDays') ?? '3').trim();
+    if (!/^[0-9]{1,3}$/.test(days) || Number(days) < 1) {
+      return 'Please enter a water disclosure delivery deadline of 1 to 999 days for Paragraph 7I(2). No payment was started.';
+    }
+  }
+  return '';
+}
+
 function safeOrigin(req) {
   const candidate = req.headers.origin || (req.headers.host ? `https://${req.headers.host}` : FALLBACK_ORIGIN);
   try {
@@ -129,6 +148,9 @@ module.exports = async (req, res) => {
         issues
       });
     }
+
+    const waterIssue = waterDisclosureIssue(offerData);
+    if (waterIssue) return res.status(400).json({ error: waterIssue, issues: [waterIssue] });
 
     let checkoutOffer = offerData;
     if (String(offerData.financing || offerData.financingType || '').trim().toLowerCase() === 'assumption') {

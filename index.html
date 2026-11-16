@@ -4168,6 +4168,25 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <div id="discDaysField" style="display:none;"><div class="field"><label>Days for Seller to provide Disclosure</label><input type="number" id="disclosureDays" placeholder="e.g. 3" style="max-width:120px;"/></div></div>
       </div>
 
+      <div class="field" style="margin-bottom:1.25rem;">
+        <label for="sellerWaterDisclosure">§7I — Seller’s Water Disclosure</label>
+        <select id="sellerWaterDisclosure" onchange="updateOfferWaterDisclosureFields()">
+          <option value="notReceived">Buyer has not received it</option>
+          <option value="received">Buyer has received it</option>
+          <option value="exempt">Seller is not required to provide it</option>
+        </select>
+        <small class="field-note">Choose the exception only if the listing side confirms all conditions in §7I(3).</small>
+        <div id="waterDisclosureDaysField" class="field" style="margin-top:.75rem;">
+          <label for="waterDisclosureDays">Days for seller to provide the water disclosure</label>
+          <input id="waterDisclosureDays" type="number" min="1" max="999" step="1" value="3" style="max-width:120px;">
+        </div>
+        <div id="sellerWaterProviderField" class="field" style="margin-top:.75rem;display:none;">
+          <label for="sellerWaterProvider">City, district, or water supplier</label>
+          <input id="sellerWaterProvider" type="text" maxlength="60" placeholder="Example: City of Sherman">
+          <small class="field-note">Enter the confirmed provider name for §7I(3)(e).</small>
+        </div>
+      </div>
+
       <div style="padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.07);">
         <p style="font-size:0.8rem; font-weight:700; color:var(--gold-light); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.5rem;">§7D — Property Condition</p>
         <div class="radio-group-label" style="margin-top:0.75rem;">Property condition election <button class="helper-btn" onclick="toggleHelper('h-property-condition')">?</button></div>
@@ -9260,7 +9279,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     document.querySelectorAll('#wizardOverlay input, #wizardOverlay textarea, #wizardOverlay select').forEach(input => {
       if (input.id === 'termsAccepted') return;
       if (input.type === 'radio' || input.type === 'checkbox') input.checked = false;
-      else input.value = '';
+      else input.value = input.id === 'sellerWaterDisclosure' ? 'notReceived' :
+        input.id === 'waterDisclosureDays' ? input.defaultValue : '';
       delete input._userEdited;
       delete input.dataset.validationInvalid;
       delete input.dataset.hofAddressSelected;
@@ -9351,6 +9371,15 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     ['seenProperty','financing','appraisalAddendum','leases','hoa','saleContingency','backupOffer','nonRealtyItems','titlePayer','titleAmendment','survey','sellerDisclosure','leadBuiltBefore1978','leadDisclosureStatus','asIs','hasBuyerAgent','wantsConcessions','homeWarranty','brokerFeeType'].forEach(group => {
       if (data[group]) setRadioValue(group, data[group]);
     });
+    const waterStatus = String(data.sellerWaterDisclosure || data.waterDisclosure || data.sellerWaterDisclosureStatus || '').trim().toLowerCase();
+    const waterChoice = document.getElementById('sellerWaterDisclosure');
+    const waterDays = document.getElementById('waterDisclosureDays');
+    const waterProvider = document.getElementById('sellerWaterProvider');
+    if (waterChoice) waterChoice.value = ['notrequired', 'not_required', 'exempt'].includes(waterStatus) ? 'exempt' :
+      ['received', 'yes'].includes(waterStatus) ? 'received' : 'notReceived';
+    if (waterDays) waterDays.value = data.waterDisclosureDays || data.sellerWaterDisclosureDays || '3';
+    if (waterProvider) waterProvider.value = data.sellerWaterProvider || data.waterSourceProvider ||
+      data.waterProvider || data.waterDisclosureProvider || '';
     restoreAssumptionAnswers(data);
     restoreSellerFinancingAnswers(data);
     const residentialLease = document.getElementById('leaseResidential');
@@ -9842,8 +9871,12 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
       appraisalTerminateDays: ['appraisal termination days', false, true],
       appraisalTerminateValue: ['appraisal termination value']
     };
-    const rule = rules[el?.id];
     const raw = String(el?.value ?? '').trim();
+    if (el?.id === 'waterDisclosureDays') {
+      return raw && (!/^[0-9]{1,3}$/.test(raw) || Number(raw) < 1) ?
+        'water disclosure delivery days as a whole number from 1 to 999' : '';
+    }
+    const rule = rules[el?.id];
     if (!rule || !raw) return '';
     const [label, positive, integer] = rule;
     const value = Number(raw);
@@ -10157,6 +10190,7 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
       if (getRadio('sellerDisclosure') === 'notReceived') {
         requireField('disclosureDays', 'seller disclosure delivery days', missing);
       }
+      markOfferWaterDisclosureIssues(missing);
       if (getRadio('asIs') === 'repairs') requireField('repairsText', 'specific repairs required', missing);
     }
 
@@ -10997,6 +11031,9 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
         s.disclosureDays = s.sellerDisclosure === 'notReceived' ? getVal('disclosureDays') : '';
         s.leadBuiltBefore1978 = getRadio('leadBuiltBefore1978') || s.leadBuiltBefore1978 || '';
         s.leadDisclosureStatus = getRadio('leadDisclosureStatus') || s.leadDisclosureStatus || '';
+        s.sellerWaterDisclosure = getVal('sellerWaterDisclosure') || 'notReceived';
+        s.waterDisclosureDays = s.sellerWaterDisclosure === 'notReceived' ? getVal('waterDisclosureDays') : '';
+        s.sellerWaterProvider = s.sellerWaterDisclosure === 'exempt' ? getVal('sellerWaterProvider').replace(/\s+/g, ' ') : '';
         s.asIs = getRadio('asIs') || '';
         s.repairsText = s.asIs === 'repairs' ? getVal('repairsText') : '';
       },
@@ -11243,6 +11280,9 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
         ${s.leadBuiltBefore1978 === 'yes' || s.leadBuiltBefore1978 === 'unknown' ? `<div class="review-row"><span class="rl">Lead Disclosure</span><span class="rv">${hasLeadDisclosureUpload() ? `Completed TREC Form 56-0 included — ${text((window.hofUploadedDisclosureDocs || []).find(d => d.type === 'lead_based_paint')?.name || 'attached PDF')}` : 'Blank TREC Form 56-0 included for completion'}</span></div>` : ''}
         ${s.mud === 'yes' || s.mud === 'unknown' ? `<div class="review-row"><span class="rl">MUD / PID notices</span><span class="rv">${s.mud === 'yes' ? 'Confirm the applicable district notices with the listing side.' : 'Confirm district status and any applicable notices with the listing side.'} Upload notices to include them in this package.</span></div>` : ''}
         <div class="review-row"><span class="rl">Seller Disclosure</span><span class="rv">${text(s.sellerDisclosure === 'received' ? 'Received' : s.sellerDisclosure === 'notReceived' ? `Not received — ${s.disclosureDays || '—'} days` : s.sellerDisclosure === 'exempt' ? 'Seller exempt' : '—')}</span></div>
+        <div class="review-row"><span class="rl">Seller’s Water Disclosure</span><span class="rv">${text(s.sellerWaterDisclosure === 'exempt' ?
+          'Not required — ' + (s.sellerWaterProvider || 'water provider needed') : s.sellerWaterDisclosure === 'received' ?
+          'Received' : 'Not received — seller to deliver within ' + (s.waterDisclosureDays || '3') + ' days')}</span></div>
         <div class="review-row"><span class="rl">Property Condition</span><span class="rv">${s.asIs === 'yes' ? 'As Is' : s.asIs === 'repairs' ? 'As Is with repairs' : '—'}</span></div>
         ${s.asIs === 'repairs' ? `<div class="review-row review-long-text"><span class="rl">Required repairs or treatments</span><span class="rv">${fmt(s.repairsText)}</span></div>` : ''}
       </div>
@@ -13089,6 +13129,7 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
 
       try { collectAllData(); } catch (e) { try { collectData(); } catch (_) {} }
       if (!confirmControlledLaunchSupport(state.data)) return;
+      if (!validateOfferWaterDisclosureInputs()) return;
       if (!validateParagraph4LeaseInputs(state.data)) return;
       if (!validateHydrostaticInputs(state.data)) return;
       if (!validateMineralInputs(state.data)) return;
@@ -13237,6 +13278,7 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
 
     collectAllData();
     if (!confirmControlledLaunchSupport(state.data)) return;
+    if (!validateOfferWaterDisclosureInputs()) return;
     if (!validateParagraph4LeaseInputs(state.data)) return;
     if (!validateHydrostaticInputs(state.data)) return;
     if (!validateMineralInputs(state.data)) return;
@@ -14973,7 +15015,34 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     updateHoaFollowUpVisibility();
   });
 
+  function updateOfferWaterDisclosureFields() {
+    const choice = getVal('sellerWaterDisclosure');
+    const days = document.getElementById('waterDisclosureDaysField');
+    const provider = document.getElementById('sellerWaterProviderField');
+    if (days) days.style.display = choice === 'notReceived' ? 'block' : 'none';
+    if (provider) provider.style.display = choice === 'exempt' ? 'block' : 'none';
+  }
+
+  function markOfferWaterDisclosureIssues(missing) {
+    const choice = getVal('sellerWaterDisclosure');
+    if (choice === 'exempt') requireField('sellerWaterProvider', 'city, district, or water supplier for §7I', missing);
+    if (choice === 'notReceived') requireField('waterDisclosureDays', 'water disclosure delivery days', missing);
+  }
+
+  function validateOfferWaterDisclosureInputs() {
+    const missing = [];
+    markOfferWaterDisclosureIssues(missing);
+    if (!missing.length) return true;
+    const step = getCurrentSteps().indexOf('step6');
+    if (step >= 0) showStep(step);
+    setValidationStatus('Please enter ' + missing.join(', ') + ' before continuing.');
+    const id = getVal('sellerWaterDisclosure') === 'exempt' ? 'sellerWaterProvider' : 'waterDisclosureDays';
+    document.getElementById(id)?.focus();
+    return false;
+  }
+
   function restoreConditionalSections() {
+    updateOfferWaterDisclosureFields();
     updateHydrostaticVisibility();
     updateMineralVisibility();
     updateEnvironmentalVisibility();

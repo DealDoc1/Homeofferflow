@@ -17,7 +17,7 @@ function setup({quota=Infinity,blocked=false,readBlocked=false,silent=false,loca
     window:{addEventListener(){},hofUploadedDisclosureDocs:files,location:{origin:'https://www.homeofferflow.test',pathname:'/',href:'original'},
       hofCustomerActionError:(error,fallback)=>/^Please\b/i.test(String(error?.message||error||''))?String(error?.message||error):fallback},
     document:{getElementById:id=>id==='payBtn'?button:id==='paymentEmail'?email:id==='oneTimePacketAck'?{checked:true}:null},
-    console:{error(){}},collectAllData(){},confirmControlledLaunchSupport:()=>true,validateParagraph4LeaseInputs:()=>true,
+    console:{error(){}},collectAllData(){},confirmControlledLaunchSupport:()=>true,validateOfferWaterDisclosureInputs:()=>true,validateParagraph4LeaseInputs:()=>true,
     validateHydrostaticInputs:()=>true,validateMineralInputs:()=>true,validateEnvironmentalInputs:()=>true,validateAssumptionInputs:()=>true,validateSellerFinancingInputs:()=>true,validateSellerTemporaryLeaseInputs:()=>true,validateUploadedDisclosureDocs:()=>true,
     setPaymentStatus:message=>notices.push(message),trackEvent(){},
     saveDraftNow:()=>{events.push('local-save');if(localFails)throw Error('Local store unavailable');},

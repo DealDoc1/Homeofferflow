@@ -444,6 +444,26 @@ def val_lower(v):
     return str(v or "").strip().lower()
 
 
+def seller_water_disclosure_status(offer):
+    status = val_lower(first_present(
+        offer.get("sellerWaterDisclosure"), offer.get("waterDisclosure"),
+        offer.get("sellerWaterDisclosureStatus"), "notReceived"
+    ))
+    if status in {"notrequired", "not_required", "exempt"}:
+        return "exempt"
+    if status in {"received", "yes"}:
+        return "received"
+    return "notReceived"
+
+
+def seller_water_provider(offer):
+    value = first_present(
+        offer.get("sellerWaterProvider"), offer.get("waterSourceProvider"),
+        offer.get("waterProvider"), offer.get("waterDisclosureProvider"),
+    )
+    return " ".join(value.split()) if isinstance(value, str) else ""
+
+
 def debug_grid_entries(step=25):
     entries = []
 
@@ -698,15 +718,9 @@ def build_pages_data(
     if not buyer_broker_comp_type and (has_positive_money(buyer_broker_comp_amount) or has_positive_money(buyer_broker_comp_percent)):
         buyer_broker_comp_type = "amount" if has_positive_money(buyer_broker_comp_amount) else "percent"
 
-    water_disc = val_lower(first_present(s.get("sellerWaterDisclosure"), s.get("waterDisclosure"), s.get("sellerWaterDisclosureStatus"), "notReceived"))
+    water_disc = seller_water_disclosure_status(s)
     water_days = first_present(s.get("waterDisclosureDays"), s.get("sellerWaterDisclosureDays"), "3")
-    water_source = first_present(
-        s.get("sellerWaterProvider"),
-        s.get("waterSourceProvider"),
-        s.get("waterProvider"),
-        s.get("waterDisclosureProvider"),
-        ""
-    )
+    water_source = seller_water_provider(s) if water_disc == "exempt" else ""
     lead_required = lead_required_from_offer(s)
     # Paragraph 22 must reflect the actual seller/listing-side disclosure that
     # production validation requires for a pre-1978 offer packet.
@@ -836,11 +850,11 @@ def build_pages_data(
             or str(first_present(s.get("residentialServiceContract"), s.get("requestResidentialServiceContract"), s.get("homeWarranty"))).strip().lower() in ["yes", "true", "1", "on"]
         ) else ""),
 
-        (62, 292, ck(water_disc in ["received", "yes"]), "check_small"),
-        (62, 275, ck(water_disc in ["notreceived", "not_received", "no", ""]), "check_small"),
-        (438, 283, str(water_days) if water_disc in ["notreceived", "not_received", "no", ""] else ""),
-        (62, 207, ck(water_disc in ["notrequired", "not_required", "exempt"]), "check_small"),
-        (340, 101, water_source if water_disc in ["notrequired", "not_required", "exempt"] else "", 7),
+        (63, 291, ck(water_disc == "received"), "check_cell"),
+        (63, 278, ck(water_disc == "notReceived"), "check_cell"),
+        (438, 279, str(water_days) if water_disc == "notReceived" else ""),
+        (63, 204, ck(water_disc == "exempt"), "check_cell"),
+        (112, 92, water_source, 7),
     ]
 
     # 20-19 Page 6: broker disclosure, closing date, possession, and 12A buyer-expense contribution.

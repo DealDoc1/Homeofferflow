@@ -148,7 +148,9 @@ function enableConditionalRestore(x) {
   x.ctx.updateSellerFinancingVisibility=()=>{};
   x.ctx.updateParagraph4LeaseVisibility=()=>{};
   x.ctx.updateHoaFollowUpVisibility=()=>{};
-  vm.runInContext(source('  function restoreConditionalSections()', '  function clearSavedDraft()'),x.ctx);
+  vm.runInContext(source(html.includes('  function updateOfferWaterDisclosureFields()')
+    ? '  function updateOfferWaterDisclosureFields()' : '  function restoreConditionalSections()',
+    '  function clearSavedDraft()'),x.ctx);
 }
 const visibilityCases=[
   ['nonRealtyItems','yes','nonRealtyDetails','block'],
