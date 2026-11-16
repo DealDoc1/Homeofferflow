@@ -8667,12 +8667,35 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         : type === 'purchase_addendum'
           ? 'Which purchase document does this transaction need?'
           : 'What does this customer need?';
-      followUp.innerHTML = `<div class="hof-agreement-dialog" role="dialog" aria-modal="true" aria-labelledby="hofAgentPackageFollowUpTitle"><p class="hof-agent-question-step">One more question</p><h3 id="hofAgentPackageFollowUpTitle">${prompt}</h3><p>Choose the document that fits. We’ll guide you through only the details it requires.</p><div class="hof-agreement-grid">${choices.map((choice, index) => `<button type="button" class="btn-secondary hof-agent-package-choice" data-follow-up-choice="${index}" style="text-align:left;padding:1rem"><strong style="display:block;color:var(--white)${choice.copy ? ';margin-bottom:.35rem' : ''}">${choice.label}</strong>${choice.copy ? `<span style="display:block;color:var(--gray-light);font-weight:400;line-height:1.45">${choice.copy}</span>` : ''}</button>`).join('')}</div><div class="hof-agreement-footer"><button type="button" class="btn-secondary" id="hofAgentPackageFollowUpCancel">Back</button></div></div>`;
+      const savedAgreementAction = type === 'representation'
+        ? '<button type="button" class="btn-secondary" data-find-saved-agreement>Find a saved agreement</button>'
+        : '';
+      followUp.innerHTML = `<div class="hof-agreement-dialog" role="dialog" aria-modal="true" aria-labelledby="hofAgentPackageFollowUpTitle"><p class="hof-agent-question-step">One more question</p><h3 id="hofAgentPackageFollowUpTitle">${prompt}</h3><p>Choose the document that fits. We’ll guide you through only the details it requires.</p><div class="hof-agreement-grid">${choices.map((choice, index) => `<button type="button" class="btn-secondary hof-agent-package-choice" data-follow-up-choice="${index}" style="text-align:left;padding:1rem"><strong style="display:block;color:var(--white)${choice.copy ? ';margin-bottom:.35rem' : ''}">${choice.label}</strong>${choice.copy ? `<span style="display:block;color:var(--gray-light);font-weight:400;line-height:1.45">${choice.copy}</span>` : ''}</button>`).join('')}</div><div class="hof-agreement-footer"><button type="button" class="btn-secondary" id="hofAgentPackageFollowUpCancel">Back</button>${savedAgreementAction}</div></div>`;
       document.body.appendChild(followUp);
       if (direct) {
         window.logOfferEvent?.(null, 'agent_form_package_direct_question_opened', 'viewed', 'Agent reached the necessary document choice directly after choosing the transaction.', { workflow: kind, package_type: type });
       }
       followUp.querySelector('#hofAgentPackageFollowUpCancel').addEventListener('click', returnToPackageQuestion);
+      followUp.querySelector('[data-find-saved-agreement]')?.addEventListener('click', () => {
+        const ownerId = window.hofAuth?.session?.user?.id;
+        const epoch = window.__hofAccountProfileEpoch;
+        followUp.remove();
+        showAccountTab('relationships');
+        const tabRevision = accountTabSelectionRevision;
+        window.setTimeout(() => {
+          if (tabRevision !== accountTabSelectionRevision || epoch !== window.__hofAccountProfileEpoch ||
+              ownerId !== window.hofAuth?.session?.user?.id) return;
+          const panel = document.getElementById('accountPanelRelationships');
+          if (!panel?.classList.contains('active')) return;
+          const search = panel.querySelector('#hofStandaloneAgreementSearch');
+          const disclosure = search?.closest('details');
+          if (disclosure) disclosure.open = true;
+          const target = search || panel.querySelector('#relationshipDraftsHeading');
+          if (!search) target?.setAttribute('tabindex', '-1');
+          target?.scrollIntoView({ block: 'center' });
+          target?.focus({ preventScroll: true });
+        }, 0);
+      });
       followUp.addEventListener('click', event => { if (event.target === followUp) closeFollowUp('overlay'); });
       bindPackageQuestionKeys(followUp, () => closeFollowUp('escape'));
       window.setTimeout(() => followUp.querySelector('[data-follow-up-choice]')?.focus(), 0);
