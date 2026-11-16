@@ -2,13 +2,14 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const html = fs.readFileSync('index.html', 'utf8');
+const pdfFixture = new Blob(['%PDF-1.7\nfictional bytes'], {type:'application/pdf'});
 const start = html.indexOf('  let activeOfferPdfRequest;');
 const end = html.indexOf('  root.hofRenderOfferWorkspaceV10', start);
 
 (async () => {
   let expire;
   const calls = [], notes = [], previews = [], notices = [];
-  let response = {ok:true,headers:{get:()=> 'application/pdf'},blob:async()=>({pdf:true})};
+  let response = {ok:true,headers:{get:()=> 'application/pdf'},blob:async()=>pdfFixture};
   const modal = {querySelector:()=>({after:node=>notes.push(node.textContent)})};
   const root = {hofAuth:{session:{access_token:'fictional'}},announceWorkspaceStatus:m=>notices.push(m),hofShowPdfPreview:(...p)=>previews.push(p)};
   vm.runInNewContext(html.slice(start,end), {root, AbortController, setTimeout:(run,ms)=>{assert.equal(ms,60000);expire=run;return 1;},clearTimeout:id=>{assert.equal(id,1);expire=null;}, document:{getElementById:()=>modal,createElement:()=>({style:{}})},fetch:async(url,opts)=>{calls.push({url,body:JSON.parse(opts.body)});return typeof response === 'function' ? response(opts.signal) : response;}});
@@ -29,6 +30,18 @@ const end = html.indexOf('  root.hofRenderOfferWorkspaceV10', start);
   response={ok:true,headers:{get:()=> 'text/html'}};
   await root.hofOpenOfferPdf('saved-offer',button);
   assert.match(notices.at(-1),/could not be confirmed/);assert.equal(previews.length,2);
+  for (const signed of [false, true]) {
+    for (const body of ['', '<html>Temporary error</html>']) {
+      response = {ok:true,headers:{get:()=> 'application/pdf'},
+        blob:async()=>new Blob([body], {type:'application/pdf'})};
+      const before = previews.length;
+      await root.hofOpenOfferPdf('saved-offer',button,signed);
+      assert.equal(previews.length,before,'Invalid download must never open a blank preview');
+      assert.match(notices.at(-1),/offer PDF download was incomplete|offer PDF could not be confirmed/);
+      assert.equal(button.disabled,false);
+      assert.equal(button.textContent,'Print unsigned copy');
+    }
+  }
   root.hofAuth.session=null;calls.length=0;
   await root.hofOpenOfferPdf('saved-offer',button);
   assert.equal(calls.length,0);assert.match(notices.at(-1),/Sign in again/);
@@ -38,13 +51,24 @@ const end = html.indexOf('  root.hofRenderOfferWorkspaceV10', start);
       const before=previews.length;
       response={ok:true,headers:{get:()=> 'application/pdf'},blob:async()=>{
         root.hofAuth.session=session;
-        return {privatePdf:true};
+        return pdfFixture;
       }};
       await root.hofOpenOfferPdf('saved-offer',button,signed);
       assert.equal(previews.length,before,'An old account PDF must not open after the session changes');
       assert.equal(button.disabled,false);
     }
   }
+  root.hofAuth.session={access_token:'original-account'};
+  const beforeHeaderRead = previews.length;
+  response = {ok:true,headers:{get:()=> 'application/pdf'},blob:async()=>({
+    size: pdfFixture.size,
+    slice: () => ({text: async () => {
+      root.hofAuth.session = {access_token:'different-account'};
+      return '%PDF-';
+    }})
+  })};
+  await root.hofOpenOfferPdf('saved-offer',button);
+  assert.equal(previews.length,beforeHeaderRead,'Account changes during header validation must suppress the preview');
   root.hofAuth.session={access_token:'original-account'};
   const beforeNotices=notices.length;
   response={ok:false,json:async()=>{
@@ -65,7 +89,15 @@ const end = html.indexOf('  root.hofRenderOfferWorkspaceV10', start);
   assert.equal(expire,null);
   assert.equal(button.disabled,false);
   assert.match(notices.at(-1),/took too long/);
-  response={ok:true,headers:{get:()=> 'application/pdf'},blob:async()=>({pdf:true})};
+  const previewsBeforeLateBody = previews.length;
+  response = {ok:true,headers:{get:()=> 'application/pdf'},blob:async()=>{
+    expire();
+    return pdfFixture;
+  }};
+  await root.hofOpenOfferPdf('saved-offer',button);
+  assert.equal(previews.length,previewsBeforeLateBody);
+  assert.match(notices.at(-1),/took too long/);
+  response={ok:true,headers:{get:()=> 'application/pdf'},blob:async()=>pdfFixture};
   await root.hofOpenOfferPdf('saved-offer',button);
   assert.equal(previews.at(-1)[1],'Unsigned offer copy');
   const previewCount = previews.length;
@@ -82,12 +114,12 @@ const end = html.indexOf('  root.hofRenderOfferWorkspaceV10', start);
   const older = root.hofOpenOfferPdf('older-offer',button);
   await olderBodyStarted;
   const nextButton = {textContent:'Signed PDF',disabled:false};
-  response = {ok:true,headers:{get:()=> 'application/pdf'},blob:async()=>({latest:true})};
+  response = {ok:true,headers:{get:()=> 'application/pdf'},blob:async()=>pdfFixture};
   await root.hofOpenOfferPdf('newer-offer',nextButton,true);
   assert.equal(olderSignal.aborted,true);
-  finishOlderPdf({stale:true});
+  finishOlderPdf(pdfFixture);
   await older;
-  assert.deepEqual(previews.slice(previewCount),[[{latest:true},'Signed offer',nextButton]]);
+  assert.deepEqual(previews.slice(previewCount),[[pdfFixture,'Signed offer',nextButton]]);
   assert.equal(notices.length,noticeCount);
   assert.equal(button.disabled,false);
   assert.equal(nextButton.disabled,false);

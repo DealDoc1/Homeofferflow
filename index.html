@@ -20837,6 +20837,12 @@ function hofSpreadsheetCsvCell(value) {
       if (!(response.headers.get('content-type') || '').includes('application/pdf')) throw new Error('The offer PDF could not be confirmed. Please try again.');
       const pdf = await response.blob();
       if (!viewerIsCurrent()) return;
+      controller.signal.throwIfAborted();
+      if (!pdf.size) throw new Error('The offer PDF download was incomplete. Try opening it again.');
+      const fileHeader = await pdf.slice(0, 5).text();
+      if (!viewerIsCurrent()) return;
+      controller.signal.throwIfAborted();
+      if (fileHeader !== '%PDF-') throw new Error('The offer PDF could not be confirmed. Please try again.');
       root.hofShowPdfPreview(pdf, signed ? 'Signed offer' : 'Unsigned offer copy', button);
       const modal = document.getElementById('hofPdfPreviewModal');
       if (modal) {
