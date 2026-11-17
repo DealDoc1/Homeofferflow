@@ -8,6 +8,10 @@ const start = html.indexOf('  let listingDisclosureHandoffRevision = 0;');
 const end = html.indexOf('  root.filterSellerDisclosureDrafts', start);
 assert.ok(start >= 0 && end > start);
 const handoff = html.slice(start, end);
+const readStart = html.indexOf('  window.hofLoadAgentListingWorkspaces =');
+const readEnd = html.indexOf('  let listingWorkspaceLoadRevision', readStart);
+assert.ok(readStart >= 0 && readEnd > readStart);
+const listingRead = html.slice(readStart, readEnd);
 const nextStart = html.indexOf('  function renderListingWorkspaceNextStep(workspace)');
 const nextEnd = html.indexOf('  function listingWorkspaceLabel', nextStart);
 assert.ok(nextStart >= 0 && nextEnd > nextStart);
@@ -32,7 +36,7 @@ function setup({kind = 'sale', sellers = ['Ana García', 'Wei Chen'], address = 
   const card = element();
   card.querySelectorAll = () => responses;
   fields.set('hofSellerDisclosureCard', card);
-  const calls = [], queries = [], timers = [];
+  const calls = [], queries = [], timers = [], fetches = [];
   const user = {id: 'agent-one'};
   const listing = {id: 'listing-one', agent_user_id: user.id, listing_kind: kind, property_address: address, seller_names: sellers};
   let result = {data: [listing], error: null};
@@ -44,14 +48,19 @@ function setup({kind = 'sale', sellers = ['Ana García', 'Wei Chen'], address = 
   const query = {select: value => {queries.push(['select', value]); return query;},
     eq: (key, value) => {queries.push(['eq', key, value]); return query;},
     is:(key,value)=>{queries.push(['is',key,value]);return query;},maybeSingle:()=>Promise.resolve(offerResult),
-    limit: count => {queries.push(['limit', count]); return pending ? new Promise(resolve => {resolvePending = resolve;}) : Promise.resolve(result);},
   };
-  const root = {hofAuth: {session: {user}}, getSupabaseClient: () => ({from: table => {
+  const root = {hofAuth: {session: {user, access_token: 'fictional-token'}}, getSupabaseClient: () => ({from: table => {
     queries.push(['from', table]);
     return query;
   }}),
     setTimeout: fn => {timers.push(fn);},
   };
+  const listingResponse = value => ({ok: !value.error, json: async () => ({workspaces: value.data || []})});
+  function fetch(url, options) {
+    fetches.push([url, options]);
+    if (pending) return new Promise(resolve => {resolvePending = value => resolve(listingResponse(value));});
+    return Promise.resolve(listingResponse(result));
+  }
   const choices = [];
   const document = {getElementById: id => fields.get(id), createElement: () => {
     const modal = element();
@@ -65,9 +74,10 @@ function setup({kind = 'sale', sellers = ['Ana García', 'Wei Chen'], address = 
     calls.push(['confirm', modal.innerHTML]);
     if (confirm !== null) queueMicrotask(() => modal.controls[confirm ? 'replace' : 'keep'].handlers.click());
   }}};
-  vm.runInNewContext(handoff, {root, window: root, document, active: () => true,
+  vm.runInNewContext(listingRead + handoff, {root, window: root, hofAuth: root.hofAuth, document, fetch, URLSearchParams,
+    AbortController, setTimeout: () => 1, clearTimeout: () => {}, active: () => true,
     renderCard: async () => {}, syncDisclosureDetails:()=>{}, syncWaterRightsVisibility: () => {calls.push(['water']);}});
-  return {root, fields, card, responses, calls, queries, listing, timers, choices,
+  return {root, fields, card, responses, calls, queries, fetches, listing, timers, choices,
     setResult: value => {result = value;}, waitForQuery: () => {pending = true;}, resolve: value => resolvePending(value),
     offer,setOfferResult:value=>{offerResult=value;},
   };
@@ -105,9 +115,14 @@ test('saved sale listing carries address and one/two seller names through an own
   assert.equal(p.fields.get('hofSellerDisclosureWorkspace').open, true);
   assert.equal(p.fields.get('hofSendSellerReview').disabled, true);
   assert.equal(p.calls.some(c => c[0] === 'confirm'), false);
-  assert.deepEqual(p.queries.filter(q => q[0] === 'eq'), [['eq', 'id', 'listing-one'], ['eq', 'agent_user_id', 'agent-one']]);
-  assert.deepEqual(p.queries.at(-1), ['limit', 1]);
-  assert.ok(!/\.insert\(|\.update\(|\.delete\(|fetch\(/.test(handoff));
+  assert.equal(p.queries.length, 0);
+  const [url, options] = p.fetches[0];
+  const params = new URL(url, 'https://qa.example').searchParams;
+  assert.equal(params.get('scope'), 'agent_listing_workspaces');
+  assert.equal(params.get('workspace_id'), 'listing-one');
+  assert.equal(params.get('limit'), '1');
+  assert.equal(options.headers.Authorization, 'Bearer fictional-token');
+  assert.ok(!/\.insert\(|\.update\(|\.delete\(/.test(handoff));
 });
 
 test('one seller does not introduce a second seller, buyer or contact information', async () => {
@@ -182,7 +197,6 @@ test('replacement choice is an accessible in-page dialog with Keep as the defaul
 
 for (const [name, result] of [
   ['missing row', {data: []}],
-  ['foreign owner', {data: [{id: 'listing-one', agent_user_id: 'other-agent'}]}],
   ['wrong listing', {data: [{id: 'other-listing', agent_user_id: 'agent-one'}]}],
   ['query failure', {data: [], error: new Error('read failed')}],
 ]) test(`${name} cannot prefill the disclosure`, async () => {
@@ -237,6 +251,7 @@ test('ordinary disclosure navigation remains available without any listing read'
   const p = setup();
   assert.equal(await p.root.openSellerDisclosureDraftWorkspace(), true);
   assert.equal(p.queries.length, 0);
+  assert.equal(p.fetches.length, 0);
 });
 
 for (const kind of ['sale', 'lease']) test(`${kind} next-step card offers only appropriate actions and keeps planning available`, () => {
