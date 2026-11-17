@@ -16340,27 +16340,70 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
       </div>`).join('') : '<div class="platform-list-item">No comparison notes for this workspace yet.</div>';
   }
 
+  function listingOfferViewIsCurrent(user, workspaceId) {
+    const epoch = window.__hofAccountProfileEpoch;
+    const picker = document.getElementById('listingOfferWorkspace');
+    return () => picker?.isConnected && document.getElementById('listingOfferWorkspace') === picker &&
+      picker.value === workspaceId && platformUser()?.id === user.id && epoch === window.__hofAccountProfileEpoch;
+  }
+
+  async function listingOfferComparisonRequest(workspaceId, payload) {
+    const token = hofAuth?.session?.access_token;
+    if (!token) throw new Error('Sign in again to open your listing offer comparisons.');
+    const params = new URLSearchParams({scope: 'agent_listing_workspace_offers', workspace_id: workspaceId});
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    try {
+      const options = {headers: {Authorization: `Bearer ${token}`}, signal: controller.signal};
+      if (payload) {
+        options.method = 'POST';
+        options.headers['Content-Type'] = 'application/json';
+        options.body = JSON.stringify({...payload, workspaceId});
+      }
+      const response = await fetch(payload ? '/api/admin-dashboard' : `/api/admin-dashboard?${params.toString()}`, options);
+      const result = await response.json();
+      if (!response.ok) {
+        const error = new Error('The offer comparison request could not be confirmed.');
+        if ((response.status === 400 || response.status === 409) && typeof result?.error === 'string') {
+          error.message = result.error;
+          error.customerSafe = true;
+        }
+        throw error;
+      }
+      if (!payload && Array.isArray(result?.offers)) return result.offers;
+      if (payload && result?.ok === true && result.offer?.id) return result.offer;
+      throw new Error('An offer comparison response could not be confirmed.');
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  function listingOfferComparisonError(error, fallback) {
+    return error?.customerSafe ? error.message : fallback;
+  }
+
   window.updateListingWorkspaceOfferStatus = async function updateListingWorkspaceOfferStatus(offerId) {
     const id = String(offerId || '');
     const select = document.getElementById(`listingOfferStatus-${id}`);
     const saveButton = document.getElementById(`listingOfferStatusButton-${id}`);
     const workspaceId = String(getVal('listingOfferWorkspace') || '');
-    const client = getSupabaseClient();
     const user = platformUser();
     if (saveButton?.disabled) return;
-    if (!client || !user || !select || !workspaceId) return platformStatus('listingOfferStatusMessage', 'Choose a workspace and sign in before updating an offer comparison.', 'err');
+    if (!user || !select || !workspaceId) return platformStatus('listingOfferStatusMessage', 'Choose a workspace and sign in before updating an offer comparison.', 'err');
     if (!/^[0-9a-f-]{20,80}$/i.test(id)) return platformStatus('listingOfferStatusMessage', 'We couldn’t find that offer comparison. Refresh and try again.', 'err');
-    const status = document.getElementById('listingOfferStatusMessage');
+    const isCurrent = listingOfferViewIsCurrent(user, workspaceId);
     if (saveButton) { saveButton.disabled = true; saveButton.setAttribute('aria-busy', 'true'); saveButton.textContent = 'Saving status…'; }
-    if (status) { status.className = 'platform-status'; status.textContent = 'Updating comparison status…'; }
+    platformStatus('listingOfferStatusMessage', 'Updating comparison status…', 'info');
     try {
-      const { error } = await client.from('hof_listing_workspace_offers').update({ status: select.value, updated_at: new Date().toISOString() }).eq('id', id).eq('workspace_id', workspaceId);
-      if (error) throw error;
-      if (status) { status.className = 'platform-status ok'; status.textContent = 'Offer comparison status updated.'; }
+      const offer = (hofPlatform.listingWorkspaceOffers || []).find(row => row.id === id && row.workspace_id === workspaceId);
+      if (!offer?.updated_at) throw new Error('Refresh the offer comparison before updating its status.');
+      await listingOfferComparisonRequest(workspaceId, {action: 'update_listing_workspace_offer_status', offerId: id, status: select.value, expectedUpdatedAt: offer.updated_at});
+      if (!isCurrent()) return;
+      platformStatus('listingOfferStatusMessage', 'Offer comparison status updated.', 'ok');
       await loadListingWorkspaceOffersFoundation();
     } catch (err) {
       console.error('Listing workspace offer comparison status update failed:', err);
-      if (status) { status.className = 'platform-status err'; status.textContent = platformCustomerError(err, 'We couldn’t update the offer status. Please try again.'); }
+      if (isCurrent()) platformStatus('listingOfferStatusMessage', listingOfferComparisonError(err, 'We couldn’t update the offer status. Please try again.'), 'err');
     } finally {
       if (saveButton) { saveButton.disabled = false; saveButton.setAttribute('aria-busy', 'false'); saveButton.textContent = 'Save status'; }
     }
@@ -16370,23 +16413,24 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     const id = String(offerId || '');
     const workspaceId = String(getVal('listingOfferWorkspace') || '');
     const removeButton = document.getElementById(`deleteListingWorkspaceOfferButton-${id}`);
-    const client = getSupabaseClient();
     const user = platformUser();
-    if (!client || !user || !workspaceId) return platformStatus('listingOfferStatusMessage', 'Choose a workspace and sign in before removing an offer comparison.', 'err');
+    if (!user || !workspaceId) return platformStatus('listingOfferStatusMessage', 'Choose a workspace and sign in before removing an offer comparison.', 'err');
     if (!/^[0-9a-f-]{20,80}$/i.test(id)) return platformStatus('listingOfferStatusMessage', 'We couldn’t find that offer comparison. Refresh and try again.', 'err');
-    if (!window.confirm('Remove this offer comparison? This cannot be undone.')) return;
-    const status = document.getElementById('listingOfferStatusMessage');
     if (removeButton?.disabled) return;
+    const offer = (hofPlatform.listingWorkspaceOffers || []).find(row => row.id === id && row.workspace_id === workspaceId);
+    if (!offer?.updated_at) return platformStatus('listingOfferStatusMessage', 'Refresh the workspace before removing this offer comparison.', 'err');
+    if (!window.confirm('Remove this offer comparison? This cannot be undone.')) return;
+    const isCurrent = listingOfferViewIsCurrent(user, workspaceId);
     if (removeButton) { removeButton.disabled = true; removeButton.setAttribute('aria-busy', 'true'); removeButton.textContent = 'Removing…'; }
-    if (status) { status.className = 'platform-status'; status.textContent = 'Removing offer comparison…'; }
+    platformStatus('listingOfferStatusMessage', 'Removing offer comparison…', 'info');
     try {
-      const { error } = await client.from('hof_listing_workspace_offers').delete().eq('id', id).eq('workspace_id', workspaceId).eq('agent_user_id', user.id);
-      if (error) throw error;
-      if (status) { status.className = 'platform-status ok'; status.textContent = 'Offer comparison removed.'; }
+      await listingOfferComparisonRequest(workspaceId, {action: 'delete_listing_workspace_offer_comparison', offerId: id, expectedUpdatedAt: offer.updated_at});
+      if (!isCurrent()) return;
+      platformStatus('listingOfferStatusMessage', 'Offer comparison removed.', 'ok');
       await loadListingWorkspaceOffersFoundation();
     } catch (err) {
       console.error('Listing workspace offer comparison removal failed:', err);
-      if (status) { status.className = 'platform-status err'; status.textContent = platformCustomerError(err, 'We couldn’t remove that offer comparison. Please try again.'); }
+      if (isCurrent()) platformStatus('listingOfferStatusMessage', listingOfferComparisonError(err, 'We couldn’t remove that offer comparison. Please try again.'), 'err');
     } finally {
       if (removeButton) { removeButton.disabled = false; removeButton.setAttribute('aria-busy', 'false'); removeButton.textContent = 'Remove'; }
     }
@@ -16395,15 +16439,14 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
   let listingOfferLoadRequest = 0;
 
   async function loadListingWorkspaceOffersFoundation() {
-    const client = getSupabaseClient();
     const user = platformUser();
     const select = document.getElementById('listingOfferWorkspace');
     const list = document.getElementById('listingWorkspaceOfferList');
-    if (!client || !user || !select || !list) return;
+    if (!user || !select || !list) return;
     const workspaceId = String(select.value || '');
     const request = ++listingOfferLoadRequest;
-    const isCurrent = () => request === listingOfferLoadRequest && select.isConnected
-      && select.value === workspaceId && platformUser()?.id === user.id;
+    const sameView = listingOfferViewIsCurrent(user, workspaceId);
+    const isCurrent = () => request === listingOfferLoadRequest && sameView();
     const review = document.getElementById('listingOfferContractReview');
     if (review && review.dataset.workspaceId !== workspaceId) {
       resetListingOfferContractReview(review);
@@ -16417,12 +16460,9 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     }
     list.innerHTML = '<div class="platform-list-item">Loading offer comparisons…</div>';
     try {
-      const { data, error } = await client.from('hof_listing_workspace_offers')
-        .select('id,workspace_id,offer_label,offer_price,financing_type,seller_concessions,closing_date,option_days,contingency_notes,status,private_notes,created_at,updated_at')
-        .eq('workspace_id', workspaceId).order('updated_at', { ascending:false }).limit(20);
+      const offers = await listingOfferComparisonRequest(workspaceId);
       if (!isCurrent()) return;
-      if (error) throw error;
-      hofPlatform.listingWorkspaceOffers = data || [];
+      hofPlatform.listingWorkspaceOffers = offers;
       renderListingWorkspaceOfferRows(hofPlatform.listingWorkspaceOffers);
     } catch (err) {
       if (!isCurrent()) return;
@@ -16560,13 +16600,13 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
   }
 
   async function saveListingWorkspaceOffer() {
-    const client = getSupabaseClient();
     const user = platformUser();
+    const status = document.getElementById('listingOfferStatusMessage');
     const saveButton = document.getElementById('saveListingWorkspaceOfferButton');
     if (saveButton?.disabled) return;
     const workspaceId = String(getVal('listingOfferWorkspace') || '');
     const label = String(getVal('listingOfferLabel') || '').trim();
-    if (!client || !user) return platformStatus('listingOfferStatusMessage', 'Sign in before saving an offer comparison.', 'err');
+    if (!user) return platformStatus('listingOfferStatusMessage', 'Sign in before saving an offer comparison.', 'err');
     if (!workspaceId) return platformStatus('listingOfferStatusMessage', 'Choose a listing workspace first.', 'err');
     if (!label) return platformStatus('listingOfferStatusMessage', 'Add a short label for this offer.', 'err');
     const review = document.getElementById('listingOfferContractReview');
@@ -16577,26 +16617,27 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     }
     const numericOrNull = value => String(value || '').trim() ? Number(value) : null;
     const payload = {
-      workspace_id: workspaceId,
-      agent_user_id: user.id,
-      offer_label: label,
-      offer_price: numericOrNull(getVal('listingOfferPrice')),
-      financing_type: String(getVal('listingOfferFinancing') || '').trim() || null,
-      seller_concessions: numericOrNull(getVal('listingOfferConcessions')),
-      closing_date: getVal('listingOfferClosingDate') || null,
-      option_days: numericOrNull(getVal('listingOfferOptionDays')),
-      contingency_notes: contingencyNotes || null,
+      action: 'save_listing_workspace_offer_comparison',
+      offerLabel: label,
+      offerPrice: numericOrNull(getVal('listingOfferPrice')),
+      financingType: String(getVal('listingOfferFinancing') || '').trim(),
+      sellerConcessions: numericOrNull(getVal('listingOfferConcessions')),
+      closingDate: getVal('listingOfferClosingDate') || null,
+      optionDays: numericOrNull(getVal('listingOfferOptionDays')),
+      contingencyNotes,
       status: getVal('listingOfferStatus') || 'received',
-      private_notes: String(getVal('listingOfferNotes') || '').trim() || null
+      privateNotes: String(getVal('listingOfferNotes') || '').trim()
     };
-    const isCurrent = () => saveButton?.isConnected && platformUser()?.id === user.id
-      && String(getVal('listingOfferWorkspace') || '') === workspaceId;
+    const isCurrent = listingOfferViewIsCurrent(user, workspaceId);
     if (saveButton) { saveButton.disabled = true; saveButton.setAttribute('aria-busy', 'true'); saveButton.textContent = 'Saving comparison…'; }
-    platformStatus('listingOfferStatusMessage', 'Saving offer comparison…', 'info');
+    if (status) { status.className = 'platform-status show info'; status.textContent = 'Saving offer comparison…'; }
+    const inputIds = ['listingOfferLabel','listingOfferPrice','listingOfferFinancing','listingOfferConcessions','listingOfferClosingDate','listingOfferOptionDays','listingOfferContingencies','listingOfferNotes','listingOfferStatus'];
+    const inputs = [...inputIds.map(id => document.getElementById(id)), ...(review?.querySelectorAll('select') || [])]
+      .filter(input => input && !input.disabled);
+    inputs.forEach(input => { input.disabled = true; });
     try {
-      const { error } = await client.from('hof_listing_workspace_offers').insert(payload);
+      await listingOfferComparisonRequest(workspaceId, payload);
       if (!isCurrent()) return;
-      if (error) throw error;
       platformStatus('listingOfferStatusMessage', 'Offer comparison saved. It is not a recommendation or contract decision.');
       resetListingOfferContractReview(review);
       ['listingOfferLabel','listingOfferPrice','listingOfferFinancing','listingOfferConcessions','listingOfferClosingDate','listingOfferOptionDays','listingOfferContingencies','listingOfferNotes'].forEach(id => { const field = document.getElementById(id); if (field) field.value = ''; });
@@ -16605,9 +16646,10 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     } catch (err) {
       console.error('Listing workspace offer comparison save failed:', err);
       if (isCurrent()) {
-        platformStatus('listingOfferStatusMessage', platformCustomerError(err, 'We couldn’t save the offer comparison. Review the details and try again.'), 'err');
+        platformStatus('listingOfferStatusMessage', listingOfferComparisonError(err, 'We couldn’t confirm the save. Refresh the workspace to check whether the comparison was saved before trying again.'), 'err');
       }
     } finally {
+      inputs.forEach(input => { input.disabled = false; });
       if (saveButton) { saveButton.disabled = false; saveButton.setAttribute('aria-busy', 'false'); saveButton.textContent = 'Save Offer Comparison'; }
     }
   }
