@@ -35,11 +35,13 @@ class ProductionSchemaReadinessTests(unittest.TestCase):
                 body = {'contract':'homeofferflow-purchase-disclosure-v1','ready':True,'missing':[]}
             if request.full_url.endswith('/rpc/hof_rental_source_schema_readiness'):
                 body = {'contract':'homeofferflow-rental-source-schema-v1','ready':True,'missing':[]}
+            if request.full_url.endswith('/rpc/hof_listing_workspace_creation_schema_ready'):
+                body = True
             yield io.StringIO(json.dumps(body))
         with patch.object(MODULE, 'urlopen', side_effect=open_fixture):
             result = MODULE.fetch_readiness('https://fixture.supabase.co', 'sb_secret_fixture')
         self.assertTrue(result['ready'])
-        self.assertEqual(len(requests), 6)
+        self.assertEqual(len(requests), 7)
         self.assertTrue(requests[0].full_url.endswith('/rpc/hof_seller_disclosure_schema_readiness'))
         self.assertEqual(requests[1].method, 'GET')
         self.assertIn('onboarding_public_contact_phone', requests[1].full_url)
@@ -64,6 +66,8 @@ class ProductionSchemaReadinessTests(unittest.TestCase):
                 body = {'contract':'homeofferflow-purchase-disclosure-v1','ready':False,'missing':['trigger:hof_purchase_disclosure_signature_guard']}
             if request.full_url.endswith('/rpc/hof_rental_source_schema_readiness'):
                 body = {'contract':'homeofferflow-rental-source-schema-v1','ready':True,'missing':[]}
+            if request.full_url.endswith('/rpc/hof_listing_workspace_creation_schema_ready'):
+                body = True
             yield io.StringIO(json.dumps(body))
         with patch.object(MODULE, 'urlopen', side_effect=open_fixture):
             result = MODULE.fetch_readiness('https://fixture.supabase.co', 'sb_secret_fixture')
@@ -85,6 +89,8 @@ class ProductionSchemaReadinessTests(unittest.TestCase):
                     body = {'contract':'homeofferflow-purchase-disclosure-v1','ready':True,'missing':[]}
                 elif request.full_url.endswith('/rpc/hof_rental_source_schema_readiness'):
                     body = rental
+                if request.full_url.endswith('/rpc/hof_listing_workspace_creation_schema_ready'):
+                    body = True
                 yield io.StringIO(json.dumps(body))
             with self.subTest(rental=rental), patch.object(MODULE,'urlopen',side_effect=open_fixture):
                 if rental['contract']=='wrong':
@@ -93,6 +99,31 @@ class ProductionSchemaReadinessTests(unittest.TestCase):
                     result=MODULE.fetch_readiness('https://fixture.supabase.co','fixture')
                     self.assertFalse(result['ready'])
                     self.assertIn('rental-source:not-ready',result['missing'])
+
+    def test_listing_creation_requires_the_exact_database_capability(self):
+        import json
+        from contextlib import contextmanager
+
+        @contextmanager
+        def open_fixture(request, timeout):
+            rpc = request.full_url.rsplit('/', 1)[-1]
+            contracts = {
+                'hof_seller_disclosure_schema_readiness': MODULE.EXPECTED_CONTRACT,
+                'hof_purchase_disclosure_schema_readiness': 'homeofferflow-purchase-disclosure-v1',
+                'hof_rental_source_schema_readiness': 'homeofferflow-rental-source-schema-v1',
+            }
+            if rpc == 'hof_listing_workspace_creation_schema_ready':
+                body = False
+            elif rpc in contracts:
+                body = {'contract': contracts[rpc], 'ready': True, 'missing': []}
+            else:
+                body = []
+            yield io.StringIO(json.dumps(body))
+
+        with patch.object(MODULE, 'urlopen', side_effect=open_fixture):
+            result = MODULE.fetch_readiness('https://fixture.supabase.co', 'fixture')
+        self.assertFalse(result['ready'])
+        self.assertIn('listing-workspace-creation:not-ready', result['missing'])
 
     def test_questionnaire_readiness_matches_only_the_released_schema(self):
         sql = (ROOT / 'supabase/migrations/20261018134817_seller_disclosure_questionnaire_access.sql').read_text()

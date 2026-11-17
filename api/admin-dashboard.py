@@ -14,6 +14,7 @@ from io import BytesIO
 from http.server import BaseHTTPRequestHandler
 import httpx
 from pypdf import PdfReader, PdfWriter
+from lib import listing_workspace_creation
 from lib import platform_form_source_upload as platform_source
 from lib import partner_marketplace_agreement
 from lib import seller_disclosure_draft
@@ -5589,6 +5590,91 @@ async def _agent_listing_workspaces(user, workspace_id=None, limit=20):
     return rows
 
 
+async def _create_listing_workspace(user, data):
+    record = listing_workspace_creation.validate_listing_workspace_creation(data)
+    owner = listing_workspace_creation.normalized_uuid(
+        user.get("id"), "Sign in again before creating a listing workspace."
+    )
+    if record["seller_lead_id"]:
+        lead_id = urllib.parse.quote(record["seller_lead_id"], safe="")
+        owner_filter = urllib.parse.quote(owner, safe="")
+        leads = await _get(
+            "hof_seller_leads?"
+            f"id=eq.{lead_id}&user_id=eq.{owner_filter}&select=id&limit=1"
+        )
+        if not leads:
+            raise PermissionError("Refresh your seller leads before connecting this workspace.")
+
+    profiles = await _get(
+        "hof_profiles?"
+        f"id=eq.{urllib.parse.quote(owner, safe='')}&select=brokerage_id&limit=1"
+    )
+    brokerage_id = None
+    profile_brokerage = profiles[0].get("brokerage_id") if profiles else None
+    if profile_brokerage:
+        try:
+            candidate = listing_workspace_creation.normalized_uuid(
+                profile_brokerage, "The brokerage profile is unavailable."
+            )
+        except ValueError as exc:
+            raise RuntimeError(str(exc))
+        memberships = await _get(
+            "hof_brokerage_members?"
+            f"user_id=eq.{urllib.parse.quote(owner, safe='')}"
+            f"&brokerage_id=eq.{urllib.parse.quote(candidate, safe='')}"
+            "&status=eq.active&select=user_id&limit=1"
+        )
+        if memberships:
+            brokerage_id = candidate
+
+    request_id = record.pop("client_request_id", None)
+    record.update(agent_user_id=owner, brokerage_id=brokerage_id, status="intake")
+    if request_id:
+        record["client_request_id"] = request_id
+    # Older clients omit the optional column until the coordinated migration is
+    # present; keyed clients start using it as soon as the migration is applied.
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.post(
+            f"{SUPABASE_URL}/rest/v1/hof_listing_workspaces?"
+            "select=id,brokerage_id,agent_user_id,seller_lead_id,listing_kind,property_address,seller_names,status,requested_workflows,confidential_notes,created_at,updated_at",
+            headers={**_headers(), "Prefer": "return=representation"},
+            json=record,
+        )
+    if response.status_code == 409 and record.get("client_request_id"):
+        request_filter = urllib.parse.quote(record["client_request_id"], safe="")
+        owner_filter = urllib.parse.quote(owner, safe="")
+        existing_rows = await _get(
+            "hof_listing_workspaces?"
+            f"agent_user_id=eq.{owner_filter}"
+            f"&client_request_id=eq.{request_filter}"
+            "&select=id,brokerage_id,agent_user_id,seller_lead_id,listing_kind,property_address,seller_names,status,requested_workflows,confidential_notes,created_at,updated_at"
+            "&limit=1"
+        )
+        existing = existing_rows[0] if isinstance(existing_rows, list) and existing_rows else None
+        if not isinstance(existing, dict):
+            raise RuntimeError("Could not confirm the listing workspace save attempt.")
+        same_payload = (
+            existing.get("seller_lead_id") == record["seller_lead_id"]
+            and existing.get("listing_kind") == record["listing_kind"]
+            and existing.get("property_address") == record["property_address"]
+            and existing.get("seller_names") == record["seller_names"]
+            and existing.get("requested_workflows") == record["requested_workflows"]
+            and existing.get("confidential_notes") == record["confidential_notes"]
+        )
+        if not same_payload:
+            raise PermissionError("This save attempt belongs to different listing details. Refresh and try again.")
+        return existing
+    if response.status_code >= 300:
+        raise RuntimeError("Could not create the listing workspace.")
+    try:
+        rows = response.json()
+    except ValueError as exc:
+        raise RuntimeError("The listing workspace could not be confirmed.") from exc
+    if not isinstance(rows, list) or len(rows) != 1 or not isinstance(rows[0], dict) or not rows[0].get("id"):
+        raise RuntimeError("The listing workspace could not be confirmed.")
+    return rows[0]
+
+
 async def _update_listing_workspace_status(user, data):
     if set(data) != {"action", "workspaceId", "status", "expectedUpdatedAt"}:
         raise ValueError("Provide only the listing workspace and its updated status.")
@@ -8482,6 +8568,20 @@ class handler(BaseHTTPRequestHandler):
                 return
             if length > MAX_BODY_BYTES:
                 _json(self, 400, {"error": "Invalid request size."})
+                return
+            if data.get("action") == "create_listing_workspace":
+                try:
+                    workspace = asyncio.run(_create_listing_workspace(user, data))
+                except ValueError as exc:
+                    _json(self, 400, {"error": str(exc)})
+                    return
+                except PermissionError as exc:
+                    _json(self, 409, {"error": str(exc)})
+                    return
+                except (httpx.HTTPError, RuntimeError):
+                    _json(self, 503, {"error": "We couldn’t confirm the listing save. Your details are still here. Retry to check whether it was saved."})
+                    return
+                _json(self, 201, {"ok": True, "workspace": workspace})
                 return
             if data.get("action") == "update_listing_workspace_status":
                 try:
