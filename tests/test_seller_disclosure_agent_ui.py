@@ -111,7 +111,7 @@ class SellerDisclosureAgentUiTests(unittest.TestCase):
     def test_seller_draft_can_link_to_private_listing_workspace(self):
         html = (ROOT / "index.html").read_text()
         self.assertIn('id="hofSellerWorkspace"', html)
-        self.assertIn("loadListingWorkspaces", html)
+        self.assertIn("hofLoadAgentListingWorkspaces", html)
         self.assertIn("listingWorkspaceId", html)
 
     def test_seller_draft_list_supports_private_search(self):
