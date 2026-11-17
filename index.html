@@ -16214,23 +16214,51 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     const id = String(workspaceId || '');
     const select = document.getElementById(`listingWorkspaceStatus-${id}`);
     const saveButton = document.getElementById(`listingWorkspaceStatusButton-${id}`);
-    const client = getSupabaseClient();
     const user = platformUser();
     if (saveButton?.disabled) return;
-    if (!client || !user || !select) return platformStatus('listingWorkspaceStatus', 'Sign in before updating a listing workspace.', 'err');
-    if (!/^[0-9a-f-]{20,80}$/i.test(id)) return platformStatus('listingWorkspaceStatus', 'We couldn’t find that listing workspace. Refresh and try again.', 'err');
-    if (saveButton) { saveButton.disabled = true; saveButton.setAttribute('aria-busy', 'true'); saveButton.textContent = 'Saving status…'; }
+    if (!user || !select || !saveButton) return platformStatus('listingWorkspaceStatus', 'Sign in before updating a listing workspace.', 'err');
+    const workspace = (hofPlatform.listingWorkspaces || []).find(row => row.id === id);
+    if (!workspace) return platformStatus('listingWorkspaceStatus', 'We couldn’t find that listing workspace. Refresh and try again.', 'err');
+    if (!workspace.updated_at) return platformStatus('listingWorkspaceStatus', 'Refresh Workspaces before updating the listing status.', 'err');
+
+    const epoch = window.__hofAccountProfileEpoch;
+    const isCurrent = () => epoch === window.__hofAccountProfileEpoch && platformUser()?.id === user.id;
+    const token = hofAuth?.session?.access_token;
+    if (!token) return platformStatus('listingWorkspaceStatus', 'Sign in before updating a listing workspace.', 'err');
+    const status = select.value;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    saveButton.disabled = true;
+    select.disabled = true;
+    saveButton.setAttribute('aria-busy', 'true');
+    saveButton.textContent = 'Saving status…';
     platformStatus('listingWorkspaceStatus', 'Updating listing workspace status…');
     try {
-      const { error } = await client.from('hof_listing_workspaces').update({ status: select.value, updated_at: new Date().toISOString() }).eq('id', id).eq('agent_user_id', user.id);
-      if (error) throw error;
+      const response = await fetch('/api/admin-dashboard', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', Authorization: `Bearer ${token}`},
+        signal: controller.signal,
+        body: JSON.stringify({action: 'update_listing_workspace_status', workspaceId: id, status, expectedUpdatedAt: workspace.updated_at})
+      });
+      const result = await response.json();
+      if (!isCurrent()) return;
+      if ((response.status === 400 || response.status === 409) && typeof result?.error === 'string') {
+        platformStatus('listingWorkspaceStatus', result.error, 'err');
+        return;
+      }
+      if (!response.ok || result?.ok !== true || result.workspace?.id !== id ||
+          result.workspace.status !== status || !result.workspace.updated_at) throw new Error('Unconfirmed listing status');
+      Object.assign(workspace, result.workspace);
       platformStatus('listingWorkspaceStatus', 'Listing workspace status updated.', 'ok');
       await loadListingWorkspacesFoundation();
-    } catch (err) {
-      console.error('Listing workspace status update failed:', err);
-      platformStatus('listingWorkspaceStatus', platformCustomerError(err, 'We couldn’t update the listing status. Please try again.'), 'err');
+    } catch (error) {
+      if (isCurrent()) platformStatus('listingWorkspaceStatus', 'We couldn’t confirm the listing status. Refresh Workspaces and check it before trying again.', 'err');
     } finally {
-      if (saveButton) { saveButton.disabled = false; saveButton.setAttribute('aria-busy', 'false'); saveButton.textContent = 'Save status'; }
+      clearTimeout(timeout);
+      saveButton.disabled = false;
+      select.disabled = false;
+      saveButton.setAttribute('aria-busy', 'false');
+      saveButton.textContent = 'Save status';
     }
   };
 
