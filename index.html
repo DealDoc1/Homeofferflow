@@ -16218,7 +16218,8 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     if (saveButton?.disabled) return;
     if (!user || !select || !saveButton) return platformStatus('listingWorkspaceStatus', 'Sign in before updating a listing workspace.', 'err');
     const workspace = (hofPlatform.listingWorkspaces || []).find(row => row.id === id);
-    if (!workspace?.updated_at) return platformStatus('listingWorkspaceStatus', 'Refresh Workspaces before updating the listing status.', 'err');
+    if (!workspace) return platformStatus('listingWorkspaceStatus', 'We couldn’t find that listing workspace. Refresh and try again.', 'err');
+    if (!workspace.updated_at) return platformStatus('listingWorkspaceStatus', 'Refresh Workspaces before updating the listing status.', 'err');
 
     const epoch = window.__hofAccountProfileEpoch;
     const isCurrent = () => epoch === window.__hofAccountProfileEpoch && platformUser()?.id === user.id;
