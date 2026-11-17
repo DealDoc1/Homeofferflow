@@ -14,7 +14,7 @@ from io import BytesIO
 from http.server import BaseHTTPRequestHandler
 import httpx
 from pypdf import PdfReader, PdfWriter
-from lib import listing_workspace_creation
+from lib import listing_workspace_creation, listing_workspace_offer_comparison
 from lib import platform_form_source_upload as platform_source
 from lib import partner_marketplace_agreement
 from lib import seller_disclosure_draft
@@ -5721,6 +5721,127 @@ async def _update_listing_workspace_status(user, data):
     return rows[0]
 
 
+async def _owned_listing_workspace(user, workspace_id):
+    normalized_id = listing_workspace_offer_comparison.normalized_uuid(
+        workspace_id, "Choose a valid listing workspace."
+    )
+    rows = await _get(
+        "hof_listing_workspaces?"
+        f"id=eq.{urllib.parse.quote(normalized_id, safe='')}"
+        f"&agent_user_id=eq.{urllib.parse.quote(str(user['id']), safe='')}"
+        "&select=id&limit=1"
+    )
+    if not rows:
+        raise PermissionError("That listing workspace is unavailable.")
+    return normalized_id
+
+
+async def _save_listing_workspace_offer_comparison(user, data):
+    allowed = {"action", "workspaceId", *listing_workspace_offer_comparison.OFFER_FIELDS}
+    if not isinstance(data, dict) or set(data) != allowed:
+        raise ValueError("Provide only the listing workspace and offer comparison details.")
+    workspace_id = await _owned_listing_workspace(user, data.get("workspaceId"))
+    record = listing_workspace_offer_comparison.validate_offer_fields(
+        {key: data.get(key) for key in listing_workspace_offer_comparison.OFFER_FIELDS}
+    )
+    record["workspace_id"] = workspace_id
+    record["agent_user_id"] = str(user["id"])
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.post(
+            f"{SUPABASE_URL}/rest/v1/hof_listing_workspace_offers?select=id,workspace_id,offer_label,offer_price,financing_type,seller_concessions,closing_date,option_days,contingency_notes,status,private_notes,created_at,updated_at",
+            headers={**_headers(), "Prefer": "return=representation"},
+            json=record,
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("Could not save the offer comparison.")
+    rows = response.json()
+    if not isinstance(rows, list) or len(rows) != 1 or not rows[0].get("id"):
+        raise RuntimeError("The saved offer comparison could not be confirmed.")
+    return rows[0]
+
+
+async def _update_listing_workspace_offer_status(user, data):
+    if not isinstance(data, dict) or set(data) != {
+        "action", "offerId", "workspaceId", "status", "expectedUpdatedAt"
+    }:
+        raise ValueError("Provide only the offer comparison and its updated status.")
+    offer_id = listing_workspace_offer_comparison.normalized_uuid(
+        data.get("offerId"), "Choose a valid offer comparison."
+    )
+    workspace_id = await _owned_listing_workspace(user, data.get("workspaceId"))
+    status = data.get("status")
+    if not isinstance(status, str) or status not in listing_workspace_offer_comparison.STATUSES:
+        raise ValueError("Choose a valid offer comparison status.")
+    expected = listing_workspace_offer_comparison.normalize_expected_updated_at(data.get("expectedUpdatedAt"))
+    owner = urllib.parse.quote(str(user["id"]), safe="")
+    encoded_offer = urllib.parse.quote(offer_id, safe="")
+    encoded_workspace = urllib.parse.quote(workspace_id, safe="")
+    rows = await _get(
+        "hof_listing_workspace_offers?"
+        f"id=eq.{encoded_offer}&agent_user_id=eq.{owner}&workspace_id=eq.{encoded_workspace}"
+        "&select=id,updated_at&limit=1"
+    )
+    if not rows:
+        raise PermissionError("That offer comparison is unavailable.")
+    if rows[0].get("updated_at") != expected:
+        raise PermissionError("This offer comparison changed in another session. Reload it before updating.")
+    query = (
+        f"id=eq.{encoded_offer}&agent_user_id=eq.{owner}&workspace_id=eq.{encoded_workspace}"
+        f"&updated_at=eq.{urllib.parse.quote(expected, safe='')}"
+    )
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.patch(
+            f"{SUPABASE_URL}/rest/v1/hof_listing_workspace_offers?{query}&select=id,status,updated_at",
+            headers={**_headers(), "Prefer": "return=representation"},
+            json={"status": status, "updated_at": datetime.now(timezone.utc).isoformat()},
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("Could not update the offer comparison status.")
+    updated = response.json()
+    if not isinstance(updated, list) or len(updated) != 1:
+        raise PermissionError("This offer comparison changed in another session. Reload it before updating.")
+    return updated[0]
+
+
+async def _delete_listing_workspace_offer_comparison(user, data):
+    if not isinstance(data, dict) or set(data) != {"action", "offerId", "workspaceId", "expectedUpdatedAt"}:
+        raise ValueError("Provide only the offer comparison and its listing workspace.")
+    offer_id = listing_workspace_offer_comparison.normalized_uuid(
+        data.get("offerId"), "Choose a valid offer comparison."
+    )
+    workspace_id = await _owned_listing_workspace(user, data.get("workspaceId"))
+    expected = listing_workspace_offer_comparison.normalize_expected_updated_at(data.get("expectedUpdatedAt"))
+    revision = urllib.parse.quote(expected, safe="")
+    owner = urllib.parse.quote(str(user["id"]), safe="")
+    encoded_offer = urllib.parse.quote(offer_id, safe="")
+    encoded_workspace = urllib.parse.quote(workspace_id, safe="")
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.delete(
+            f"{SUPABASE_URL}/rest/v1/hof_listing_workspace_offers?"
+            f"id=eq.{encoded_offer}&agent_user_id=eq.{owner}&workspace_id=eq.{encoded_workspace}&updated_at=eq.{revision}&select=id",
+            headers={**_headers(), "Prefer": "return=representation"},
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("Could not remove the offer comparison.")
+    removed = response.json()
+    if not isinstance(removed, list) or len(removed) != 1:
+        raise PermissionError("This offer comparison changed or is unavailable. Refresh the workspace before removing it.")
+    return {"id": offer_id, "removed": True}
+
+
+async def _agent_listing_workspace_offer_comparisons(user, workspace_id):
+    workspace_id = await _owned_listing_workspace(user, workspace_id)
+    owner = urllib.parse.quote(str(user.get("id") or ""), safe="")
+    rows = await _get(
+        "hof_listing_workspace_offers?"
+        f"workspace_id=eq.{urllib.parse.quote(workspace_id, safe='')}"
+        f"&agent_user_id=eq.{owner}"
+        "&select=id,workspace_id,offer_label,offer_price,financing_type,seller_concessions,closing_date,option_days,contingency_notes,status,private_notes,created_at,updated_at"
+        "&order=updated_at.desc&limit=20"
+    )
+    return rows if isinstance(rows, list) else []
+
+
 class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         _json(self, 200, {"status": "ok"})
@@ -5823,6 +5944,22 @@ class handler(BaseHTTPRequestHandler):
                     _json(self, 503, {"error": "We couldn’t load your listing workspaces. Refresh and try again."})
                     return
                 _json(self, 200, {"workspaces": workspaces})
+                return
+            if scope == "agent_listing_workspace_offers":
+                try:
+                    offers = asyncio.run(_agent_listing_workspace_offer_comparisons(
+                        user, (query.get("workspace_id") or [""])[0]
+                    ))
+                except PermissionError:
+                    _json(self, 404, {"error": "That listing workspace is unavailable."})
+                    return
+                except ValueError as exc:
+                    _json(self, 400, {"error": str(exc)})
+                    return
+                except (httpx.HTTPError, RuntimeError):
+                    _json(self, 503, {"error": "We couldn’t load the offer comparisons. Refresh the workspace and try again."})
+                    return
+                _json(self, 200, {"offers": offers})
                 return
             if scope == "seller_disclosure_drafts":
                 rows = asyncio.run(_get(
@@ -8568,6 +8705,30 @@ class handler(BaseHTTPRequestHandler):
                 return
             if length > MAX_BODY_BYTES:
                 _json(self, 400, {"error": "Invalid request size."})
+                return
+            if data.get("action") in {
+                "save_listing_workspace_offer_comparison",
+                "update_listing_workspace_offer_status",
+                "delete_listing_workspace_offer_comparison",
+            }:
+                action = data["action"]
+                operation = {
+                    "save_listing_workspace_offer_comparison": _save_listing_workspace_offer_comparison,
+                    "update_listing_workspace_offer_status": _update_listing_workspace_offer_status,
+                    "delete_listing_workspace_offer_comparison": _delete_listing_workspace_offer_comparison,
+                }[action]
+                try:
+                    offer = asyncio.run(operation(user, data))
+                except ValueError as exc:
+                    _json(self, 400, {"error": str(exc)})
+                    return
+                except PermissionError as exc:
+                    _json(self, 409, {"error": str(exc)})
+                    return
+                except (httpx.HTTPError, RuntimeError):
+                    _json(self, 503, {"error": "We couldn’t confirm the comparison change. Refresh the workspace and check it before trying again."})
+                    return
+                _json(self, 201 if action == "save_listing_workspace_offer_comparison" else 200, {"ok": True, "offer": offer})
                 return
             if data.get("action") == "create_listing_workspace":
                 try:
