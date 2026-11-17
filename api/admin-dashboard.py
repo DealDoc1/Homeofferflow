@@ -5589,6 +5589,52 @@ async def _agent_listing_workspaces(user, workspace_id=None, limit=20):
     return rows
 
 
+async def _update_listing_workspace_status(user, data):
+    if set(data) != {"action", "workspaceId", "status", "expectedUpdatedAt"}:
+        raise ValueError("Provide only the listing workspace and its updated status.")
+    try:
+        workspace_id = str(uuid.UUID(str(data.get("workspaceId") or "")))
+        owner = str(uuid.UUID(str(user.get("id") or "")))
+    except ValueError as exc:
+        raise ValueError("Choose a valid listing workspace.") from exc
+    status = data.get("status")
+    if status not in ("intake", "source_pending", "draft", "ready_for_review", "archived"):
+        raise ValueError("Choose a valid listing workspace status.")
+    expected = data.get("expectedUpdatedAt")
+    if not isinstance(expected, str) or len(expected) > 64:
+        raise ValueError("Refresh the listing workspace before updating its status.")
+    try:
+        last_seen = datetime.fromisoformat(expected.strip().replace("Z", "+00:00"))
+        if last_seen.tzinfo is None:
+            raise ValueError
+    except ValueError as exc:
+        raise ValueError("Refresh the listing workspace before updating its status.") from exc
+
+    filters = (
+        f"id=eq.{workspace_id}&agent_user_id=eq.{owner}"
+        f"&updated_at=eq.{urllib.parse.quote(last_seen.isoformat(), safe='')}"
+    )
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.patch(
+            f"{SUPABASE_URL}/rest/v1/hof_listing_workspaces?{filters}&select=id,status,updated_at",
+            headers={**_headers(), "Prefer": "return=representation"},
+            json={"status": status},
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("The listing status update could not be confirmed.")
+    try:
+        rows = response.json()
+    except ValueError as exc:
+        raise RuntimeError("The listing status update could not be confirmed.") from exc
+    if rows == []:
+        raise PermissionError("This listing may have changed or become unavailable. Refresh Workspaces before trying again.")
+    if (not isinstance(rows, list) or len(rows) != 1 or not isinstance(rows[0], dict)
+            or rows[0].get("id") != workspace_id or rows[0].get("status") != status
+            or not rows[0].get("updated_at")):
+        raise RuntimeError("The listing status update could not be confirmed.")
+    return rows[0]
+
+
 class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         _json(self, 200, {"status": "ok"})
@@ -8436,6 +8482,20 @@ class handler(BaseHTTPRequestHandler):
                 return
             if length > MAX_BODY_BYTES:
                 _json(self, 400, {"error": "Invalid request size."})
+                return
+            if data.get("action") == "update_listing_workspace_status":
+                try:
+                    workspace = asyncio.run(_update_listing_workspace_status(user, data))
+                except ValueError as exc:
+                    _json(self, 400, {"error": str(exc)})
+                    return
+                except PermissionError as exc:
+                    _json(self, 409, {"error": str(exc)})
+                    return
+                except (httpx.HTTPError, RuntimeError):
+                    _json(self, 503, {"error": "We couldn’t confirm the listing status. Refresh Workspaces and check it before trying again."})
+                    return
+                _json(self, 200, {"ok": True, "workspace": workspace})
                 return
             if data.get("action") == "save_agent_iabs_metadata":
                 try:
