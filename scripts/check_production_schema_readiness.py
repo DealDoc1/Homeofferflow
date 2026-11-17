@@ -115,6 +115,14 @@ def fetch_readiness(url: str, service_key: str) -> dict:
             payload['ready'] = False
             payload['missing'] = [*(payload.get('missing') or []),
                 *(rental_contract.get('missing') or []), 'rental-source:not-ready']
+        listing_creation = Request(
+            f"{url.rstrip('/')}/rest/v1/rpc/hof_listing_workspace_creation_schema_ready",
+            data=b'{}', headers=request_headers(service_key), method='POST',
+        )
+        with urlopen(listing_creation, timeout=30) as response:
+            if json.load(response) is not True:
+                payload['ready'] = False
+                payload['missing'] = [*(payload.get('missing') or []), 'listing-workspace-creation:not-ready']
     return payload
 
 

@@ -61,7 +61,8 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
     def test_dashboard_workspace_ui_preserves_private_form_boundary(self):
         self.assertIn("leadSectionTitle", INDEX)
         self.assertIn("saveListingWorkspaceFoundation", INDEX)
-        self.assertIn("hof_listing_workspaces", INDEX)
+        self.assertIn("create_listing_workspace", INDEX)
+        self.assertNotIn(".from('hof_listing_workspaces')", INDEX)
         self.assertIn("/api/admin-dashboard?scope=brokerage", INDEX)
         self.assertNotIn("client.rpc('hof_brokerage_listing_workspace_summary')", INDEX)
         self.assertIn("It has not created a form or signature request.", INDEX)
@@ -125,10 +126,11 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         start = INDEX.index("async function saveListingWorkspaceFoundation()")
         end = INDEX.index("function listingWorkspaceLabel", start)
         save = INDEX[start:end]
-        self.assertIn("insert(payload).select('id').single()", save)
+        self.assertIn("action: 'create_listing_workspace'", save)
+        self.assertNotIn(".insert(", save)
         self.assertIn("listingLaunchWorkspace", save)
         self.assertIn("listingOfferWorkspace", save)
-        self.assertIn("renderListingWorkspaceNextStep({ id: createdWorkspaceId, ...payload })", save)
+        self.assertIn("renderListingWorkspaceNextStep(createdWorkspace)", save)
         self.assertIn("loadListingWorkspaceOffersFoundation()", save)
         self.assertIn("default to an older property", save)
 
@@ -169,8 +171,8 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         save_start = INDEX.index("async function saveListingWorkspaceFoundation()")
         save_end = INDEX.index("function listingWorkspaceLabel", save_start)
         save = INDEX[save_start:save_end]
-        self.assertIn("brokerage_id: hofPlatform.brokerage?.id || null", save)
-        self.assertIn("personal workspace", save)
+        self.assertNotIn("brokerage_id:", save)
+        self.assertIn("eligible brokerage relationship server-side", save)
         self.assertNotIn("showAccountTab('brokerage');", save)
         self.assertNotIn("Save your brokerage foundation to finish this private listing workspace.", save)
         self.assertIn("delete window.__hofListingWorkspaceSetupDraft;", save)

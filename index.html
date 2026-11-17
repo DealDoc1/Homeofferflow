@@ -4725,6 +4725,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     window.hofClosePdfPreview?.(false);
     document.getElementById('privateFormDraftsCard')?.remove();
     window.__hofAccountProfileEpoch = (window.__hofAccountProfileEpoch || 0) + 1;
+    window.__hofListingWorkspaceCreateAttempts?.clear();
+    delete window.__hofListingWorkspaceCreateAttempts;
+    delete window.__hofListingWorkspaceCreateOwner;
+    delete window.__hofListingWorkspaceCreateEpoch;
     const adminContent = document.getElementById('adminDashboardContent');
     if (adminContent) {
       adminContent.dataset.loaded = '0';
@@ -15957,42 +15961,91 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
       .slice(0, 4);
   }
 
+  function listingWorkspaceCreateAttempt(payload) {
+    const ownerId = platformUser()?.id;
+    const epoch = window.__hofAccountProfileEpoch;
+    if (!ownerId) throw new Error('Sign in before creating a listing workspace.');
+    const snapshot = JSON.stringify([
+      payload.sellerLeadId, payload.listingKind, payload.propertyAddress,
+      payload.sellerNames, payload.requestedWorkflows, payload.confidentialNotes
+    ]);
+    if (window.__hofListingWorkspaceCreateOwner !== ownerId || window.__hofListingWorkspaceCreateEpoch !== epoch) {
+      window.__hofListingWorkspaceCreateAttempts = new Map();
+      window.__hofListingWorkspaceCreateOwner = ownerId;
+      window.__hofListingWorkspaceCreateEpoch = epoch;
+    }
+    const attempts = window.__hofListingWorkspaceCreateAttempts;
+    let requestId = attempts.get(snapshot);
+    if (!requestId) {
+      const cryptoApi = window.crypto;
+      if (typeof cryptoApi?.randomUUID === 'function') requestId = cryptoApi.randomUUID();
+      else if (typeof cryptoApi?.getRandomValues === 'function') {
+        const bytes = cryptoApi.getRandomValues(new Uint8Array(16));
+        bytes[6] = (bytes[6] & 0x0f) | 0x40;
+        bytes[8] = (bytes[8] & 0x3f) | 0x80;
+        const hex = Array.from(bytes, value => value.toString(16).padStart(2, '0')).join('');
+        requestId = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+      } else throw new Error('This browser cannot safely create a listing save attempt. Update your browser and try again.');
+      attempts.set(snapshot, requestId);
+    }
+    return { snapshot, requestId, attempts };
+  }
+
   async function saveListingWorkspaceFoundation() {
-    const client = getSupabaseClient();
     const user = platformUser();
     const createButton = document.getElementById('createListingWorkspaceButton');
     if (createButton?.disabled) return;
-    if (!client || !user) return platformStatus('listingWorkspaceStatus', 'Sign in before creating a listing workspace.', 'err');
+    if (!user) return platformStatus('listingWorkspaceStatus', 'Sign in before creating a listing workspace.', 'err');
+    const addressInput = document.getElementById('listingWorkspaceAddress');
+    const epoch = window.__hofAccountProfileEpoch;
+    const isCurrent = () => platformUser()?.id === user.id && epoch === window.__hofAccountProfileEpoch &&
+      document.getElementById('listingWorkspaceAddress') === addressInput;
     const propertyAddress = String(getVal('listingWorkspaceAddress') || '').trim();
     const sellerNames = listingWorkspaceSellerNames();
-    const sourceLeadId = String(document.getElementById('listingWorkspaceAddress')?.dataset.sellerLeadId || '');
+    const sourceLeadId = String(addressInput?.dataset.sellerLeadId || '');
     if (!propertyAddress) return platformStatus('listingWorkspaceStatus', 'Enter the property address before creating a workspace.', 'err');
     if (!sellerNames.length) return platformStatus('listingWorkspaceStatus', 'Enter at least one seller or landlord name. Use semicolons between multiple names.', 'err');
     if (createButton) { createButton.disabled = true; createButton.setAttribute('aria-busy', 'true'); createButton.textContent = 'Creating workspace…'; }
     platformStatus('listingWorkspaceStatus', 'Creating your listing workspace…');
+    const workflowInputs = [...document.querySelectorAll('input[name="listingWorkflow"]')];
+    const inputs = [addressInput, ...['listingWorkspaceKind', 'listingWorkspaceSellerNames', 'listingWorkspaceNotes']
+      .map(id => document.getElementById(id)), ...workflowInputs].filter(input => input && !input.disabled);
+    inputs.forEach(input => { input.disabled = true; });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
     try {
-      if (!hofPlatform.brokerage) await loadBrokerageFoundation();
       const payload = {
-        // A connected brokerage receives its own aggregate operational
-        // summary. An independent agent instead receives a personal workspace
-        // that remains visible only to that agent.
-        brokerage_id: hofPlatform.brokerage?.id || null,
-        agent_user_id: user.id,
-        // Only accept a lead ID that was loaded from this agent's own private
-        // seller-lead list. RLS also enforces the workspace owner at write time.
-        seller_lead_id: (Array.isArray(hofPlatform.sellerLeads) && hofPlatform.sellerLeads.some(lead => String(lead.id || '') === sourceLeadId)) ? sourceLeadId : null,
-        listing_kind: getVal('listingWorkspaceKind') === 'lease' ? 'lease' : 'sale',
-        property_address: propertyAddress,
-        seller_names: sellerNames,
-        status: 'intake',
-        requested_workflows: listingWorkspaceRequestedWorkflows(),
-        confidential_notes: String(getVal('listingWorkspaceNotes') || '').trim() || null
+        action: 'create_listing_workspace',
+        // The API confirms seller-lead ownership and assigns the signed-in
+        // owner, status, and eligible brokerage relationship server-side.
+        sellerLeadId: (Array.isArray(hofPlatform.sellerLeads) && hofPlatform.sellerLeads.some(lead => String(lead.id || '') === sourceLeadId)) ? sourceLeadId : null,
+        listingKind: getVal('listingWorkspaceKind') === 'lease' ? 'lease' : 'sale',
+        propertyAddress,
+        sellerNames,
+        requestedWorkflows: workflowInputs.filter(input => input.checked).map(input => input.value),
+        confidentialNotes: String(getVal('listingWorkspaceNotes') || '').trim() || null
       };
-      // Return the one record the signed-in agent just created so the next
-      // listing steps can continue in that same private workspace. This is
-      // deliberately owner-scoped and does not create a form or signing task.
-      const { data: createdWorkspace, error } = await client.from('hof_listing_workspaces').insert(payload).select('id').single();
-      if (error) throw error;
+      const createAttempt = listingWorkspaceCreateAttempt(payload);
+      payload.clientRequestId = createAttempt.requestId;
+      // Keep creation behind the same authenticated API contract that a future
+      // mobile client can reuse. Creation still does not create forms or signing.
+      const token = hofAuth?.session?.access_token;
+      if (!token) throw new Error('Sign in before creating a listing workspace.');
+      const response = await fetch('/api/admin-dashboard', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', Authorization: `Bearer ${token}`},
+        signal: controller.signal,
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json();
+      if (!isCurrent()) return;
+      if ((response.status === 400 || response.status === 409) && typeof result?.error === 'string') {
+        platformStatus('listingWorkspaceStatus', result.error, 'err');
+        return;
+      }
+      const createdWorkspace = result?.workspace;
+      if (!response.ok || result.ok !== true || !createdWorkspace?.id) throw new Error('Unconfirmed listing save');
+      createAttempt.attempts.delete(createAttempt.snapshot);
       document.getElementById('listingWorkspaceAddress').value = '';
       delete document.getElementById('listingWorkspaceAddress').dataset.sellerLeadId;
       document.getElementById('listingWorkspaceSellerNames').value = '';
@@ -16000,6 +16053,7 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
       document.querySelectorAll('input[name="listingWorkflow"]').forEach(input => { input.checked = false; });
       platformStatus('listingWorkspaceStatus', 'Listing saved. Choose your next step below. It has not created a form or signature request.', 'ok');
       await loadListingWorkspacesFoundation();
+      if (!isCurrent()) return;
       const createdWorkspaceId = String(createdWorkspace?.id || '');
       if (createdWorkspaceId) {
         // Keep every downstream private planning control on the workspace the
@@ -16010,13 +16064,15 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
           if (select && Array.from(select.options).some(option => option.value === createdWorkspaceId)) select.value = createdWorkspaceId;
         });
         await loadListingWorkspaceOffersFoundation();
-        renderListingWorkspaceNextStep({ id: createdWorkspaceId, ...payload });
+        if (!isCurrent()) return;
+        renderListingWorkspaceNextStep(createdWorkspace);
       }
       delete window.__hofListingWorkspaceSetupDraft;
     } catch (err) {
-      console.error('Listing workspace save failed:', err);
-      platformStatus('listingWorkspaceStatus', platformCustomerError(err, 'We couldn’t create the listing workspace. Review the property details and try again.'), 'err');
+      if (isCurrent()) platformStatus('listingWorkspaceStatus', 'We couldn’t confirm the save. Your details are still here. Try again to check whether the workspace was saved.', 'err');
     } finally {
+      clearTimeout(timeout);
+      inputs.forEach(input => { input.disabled = false; });
       if (createButton) { createButton.disabled = false; createButton.setAttribute('aria-busy', 'false'); createButton.textContent = 'Save Listing Workspace'; }
     }
   }
