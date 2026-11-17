@@ -16528,18 +16528,39 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     }
   }
 
+  window.hofLoadAgentListingWorkspaces = async function hofLoadAgentListingWorkspaces(workspaceId = '', limit = 20) {
+    const token = hofAuth?.session?.access_token;
+    if (!token) throw new Error('Sign in to load your listing workspaces.');
+    const params = new URLSearchParams({scope: 'agent_listing_workspaces', limit: String(limit)});
+    if (workspaceId) params.set('workspace_id', String(workspaceId));
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    try {
+      const response = await fetch(`/api/admin-dashboard?${params.toString()}`, {
+        headers: {Authorization: `Bearer ${token}`},
+        signal: controller.signal
+      });
+      const result = await response.json();
+      if (!response.ok || !Array.isArray(result.workspaces)) throw new Error('Listing workspaces are unavailable.');
+      return result.workspaces;
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
+
+  let listingWorkspaceLoadRevision = 0;
   async function loadListingWorkspacesFoundation() {
     const list = document.getElementById('listingWorkspaceList');
     const summary = document.getElementById('listingWorkspaceBrokerSummary');
-    const client = getSupabaseClient();
     const user = platformUser();
-    if (!list || !client || !user) return;
+    if (!list || !user) return;
+    const revision = ++listingWorkspaceLoadRevision;
+    const epoch = window.__hofAccountProfileEpoch;
+    const isCurrent = () => revision === listingWorkspaceLoadRevision &&
+      epoch === window.__hofAccountProfileEpoch && platformUser()?.id === user.id && list.isConnected;
     try {
-      const { data, error } = await client.from('hof_listing_workspaces')
-        .select('id, listing_kind, property_address, seller_names, status, requested_workflows, updated_at')
-        .order('updated_at', { ascending:false }).limit(20);
-      if (error) throw error;
-      const workspaces = data || [];
+      const workspaces = await window.hofLoadAgentListingWorkspaces();
+      if (!isCurrent()) return;
       hofPlatform.listingWorkspaces = workspaces;
       const workspaceSelect = document.getElementById('listingOfferWorkspace');
       if (workspaceSelect) {
@@ -16583,6 +16604,7 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
               headers: { Authorization: `Bearer ${accessToken}` }
             });
             const dashboard = await dashboardResponse.json().catch(() => ({}));
+            if (!isCurrent()) return;
             if (!dashboardResponse.ok || dashboard.error) {
               throw new Error(dashboard.error || 'Brokerage reporting is unavailable.');
             }
@@ -16592,6 +16614,7 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
               : 'Brokerage workflow counts: no listing workspaces yet.';
             summary.className = 'platform-status ok';
           } catch (summaryError) {
+            if (!isCurrent()) return;
             console.warn('Brokerage listing-workspace summary unavailable:', summaryError);
             summary.textContent = 'Brokerage workflow counts are temporarily unavailable.';
             summary.className = 'platform-status';
@@ -16599,11 +16622,12 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
         }
       }
     } catch (err) {
+      if (!isCurrent()) return;
       console.warn('Listing workspace load failed:', err);
       list.innerHTML = '<div class="platform-list-item">We couldn’t load your listing workspaces. Refresh and try again.</div>';
       if (summary) { summary.textContent = ''; summary.className = 'platform-status'; }
     }
-    await loadListingWorkspaceOffersFoundation();
+    if (isCurrent()) await loadListingWorkspaceOffersFoundation();
   }
 
   function renderPartnerFoundationPanel() {
@@ -25782,18 +25806,6 @@ function hofSpreadsheetCsvCell(value) {
   async function approvedSources() {
     return root.hofLoadApprovedFormCatalog();
   }
-  async function loadListingWorkspaces() {
-    const client = root.getSupabaseClient?.();
-    const user = root.hofAuth?.session?.user;
-    if (!client || !user) return [];
-    const {data, error} = await client.from('hof_listing_workspaces')
-      .select('id,listing_kind,property_address,seller_names,status,updated_at')
-      .eq('agent_user_id', user.id)
-      .order('updated_at', {ascending:false})
-      .limit(50);
-    if (error) throw error;
-    return data || [];
-  }
   async function loadDrafts() {
     const token = root.hofAuth?.session?.access_token;
     if (!token) return [];
@@ -25897,20 +25909,15 @@ function hofSpreadsheetCsvCell(value) {
     if (workspaceId) {
       const revision = ++listingDisclosureHandoffRevision;
       const userId = root.hofAuth?.session?.user?.id;
-      const client = root.getSupabaseClient?.();
-      if (!userId || !client || !active()) throw new Error('Sign in to open this listing.');
+      const epoch = root.__hofAccountProfileEpoch;
+      if (!userId || !active()) throw new Error('Sign in to open this listing.');
       if (!document.getElementById('hofSellerDisclosureCard')) await renderCard();
       const card = document.getElementById('hofSellerDisclosureCard');
       if (!card) throw new Error('Disclosure interview is still loading.');
-      const {data, error} = await client.from('hof_listing_workspaces')
-        .select('id,agent_user_id,listing_kind,property_address,seller_names')
-        .eq('id', String(workspaceId)).eq('agent_user_id', userId).limit(1);
-      // The result belongs to the identity that initiated this read, not a
-      // different account or a newer listing selection made while it loaded.
-      if (revision !== listingDisclosureHandoffRevision || root.hofAuth?.session?.user?.id !== userId || document.getElementById('hofSellerDisclosureCard') !== card) return false;
-      if (error) throw error;
-      const listing = data?.[0];
-      if (!listing || String(listing.id) !== String(workspaceId) || listing.agent_user_id !== userId) throw new Error('Listing is unavailable for this account.');
+      const rows = await root.hofLoadAgentListingWorkspaces(workspaceId, 1);
+      if (revision !== listingDisclosureHandoffRevision || epoch !== root.__hofAccountProfileEpoch || root.hofAuth?.session?.user?.id !== userId || document.getElementById('hofSellerDisclosureCard') !== card) return false;
+      const listing = rows[0];
+      if (!listing || String(listing.id) !== String(workspaceId)) throw new Error('Listing is unavailable for this account.');
       const status = document.getElementById('hofSellerDraftStatus');
       const report = message => { if (status) status.textContent = message; open(); return false; };
       if (listing.listing_kind !== 'sale') return report('This is a lease listing. Your lease-listing tools remain available.');
@@ -25923,7 +25930,7 @@ function hofSpreadsheetCsvCell(value) {
       const responses = Array.from(card.querySelectorAll('[data-seller-response], [data-water-response]'));
       const hasWork = Boolean(card.dataset.loadedDraftId || card.dataset.sellerDraftId || fieldIds.some(id => document.getElementById(id)?.value) || responses.some(field => field.value));
       if (hasWork && !await confirmListingDisclosureReplacement()) return false;
-      if (revision !== listingDisclosureHandoffRevision || root.hofAuth?.session?.user?.id !== userId || document.getElementById('hofSellerDisclosureCard') !== card) return false;
+      if (revision !== listingDisclosureHandoffRevision || epoch !== root.__hofAccountProfileEpoch || root.hofAuth?.session?.user?.id !== userId || document.getElementById('hofSellerDisclosureCard') !== card) return false;
       if (document.getElementById('hofSaveSellerDraft')?.disabled) return report('Your disclosure is saving. Please wait before opening another listing.');
       fieldIds.forEach(id => { const field = document.getElementById(id); if (field) field.value = ''; });
       responses.forEach(field => { field.value = ''; });
@@ -26158,20 +26165,26 @@ function hofSpreadsheetCsvCell(value) {
     card.addEventListener('change', () => syncDisclosureDetails(card));
     card.addEventListener('input', () => syncDisclosureDetails(card));
     syncDisclosureDetails(card);
+    const userId = root.hofAuth?.session?.user?.id;
+    const epoch = root.__hofAccountProfileEpoch;
+    const isCurrent = () => card.isConnected && userId === root.hofAuth?.session?.user?.id &&
+      epoch === root.__hofAccountProfileEpoch;
     try {
       const sources = await approvedSources();
+      if (!isCurrent()) return;
       const seller = sources.find(s => s.form_code === 'TREC-55-1');
       const water = sources.find(s => s.form_code === 'TREC-61-0');
       document.getElementById('hofSellerSource').innerHTML = seller ? '<option value="' + escape(seller.id) + '">' + escape(seller.source_revision) + '</option>' : '<option value="">No approved TREC-55-1 form available</option>';
       if (water) document.getElementById('hofWaterSource').insertAdjacentHTML('beforeend','<option value="' + escape(water.id) + '">' + escape(water.source_revision) + '</option>');
       document.getElementById('hofWaterSource').addEventListener('change', syncWaterRightsVisibility);
       syncWaterRightsVisibility();
-      const workspaces = await loadListingWorkspaces();
+      const workspaces = await root.hofLoadAgentListingWorkspaces('', 50);
+      if (!isCurrent()) return;
       document.getElementById('hofSellerWorkspace').insertAdjacentHTML('beforeend', workspaces.map(workspace => {
         const label = [workspace.property_address, workspace.listing_kind, (workspace.seller_names || []).join(', ')].filter(Boolean).join(' · ');
         return '<option value="' + escape(workspace.id) + '">' + escape(label) + '</option>';
       }).join(''));
-    } catch (error) { console.error('Seller disclosure form load failed:', error); document.getElementById('hofSellerDraftStatus').textContent = window.hofCustomerActionError?.(error, 'We couldn’t load the approved forms. Close this window and try again.') || 'We couldn’t load the approved forms. Close this window and try again.'; }
+    } catch (error) { if (!isCurrent()) return; console.error('Seller disclosure form load failed:', error); document.getElementById('hofSellerDraftStatus').textContent = window.hofCustomerActionError?.(error, 'We couldn’t load the approved forms. Close this window and try again.') || 'We couldn’t load the approved forms. Close this window and try again.'; }
     document.getElementById('hofSaveSellerDraft').addEventListener('click', async () => {
       const status = document.getElementById('hofSellerDraftStatus');
       const saveButton = document.getElementById('hofSaveSellerDraft');

@@ -5560,6 +5560,35 @@ async def _send_txr_agreement_for_signature(user, data):
     }
 
 
+async def _agent_listing_workspaces(user, workspace_id=None, limit=20):
+    try:
+        owner = str(uuid.UUID(str(user.get("id") or "")))
+    except ValueError as exc:
+        raise ValueError("Sign in again to view your listing workspaces.") from exc
+    try:
+        limit = max(1, min(int(limit), 50))
+    except (TypeError, ValueError):
+        raise ValueError("Choose a valid listing workspace limit.")
+    filters = [f"agent_user_id=eq.{urllib.parse.quote(owner, safe='')}"]
+    if workspace_id:
+        try:
+            workspace_id = str(uuid.UUID(str(workspace_id)))
+        except ValueError as exc:
+            raise ValueError("Choose a valid listing workspace.") from exc
+        filters.append(f"id=eq.{urllib.parse.quote(workspace_id, safe='')}")
+    try:
+        rows = await _get(
+            "hof_listing_workspaces?" + "&".join(filters)
+            + "&select=id,listing_kind,property_address,seller_names,status,requested_workflows,updated_at"
+            + f"&order=updated_at.desc&limit={limit}"
+        )
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("Listing workspaces are unavailable.") from exc
+    if not isinstance(rows, list):
+        raise RuntimeError("Listing workspaces are unavailable.")
+    return rows
+
+
 class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         _json(self, 200, {"status": "ok"})
@@ -5647,6 +5676,21 @@ class handler(BaseHTTPRequestHandler):
                     _json(self, 403, {"error": str(exc)})
                     return
                 _json(self, 200, payload)
+                return
+            if scope == "agent_listing_workspaces":
+                try:
+                    workspaces = asyncio.run(_agent_listing_workspaces(
+                        user,
+                        (query.get("workspace_id") or [""])[0],
+                        (query.get("limit") or [20])[0],
+                    ))
+                except ValueError as exc:
+                    _json(self, 400, {"error": str(exc)})
+                    return
+                except (httpx.HTTPError, RuntimeError):
+                    _json(self, 503, {"error": "We couldn’t load your listing workspaces. Refresh and try again."})
+                    return
+                _json(self, 200, {"workspaces": workspaces})
                 return
             if scope == "seller_disclosure_drafts":
                 rows = asyncio.run(_get(
