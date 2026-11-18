@@ -9357,20 +9357,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   window.refreshSignWellStatus = refreshSignWellStatus;
 
   async function getOfferById(id) {
-    const client = getSupabaseClient();
-    const user = hofAuth.session?.user;
-    if (!client || !user || !id) return null;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 60000);
-    try {
-      const { data, error } = await client.from('hof_offers').select('*')
-        .eq('user_id', user.id).eq('id', id).is('deleted_at', null)
-        .abortSignal(controller.signal).maybeSingle();
-      if (error) throw error;
-      return data;
-    } finally {
-      clearTimeout(timeout);
-    }
+    if (!hofAuth.session?.access_token || !id) return null;
+    return window.hofLoadAgentOfferSource(id);
   }
 
   function clearOfferInterviewFields() {
@@ -20744,6 +20732,29 @@ function hofSpreadsheetCsvCell(value) {
       throw new Error('Offer history is unavailable.');
     }
     return result;
+  };
+
+  root.hofLoadAgentOfferSource = async function(offerId) {
+    const token = root.hofAuth?.session?.access_token;
+    if (!token || !offerId) throw new Error('Sign in to open this offer.');
+    const id = String(offerId).toLowerCase();
+    const params = new URLSearchParams({scope: 'agent_offer_source', offer_id: id});
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
+    try {
+      const response = await fetch(`/api/admin-dashboard?${params.toString()}`, {
+        headers: {Authorization: `Bearer ${token}`},
+        signal: controller.signal
+      });
+      if (response.status === 404) return null;
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || result?.offerId !== id || result.offer?.id !== id) {
+        throw new Error('Offer source is unavailable.');
+      }
+      return result.offer;
+    } finally {
+      clearTimeout(timeout);
+    }
   };
 
   function bucketForOffer(o){

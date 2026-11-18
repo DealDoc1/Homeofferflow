@@ -676,6 +676,28 @@ async def _agent_offer_detail(user, offer_id):
     }
 
 
+async def _agent_offer_source(user, offer_id):
+    owner = listing_workspace_offer_comparison.normalized_uuid(
+        user.get("id"), "Sign in again to open this offer."
+    )
+    normalized_offer_id = listing_workspace_offer_comparison.normalized_uuid(
+        offer_id, "Choose a valid offer."
+    )
+    rows = await _get(
+        "hof_offers?"
+        f"id=eq.{urllib.parse.quote(normalized_offer_id, safe='')}"
+        f"&user_id=eq.{urllib.parse.quote(owner, safe='')}"
+        "&deleted_at=is.null&select=id,role,property_address,buyer_name,buyer_email,"
+        "offer_price,status,last_updated,created_at,generated_at,signwell_document_id,"
+        "signwell_status,offer_data&limit=1"
+    )
+    if not isinstance(rows, list):
+        raise RuntimeError("Offer source response is unavailable.")
+    if not rows:
+        return None
+    return {"offerId": normalized_offer_id, "offer": rows[0]}
+
+
 async def _get_optional(path):
     try:
         return await _get(path)
@@ -6260,6 +6282,22 @@ class handler(BaseHTTPRequestHandler):
                     _json(self, 503, {"error": "We couldn’t load the offer comparisons. Refresh the workspace and try again."})
                     return
                 _json(self, 200, {"offers": offers})
+                return
+            if scope == "agent_offer_source":
+                try:
+                    source = asyncio.run(_agent_offer_source(
+                        user, (query.get("offer_id") or [""])[0]
+                    ))
+                except ValueError as exc:
+                    _json(self, 400, {"error": str(exc)})
+                    return
+                except (httpx.HTTPError, RuntimeError):
+                    _json(self, 503, {"error": "The saved offer is temporarily unavailable."})
+                    return
+                if not source:
+                    _json(self, 404, {"error": "That offer is unavailable."})
+                    return
+                _json(self, 200, source)
                 return
             if scope == "agent_offer_detail":
                 try:
