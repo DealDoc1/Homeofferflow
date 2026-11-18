@@ -496,6 +496,58 @@ async def _save_agent_contract_timeline(user, data):
     return {"offerId": offer_id, "tracking": saved}
 
 
+async def _agent_offer_activity_timeline(user, offer_id, offer_verified=False):
+    owner = listing_workspace_offer_comparison.normalized_uuid(
+        user.get("id"), "Sign in again to open this offer."
+    )
+    offer_id = listing_workspace_offer_comparison.normalized_uuid(
+        offer_id, "Choose a valid offer."
+    )
+    if not offer_verified:
+        offer_rows = await _get(
+            "hof_offers?"
+            f"id=eq.{urllib.parse.quote(offer_id, safe='')}"
+            f"&user_id=eq.{urllib.parse.quote(owner, safe='')}"
+            "&deleted_at=is.null&select=id&limit=1"
+        )
+        if not isinstance(offer_rows, list):
+            raise RuntimeError("Offer activity ownership check failed.")
+        if not offer_rows:
+            return None
+    event_rows = await _get(
+        "hof_offer_events?"
+        f"user_id=eq.{urllib.parse.quote(owner, safe='')}"
+        f"&offer_id=eq.{urllib.parse.quote(offer_id, safe='')}"
+        "&select=id,event_type,status,metadata,created_at"
+        "&order=created_at.desc,id.desc&limit=20"
+    )
+    if not isinstance(event_rows, list):
+        raise RuntimeError("Offer activity response is unavailable.")
+
+    def safe_text(value, limit):
+        return value.strip()[:limit] if isinstance(value, str) else ""
+
+    events = []
+    for row in event_rows:
+        metadata = row.get("metadata") if isinstance(row.get("metadata"), dict) else {}
+        safe_metadata = {
+            key: safe_text(metadata.get(key), limit)
+            for key, limit in {
+                "status": 80, "signwell_status": 80, "message": 240,
+                "document_id": 160, "signwell_document_id": 160,
+            }.items()
+            if isinstance(metadata.get(key), str) and metadata.get(key).strip()
+        }
+        events.append({
+            "id": row.get("id"),
+            "event_type": safe_text(row.get("event_type"), 120),
+            "status": safe_text(row.get("status"), 80),
+            "metadata": safe_metadata,
+            "created_at": safe_text(row.get("created_at"), 64),
+        })
+    return {"offerId": offer_id, "events": events}
+
+
 async def _get_optional(path):
     try:
         return await _get(path)
@@ -6033,6 +6085,22 @@ class handler(BaseHTTPRequestHandler):
                     _json(self, 403, {"error": str(exc)})
                     return
                 _json(self, 200, payload)
+                return
+            if scope == "agent_offer_activity_timeline":
+                try:
+                    timeline = asyncio.run(_agent_offer_activity_timeline(
+                        user, (query.get("offer_id") or [""])[0]
+                    ))
+                except ValueError as exc:
+                    _json(self, 400, {"error": str(exc)})
+                    return
+                except (httpx.HTTPError, RuntimeError):
+                    _json(self, 503, {"error": "Offer activity is temporarily unavailable."})
+                    return
+                if not timeline:
+                    _json(self, 404, {"error": "That offer is unavailable."})
+                    return
+                _json(self, 200, timeline)
                 return
             if scope == "agent_listing_workspaces":
                 try:
