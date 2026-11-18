@@ -309,7 +309,7 @@ async function updateOfferStatus(offer, status, documentId, document, user) {
   };
 
   const updateRows = await supabaseRequest(
-    `hof_offers?id=eq.${encodeURIComponent(offer.id)}&user_id=eq.${encodeURIComponent(user.id)}${offerRefreshGuard(offer, providerMainStatus)}&select=id,user_id,signwell_document_id,signwell_status,status,last_updated`,
+    `hof_offers?id=eq.${encodeURIComponent(offer.id)}&user_id=eq.${encodeURIComponent(user.id)}${offerRefreshGuard(offer, providerMainStatus, offerData.transactionTracking?.updatedAt)}&select=id,user_id,signwell_document_id,signwell_status,status,last_updated`,
     {
       method: 'PATCH',
       headers: { Prefer: 'return=representation' },
@@ -346,13 +346,17 @@ async function updateOfferStatus(offer, status, documentId, document, user) {
   return updated;
 }
 
-function offerRefreshGuard(offer, nextStatus) {
+function offerRefreshGuard(offer, nextStatus, timelineRevision) {
   if (!offer.status) throw new Error('Your offer needs a fresh status check.');
   if ((['Signed', 'Buyer Signed', 'Buyer Signatures Complete'].includes(offer.status) && nextStatus !== 'Signed') ||
       (['Rejected', 'Expired'].includes(offer.status) && nextStatus !== offer.status)) {
     throw new Error('This request needs a fresh status check. Your saved document has not changed.');
   }
-  return '&status=eq.' + encodeURIComponent(offer.status) +
+  // Saving a contract timeline changes its own revision without advancing last_updated.
+  const timelineField = encodeURIComponent('offer_data->transactionTracking->>updatedAt');
+  const timelineFilter = timelineRevision == null ? 'is.null' : 'eq.' + encodeURIComponent(timelineRevision);
+  return '&' + timelineField + '=' + timelineFilter +
+    '&status=eq.' + encodeURIComponent(offer.status) +
     (offer.last_updated ? '&last_updated=eq.' + encodeURIComponent(offer.last_updated) : '&last_updated=is.null') +
     (offer.signwell_document_id ? '&signwell_document_id=eq.' + encodeURIComponent(offer.signwell_document_id) : '&signwell_document_id=is.null');
 }
