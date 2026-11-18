@@ -548,6 +548,71 @@ async def _agent_offer_activity_timeline(user, offer_id, offer_verified=False):
     return {"offerId": offer_id, "events": events}
 
 
+_AGENT_OFFER_WORKSPACE_FIELDS = (
+    "id", "role", "property_address", "property_city", "property_state", "property_zip",
+    "buyer_name", "buyer_email", "offer_price", "status", "last_updated", "created_at",
+    "generated_at", "signwell_document_id", "signwell_status",
+)
+_AGENT_OFFER_WORKSPACE_SELECT = ",".join((*_AGENT_OFFER_WORKSPACE_FIELDS, "offer_data", "option_days"))
+
+
+def _project_agent_offer_workspace_row(row):
+    text_limits = {
+        "propertyAddress": 500, "propAddress": 500, "city": 120,
+        "propCity": 120, "propertyCity": 120, "state": 80, "propState": 80,
+        "zip": 24, "propZip": 24, "buyerName": 200, "buyerEmail": 254,
+        "email": 254, "buyer1First": 100, "buyer1Last": 100,
+        "financing": 80, "hoa": 20, "appraisalAddendum": 80,
+        "saleContingency": 20, "backupOffer": 20, "nonRealtyItems": 20,
+        "leadBuiltBefore1978": 20, "status": 100, "signwellStatus": 100,
+        "signwell_status": 100, "signwellDocumentId": 180, "signwell_document_id": 180,
+        "userType": 80, "generatedAt": 64, "closingDate": 10, "closing_date": 10,
+    }
+    raw_data = row.get("offer_data") if isinstance(row.get("offer_data"), dict) else {}
+    offer_data = {}
+    for key, max_length in text_limits.items():
+        value = raw_data.get(key)
+        if isinstance(value, str) and value.strip():
+            offer_data[key] = value.strip()[:max_length]
+    if isinstance(raw_data.get("offerPrice"), (int, float)) and not isinstance(raw_data.get("offerPrice"), bool):
+        offer_data["offerPrice"] = raw_data["offerPrice"]
+    raw_option_days = raw_data.get("optionDays", raw_data.get("option_days", row.get("option_days")))
+    option_days = agent_contract_timeline.normalize_option_days(raw_option_days)
+    if option_days:
+        offer_data["optionDays"] = option_days
+    signwell = raw_data.get("signwell")
+    if isinstance(signwell, dict):
+        safe_signwell = {
+            key: signwell[key][:100] for key in ("status", "document_status")
+            if isinstance(signwell.get(key), str) and signwell[key].strip()
+        }
+        if isinstance(signwell.get("document_id"), str):
+            safe_signwell["document_id"] = signwell["document_id"][:180]
+        response = signwell.get("response")
+        if isinstance(response, dict):
+            safe_response = {
+                key: response[key][:limit] for key, limit in {
+                    "status": 100, "document_status": 100, "id": 180, "document_id": 180,
+                }.items()
+                if isinstance(response.get(key), str) and response[key].strip()
+            }
+            if safe_response:
+                safe_signwell["response"] = safe_response
+        if safe_signwell:
+            offer_data["signwell"] = safe_signwell
+    delivery = raw_data.get("_hof_signature_delivery")
+    if isinstance(delivery, dict) and isinstance(delivery.get("version"), int):
+        offer_data["_hof_signature_delivery"] = {"version": delivery["version"]}
+    tracking = raw_data.get("transactionTracking")
+    if isinstance(tracking, dict):
+        safe_tracking = agent_contract_timeline.project_tracking(tracking)
+        if safe_tracking:
+            offer_data["transactionTracking"] = safe_tracking
+    projected = {key: row.get(key) for key in _AGENT_OFFER_WORKSPACE_FIELDS}
+    projected["offer_data"] = offer_data
+    return projected
+
+
 async def _agent_offer_history(user, offset=0, limit=25):
     owner = listing_workspace_offer_comparison.normalized_uuid(
         user.get("id"), "Sign in again to view your offers."
@@ -563,80 +628,51 @@ async def _agent_offer_history(user, offset=0, limit=25):
         "hof_offers?"
         f"user_id=eq.{urllib.parse.quote(owner, safe='')}"
         "&deleted_at=is.null"
-        "&select=id,role,property_address,property_city,property_state,property_zip,buyer_name,buyer_email,offer_price,status,"
-        "last_updated,created_at,generated_at,signwell_document_id,signwell_status,offer_data,option_days"
+        f"&select={_AGENT_OFFER_WORKSPACE_SELECT}"
         f"&order=last_updated.desc,id.desc&offset={offset}&limit={limit}"
     )
     if not isinstance(rows, list):
         raise RuntimeError("Offer history response is unavailable.")
-    text_limits = {
-        "propertyAddress": 500, "propAddress": 500, "city": 120,
-        "propCity": 120, "propertyCity": 120, "state": 80, "propState": 80,
-        "zip": 24, "propZip": 24, "buyerName": 200, "buyerEmail": 254,
-        "email": 254, "buyer1First": 100, "buyer1Last": 100,
-        "financing": 80, "hoa": 20, "appraisalAddendum": 80,
-        "saleContingency": 20, "backupOffer": 20, "nonRealtyItems": 20,
-        "leadBuiltBefore1978": 20, "status": 100, "signwellStatus": 100,
-        "signwell_status": 100, "signwellDocumentId": 180, "signwell_document_id": 180,
-        "userType": 80, "generatedAt": 64, "closingDate": 10, "closing_date": 10,
-    }
-    safe_rows = []
-    for row in rows:
-        raw_data = row.get("offer_data") if isinstance(row.get("offer_data"), dict) else {}
-        offer_data = {}
-        for key, max_length in text_limits.items():
-            value = raw_data.get(key)
-            if isinstance(value, str) and value.strip():
-                offer_data[key] = value.strip()[:max_length]
-        if isinstance(raw_data.get("offerPrice"), (int, float)) and not isinstance(raw_data.get("offerPrice"), bool):
-            offer_data["offerPrice"] = raw_data["offerPrice"]
-        raw_option_days = raw_data.get("optionDays", raw_data.get("option_days", row.get("option_days")))
-        option_days = agent_contract_timeline.normalize_option_days(raw_option_days)
-        if option_days:
-            offer_data["optionDays"] = option_days
-        signwell = raw_data.get("signwell")
-        if isinstance(signwell, dict):
-            safe_signwell = {
-                key: signwell[key][:100] for key in ("status", "document_status")
-                if isinstance(signwell.get(key), str) and signwell[key].strip()
-            }
-            if isinstance(signwell.get("document_id"), str):
-                safe_signwell["document_id"] = signwell["document_id"][:180]
-            response = signwell.get("response")
-            if isinstance(response, dict):
-                safe_response = {
-                    key: response[key][:limit] for key, limit in {
-                        "status": 100, "document_status": 100, "id": 180, "document_id": 180,
-                    }.items()
-                    if isinstance(response.get(key), str) and response[key].strip()
-                }
-                if safe_response:
-                    safe_signwell["response"] = safe_response
-            if safe_signwell:
-                offer_data["signwell"] = safe_signwell
-        delivery = raw_data.get("_hof_signature_delivery")
-        if isinstance(delivery, dict) and isinstance(delivery.get("version"), int):
-            offer_data["_hof_signature_delivery"] = {"version": delivery["version"]}
-        tracking = raw_data.get("transactionTracking")
-        if isinstance(tracking, dict):
-            safe_tracking = agent_contract_timeline.project_tracking(tracking)
-            if safe_tracking:
-                offer_data["transactionTracking"] = safe_tracking
-        projected = {
-            key: row.get(key)
-            for key in (
-                "id", "role", "property_address", "property_city", "property_state", "property_zip", "buyer_name", "buyer_email",
-                "offer_price", "status", "last_updated", "created_at", "generated_at",
-                "signwell_document_id", "signwell_status",
-            )
-        }
-        projected["offer_data"] = offer_data
-        safe_rows.append(projected)
+    safe_rows = [_project_agent_offer_workspace_row(row) for row in rows]
     return {
         "offers": safe_rows,
         "offset": offset,
         "nextOffset": offset + len(safe_rows),
         "hasMore": len(safe_rows) == limit,
+    }
+
+
+async def _agent_offer_detail(user, offer_id):
+    owner = listing_workspace_offer_comparison.normalized_uuid(
+        user.get("id"), "Sign in again to open this offer."
+    )
+    normalized_offer_id = listing_workspace_offer_comparison.normalized_uuid(
+        offer_id, "Choose a valid offer."
+    )
+    rows = await _get(
+        "hof_offers?"
+        f"id=eq.{urllib.parse.quote(normalized_offer_id, safe='')}"
+        f"&user_id=eq.{urllib.parse.quote(owner, safe='')}"
+        f"&deleted_at=is.null&select={_AGENT_OFFER_WORKSPACE_SELECT}&limit=1"
+    )
+    if not isinstance(rows, list):
+        raise RuntimeError("Offer detail response is unavailable.")
+    if not rows:
+        return None
+
+    # Activity is optional. The offer stays usable when the event store is down.
+    try:
+        timeline = await _agent_offer_activity_timeline(user, normalized_offer_id, offer_verified=True)
+        events = timeline["events"]
+        activity_unavailable = False
+    except (httpx.HTTPError, RuntimeError, ValueError):
+        events = []
+        activity_unavailable = True
+    return {
+        "offerId": normalized_offer_id,
+        "offer": _project_agent_offer_workspace_row(rows[0]),
+        "events": events,
+        "activityUnavailable": activity_unavailable,
     }
 
 
@@ -6224,6 +6260,22 @@ class handler(BaseHTTPRequestHandler):
                     _json(self, 503, {"error": "We couldn’t load the offer comparisons. Refresh the workspace and try again."})
                     return
                 _json(self, 200, {"offers": offers})
+                return
+            if scope == "agent_offer_detail":
+                try:
+                    detail = asyncio.run(_agent_offer_detail(
+                        user, (query.get("offer_id") or [""])[0]
+                    ))
+                except ValueError as exc:
+                    _json(self, 400, {"error": str(exc)})
+                    return
+                except (httpx.HTTPError, RuntimeError):
+                    _json(self, 503, {"error": "Offer details are temporarily unavailable."})
+                    return
+                if not detail:
+                    _json(self, 404, {"error": "That offer is unavailable."})
+                    return
+                _json(self, 200, detail)
                 return
             if scope == "agent_offer_history":
                 try:

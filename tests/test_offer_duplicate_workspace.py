@@ -27,11 +27,14 @@ class OfferDuplicateWorkspaceTests(unittest.TestCase):
         self.assertIn("status: 'Draft'", body)
         self.assertIn("signwell_document_id", body)
 
-    def test_offer_detail_query_is_scoped_to_authenticated_owner(self):
-        start = HTML.index("root.viewOfferDetails = async function(offerId)")
-        end = HTML.index("\n  };", start)
-        body = HTML[start:end]
-        self.assertIn(".eq('user_id', user.id).eq('id', offerId).is('deleted_at', null)", body)
+    def test_both_offer_detail_views_use_the_authenticated_api(self):
+        for owner in ("root", "window"):
+            start = HTML.index(f"{owner}.viewOfferDetails = async function(offerId)")
+            end = HTML.index("\n  };", start)
+            body = HTML[start:end]
+            self.assertIn(f"{owner}.hofLoadAgentOfferDetail(offerId)", body)
+            self.assertNotIn("getSupabaseClient", body)
+            self.assertIn("detail.activityUnavailable", body)
 
     def test_resume_lookup_excludes_deleted_offers(self):
         start = HTML.index("async function getOfferById(id)")
