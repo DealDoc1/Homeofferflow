@@ -16,6 +16,27 @@ EARLY_NORMALIZERS = HTML[HTML.index('  window.cleanOfferStatus = function(status
 
 
 class SignwellStatusRuntimeTests(unittest.TestCase):
+    def test_refresh_preserves_timeline_saved_while_provider_check_is_pending(self):
+        self.run_js('''
+          const older = {updatedAt:'2026-11-18T10:00:00+00:00',effectiveDate:'2026-11-18'};
+          const newer = {updatedAt:'2026-11-18T11:00:00+00:00',effectiveDate:'2026-11-19'};
+          for (const timeline of [undefined, older]) {
+            offerData = {transactionTracking:timeline, packetKey:'retained'};
+            committedTimelineRevision = newer.updatedAt;
+            const conflict = await run('offerId', {status:'sent'});
+            assert.equal(conflict.code,409);
+            assert.match(conflict.body.error,/Refresh again/);
+            assert.equal(eventWrites.length,0);
+
+            offerData.transactionTracking = newer;
+            const retry = await run('offerId', {status:'sent'});
+            assert.equal(retry.code,200);
+            assert.deepEqual(writes[0].payload.offer_data.transactionTracking,newer);
+            assert.equal(writes[0].payload.offer_data.packetKey,'retained');
+            assert.equal(eventWrites.length,1);
+          }
+        ''')
+
     def test_stale_refresh_is_rejected_instead_of_overwriting_retry_or_completion(self):
         self.run_js('''
           rejectStaleWrite = true;
@@ -32,7 +53,8 @@ class SignwellStatusRuntimeTests(unittest.TestCase):
           const assert = require('node:assert/strict');
           const vm = require('node:vm');
           const source = require('node:fs').readFileSync(SOURCE_PATH,'utf8');
-          const writes = [], providerCalls = [];
+          const writes = [], providerCalls = [], eventWrites = [];
+          let offerData = {}, committedTimelineRevision;
           let providerDocument = {}, allowRead = true, rejectStaleWrite = false, savedOfferStatus = 'draft', sellerExtras = {};
           const response = (data, ok=true) => ({ok,status:ok?200:403,
             json:async()=>data,text:async()=>JSON.stringify(data),
@@ -60,12 +82,18 @@ class SignwellStatusRuntimeTests(unittest.TestCase):
                 const payload=JSON.parse(options.body);
                 writes.push({url,payload});
                 if (rejectStaleWrite) return response([]);
+                if (table==='hof_offers' && committedTimelineRevision !== undefined) {
+                  const filter = new URL(url).searchParams.get('offer_data->transactionTracking->>updatedAt');
+                  const revision = offerData.transactionTracking?.updatedAt;
+                  assert.equal(filter, revision == null ? 'is.null' : 'eq.'+revision);
+                  if (filter !== 'eq.'+committedTimelineRevision) return response([]);
+                }
                 return response([{id:'packet',...payload}]);
               }
               return response(allowRead?[{id:'packet',user_id:'owner',agent_user_id:'owner',
-                signwell_document_id:'provider-doc',status:table==='hof_offers'?savedOfferStatus:'draft',updated_at:'2026-09-15T10:00:00Z',last_updated:'2026-09-15T10:00:00Z',offer_data:{},agreement_data:{},...(table==='hof_seller_disclosure_drafts'?sellerExtras:{})}]:[]);
+                signwell_document_id:'provider-doc',status:table==='hof_offers'?savedOfferStatus:'draft',updated_at:'2026-09-15T10:00:00Z',last_updated:'2026-09-15T10:00:00Z',offer_data:offerData,agreement_data:{},...(table==='hof_seller_disclosure_drafts'?sellerExtras:{})}]:[]);
             }
-            if (url.endsWith('/hof_offer_events')) return response(null);
+            if (url.endsWith('/hof_offer_events')) { eventWrites.push(options.body); return response(null); }
             throw new Error('Unexpected request: '+url);
           };
           const context={module:{exports:{}},process:{env:{SUPABASE_URL:'https://database.example',
@@ -73,7 +101,7 @@ class SignwellStatusRuntimeTests(unittest.TestCase):
             fetch,Buffer,require,console:{error(){}}};
           vm.runInNewContext(source,context);
           const run = async (kind,doc,action='refresh_status',extra={})=>{
-            providerDocument=doc; writes.length=0; providerCalls.length=0;
+            providerDocument=doc; writes.length=0; providerCalls.length=0; eventWrites.length=0;
             const res={status(code){this.code=code;return this},json(body){this.body=body;return this},
               setHeader(){},send(body){this.body=body;return this}};
             await context.module.exports({method:'POST',headers:{authorization:'Bearer test-token'},
