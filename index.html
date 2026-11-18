@@ -8893,7 +8893,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     try {
       const { data, error } = await client
         .from('hof_offers')
-        .select('id, user_id, role, property_address, buyer_name, buyer_email, offer_price, status, last_updated, created_at, generated_at, signwell_document_id, signwell_status, offer_data, deleted_at')
+        .select('id, user_id, role, property_address, buyer_name, buyer_email, offer_price, status, last_updated, created_at, generated_at, signwell_document_id, signwell_status, offer_data, option_days, deleted_at')
         .eq('user_id', user.id)
         .is('deleted_at', null)
         .order('last_updated', { ascending:false })

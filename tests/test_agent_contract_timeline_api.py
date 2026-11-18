@@ -16,6 +16,12 @@ SPEC.loader.exec_module(API)
 
 
 class TimelineValidationTests(unittest.TestCase):
+    def test_legacy_option_day_values_follow_the_offer_workspace_rules(self):
+        for value in (7, 7.0, "07"):
+            self.assertEqual(timeline.normalize_option_days(value), 7)
+        for value in (True, None, "7.5", 7.5, "999", float("nan")):
+            self.assertEqual(timeline.normalize_option_days(value), 0)
+
     def test_server_derives_option_date_and_normalizes_confirmed_milestones(self):
         result = timeline.build_tracking({
             "effectiveDate": "2026-02-28", "closingDate": "2026-03-31",
@@ -124,6 +130,14 @@ class TimelineAPITests(unittest.TestCase):
              patch.object(API.httpx, "AsyncClient") as client:
             with self.assertRaisesRegex(PermissionError, "unavailable"):
                 self.call_save({}, None)
+        client.assert_not_called()
+
+    def test_rejected_offer_cannot_save_dates_even_with_a_signing_packet(self):
+        row = {"status": "Rejected", "offer_data": {}, "signwell_document_id": "fixture"}
+        with patch.object(API, "_get", AsyncMock(return_value=[row])), \
+             patch.object(API.httpx, "AsyncClient") as client:
+            with self.assertRaisesRegex(PermissionError, "not available"):
+                self.call_save(row)
         client.assert_not_called()
 
     def test_api_route_requires_session_and_rejects_client_authored_fields(self):

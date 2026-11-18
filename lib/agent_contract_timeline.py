@@ -43,6 +43,14 @@ def normalize_milestones(rows, *, reject_duplicates=False):
     return result
 
 
+def normalize_option_days(value):
+    if isinstance(value, str) and re.fullmatch(r"[0-9]{1,3}", value):
+        value = int(value)
+    if type(value) in (int, float) and 0 <= value <= 365 and value == int(value):
+        return int(value)
+    return 0
+
+
 def build_tracking(data, option_days, *, now=None):
     """Validate client inputs and derive only the already-disclosed option date."""
     if not isinstance(data, dict):

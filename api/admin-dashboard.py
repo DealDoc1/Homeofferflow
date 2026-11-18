@@ -462,20 +462,14 @@ async def _save_agent_contract_timeline(user, data):
     generated = status in {"generated", "created", "draft not sent"} or has_packet
     signing = any(word in status for word in ("awaiting", "sent", "viewed", "partial"))
     signed = status in {"signed", "buyer signed", "buyer signatures complete", "fully signed", "completed", "complete", "accepted"}
-    if not (generated or signing or signed) or any(word in status for word in ("deleted", "expired", "declined", "cancel")):
+    if not (generated or signing or signed) or any(word in status for word in ("deleted", "expired", "declined", "rejected", "cancel")):
         raise PermissionError("This offer is not available for contract timeline updates.")
     previous = offer_data.get("transactionTracking") if isinstance(offer_data.get("transactionTracking"), dict) else {}
     actual = previous.get("updatedAt")
     if actual != expected:
         raise PermissionError("Please refresh My Offers before saving. The contract timeline changed in another session.")
     raw_days = offer_data.get("optionDays", offer_data.get("option_days", row.get("option_days")))
-    try:
-        option_days = int(raw_days) if not isinstance(raw_days, bool) and str(raw_days).strip() == str(int(raw_days)) else 0
-    except (TypeError, ValueError, OverflowError):
-        option_days = 0
-    if not 0 <= option_days <= 365:
-        option_days = 0
-    tracking = agent_contract_timeline.build_tracking(data, option_days)
+    tracking = agent_contract_timeline.build_tracking(data, agent_contract_timeline.normalize_option_days(raw_days))
     async with httpx.AsyncClient(timeout=12) as client:
         response = await client.post(
             f"{SUPABASE_URL}/rest/v1/rpc/hof_save_agent_contract_timeline",

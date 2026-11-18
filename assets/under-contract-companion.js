@@ -164,8 +164,8 @@
     const data = offer?.offer_data || {};
     const raw = Object.hasOwn(data, 'optionDays') ? data.optionDays :
       (Object.hasOwn(data, 'option_days') ? data.option_days : offer?.option_days);
-    const days = Number(raw);
-    return Number.isInteger(days) && days > 0 && days <= 365 && String(raw).trim() === String(days) ? days : 0;
+    const days = typeof raw === 'string' && /^[0-9]{1,3}$/.test(raw) ? Number(raw) : raw;
+    return Number.isInteger(days) && days > 0 && days <= 365 ? days : 0;
   }
 
   function downloadCalendar(offer, tracking) {
