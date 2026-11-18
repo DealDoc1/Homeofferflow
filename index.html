@@ -4723,6 +4723,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   function resetProfileForSessionChange(session) {
     if ((hofAuth.session?.user?.id || null) === (session?.user?.id || null)) return;
     window.hofClosePdfPreview?.(false);
+    window.hofUnderContract?.dismiss?.();
     document.getElementById('privateFormDraftsCard')?.remove();
     window.__hofAccountProfileEpoch = (window.__hofAccountProfileEpoch || 0) + 1;
     window.__hofListingWorkspaceCreateAttempts?.clear();
@@ -8892,7 +8893,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     try {
       const { data, error } = await client
         .from('hof_offers')
-        .select('id, user_id, role, property_address, buyer_name, buyer_email, offer_price, status, last_updated, created_at, generated_at, signwell_document_id, signwell_status, offer_data, deleted_at')
+        .select('id, user_id, role, property_address, buyer_name, buyer_email, offer_price, status, last_updated, created_at, generated_at, signwell_document_id, signwell_status, offer_data, option_days, deleted_at')
         .eq('user_id', user.id)
         .is('deleted_at', null)
         .order('last_updated', { ascending:false })
@@ -20838,7 +20839,7 @@ function hofSpreadsheetCsvCell(value) {
         ${hasDoc ? `<button class="offer-action-btn" type="button" onclick="refreshSignWellStatus('${esc(o.id)}', this)">Refresh</button>` : `<button class="offer-action-btn" type="button" onclick="viewOfferDetails('${esc(o.id)}')">Status</button>`}
         ${canRetrySigning ? `<button class="offer-action-btn" type="button" onclick="retryOfferSignature('${esc(o.id)}', this)">Retry signing</button>` : ''}
         ${needsBuyerReminder ? `<button class="offer-action-btn" type="button" onclick="copyBuyerSigningReminder('${esc(o.id)}')">Copy buyer reminder</button>` : ''}
-        ${canTrackContract ? `<button class="offer-action-btn" type="button" onclick="window.hofUnderContract?.open('${esc(o.id)}')">${contractTimeline.effectiveDate ? 'Contract timeline' : 'Track accepted contract'}</button>` : ''}
+        ${canTrackContract ? `<button class="offer-action-btn" type="button" data-contract-timeline-offer="${esc(o.id)}" onclick="window.hofUnderContract?.open('${esc(o.id)}')">${contractTimeline.effectiveDate ? 'Contract timeline' : 'Track accepted contract'}</button>` : ''}
         <button class="offer-action-btn danger" type="button" onclick="deleteOffer('${esc(o.id)}')">Delete</button>
       </div>
     </article>`;
