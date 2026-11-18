@@ -407,6 +407,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   };
 
   window.closeOfferDetail = function(){
+    window.__hofOfferDetailRequest = null;
+    window.__hofCurrentOffer = null;
+    const target = document.getElementById('offerDetailContent');
+    if (target) target.textContent = '';
     const backdrop = document.getElementById('offerDetailBackdrop');
     if (!backdrop) return;
     backdrop.classList.remove('active');
@@ -428,12 +432,28 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     return offer[key] ?? d[key] ?? d[key.replace(/^property_/, 'prop')] ?? fallback;
   }
 
-  function renderOfferEvents(events){
+  window.hofLoadAgentOfferActivityTimeline = async function(offerId) {
+    const token = window.hofAuth?.session?.access_token;
+    if (!token || !offerId) throw new Error('Sign in to load offer activity.');
+    const params = new URLSearchParams({scope: 'agent_offer_activity_timeline', offer_id: String(offerId)});
+    const response = await fetch(`/api/admin-dashboard?${params.toString()}`, {
+      headers: {Authorization: `Bearer ${token}`},
+      signal: AbortSignal.timeout(15000)
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || result.offerId !== String(offerId) || !Array.isArray(result.events)) {
+      throw new Error('Offer activity is unavailable.');
+    }
+    return result.events;
+  };
+
+  function renderOfferEvents(events, unavailable){
+    if (unavailable) return '<div class="offer-empty">Activity timeline is unavailable. Close and reopen offer details to try again.</div>';
     if (!events || !events.length) return '<div class="offer-empty">No activity timeline yet.</div>';
     return `<div class="offer-timeline">${events.map(ev => {
       const meta = ev.metadata || ev.payload || {};
       const label = ev.event_type || ev.type || ev.source || 'Offer Event';
-      const detail = meta.status || meta.signwell_status || meta.message || meta.document_id || '';
+      const detail = ev.status || meta.status || meta.signwell_status || meta.message || meta.document_id || meta.signwell_document_id || '';
       return `<div class="offer-timeline-row"><div class="offer-timeline-dot"></div><div><strong>${__opsEscape(label)}</strong><span>${__opsEscape(__date(ev.created_at) || '')}${detail ? ' · ' + __opsEscape(detail) : ''}</span></div></div>`;
     }).join('')}</div>`;
   }
@@ -444,21 +464,30 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const backdrop = document.getElementById('offerDetailBackdrop');
     const target = document.getElementById('offerDetailContent');
     if (!backdrop || !target) return;
+    const request = window.__hofOfferDetailRequest = {};
+    window.__hofCurrentOffer = null;
+    const isCurrent = () => window.__hofOfferDetailRequest === request &&
+      window.hofAuth?.session?.user?.id === user.id;
     window.__hofOfferDetailReturnFocus = document.activeElement;
     backdrop.classList.add('active');
     backdrop.setAttribute('aria-hidden', 'false');
     document.getElementById('offerDetailClose')?.focus();
     target.innerHTML = '<div class="offer-empty">Loading offer...</div>';
-    if (!client || !user || !offerId) { target.innerHTML = '<div class="offer-empty">Sign in to view offer details.</div>'; return; }
+    if (!client || !user || !offerId || !window.hofAuth?.session?.access_token) { target.innerHTML = '<div class="offer-empty">Sign in to view offer details.</div>'; return; }
     try {
-      const { data: offer, error } = await client.from('hof_offers').select('*').eq('user_id', user.id).eq('id', offerId).maybeSingle();
+      const { data: offer, error } = await client.from('hof_offers').select('*').eq('user_id', user.id).eq('id', offerId).is('deleted_at', null).maybeSingle();
+      if (!isCurrent()) return;
       if (error) throw error;
       if (!offer) throw new Error('Offer not found.');
       let events = [];
+      let activityUnavailable = false;
       try {
-        const res = await client.from('hof_offer_events').select('*').or(`offer_id.eq.${offerId},signwell_document_id.eq.${offer.signwell_document_id || 'none'}`).order('created_at', { ascending:false }).limit(20);
-        if (!res.error) events = res.data || [];
-      } catch (_) {}
+        events = await window.hofLoadAgentOfferActivityTimeline(offerId);
+      } catch (_) {
+        activityUnavailable = true;
+      }
+      if (!isCurrent()) return;
+      window.__hofCurrentOffer = offer;
       const status = window.cleanOfferStatus(window.getOfferBestStatus(offer));
       const d = offer.offer_data || {};
       target.innerHTML = `
@@ -476,7 +505,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         </div>
         <div class="offer-detail-note">Buyer-side signing status does not mean seller acceptance or seller execution. Seller signatures, counteroffers, and seller-side changes are handled separately.</div>
         <h4 style="color:var(--gold-light); margin-top:1rem; text-transform:uppercase; letter-spacing:.06em; font-size:.86rem;">Activity Timeline</h4>
-        ${renderOfferEvents(events)}
+        ${renderOfferEvents(events, activityUnavailable)}
         <div class="offer-detail-actions">
           <button class="offer-action-btn" type="button" onclick="resumeOffer('${__opsEscape(offer.id)}')">Resume</button>
           <button class="offer-action-btn" type="button" onclick="duplicateOffer('${__opsEscape(offer.id)}', false, true)">Duplicate &amp; edit</button>
@@ -484,6 +513,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <button class="offer-action-btn danger" type="button" onclick="closeOfferDetail()">Close</button>
         </div>`;
     } catch (err) {
+      if (!isCurrent()) return;
       console.error('Offer detail load failed:', err);
       target.innerHTML = '<div class="offer-empty">Could not load offer detail: ' + __opsEscape(err?.message || err) + '</div>';
     }
@@ -2961,7 +2991,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 <div class="offer-detail-backdrop" id="offerDetailBackdrop" aria-hidden="true" onclick="if(event.target===this) closeOfferDetail();">
   <div class="offer-detail-card" id="offerDetailCard" role="dialog" aria-modal="true" aria-labelledby="offerDetailTitle">
     <div class="offer-detail-head">
-      <div><h3 id="offerDetailTitle">Offer Details</h3><p>Loading offer details...</p></div>
+      <h3 id="offerDetailTitle">Offer Details</h3>
       <button class="offer-detail-close" id="offerDetailClose" type="button" aria-label="Close offer details" onclick="closeOfferDetail()">×</button>
     </div>
     <div id="offerDetailContent"></div>
@@ -4723,6 +4753,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   function resetProfileForSessionChange(session) {
     if ((hofAuth.session?.user?.id || null) === (session?.user?.id || null)) return;
     window.hofClosePdfPreview?.(false);
+    window.closeOfferDetail?.();
     window.hofUnderContract?.dismiss?.();
     document.getElementById('privateFormDraftsCard')?.remove();
     window.__hofAccountProfileEpoch = (window.__hofAccountProfileEpoch || 0) + 1;
@@ -21210,22 +21241,30 @@ function hofSpreadsheetCsvCell(value) {
       return;
     }
     if (card) card.classList.add('v10-detail');
+    const request = root.__hofOfferDetailRequest = {};
+    root.__hofCurrentOffer = null;
+    const isCurrent = () => root.__hofOfferDetailRequest === request &&
+      root.hofAuth?.session?.user?.id === user.id;
     root.__hofOfferDetailReturnFocus = document.activeElement;
     backdrop.classList.add('active');
     backdrop.setAttribute('aria-hidden', 'false');
     document.getElementById('offerDetailClose')?.focus();
     target.innerHTML = '<div class="offer-empty">Loading offer workspace detail...</div>';
-    if (!client || !user || !offerId) { target.innerHTML = '<div class="offer-empty">Sign in to view offer details.</div>'; return; }
+    if (!client || !user || !offerId || !root.hofAuth?.session?.access_token) { target.innerHTML = '<div class="offer-empty">Sign in to view offer details.</div>'; return; }
     try {
       const { data: offer, error } = await client.from('hof_offers').select('*').eq('user_id', user.id).eq('id', offerId).is('deleted_at', null).maybeSingle();
+      if (!isCurrent()) return;
       if (error) throw error;
       if (!offer) throw new Error('Offer not found.');
-      root.__hofCurrentOffer = offer;
       let events = [];
+      let activityUnavailable = false;
       try {
-        const res = await client.from('hof_offer_events').select('*').or(`offer_id.eq.${offerId},signwell_document_id.eq.${offer.signwell_document_id || 'none'}`).order('created_at', { ascending:false }).limit(20);
-        if (!res.error) events = res.data || [];
-      } catch (_) {}
+        events = await root.hofLoadAgentOfferActivityTimeline(offerId);
+      } catch (_) {
+        activityUnavailable = true;
+      }
+      if (!isCurrent()) return;
+      root.__hofCurrentOffer = offer;
       const d = offer.offer_data || {};
       const st = cleanStatus(offer);
       const b = bucketForOffer(offer);
@@ -21238,10 +21277,12 @@ function hofSpreadsheetCsvCell(value) {
         : b === 'signing' ? 'Buyer-side signing is in progress. Refresh SignWell status before assuming the packet is complete.'
         : b === 'signed' ? 'Buyer-side signatures appear complete. This does not mean seller acceptance or seller execution.'
         : 'Review this offer before taking action.';
-      const timeline = events && events.length ? `<div class="offer-timeline">${events.map(ev => {
+      const timeline = activityUnavailable
+        ? '<div class="offer-empty">Activity timeline is unavailable. Close and reopen offer details to try again.</div>'
+        : events.length ? `<div class="offer-timeline">${events.map(ev => {
         const meta = ev.metadata || ev.payload || {};
         const label = ev.event_type || ev.type || ev.source || 'Offer Event';
-        const detail = meta.status || meta.signwell_status || meta.message || meta.document_id || '';
+        const detail = ev.status || meta.status || meta.signwell_status || meta.message || meta.document_id || meta.signwell_document_id || '';
         return `<div class="offer-timeline-row"><div class="offer-timeline-dot"></div><div><strong>${esc(label)}</strong><span>${esc(dateLong(ev.created_at))}${detail ? ' · ' + esc(detail) : ''}</span></div></div>`;
       }).join('')}</div>` : '<div class="offer-empty">No activity timeline yet.</div>';
       target.innerHTML = `
@@ -21275,6 +21316,7 @@ function hofSpreadsheetCsvCell(value) {
           <button class="offer-action-btn danger" type="button" onclick="closeOfferDetail()">Close</button>
         </div>`;
     } catch (err) {
+      if (!isCurrent()) return;
       console.error('Offer detail load failed:', err);
       target.innerHTML = '<div class="offer-empty">' + esc(platformCustomerError(err, 'We couldn’t load the offer details. Refresh and try again.')) + '</div>';
     }
