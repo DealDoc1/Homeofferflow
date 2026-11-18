@@ -42,11 +42,15 @@ class SellerLeadIntakeIntegrityTests(unittest.TestCase):
         self.assertIn("'fsbo'", MIGRATION)
         self.assertIn("seller_type: 'fsbo'", INDEX)
 
-    def test_browser_read_does_not_request_unbounded_row_shape(self):
-        self.assertIn(
-            "select('id,user_id,brokerage_id,seller_type,property_address,seller_name,seller_email,seller_phone,asking_price,mortgage_balance,desired_close_date,notes,status,created_at,updated_at')",
-            INDEX,
-        )
+    def test_agent_seller_lead_reads_use_a_server_owner_scope_and_small_projection(self):
+        admin = (ROOT / "api" / "admin-dashboard.py").read_text()
+        start = admin.index("async def _agent_seller_leads(")
+        query = admin[start:admin.index("\n\n", start)]
+        self.assertIn("/api/admin-dashboard?scope=agent_seller_leads", INDEX)
+        self.assertNotIn(".from('hof_seller_leads')", INDEX)
+        self.assertIn("user_id=eq.{urllib.parse.quote(owner, safe='')}", query)
+        self.assertIn("&order=created_at.desc&limit=12", query)
+        self.assertIn("&select=id,seller_type,property_address,seller_name,seller_email,asking_price,status", query)
 
     def test_package_context_is_persisted_and_admin_follow_up_is_available(self):
         for marker in (

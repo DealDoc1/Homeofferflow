@@ -14,7 +14,7 @@ from io import BytesIO
 from http.server import BaseHTTPRequestHandler
 import httpx
 from pypdf import PdfReader, PdfWriter
-from lib import listing_workspace_creation, listing_workspace_offer_comparison
+from lib import listing_workspace_creation, listing_workspace_offer_comparison, seller_lead_creation
 from lib import platform_form_source_upload as platform_source
 from lib import partner_marketplace_agreement
 from lib import seller_disclosure_draft
@@ -5842,6 +5842,45 @@ async def _agent_listing_workspace_offer_comparisons(user, workspace_id):
     return rows if isinstance(rows, list) else []
 
 
+async def _agent_seller_leads(user):
+    owner = listing_workspace_offer_comparison.normalized_uuid(
+        user.get("id"), "Sign in again to view your seller leads."
+    )
+    rows = await _get(
+        "hof_seller_leads?"
+        f"user_id=eq.{urllib.parse.quote(owner, safe='')}"
+        "&select=id,seller_type,property_address,seller_name,seller_email,asking_price,status"
+        "&order=created_at.desc&limit=12"
+    )
+    if not isinstance(rows, list):
+        raise RuntimeError("Seller leads are unavailable.")
+    return rows
+
+
+async def _create_seller_lead(user, data):
+    record = seller_lead_creation.validate_seller_lead_creation(data)
+    owner = listing_workspace_offer_comparison.normalized_uuid(
+        user.get("id"), "Sign in again before saving a seller lead."
+    )
+    brokerage_id = await _optional_brokerage_id({"id": owner})
+    record.update(user_id=owner, brokerage_id=brokerage_id, status="new")
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.post(
+            f"{SUPABASE_URL}/rest/v1/hof_seller_leads?select=id",
+            headers={**_headers(), "Prefer": "return=representation"},
+            json=record,
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("Could not save the seller lead.")
+    try:
+        rows = response.json()
+    except ValueError as exc:
+        raise RuntimeError("The seller lead could not be confirmed.") from exc
+    if not isinstance(rows, list) or len(rows) != 1 or not isinstance(rows[0], dict) or not rows[0].get("id"):
+        raise RuntimeError("The seller lead could not be confirmed.")
+    return rows[0]
+
+
 class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         _json(self, 200, {"status": "ok"})
@@ -5960,6 +5999,17 @@ class handler(BaseHTTPRequestHandler):
                     _json(self, 503, {"error": "We couldn’t load the offer comparisons. Refresh the workspace and try again."})
                     return
                 _json(self, 200, {"offers": offers})
+                return
+            if scope == "agent_seller_leads":
+                try:
+                    leads = asyncio.run(_agent_seller_leads(user))
+                except ValueError as exc:
+                    _json(self, 400, {"error": str(exc)})
+                    return
+                except (httpx.HTTPError, RuntimeError):
+                    _json(self, 503, {"error": "We couldn’t load your seller list. Refresh the workspace and try again."})
+                    return
+                _json(self, 200, {"sellerLeads": leads})
                 return
             if scope == "seller_disclosure_drafts":
                 rows = asyncio.run(_get(
@@ -8729,6 +8779,17 @@ class handler(BaseHTTPRequestHandler):
                     _json(self, 503, {"error": "We couldn’t confirm the comparison change. Refresh the workspace and check it before trying again."})
                     return
                 _json(self, 201 if action == "save_listing_workspace_offer_comparison" else 200, {"ok": True, "offer": offer})
+                return
+            if data.get("action") == "create_seller_lead":
+                try:
+                    lead = asyncio.run(_create_seller_lead(user, data))
+                except ValueError as exc:
+                    _json(self, 400, {"error": str(exc)})
+                    return
+                except (httpx.HTTPError, RuntimeError):
+                    _json(self, 503, {"error": "We couldn’t confirm the save. Refresh Leads to check whether it was saved before you try again."})
+                    return
+                _json(self, 201, {"ok": True, "sellerLead": lead})
                 return
             if data.get("action") == "create_listing_workspace":
                 try:

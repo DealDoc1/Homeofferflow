@@ -4754,6 +4754,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     hofAuth.authoritativeRole = null;
     hofAuth.profileReady = false;
     hofAuth.profileLoadError = '';
+    const sellerPanel = document.getElementById('sellerFoundationPanel');
+    if (sellerPanel) sellerPanel.textContent = '';
+    delete window.__hofListingWorkspaceSetupDraft;
+    window.hofClearSellerLeadView?.();
     if (window.hofPlatform) {
       window.hofPlatform.brokerage = null;
       window.hofPlatform.brokerageMembership = null;
@@ -15866,57 +15870,101 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     window.open(buyerCampaignLink(), '_blank', 'noopener,noreferrer');
   };
 
+  let sellerLeadLoadRevision = 0;
+  window.hofClearSellerLeadView = () => { hofPlatform.sellerLeads = []; };
+
+  function sellerLeadView(user, element) {
+    const epoch = window.__hofAccountProfileEpoch;
+    return () => element?.isConnected && platformUser()?.id === user.id &&
+      epoch === window.__hofAccountProfileEpoch;
+  }
+
+  async function sellerLeadRequest(payload) {
+    const token = hofAuth?.session?.access_token;
+    if (!token) throw new Error('Sign in again to open your seller leads.');
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    try {
+      const options = {headers: {Authorization: `Bearer ${token}`}, signal: controller.signal};
+      if (payload) {
+        options.method = 'POST';
+        options.headers['Content-Type'] = 'application/json';
+        options.body = JSON.stringify(payload);
+      }
+      const response = await fetch(payload ? '/api/admin-dashboard' : '/api/admin-dashboard?scope=agent_seller_leads', options);
+      const result = await response.json();
+      if (!response.ok) {
+        const error = new Error('The seller lead request could not be confirmed.');
+        if (response.status === 400 && typeof result?.error === 'string') {
+          error.message = result.error;
+          error.customerSafe = true;
+        }
+        throw error;
+      }
+      if (!payload && Array.isArray(result?.sellerLeads)) return result.sellerLeads;
+      if (payload && result?.ok === true && result.sellerLead?.id) return result.sellerLead;
+      throw new Error('The seller lead request could not be confirmed.');
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
   async function saveSellerLeadFoundation() {
-    const client = getSupabaseClient();
     const user = platformUser();
     const sellerEmailInput = document.getElementById('sellerLeadEmail');
     const saveButton = document.getElementById('saveSellerLeadButton');
     if (saveButton?.disabled) return;
-    if (!client || !user) return platformStatus('sellerFoundationStatus', 'Sign in before saving a seller lead.', 'err');
+    if (!user) return platformStatus('sellerFoundationStatus', 'Sign in before saving a seller lead.', 'err');
+    const addressInput = document.getElementById('sellerLeadAddress');
+    if (!String(addressInput?.value || '').trim()) {
+      platformStatus('sellerFoundationStatus', 'Enter the property address before saving the seller lead.', 'err');
+      addressInput?.focus();
+      return;
+    }
     if (String(sellerEmailInput?.value || '').trim() && !sellerEmailInput?.checkValidity()) {
       platformStatus('sellerFoundationStatus', 'Enter a valid seller email address or leave the optional field blank.', 'err');
       sellerEmailInput.focus();
       return;
     }
+    const label = saveButton?.textContent;
+    const isCurrent = sellerLeadView(user, addressInput);
     if (saveButton) { saveButton.disabled = true; saveButton.setAttribute('aria-busy', 'true'); saveButton.textContent = 'Saving seller lead…'; }
     platformStatus('sellerFoundationStatus', 'Saving seller lead details…');
     try {
-      if (!hofPlatform.brokerage) await loadBrokerageFoundation();
       const payload = {
-        user_id: user.id,
-        brokerage_id: hofPlatform.brokerage?.id || null,
-        seller_type: getVal('sellerLeadType') || 'fsbo',
-        property_address: getVal('sellerLeadAddress') || null,
-        seller_name: getVal('sellerLeadName') || null,
-        seller_email: getVal('sellerLeadEmail') || null,
-        seller_phone: getVal('sellerLeadPhone') || null,
-        asking_price: moneyNumber(getVal('sellerLeadPrice')) || null,
-        mortgage_balance: moneyNumber(getVal('sellerLeadMortgage')) || null,
-        desired_close_date: getVal('sellerLeadCloseDate') || null,
-        notes: getVal('sellerLeadNotes') || null,
-        status: 'new'
+        action: 'create_seller_lead',
+        sellerType: getVal('sellerLeadType') || 'fsbo',
+        propertyAddress: String(getVal('sellerLeadAddress') || '').trim(),
+        sellerName: String(getVal('sellerLeadName') || '').trim() || null,
+        sellerEmail: String(getVal('sellerLeadEmail') || '').trim() || null,
+        sellerPhone: String(getVal('sellerLeadPhone') || '').trim() || null,
+        askingPrice: String(getVal('sellerLeadPrice') || '').trim() || null,
+        mortgageBalance: String(getVal('sellerLeadMortgage') || '').trim() || null,
+        desiredCloseDate: getVal('sellerLeadCloseDate') || null,
+        notes: String(getVal('sellerLeadNotes') || '').trim() || null
       };
-      const result = await client.from('hof_seller_leads').insert(payload).select('*').single();
-      if (result.error) throw result.error;
+      await sellerLeadRequest(payload);
+      if (!isCurrent()) return;
       platformStatus('sellerFoundationStatus', 'Seller and property details saved. You can create a listing workspace next.', 'ok');
       await loadSellerLeadsFoundation();
     } catch (err) {
-      console.error('Save seller lead failed:', err);
-      platformStatus('sellerFoundationStatus', platformCustomerError(err, 'We couldn’t save the seller and property details. Please try again.'), 'err');
+      if (isCurrent()) platformStatus('sellerFoundationStatus', err?.customerSafe ? err.message :
+        'We couldn’t confirm the save. Refresh Leads to check whether it was saved before you try again.', 'err');
     } finally {
-      if (saveButton) { saveButton.disabled = false; saveButton.setAttribute('aria-busy', 'false'); saveButton.textContent = 'Save Seller Lead'; }
+      if (saveButton) { saveButton.disabled = false; saveButton.setAttribute('aria-busy', 'false'); saveButton.textContent = label; }
     }
   }
 
   async function loadSellerLeadsFoundation() {
     const list = document.getElementById('sellerLeadList');
-    const client = getSupabaseClient();
     const user = platformUser();
-    if (!list || !client || !user) return;
+    if (!list || !user) return;
+    const isCurrent = sellerLeadView(user, list);
+    const revision = ++sellerLeadLoadRevision;
     try {
-      const { data, error } = await client.from('hof_seller_leads').select('id,user_id,brokerage_id,seller_type,property_address,seller_name,seller_email,seller_phone,asking_price,mortgage_balance,desired_close_date,notes,status,created_at,updated_at').order('created_at', { ascending:false }).limit(12);
-      if (error) throw error;
-      hofPlatform.sellerLeads = data || [];
+      const leads = await sellerLeadRequest();
+      if (!isCurrent() || revision !== sellerLeadLoadRevision) return;
+      hofPlatform.sellerLeads = leads;
       list.innerHTML = hofPlatform.sellerLeads.length ? hofPlatform.sellerLeads.map(row => `
         <div class="platform-list-item"><strong>${escapeAttr(row.property_address || 'Seller lead')}</strong>
           <span class="platform-pill ${row.seller_type === 'fsbo' ? 'good' : ''}">${escapeAttr(row.seller_type || 'seller')}</span>
@@ -15925,7 +15973,7 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
           ${/^[0-9a-f-]{20,80}$/i.test(String(row.id || '')) ? `<div class="seller-lead-actions"><button type="button" class="brokerage-access-button" onclick="startListingWorkspaceFromLead('${escapeAttr(row.id)}')">Prepare listing workspace</button></div>` : ''}
         </div>`).join('') : '<div class="platform-list-item">No seller leads yet.</div>';
     } catch (err) {
-      console.warn('Seller leads load failed:', err);
+      if (!isCurrent() || revision !== sellerLeadLoadRevision) return;
       list.innerHTML = '<div class="platform-list-item">We couldn’t load your seller list. Refresh the workspace and try again.</div>';
     }
   }
@@ -15936,10 +15984,8 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     if (!lead) return platformStatus('sellerFoundationStatus', 'Refresh seller leads before preparing a workspace.', 'err');
     const address = document.getElementById('listingWorkspaceAddress');
     const sellerNames = document.getElementById('listingWorkspaceSellerNames');
-    const kind = document.getElementById('listingWorkspaceKind');
     if (address) address.value = lead.property_address || '';
     if (sellerNames) sellerNames.value = lead.seller_name || '';
-    if (kind) kind.value = lead.seller_type === 'fsbo' ? 'sale' : 'sale';
     // Keep the relationship private and owner-scoped: this ID came from the
     // signed-in agent's own seller-lead list and is persisted only when the
     // agent explicitly creates the workspace below.
