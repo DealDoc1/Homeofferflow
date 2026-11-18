@@ -36,11 +36,12 @@ class OfferDuplicateWorkspaceTests(unittest.TestCase):
             self.assertNotIn("getSupabaseClient", body)
             self.assertIn("detail.activityUnavailable", body)
 
-    def test_resume_lookup_excludes_deleted_offers(self):
+    def test_resume_lookup_uses_the_authenticated_source_api(self):
         start = HTML.index("async function getOfferById(id)")
         end = HTML.index("\n  function applyOfferDataToFields", start)
         body = HTML[start:end]
-        self.assertIn(".eq('user_id', user.id).eq('id', id).is('deleted_at', null)", body)
+        self.assertIn("window.hofLoadAgentOfferSource(id)", body)
+        self.assertNotIn("getSupabaseClient", body)
 
     def test_repeat_use_actions_offer_one_retry_for_transient_failures(self):
         resume_start = HTML.index("async function resumeOffer(id")
