@@ -40,15 +40,31 @@ class CloudDraftSaveRecoveryTests(unittest.TestCase):
         self.assertIn("syncCloudDraftSave()", saver)
         self.assertNotIn("saveOfferDraftToSupabase('Draft').then", saver)
 
-    def test_autosave_preserves_a_previously_generated_packet_state(self):
+    def test_cloud_writer_uses_the_authenticated_stable_draft_action(self):
+        start = HTML.index("root.hofSaveAgentOfferDraft = async function(offerId, offer, expectedUpdatedAt)")
+        end = HTML.index("root.hofLoadAgentOfferHistory", start)
+        client = HTML[start:end]
+        self.assertIn("Authorization: `Bearer ${token}`", client)
+        self.assertIn("action: 'save_agent_offer_draft'", client)
+        self.assertIn("offerId: offerId || null", client)
+        self.assertIn("result.offer.copyRequired", client)
         start = HTML.index("async function saveOfferDraftToSupabase(status = 'Draft')")
         end = HTML.index("function setFeedbackStatus", start)
         saver = HTML[start:end]
-        self.assertIn("offerHasPreparedPacket(current.data)", saver)
+        self.assertNotIn("getSupabaseClient()", saver)
+        self.assertNotIn("from('hof_offers')", saver)
+
+    def test_autosave_uses_server_packet_guard_and_preserves_copy_recovery(self):
+        start = HTML.index("async function saveOfferDraftToSupabase(status = 'Draft')")
+        end = HTML.index("function setFeedbackStatus", start)
+        saver = HTML[start:end]
+        self.assertIn("window.hofSaveAgentOfferDraft(savingOfferId, draftPayload, savingDraft._hofOfferUpdatedAt)", saver)
         self.assertIn("__hofCloudDraftSaveNeedsCopy = true", saver)
+        self.assertIn("result?.copyRequired", saver)
+        self.assertIn("result.conflict ? 'conflict' : true", saver)
+        self.assertNotIn("from('hof_offers')", saver)
         self.assertNotIn("status: persistedStatus", saver)
         self.assertNotIn("generated_at:", saver)
-        self.assertIn("update.eq('last_updated', current.data.last_updated)", saver)
 
     def test_resume_hydrates_packet_state_from_persisted_offer_columns(self):
         start = HTML.index("async function resumeOffer(id, isRetry = false)")
