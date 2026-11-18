@@ -548,6 +548,98 @@ async def _agent_offer_activity_timeline(user, offer_id, offer_verified=False):
     return {"offerId": offer_id, "events": events}
 
 
+async def _agent_offer_history(user, offset=0, limit=25):
+    owner = listing_workspace_offer_comparison.normalized_uuid(
+        user.get("id"), "Sign in again to view your offers."
+    )
+    try:
+        offset = int(offset)
+        limit = int(limit)
+    except (TypeError, ValueError):
+        raise ValueError("Choose a valid offer history page.")
+    if offset < 0 or offset > 100000 or limit != 25:
+        raise ValueError("Choose a valid offer history page.")
+    rows = await _get(
+        "hof_offers?"
+        f"user_id=eq.{urllib.parse.quote(owner, safe='')}"
+        "&deleted_at=is.null"
+        "&select=id,role,property_address,property_city,property_state,property_zip,buyer_name,buyer_email,offer_price,status,"
+        "last_updated,created_at,generated_at,signwell_document_id,signwell_status,offer_data,option_days"
+        f"&order=last_updated.desc,id.desc&offset={offset}&limit={limit}"
+    )
+    if not isinstance(rows, list):
+        raise RuntimeError("Offer history response is unavailable.")
+    text_limits = {
+        "propertyAddress": 500, "propAddress": 500, "city": 120,
+        "propCity": 120, "propertyCity": 120, "state": 80, "propState": 80,
+        "zip": 24, "propZip": 24, "buyerName": 200, "buyerEmail": 254,
+        "email": 254, "buyer1First": 100, "buyer1Last": 100,
+        "financing": 80, "hoa": 20, "appraisalAddendum": 80,
+        "saleContingency": 20, "backupOffer": 20, "nonRealtyItems": 20,
+        "leadBuiltBefore1978": 20, "status": 100, "signwellStatus": 100,
+        "signwell_status": 100, "signwellDocumentId": 180, "signwell_document_id": 180,
+        "userType": 80, "generatedAt": 64, "closingDate": 10, "closing_date": 10,
+    }
+    safe_rows = []
+    for row in rows:
+        raw_data = row.get("offer_data") if isinstance(row.get("offer_data"), dict) else {}
+        offer_data = {}
+        for key, max_length in text_limits.items():
+            value = raw_data.get(key)
+            if isinstance(value, str) and value.strip():
+                offer_data[key] = value.strip()[:max_length]
+        if isinstance(raw_data.get("offerPrice"), (int, float)) and not isinstance(raw_data.get("offerPrice"), bool):
+            offer_data["offerPrice"] = raw_data["offerPrice"]
+        raw_option_days = raw_data.get("optionDays", raw_data.get("option_days", row.get("option_days")))
+        option_days = agent_contract_timeline.normalize_option_days(raw_option_days)
+        if option_days:
+            offer_data["optionDays"] = option_days
+        signwell = raw_data.get("signwell")
+        if isinstance(signwell, dict):
+            safe_signwell = {
+                key: signwell[key][:100] for key in ("status", "document_status")
+                if isinstance(signwell.get(key), str) and signwell[key].strip()
+            }
+            if isinstance(signwell.get("document_id"), str):
+                safe_signwell["document_id"] = signwell["document_id"][:180]
+            response = signwell.get("response")
+            if isinstance(response, dict):
+                safe_response = {
+                    key: response[key][:limit] for key, limit in {
+                        "status": 100, "document_status": 100, "id": 180, "document_id": 180,
+                    }.items()
+                    if isinstance(response.get(key), str) and response[key].strip()
+                }
+                if safe_response:
+                    safe_signwell["response"] = safe_response
+            if safe_signwell:
+                offer_data["signwell"] = safe_signwell
+        delivery = raw_data.get("_hof_signature_delivery")
+        if isinstance(delivery, dict) and isinstance(delivery.get("version"), int):
+            offer_data["_hof_signature_delivery"] = {"version": delivery["version"]}
+        tracking = raw_data.get("transactionTracking")
+        if isinstance(tracking, dict):
+            safe_tracking = agent_contract_timeline.project_tracking(tracking)
+            if safe_tracking:
+                offer_data["transactionTracking"] = safe_tracking
+        projected = {
+            key: row.get(key)
+            for key in (
+                "id", "role", "property_address", "property_city", "property_state", "property_zip", "buyer_name", "buyer_email",
+                "offer_price", "status", "last_updated", "created_at", "generated_at",
+                "signwell_document_id", "signwell_status",
+            )
+        }
+        projected["offer_data"] = offer_data
+        safe_rows.append(projected)
+    return {
+        "offers": safe_rows,
+        "offset": offset,
+        "nextOffset": offset + len(safe_rows),
+        "hasMore": len(safe_rows) == limit,
+    }
+
+
 async def _get_optional(path):
     try:
         return await _get(path)
@@ -6132,6 +6224,21 @@ class handler(BaseHTTPRequestHandler):
                     _json(self, 503, {"error": "We couldn’t load the offer comparisons. Refresh the workspace and try again."})
                     return
                 _json(self, 200, {"offers": offers})
+                return
+            if scope == "agent_offer_history":
+                try:
+                    history = asyncio.run(_agent_offer_history(
+                        user,
+                        (query.get("offset") or ["0"])[0],
+                        (query.get("limit") or ["25"])[0],
+                    ))
+                except ValueError as exc:
+                    _json(self, 400, {"error": str(exc)})
+                    return
+                except (httpx.HTTPError, RuntimeError):
+                    _json(self, 503, {"error": "Offer history is temporarily unavailable."})
+                    return
+                _json(self, 200, history)
                 return
             if scope == "agent_seller_leads":
                 try:

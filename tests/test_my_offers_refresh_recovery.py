@@ -8,23 +8,32 @@ class MyOffersRefreshRecoveryTests(unittest.TestCase):
         html = (Path(__file__).resolve().parents[1] / "index.html").read_text()
         start = html.index("  const HOF_OFFER_WORKSPACE_PAGE_SIZE")
         end = html.index("  function formatOfferDate", start)
+        api_start = html.index("  root.hofLoadAgentOfferHistory")
+        api_end = html.index("  function bucketForOffer", api_start)
         setup = """
 const assert = require('node:assert/strict');
 const list = {innerHTML: 'current'};
 const notice = {hidden: true};
 const document = {getElementById: id => ({myOffersList:list, myOffersRefreshNotice:notice})[id]};
-const hofAuth = {session:{user:{id:'first'}}, myOffers:[{id:'current'}], myOffersNextOffset:25};
+const hofAuth = {session:{user:{id:'first'},access_token:'token-first'}, myOffers:[{id:'current'}], myOffersNextOffset:25};
 const pending = [];
-const query = {
-  from:()=>query, select:()=>query, eq:()=>query, is:()=>query, order:()=>query,
-  range:()=>query, abortSignal:signal=>new Promise(resolve=>{
-    pending.push(resolve);
-    signal.addEventListener('abort',()=>resolve({error:signal.reason}),{once:true});
-  })
-};
-const getSupabaseClient = () => query;
 const renderMyOffers = offers => offers.map(offer=>offer.id).join(',');
-const window = {};
+const window = {hofAuth};
+const root = window;
+const fetch=(url,{headers,signal})=>{
+  const params = new URLSearchParams(url.split('?')[1]);
+  assert.equal(params.get('scope'),'agent_offer_history');
+  assert.equal(params.get('limit'),'25');
+  assert.equal(headers.Authorization,'Bearer '+hofAuth.session.access_token);
+  const offset = Number(params.get('offset'));
+  return new Promise((resolve,reject)=>{
+    pending.push(({data,error})=> {
+      if (error) return reject(error);
+      resolve({ok:true,json:async()=>({offers:data,offset,nextOffset:offset+data.length,hasMore:data.length===25})});
+    });
+    signal.addEventListener('abort',()=>reject(signal.reason),{once:true});
+  });
+};
 let expire;
 const setTimeout = (callback, delay) => { assert.equal(delay,60000); expire=callback; return callback; };
 const clearTimeout = callback => { if (expire===callback) expire=null; };
@@ -48,7 +57,7 @@ const clearTimeout = callback => { if (expire===callback) expire=null; };
   assert.equal(notice.hidden,true);
 
   const previousAccount = loadMyOffers();
-  hofAuth.session = {user:{id:'second'}};
+  hofAuth.session = {user:{id:'second'},access_token:'token-second'};
   window.__hofAccountProfileEpoch = 1;
   list.innerHTML = 'new account';
   pending[3]({data:[{id:'old account'}]});
@@ -68,7 +77,7 @@ const clearTimeout = callback => { if (expire===callback) expire=null; };
 })().catch(error=>{console.error(error);process.exitCode=1;});
 """
         result = subprocess.run(
-            ["node", "-"], input=setup + html[start:end] + scenario,
+            ["node", "-"], input=setup + html[start:end] + html[api_start:api_end] + scenario,
             capture_output=True, text=True, timeout=20,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

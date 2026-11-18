@@ -8909,12 +8909,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   }
 
   async function loadMyOffers({ append = false } = {}) {
-    const client = getSupabaseClient();
     const user = hofAuth.session?.user;
     const list = document.getElementById('myOffersList');
     if (!list) return;
     const refreshNotice = document.getElementById('myOffersRefreshNotice');
-    if (!client || !user) {
+    if (!user || !hofAuth.session?.access_token) {
       activeOfferHistoryRequest = null;
       if (refreshNotice) refreshNotice.hidden = true;
       hofAuth.myOffers = [];
@@ -8935,20 +8934,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     // offer can move between pages when a concurrent update changes its
     // last_updated value; using the card count would then repeat a page.
     const offset = append ? Number(hofAuth.myOffersNextOffset || currentOffers.length) : 0;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 60000);
     try {
-      const { data, error } = await client
-        .from('hof_offers')
-        .select('id, user_id, role, property_address, buyer_name, buyer_email, offer_price, status, last_updated, created_at, generated_at, signwell_document_id, signwell_status, offer_data, option_days, deleted_at')
-        .eq('user_id', user.id)
-        .is('deleted_at', null)
-        .order('last_updated', { ascending:false })
-        .range(offset, offset + HOF_OFFER_WORKSPACE_PAGE_SIZE - 1)
-        .abortSignal(controller.signal);
+      const history = await window.hofLoadAgentOfferHistory(offset);
       if (!isCurrent()) return;
-      if (error) throw error;
-      const page = data || [];
+      const page = history.offers;
       offersBeforePage = Array.isArray(hofAuth.myOffers) ? hofAuth.myOffers : currentOffers;
       const latestOffers = new Map(offersBeforePage.map(offer => [offer.id, offer]));
       const byId = append ? new Map(latestOffers) : new Map();
@@ -8957,9 +8946,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       });
       const loadedOffers = Array.from(byId.values());
       hofAuth.myOffers = loadedOffers;
-      hofAuth.myOffersHasMore = page.length === HOF_OFFER_WORKSPACE_PAGE_SIZE;
+      hofAuth.myOffersHasMore = history.hasMore;
       hofAuth.myOffersLoadMoreError = false;
-      hofAuth.myOffersNextOffset = offset + page.length;
+      hofAuth.myOffersNextOffset = history.nextOffset;
       if (!append && refreshNotice) refreshNotice.hidden = true;
       if (!loadedOffers.length) {
         list.className = 'offer-empty';
@@ -9009,7 +8998,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       try { renderAgentActivationCard(); } catch (e) {}
       return [];
     } finally {
-      clearTimeout(timeout);
+      if (activeOfferHistoryRequest === request) activeOfferHistoryRequest = null;
     }
   }
 
@@ -20720,6 +20709,34 @@ function hofSpreadsheetCsvCell(value) {
   }
   const savedState = savedWorkspaceState();
   const state = root.hofOfferWorkspaceV10 = root.hofOfferWorkspaceV10 || { offers:[], filter:savedState.filter || 'all', query:savedState.query || '', sort:savedState.sort || 'updated_desc' };
+
+  root.hofLoadAgentOfferHistory = async function(offset = 0) {
+    const token = root.hofAuth?.session?.access_token;
+    if (!token) throw new Error('Sign in to load offer history.');
+    const params = new URLSearchParams({scope: 'agent_offer_history', offset: String(offset), limit: String(HOF_OFFER_WORKSPACE_PAGE_SIZE)});
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
+    let response, result;
+    try {
+      response = await fetch(`/api/admin-dashboard?${params.toString()}`, {
+        headers: {Authorization: `Bearer ${token}`},
+        signal: controller.signal
+      });
+      result = await response.json().catch(() => ({}));
+    } finally {
+      clearTimeout(timeout);
+    }
+    if (!response.ok || !Array.isArray(result.offers) || !Number.isInteger(result.nextOffset) || typeof result.hasMore !== 'boolean') {
+      throw new Error('Offer history is unavailable.');
+    }
+    if (result.offset !== offset || result.offers.length > HOF_OFFER_WORKSPACE_PAGE_SIZE ||
+        result.nextOffset !== offset + result.offers.length ||
+        result.hasMore !== (result.offers.length === HOF_OFFER_WORKSPACE_PAGE_SIZE) ||
+        result.offers.some(offer => typeof offer?.id !== 'string' || !offer.id)) {
+      throw new Error('Offer history is unavailable.');
+    }
+    return result;
+  };
 
   function bucketForOffer(o){
     const status = cleanStatus(o).toLowerCase();
