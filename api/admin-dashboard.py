@@ -927,6 +927,38 @@ async def _save_agent_offer_draft(user, data):
     return {"id": normalized_id, "saved": True, "created": False, "updatedAt": changed[0]["last_updated"]}
 
 
+async def _delete_agent_offer(user, data):
+    if not isinstance(data, dict) or set(data) != {"action", "offerId"}:
+        raise ValueError("Provide only the offer to remove from your dashboard.")
+    offer_id = listing_workspace_offer_comparison.normalized_uuid(
+        data.get("offerId"), "Choose a valid offer."
+    )
+    owner = listing_workspace_offer_comparison.normalized_uuid(
+        user.get("id"), "Sign in again before deleting this offer."
+    )
+    scope = f"hof_offers?id=eq.{offer_id}&user_id=eq.{owner}"
+    fields = "select=id,status,deleted_at,last_updated"
+    now = datetime.now(timezone.utc).isoformat()
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.patch(
+            f"{SUPABASE_URL}/rest/v1/{scope}&deleted_at=is.null&{fields}",
+            headers={**_headers(), "Prefer": "return=representation"},
+            json={"status": "Deleted", "deleted_at": now, "last_updated": now},
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("Could not remove the offer.")
+    rows = response.json()
+    already_removed = rows == []
+    if already_removed:
+        rows = await _get(f"{scope}&deleted_at=not.is.null&status=eq.Deleted&{fields}&limit=1")
+        if rows == []:
+            raise PermissionError("That offer is unavailable.")
+    if (not isinstance(rows, list) or len(rows) != 1 or rows[0].get("id") != offer_id
+            or rows[0].get("status") != "Deleted" or not rows[0].get("deleted_at")):
+        raise RuntimeError("The offer removal could not be confirmed.")
+    return {**rows[0], "alreadyRemoved": already_removed}
+
+
 async def _get_optional(path):
     try:
         return await _get(path)
@@ -9355,6 +9387,20 @@ class handler(BaseHTTPRequestHandler):
                     _json(self, 503, {"error": "We couldn’t confirm the comparison change. Refresh the workspace and check it before trying again."})
                     return
                 _json(self, 201 if action == "save_listing_workspace_offer_comparison" else 200, {"ok": True, "offer": offer})
+                return
+            if data.get("action") == "delete_agent_offer":
+                try:
+                    offer = asyncio.run(_delete_agent_offer(user, data))
+                except ValueError as exc:
+                    _json(self, 400, {"error": str(exc)})
+                    return
+                except PermissionError as exc:
+                    _json(self, 409, {"error": str(exc)})
+                    return
+                except (httpx.HTTPError, RuntimeError):
+                    _json(self, 503, {"error": "The offer removal could not be confirmed."})
+                    return
+                _json(self, 200, {"ok": True, "offer": offer})
                 return
             if data.get("action") == "duplicate_agent_offer":
                 try:

@@ -9609,20 +9609,33 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
   async function deleteOffer(id) {
     if (!confirm('Delete this saved offer from your dashboard?')) return;
-    const client = getSupabaseClient();
-    const user = hofAuth.session?.user;
-    if (!client || !user) return;
+    const owner = hofAuth.session?.user?.id;
+    if (!owner || !hofAuth.session?.access_token) return;
+    const epoch = window.__hofAccountProfileEpoch || 0;
+    const isCurrent = () => hofAuth.session?.user?.id === owner && (window.__hofAccountProfileEpoch || 0) === epoch;
+    let removed;
     try {
-      const { error } = await client.from('hof_offers').update({ status:'Deleted', deleted_at:new Date().toISOString(), last_updated:new Date().toISOString() }).eq('user_id', user.id).eq('id', id);
-      if (error) throw error;
-      await logOfferEvent(id, 'deleted', 'Deleted', 'Offer deleted from dashboard.');
-      await loadMyOffers();
+      removed = await window.hofDeleteAgentOffer(id);
     } catch (err) {
+      if (!isCurrent()) return;
       console.error('Delete failed:', err);
-      window.announceWorkspaceStatus?.(
-        window.hofCustomerActionError(err, 'We couldn’t remove that offer. Please try again.')
-      );
+      const message = err.status === 409 ? 'That offer is unavailable. Refresh My Offers.' :
+        'We couldn’t confirm the removal. Refresh My Offers to check before trying again.';
+      window.announceWorkspaceStatus?.(message);
+      return;
     }
+    if (!isCurrent()) return;
+    hofAuth.myOffers = (hofAuth.myOffers || []).filter(offer => offer.id !== removed.id);
+    const list = document.getElementById('myOffersList');
+    try {
+      if (list) list.innerHTML = renderMyOffers(hofAuth.myOffers);
+    } catch (err) { console.warn('Offer removed but its card could not update:', err); }
+    const refresh = loadMyOffers().catch(err => console.warn('Offer removed but My Offers could not refresh:', err));
+    window.announceWorkspaceStatus?.('Offer removed from My Offers.');
+    if (!removed.alreadyRemoved) {
+      await logOfferEvent(id, 'deleted', 'Deleted', 'Offer deleted from dashboard.').catch(err => console.warn('Offer deleted but activity could not be recorded:', err));
+    }
+    await refresh;
   }
 
 
@@ -20735,6 +20748,23 @@ function hofSpreadsheetCsvCell(value) {
     } finally {
       clearTimeout(timeout);
     }
+  };
+
+  root.hofDeleteAgentOffer = async function(offerId) {
+    const token = root.hofAuth?.session?.access_token;
+    if (!token || !offerId) throw new Error('Sign in before deleting this offer.');
+    const id = String(offerId).toLowerCase();
+    const response = await fetch('/api/admin-dashboard', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', Authorization: `Bearer ${token}`},
+      body: JSON.stringify({action: 'delete_agent_offer', offerId: id}),
+      signal: AbortSignal.timeout(30000)
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || result.ok !== true || result.offer?.id !== id || result.offer?.status !== 'Deleted') {
+      throw Object.assign(new Error('Offer removal could not be confirmed.'), {status: response.status});
+    }
+    return result.offer;
   };
 
   const duplicateOfferAttempts = new Map();
