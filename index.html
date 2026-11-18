@@ -447,6 +447,22 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     return result.events;
   };
 
+  window.hofLoadAgentOfferDetail = async function(offerId) {
+    const token = window.hofAuth?.session?.access_token;
+    if (!token || !offerId) throw new Error('Sign in to load offer details.');
+    const id = String(offerId).toLowerCase();
+    const params = new URLSearchParams({scope: 'agent_offer_detail', offer_id: id});
+    const response = await fetch(`/api/admin-dashboard?${params.toString()}`, {
+      headers: {Authorization: `Bearer ${token}`},
+      signal: AbortSignal.timeout(30000)
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || result.offerId !== id || result.offer?.id !== id || !Array.isArray(result.events)) {
+      throw new Error('Offer details are unavailable.');
+    }
+    return result;
+  };
+
   function renderOfferEvents(events, unavailable){
     if (unavailable) return '<div class="offer-empty">Activity timeline is unavailable. Close and reopen offer details to try again.</div>';
     if (!events || !events.length) return '<div class="offer-empty">No activity timeline yet.</div>';
@@ -459,7 +475,6 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   }
 
   window.viewOfferDetails = async function(offerId){
-    const client = window.getSupabaseClient?.();
     const user = window.hofAuth?.session?.user;
     const backdrop = document.getElementById('offerDetailBackdrop');
     const target = document.getElementById('offerDetailContent');
@@ -473,20 +488,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     backdrop.setAttribute('aria-hidden', 'false');
     document.getElementById('offerDetailClose')?.focus();
     target.innerHTML = '<div class="offer-empty">Loading offer...</div>';
-    if (!client || !user || !offerId || !window.hofAuth?.session?.access_token) { target.innerHTML = '<div class="offer-empty">Sign in to view offer details.</div>'; return; }
+    if (!user || !offerId || !window.hofAuth?.session?.access_token) { target.innerHTML = '<div class="offer-empty">Sign in to view offer details.</div>'; return; }
     try {
-      const { data: offer, error } = await client.from('hof_offers').select('*').eq('user_id', user.id).eq('id', offerId).is('deleted_at', null).maybeSingle();
+      const detail = await window.hofLoadAgentOfferDetail(offerId);
       if (!isCurrent()) return;
-      if (error) throw error;
-      if (!offer) throw new Error('Offer not found.');
-      let events = [];
-      let activityUnavailable = false;
-      try {
-        events = await window.hofLoadAgentOfferActivityTimeline(offerId);
-      } catch (_) {
-        activityUnavailable = true;
-      }
-      if (!isCurrent()) return;
+      const offer = detail.offer;
+      const events = detail.events;
+      const activityUnavailable = detail.activityUnavailable === true;
       window.__hofCurrentOffer = offer;
       const status = window.cleanOfferStatus(window.getOfferBestStatus(offer));
       const d = offer.offer_data || {};
@@ -21270,7 +21278,6 @@ function hofSpreadsheetCsvCell(value) {
 
   const previousViewOfferDetails = root.viewOfferDetails;
   root.viewOfferDetails = async function(offerId){
-    const client = root.getSupabaseClient?.();
     const user = root.hofAuth?.session?.user;
     const backdrop = document.getElementById('offerDetailBackdrop');
     const target = document.getElementById('offerDetailContent');
@@ -21289,20 +21296,13 @@ function hofSpreadsheetCsvCell(value) {
     backdrop.setAttribute('aria-hidden', 'false');
     document.getElementById('offerDetailClose')?.focus();
     target.innerHTML = '<div class="offer-empty">Loading offer workspace detail...</div>';
-    if (!client || !user || !offerId || !root.hofAuth?.session?.access_token) { target.innerHTML = '<div class="offer-empty">Sign in to view offer details.</div>'; return; }
+    if (!user || !offerId || !root.hofAuth?.session?.access_token) { target.innerHTML = '<div class="offer-empty">Sign in to view offer details.</div>'; return; }
     try {
-      const { data: offer, error } = await client.from('hof_offers').select('*').eq('user_id', user.id).eq('id', offerId).is('deleted_at', null).maybeSingle();
+      const detail = await root.hofLoadAgentOfferDetail(offerId);
       if (!isCurrent()) return;
-      if (error) throw error;
-      if (!offer) throw new Error('Offer not found.');
-      let events = [];
-      let activityUnavailable = false;
-      try {
-        events = await root.hofLoadAgentOfferActivityTimeline(offerId);
-      } catch (_) {
-        activityUnavailable = true;
-      }
-      if (!isCurrent()) return;
+      const offer = detail.offer;
+      const events = detail.events;
+      const activityUnavailable = detail.activityUnavailable === true;
       root.__hofCurrentOffer = offer;
       const d = offer.offer_data || {};
       const st = cleanStatus(offer);
