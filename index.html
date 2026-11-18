@@ -7303,7 +7303,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   function cleanOfferDraftData(data) {
     const draft = { ...(data || {}) };
     [
-      '_hof_signature_delivery', '_subscription_user_id', '_paragraph4_source_pdf_bytes',
+      '_hofOfferUpdatedAt', '_hof_signature_delivery', '_subscription_user_id', '_paragraph4_source_pdf_bytes',
       'backend_saved', 'signwell', 'signwellDocumentId', 'signwellStatus',
       'signwell_document_id', 'signwell_status', 'generatedAt', 'generated_at',
       'packetGeneratedAt', 'packetGenerationError', 'packetGenerationFailedAt',
@@ -7323,10 +7323,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   }
 
   async function saveOfferDraftToSupabase(status = 'Draft') {
-    const client = getSupabaseClient();
     const user = hofAuth.session?.user;
+    const token = hofAuth.session?.access_token;
     const role = state.data.userType || hofAuth.role || 'agent';
-    if (!client || !user || role === 'homebuyer' || status !== 'Draft') return null;
+    if (!token || !user || role === 'homebuyer' || status !== 'Draft') return null;
     __hofCloudDraftSaveNeedsCopy = false;
 
     // Capture the full wizard state before saving so top-level dashboard columns
@@ -7451,38 +7451,22 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     };
 
     try {
-      let result;
-      if (savingOfferId) {
-        // Read current server state, not the signing state in an old tab.
-        const current = await client.from('hof_offers').select('*')
-          .eq('user_id', savingUserId).eq('id', savingOfferId)
-          .is('deleted_at', null).single();
-        if (current.error || !current.data) throw current.error || new Error('Offer unavailable');
-        // A refreshed client session must not issue a second request for an
-        // account that has signed out or been replaced while the read ran.
-        if (hofAuth.session?.user?.id !== savingUserId) return null;
-        if (offerHasPreparedPacket(current.data)) {
-          if (isCurrentDraft()) __hofCloudDraftSaveNeedsCopy = true;
-          return null;
-        }
-        const update = client
-          .from('hof_offers')
-          .update(payload)
-          .eq('user_id', savingUserId)
-          .eq('id', savingOfferId)
-          .is('deleted_at', null);
-        if (current.data.last_updated) update.eq('last_updated', current.data.last_updated);
-        else update.is('last_updated', null);
-        result = await update.select('*').single();
-      } else {
-        result = await client.from('hof_offers').insert({ ...payload, status: 'Draft' }).select('*').single();
+      const draftPayload = {...payload};
+      delete draftPayload.user_id;
+      delete draftPayload.last_updated;
+      const result = await window.hofSaveAgentOfferDraft(savingOfferId, draftPayload, savingDraft._hofOfferUpdatedAt);
+      if (!isCurrentDraft()) return null;
+      if (result?.copyRequired) {
+        __hofCloudDraftSaveNeedsCopy = result.conflict ? 'conflict' : true;
+        return null;
       }
-      if (result.error) throw result.error;
+      if (!result?.saved || !result.id) throw new Error('The offer draft could not be confirmed.');
       if (isCurrentDraft()) {
-        state.data._hofOfferId = result.data.id;
+        state.data._hofOfferId = result.id;
+        state.data._hofOfferUpdatedAt = result.updatedAt;
         updateSaveStatus('✓ Saved to Dashboard');
       }
-      return result.data;
+      return {id: result.id};
     } catch (err) {
       if (err?.code === '55000' && isCurrentDraft()) __hofCloudDraftSaveNeedsCopy = true;
       console.warn('Cloud draft save failed:', err);
@@ -9523,6 +9507,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         signwellDocumentId: offer.offer_data?.signwellDocumentId || offer.signwell_document_id || offer.offer_data?.signwell_document_id || '',
         signwellStatus: offer.offer_data?.signwellStatus || offer.signwell_status || offer.offer_data?.signwell_status || '',
         _hofOfferId: offer.id,
+        _hofOfferUpdatedAt: offer.last_updated,
         userType: offer.role || hofAuth.role || 'agent'
       };
       request.draft = state.data;
@@ -14787,7 +14772,10 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     if (!el) return;
     el.classList.add('cloud-save-warning');
     if (__hofCloudDraftSaveNeedsCopy) {
-      el.innerHTML = 'Your original packet is unchanged. <button type="button" class="save-retry-btn" onclick="saveOfferChangesAsNewDraft()">Save changes as a new draft</button>';
+      const message = __hofCloudDraftSaveNeedsCopy === 'conflict'
+        ? 'This cloud draft changed since you opened it. Your edits are still on this device.'
+        : 'Your original packet is unchanged.';
+      el.innerHTML = message + ' <button type="button" class="save-retry-btn" onclick="saveOfferChangesAsNewDraft()">Save changes as a new draft</button>';
       return;
     }
     el.innerHTML = 'Saved on this device; cloud sync needs retry. <button type="button" class="save-retry-btn" onclick="retryCloudDraftSave()">Retry cloud save</button>';
@@ -14883,6 +14871,7 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
       wizardOpen: document.getElementById('wizardOverlay')?.classList.contains('active') || false,
       userType: typeof state !== 'undefined' ? state.data?.userType || 'homebuyer' : 'homebuyer',
       offerId: typeof state.data?._hofOfferId === 'string' ? state.data._hofOfferId : null,
+      offerUpdatedAt: state.data?._hofOfferUpdatedAt,
       uploadedDocNames: uploadedDisclosureDraftNames(),
       step: typeof state !== 'undefined' ? state.step : 0,
       termsOK: typeof state !== 'undefined' ? state.termsOK : false,
@@ -15041,6 +15030,7 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
         userType: savedRole,
         _hofOfferId: ownerUserId && ownerUserId === currentUserId && typeof draft.offerId === 'string' ? draft.offerId : null
       };
+      if (state.data._hofOfferId) state.data._hofOfferUpdatedAt = draft.offerUpdatedAt;
       state.step = 0;
       __hofCloudDraftSaveNeedsCopy = false;
       document.querySelectorAll('#wizardOverlay input, #wizardOverlay textarea, #wizardOverlay select').forEach(el => {
@@ -20678,6 +20668,23 @@ function hofSpreadsheetCsvCell(value) {
   }
   const savedState = savedWorkspaceState();
   const state = root.hofOfferWorkspaceV10 = root.hofOfferWorkspaceV10 || { offers:[], filter:savedState.filter || 'all', query:savedState.query || '', sort:savedState.sort || 'updated_desc' };
+
+  root.hofSaveAgentOfferDraft = async function(offerId, offer, expectedUpdatedAt) {
+    const token = root.hofAuth?.session?.access_token;
+    if (!token || !offer || typeof offer !== 'object') throw new Error('Sign in to save this offer draft.');
+    const response = await fetch('/api/admin-dashboard', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', Authorization: `Bearer ${token}`},
+      body: JSON.stringify({action: 'save_agent_offer_draft', offerId: offerId || null, offer, expectedUpdatedAt}),
+      signal: AbortSignal.timeout(30000)
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || result.ok !== true || !result.offer ||
+        (!result.offer.copyRequired && (result.offer.saved !== true || !result.offer.id))) {
+      throw new Error(result.error || 'Offer draft could not be saved.');
+    }
+    return result.offer;
+  };
 
   root.hofLoadAgentOfferHistory = async function(offset = 0) {
     const token = root.hofAuth?.session?.access_token;

@@ -18,24 +18,23 @@ class OfferAutosaveRuntimeTests(unittest.TestCase):
         const state = {data:{userType:'agent',address:'QA property',buyer1:'QA buyer',price:400000,
           _hofOfferId:config.new ? null : 'offer',_hof_signature_delivery:{private:'must not copy'},
           signwell:{document_id:'old-document'},generatedAt:'old-date'}};
-        const hofAuth = {session:{user:{id:'owner'}}};
+        const hofAuth = {session:{user:{id:'owner'},access_token:'test-token'}};
         let __hofCloudDraftSaveNeedsCopy = false;
         const collectAllData=()=>{}, getVal=()=>'', getRadio=()=>'', moneyNumber=v=>Number(v)||0;
         const updateSaveStatus=text=>notices.push(text);
         const console={warn:()=>{}};
-        const getSupabaseClient=()=>({from:table=>{
-          const call={table,filters:[],kind:'read'};
-          const chain={select:()=>chain,eq:(...v)=>{call.filters.push(['eq',...v]);return chain;},
-            is:(...v)=>{call.filters.push(['is',...v]);return chain;},
-            update:body=>{call.kind='update';call.body=body;return chain;},
-            insert:body=>{call.kind='insert';call.body=body;return chain;},
-            single:async()=>{calls.push(call);
-              if(config.error) return {error:{code:config.error}};
-              if(call.kind==='read')return {data:config.row};
-              if(config.race)return {error:{code:'PGRST116'}};
-              return {data:{id:'saved',...call.body}};
-            }}; return chain;
-        }});
+        const window={hofSaveAgentOfferDraft:async(offerId,offer)=>{
+          calls.push({offerId,offer});
+          if(config.error){const error=new Error('save failed');error.code=config.error;throw error;}
+          if(config.race)throw new Error('concurrent update');
+          const row=config.row||{}, data=row.offer_data||{};
+          const status=String(row.status||'Draft').toLowerCase();
+          const prepared=!!(row.generated_at||row.signwell_document_id||data.generatedAt||data.generated_at||
+            data.signwellDocumentId||data.signwell_document_id||data.signwell?.document_id||data.signwell?.response?.id||
+            Object.prototype.hasOwnProperty.call(data,'_hof_signature_delivery')||!['draft','generation failed'].includes(status));
+          if(prepared)return {id:offerId,saved:false,copyRequired:true};
+          return {id:offerId||'new-offer',saved:true,created:!offerId};
+        }};
         ''' + SOURCE + r'''
         (async()=>{
           const saved=await saveOfferDraftToSupabase();
@@ -51,12 +50,13 @@ class OfferAutosaveRuntimeTests(unittest.TestCase):
 
     def test_draft_update_never_writes_signing_state_and_is_version_checked(self):
         result = self.run_save()
-        update = result['calls'][1]
-        self.assertIn(['eq', 'last_updated', 'version-1'], update['filters'])
-        self.assertIn(['eq', 'user_id', 'owner'], update['filters'])
+        update = result['calls'][0]
+        self.assertEqual(update['offerId'], 'offer')
+        self.assertNotIn('user_id', update['offer'])
+        self.assertNotIn('last_updated', update['offer'])
         for key in ('status', 'signwell_document_id', 'signwell_status', 'generated_at'):
-            self.assertNotIn(key, update['body'])
-        self.assertNotIn('_hof_signature_delivery', update['body']['offer_data'])
+            self.assertNotIn(key, update['offer'])
+        self.assertNotIn('_hof_signature_delivery', update['offer']['offer_data'])
         self.assertTrue(result['saved'])
 
     def test_server_signed_packet_wins_over_stale_draft_tab(self):
@@ -77,9 +77,9 @@ class OfferAutosaveRuntimeTests(unittest.TestCase):
         self.assertEqual(result['notices'], [])
 
     def test_new_draft_does_not_inherit_receipts(self):
-        body = self.run_save(new=True)['calls'][0]['body']
-        self.assertEqual(body['status'], 'Draft')
-        self.assertNotIn('_hof_signature_delivery', body['offer_data'])
+        call = self.run_save(new=True)['calls'][0]
+        self.assertIsNone(call['offerId'])
+        self.assertNotIn('_hof_signature_delivery', call['offer']['offer_data'])
 
     def test_database_packet_protection_has_specific_recovery(self):
         self.assertTrue(self.run_save(error='55000')['copy'])
