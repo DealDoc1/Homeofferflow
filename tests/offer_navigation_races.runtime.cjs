@@ -18,26 +18,24 @@ function deferred() {
 const tick = () => new Promise(setImmediate);
 const offer = (id, extra={}) => ({id, role:'agent', status:'Draft', offer_data:{buyer1:id, financing:'cash'}, ...extra});
 function setup() {
-  const reads=[], inserts=[], opened=[], alerts=[], logs=[];
+  const reads=[], duplicateCalls=[], opened=[], alerts=[], logs=[];
   const c=vm.createContext({
     state:{data:{_hofOfferId:'initial', userType:'agent'}},
     hofAuth:{role:'agent',session:{user:{id:'owner'}}},
     getOfferById:id=>{const pending=deferred(); reads.push({id,...pending}); return pending.promise;},
-    getSupabaseClient:()=>({from:()=>({insert:body=>({select:()=>({single:()=>{
-      const pending=deferred(); inserts.push({body,...pending}); return pending.promise;
-    }})})})}),
+    window:{confirm:message=>{alerts.push(message); return false;},announceWorkspaceStatus:message=>alerts.push(message),hofCustomerActionError:(_,message)=>message,
+      hofDuplicateAgentOffer:id=>{const pending=deferred(); duplicateCalls.push({id,...pending}); return pending.promise;}},
     resetUploadedDisclosureDraftForOffer(){},
     openSavedOfferInterview:()=>opened.push({...c.state.data}),
     updateSaveStatus(){},loadMyOffers:async()=>{},
     logOfferEvent:async(...args)=>logs.push(args),
-    window:{confirm:message=>{alerts.push(message); return false;},announceWorkspaceStatus:message=>alerts.push(message),hofCustomerActionError:(_,message)=>message},
     console:{error(){},warn(){}},
   });
   vm.runInContext(source('  function cleanOfferDraftData(', '  async function saveOfferDraftToSupabase('),c);
   const start=html.includes('  function beginOfferOpenRequest(')?'  function beginOfferOpenRequest(':'  async function resumeOffer(';
   vm.runInContext(source(start,'  async function deleteOffer('),c);
   const reply=async(index,row)=>{reads[index].resolve(row); await tick();};
-  return {c,reads,inserts,opened,alerts,logs,reply};
+  return {c,reads,duplicateCalls,opened,alerts,logs,reply};
 }
 
 for (const [older,newer] of [['resumeOffer','resumeOffer'],['reuseOfferTerms','resumeOffer'],['resumeOffer','reuseOfferTerms']]) {
@@ -80,43 +78,43 @@ test('an obsolete read failure cannot interrupt the newly opened offer',async()=
   x.reads[0].reject(new Error('old network failure')); await a;
   assert.deepEqual(x.alerts,[]); assert.equal(x.c.state.data._hofOfferId,'b');
 });
-test('a pending prepared-packet copy stops before insertion when selection changes',async()=>{
+test('a pending prepared-packet read cannot replace a later selection',async()=>{
   const x=setup(); const a=x.c.resumeOffer('signed');
+  const b=x.c.resumeOffer('b'); await x.reply(1,offer('b')); await b;
   await x.reply(0,offer('signed',{status:'Buyer Signed'}));
-  const b=x.c.resumeOffer('b'); await x.reply(2,offer('b')); await b;
-  await x.reply(1,offer('signed',{status:'Buyer Signed'}));
-  assert.equal(x.inserts.length,0); await a;
+  await a;
   assert.equal(x.c.state.data._hofOfferId,'b');
 });
-test('an already-created copy stays saved without opening over a newer selection',async()=>{
+test('a completed copy stays saved without opening over a newer selection',async()=>{
   const x=setup(); const a=x.c.duplicateOffer('a',false,true);
-  await x.reply(0,offer('a')); assert.equal(x.inserts.length,1);
-  const b=x.c.resumeOffer('b'); await x.reply(1,offer('b')); await b;
-  x.inserts[0].resolve({data:{id:'copy'}}); await tick();
-  assert.equal(x.reads.length,2); await a;
-  assert.equal(x.c.state.data._hofOfferId,'b'); assert.equal(x.inserts.length,1);
+  assert.equal(x.duplicateCalls[0].id,'a');
+  const b=x.c.resumeOffer('b'); await x.reply(0,offer('b')); await b;
+  x.duplicateCalls[0].resolve({id:'copy',copiedFromOfferId:'a'}); await tick();
+  assert.equal(x.reads.length,1); await a;
+  assert.equal(x.c.state.data._hofOfferId,'b'); assert.equal(x.duplicateCalls.length,1);
 });
-test('a duplicate source read cannot start a write after account change',async()=>{
+test('a pending duplicate response after account change cannot alter the new session',async()=>{
   const x=setup(); const a=x.c.duplicateOffer('a');
   x.c.hofAuth.session={user:{id:'other-owner'}};
-  await x.reply(0,offer('a')); assert.equal(x.inserts.length,0); await a;
+  x.duplicateCalls[0].resolve({id:'copy',copiedFromOfferId:'a'}); await a;
+  assert.equal(x.reads.length,0); assert.equal(x.c.state.data._hofOfferId,'initial');
+  assert.deepEqual(x.alerts,[]);
 });
 test('failure of a superseded copy cannot prompt the user to retry it',async()=>{
   const x=setup(); const a=x.c.duplicateOffer('a',false,true);
-  await x.reply(0,offer('a'));
-  const b=x.c.resumeOffer('b'); await x.reply(1,offer('b')); await b;
-  x.inserts[0].resolve({error:new Error('old failure')}); await a;
+  const b=x.c.resumeOffer('b'); await x.reply(0,offer('b')); await b;
+  x.duplicateCalls[0].reject(new Error('old failure')); await a;
   assert.deepEqual(x.alerts,[]); assert.equal(x.c.state.data._hofOfferId,'b');
 });
 for (const failingSideEffect of ['logOfferEvent','loadMyOffers']) {
   test(`${failingSideEffect} failure does not duplicate an already-created copy`,async()=>{
     const x=setup(); x.c[failingSideEffect]=async()=>{throw new Error('unavailable');};
     // Logging during the subsequent resume is unrelated to the copy operation.
-    const a=x.c.duplicateOffer('a',false,true); await x.reply(0,offer('a'));
-    x.inserts[0].resolve({data:{id:'copy'}}); await tick();
-    assert.equal(x.reads[1]?.id,'copy');
-    x.c.logOfferEvent=async()=>{}; await x.reply(1,offer('copy')); await a;
-    assert.equal(x.inserts.length,1); assert.equal(x.c.state.data._hofOfferId,'copy'); assert.deepEqual(x.alerts,[]);
+    const a=x.c.duplicateOffer('a',false,true);
+    x.duplicateCalls[0].resolve({id:'copy',copiedFromOfferId:'a'}); await tick();
+    assert.equal(x.reads[0]?.id,'copy');
+    x.c.logOfferEvent=async()=>{}; await x.reply(0,offer('copy')); await a;
+    assert.equal(x.duplicateCalls.length,1); assert.equal(x.c.state.data._hofOfferId,'copy'); assert.deepEqual(x.alerts,[]);
   });
 }
 test('a selection made while retry logging runs cancels the old retry',async()=>{

@@ -7,25 +7,18 @@ HTML = (ROOT / "index.html").read_text(encoding="utf-8")
 
 
 class OfferDuplicateWorkspaceTests(unittest.TestCase):
-    def test_duplicate_scrubs_source_packet_and_signing_metadata(self):
+    def test_duplicate_uses_authenticated_server_action_and_preserves_recovery(self):
         start = HTML.index("async function duplicateOffer(id)")
-        end = HTML.index("\n  async function deleteOffer", start)
+        end = HTML.index("\n  async function reuseOfferTerms", start)
         body = HTML[start:end]
 
-        self.assertIn("const copyData = cleanOfferDraftData(offer.offer_data);", body)
-        for key in (
-            "'_hofOfferId'",
-            "'signwell'",
-            "'signwellDocumentId'",
-            "'signwellStatus'",
-            "'generatedAt'",
-            "'packetGeneratedAt'",
-            "'signingUrl'",
-            "'recipients'",
-        ):
-            self.assertIn(key, body)
-        self.assertIn("status: 'Draft'", body)
-        self.assertIn("signwell_document_id", body)
+        self.assertIn("window.hofDuplicateAgentOffer(id)", body)
+        self.assertNotIn("from('hof_offers')", body)
+        self.assertNotIn("getOfferById(id)", body)
+        self.assertIn("loadMyOffers().catch", body)
+        self.assertIn("return resumeOffer(duplicate.id)", body)
+        self.assertIn("duplicate_retry_clicked", body)
+        self.assertIn("return duplicateOffer(id, true, openAfterDuplicate, request)", body)
 
     def test_both_offer_detail_views_use_the_authenticated_api(self):
         for owner in ("root", "window"):
@@ -57,7 +50,7 @@ class OfferDuplicateWorkspaceTests(unittest.TestCase):
         self.assertIn("duplicate_retry_clicked", duplicate)
         self.assertIn("return duplicateOffer(id, true, openAfterDuplicate, request)", duplicate)
         self.assertIn("openAfterDuplicate", duplicate)
-        self.assertIn("return resumeOffer(insertResult.data.id)", duplicate)
+        self.assertIn("return resumeOffer(duplicate.id)", duplicate)
 
     def test_duplicate_actions_open_the_new_copy_for_immediate_editing(self):
         standard = HTML.count("false, true)\">Duplicate &amp; edit</button>")

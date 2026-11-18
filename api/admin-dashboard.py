@@ -698,6 +698,78 @@ async def _agent_offer_source(user, offer_id):
     return {"offerId": normalized_offer_id, "offer": rows[0]}
 
 
+async def _duplicate_agent_offer(user, data):
+    if not isinstance(data, dict) or set(data) != {"action", "offerId", "requestId"}:
+        raise ValueError("Provide only the offer to copy and its request ID.")
+    offer_id = listing_workspace_offer_comparison.normalized_uuid(
+        data.get("offerId"), "Choose a valid offer."
+    )
+    owner = listing_workspace_offer_comparison.normalized_uuid(
+        user.get("id"), "Sign in again before copying this offer."
+    )
+    request_id = listing_workspace_offer_comparison.normalized_uuid(
+        data.get("requestId"), "Start a new copy request and try again."
+    )
+    # One attempt maps to the same primary key across retries and concurrent calls.
+    copy_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"homeofferflow:duplicate-offer:{owner}:{offer_id}:{request_id}"))
+    result = {"id": copy_id, "copiedFromOfferId": offer_id}
+    copy_lookup = f"hof_offers?id=eq.{copy_id}&user_id=eq.{owner}&deleted_at=is.null&select=id&limit=1"
+    if await _get(copy_lookup) == [{"id": copy_id}]:
+        return result
+    source_result = await _agent_offer_source(user, offer_id)
+    if not source_result:
+        return None
+    source = source_result["offer"]
+    raw_data = source.get("offer_data") if isinstance(source.get("offer_data"), dict) else {}
+    copy_data = dict(raw_data)
+    # Keep this server-side copy rule aligned with cleanOfferDraftData and the
+    # duplicate action: a copied draft must not inherit provider state,
+    # authenticated-source markers, or listing-side attachment contents.
+    strip_keys = {
+        "_hofOfferId", "_hof_signature_delivery", "_subscription_user_id",
+        "_paragraph4_source_pdf_bytes", "backend_saved", "signwell",
+        "signwellDocumentId", "signwellStatus", "signwell_document_id",
+        "signwell_status", "generatedAt", "generated_at", "packetGeneratedAt",
+        "packetGenerationError", "packetGenerationFailedAt",
+        "packetGenerationFailureCategory", "signwellLastStatusRefresh",
+        "signwellRecipientStatuses", "signingUrl", "signing_url",
+        "embeddedSigningUrl", "embedded_signing_url", "recipients",
+        "uploadedDisclosureDocs", "uploadedDocNames", "transactionTracking",
+    }
+    for key in strip_keys:
+        copy_data.pop(key, None)
+    copy_data["_hofOfferId"] = None
+    now = datetime.now(timezone.utc).isoformat()
+    record = {
+        "id": copy_id,
+        "user_id": owner,
+        "role": source.get("role") or "agent",
+        "property_address": (source.get("property_address") or "Untitled offer") + " (Copy)",
+        "buyer_name": source.get("buyer_name"),
+        "buyer_email": source.get("buyer_email") or raw_data.get("buyerEmail") or None,
+        "offer_price": source.get("offer_price"),
+        "status": "Draft",
+        "offer_data": copy_data,
+        "last_updated": now,
+    }
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.post(
+            f"{SUPABASE_URL}/rest/v1/hof_offers?on_conflict=id&select=id",
+            headers={**_headers(), "Prefer": "resolution=ignore-duplicates,return=representation"},
+            json=record,
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("Could not save the copied offer.")
+    rows = response.json()
+    if rows == [{"id": copy_id}]:
+        return result
+    if rows != []:
+        raise RuntimeError("The copied offer could not be confirmed.")
+    if await _get(copy_lookup) == [{"id": copy_id}]:
+        return result
+    raise PermissionError("That copy is no longer available. Start a new copy from My Offers.")
+
+
 async def _get_optional(path):
     try:
         return await _get(path)
@@ -9109,6 +9181,23 @@ class handler(BaseHTTPRequestHandler):
                     _json(self, 503, {"error": "We couldn’t confirm the comparison change. Refresh the workspace and check it before trying again."})
                     return
                 _json(self, 201 if action == "save_listing_workspace_offer_comparison" else 200, {"ok": True, "offer": offer})
+                return
+            if data.get("action") == "duplicate_agent_offer":
+                try:
+                    offer = asyncio.run(_duplicate_agent_offer(user, data))
+                except ValueError as exc:
+                    _json(self, 400, {"error": str(exc)})
+                    return
+                except PermissionError as exc:
+                    _json(self, 409, {"error": str(exc)})
+                    return
+                except (httpx.HTTPError, RuntimeError):
+                    _json(self, 503, {"error": "The copied offer could not be confirmed. Retry to recover the same draft."})
+                    return
+                if offer is None:
+                    _json(self, 404, {"error": "That offer is unavailable."})
+                    return
+                _json(self, 201, {"ok": True, "offer": offer})
                 return
             if data.get("action") == "save_agent_contract_timeline":
                 try:

@@ -9546,62 +9546,35 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   async function duplicateOffer(id) {
     const isRetry = arguments[1] === true;
     const openAfterDuplicate = arguments[2] === true;
-    const client = getSupabaseClient();
     const user = hofAuth.session?.user;
-    if (!client || !user) return;
+    if (!user) return;
     const userId = user.id;
     const request = openAfterDuplicate ? (arguments[3] || beginOfferOpenRequest()) : null;
     const isCurrent = () => hofAuth.session?.user?.id === userId && (!request || request.isCurrent());
     if (!isCurrent()) return;
     try {
-      const offer = await getOfferById(id);
+      const duplicate = await window.hofDuplicateAgentOffer(id);
       if (!isCurrent()) return;
-      if (!offer) { window.announceWorkspaceStatus?.('This offer is no longer available in your workspace. Refresh offers and try again.'); return; }
-      const copyData = cleanOfferDraftData(offer.offer_data);
-      // A duplicate is a new, unsent draft. Never carry over identifiers or
-      // status from the source packet, or the new card can appear to have an
-      // existing SignWell document and expose stale signing actions.
-      [
-        '_hofOfferId', 'signwell', 'signwellDocumentId', 'signwellStatus',
-        'signwell_document_id', 'signwell_status', 'generatedAt', 'generated_at',
-        'packetGeneratedAt', 'signingUrl', 'signing_url', 'embeddedSigningUrl',
-        'embedded_signing_url', 'recipients'
-      ].forEach((key) => { delete copyData[key]; });
-      // Listing-side PDFs can contain transaction-sensitive material. A new
-      // offer must never inherit attachment contents or a stale re-upload cue.
-      delete copyData.uploadedDisclosureDocs;
-      delete copyData.uploadedDocNames;
-      const insertResult = await client.from('hof_offers').insert({
-        user_id: userId,
-        role: offer.role || hofAuth.role || 'agent',
-        property_address: (offer.property_address || 'Untitled offer') + ' (Copy)',
-        buyer_name: offer.buyer_name,
-        buyer_email: offer.buyer_email || offer.offer_data?.buyerEmail || null,
-        offer_price: offer.offer_price,
-        status: 'Draft',
-        offer_data: { ...copyData, _hofOfferId: null },
-        last_updated: new Date().toISOString()
-      }).select('id').single();
+      if (!duplicate?.id) { window.announceWorkspaceStatus?.('This offer is no longer available in your workspace. Refresh offers and try again.'); return; }
       // The copy remains saved if creation already completed, but an older
       // navigation must not reopen it over the user's newer selection.
       if (!isCurrent()) return;
-      if (insertResult.error) throw insertResult.error;
-      await logOfferEvent(insertResult.data?.id || id, isRetry ? 'duplicate_retry_succeeded' : 'duplicated', 'Draft', isRetry ? 'Offer duplicated after a dashboard retry.' : 'Offer duplicated from dashboard.', { copied_from_offer_id: id }).catch(() => {});
+      await logOfferEvent(duplicate.id, isRetry ? 'duplicate_retry_succeeded' : 'duplicated', 'Draft', isRetry ? 'Offer duplicated after a dashboard retry.' : 'Offer duplicated from dashboard.', { copied_from_offer_id: id }).catch(() => {});
       if (!isCurrent()) return;
       // A dashboard refresh failure must not retry an already-created copy.
       await loadMyOffers().catch(err => console.warn('Offer list refresh failed:', err));
       if (!isCurrent()) return;
-      if (openAfterDuplicate && insertResult.data?.id) return resumeOffer(insertResult.data.id);
+      if (openAfterDuplicate) return resumeOffer(duplicate.id);
     } catch (err) {
       if (!isCurrent()) return;
       console.error('Duplicate failed:', err);
-      if (!isRetry && window.confirm('Could not duplicate this offer because of a temporary error. Retry now?')) {
+      if (!isRetry && err.retryable !== false && window.confirm('Could not confirm the copy. Retry to recover the same draft?')) {
         await logOfferEvent(id, 'duplicate_retry_clicked', 'Draft', 'Agent requested a retry after duplicate failed.').catch(() => {});
         if (!isCurrent()) return;
         return duplicateOffer(id, true, openAfterDuplicate, request);
       }
       window.announceWorkspaceStatus?.(
-        window.hofCustomerActionError(err, 'We couldn’t copy that offer. Please try again.')
+        err.retryable === false ? err.message : 'We couldn’t confirm the copy. Retry Duplicate & edit to recover the same draft.'
       );
     }
   }
@@ -20755,6 +20728,42 @@ function hofSpreadsheetCsvCell(value) {
     } finally {
       clearTimeout(timeout);
     }
+  };
+
+  const duplicateOfferAttempts = new Map();
+  root.hofDuplicateAgentOffer = async function(offerId) {
+    const session = root.hofAuth?.session;
+    if (!session?.access_token || !session.user?.id || !offerId) throw new Error('Sign in before copying this offer.');
+    const id = String(offerId).toLowerCase();
+    const key = `hof-duplicate-offer:${session.user.id}:${id}`;
+    let storedAttempt;
+    try { storedAttempt = sessionStorage.getItem(key); } catch (_) {}
+    const requestId = duplicateOfferAttempts.get(key) || storedAttempt || crypto.randomUUID();
+    duplicateOfferAttempts.set(key, requestId);
+    try { sessionStorage.setItem(key, requestId); } catch (_) {}
+    const clearAttempt = () => {
+      if (duplicateOfferAttempts.get(key) !== requestId) return;
+      duplicateOfferAttempts.delete(key);
+      try { sessionStorage.removeItem(key); } catch (_) {}
+    };
+    const response = await fetch('/api/admin-dashboard', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}`},
+      body: JSON.stringify({action: 'duplicate_agent_offer', offerId: id, requestId}),
+      signal: AbortSignal.timeout(30000)
+    });
+    const result = await response.json().catch(() => ({}));
+    if (response.status === 404) { clearAttempt(); return null; }
+    if (response.status === 409) {
+      clearAttempt();
+      throw Object.assign(new Error('That copy is no longer available. Start a new copy from My Offers.'), {retryable: false});
+    }
+    if (response.status === 400) clearAttempt();
+    if (!response.ok || result.ok !== true || !result.offer?.id || result.offer?.copiedFromOfferId !== id) {
+      throw new Error(result.error || 'Offer could not be copied.');
+    }
+    clearAttempt();
+    return result.offer;
   };
 
   function bucketForOffer(o){

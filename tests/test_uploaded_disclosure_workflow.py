@@ -113,8 +113,12 @@ class UploadedDisclosureWorkflowTests(unittest.TestCase):
         self.assertIn("Files needed:", INDEX_HTML)
 
     def test_duplicate_offer_drops_transaction_sensitive_attachments(self):
-        self.assertIn("delete copyData.uploadedDisclosureDocs;", INDEX_HTML)
-        self.assertIn("delete copyData.uploadedDocNames;", INDEX_HTML)
+        api = (ROOT / "api" / "admin-dashboard.py").read_text(encoding="utf-8")
+        start = api.index("async def _duplicate_agent_offer(user, data):")
+        end = api.index("\n\nasync def ", start + 1)
+        duplicate = api[start:end]
+        self.assertIn('"uploadedDisclosureDocs", "uploadedDocNames"', duplicate)
+        self.assertIn("copy_data.pop(key, None)", duplicate)
 
 
 if __name__ == "__main__":

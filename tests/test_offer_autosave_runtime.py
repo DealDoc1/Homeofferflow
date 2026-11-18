@@ -84,7 +84,7 @@ class OfferAutosaveRuntimeTests(unittest.TestCase):
     def test_database_packet_protection_has_specific_recovery(self):
         self.assertTrue(self.run_save(error='55000')['copy'])
 
-    def test_resuming_signed_offer_creates_one_clean_editable_copy(self):
+    def test_resuming_signed_offer_opens_one_new_clean_editable_copy(self):
         helpers = SOURCE[:SOURCE.index('  async function saveOfferDraftToSupabase(')]
         flows = HTML[HTML.index('  function beginOfferOpenRequest('):HTML.index('  async function reuseOfferTerms(')]
         script = r'''
@@ -95,21 +95,19 @@ class OfferAutosaveRuntimeTests(unittest.TestCase):
           offer_data:{price:400000,repairsText:'Agreed repairs',_hof_signature_delivery:{receipt:'keep original'},
             signwellDocumentId:'original',generatedAt:'yesterday',uploadedDisclosureDocs:['private attachment']}};
         const original=JSON.stringify(source); const copies=[];
-        const getOfferById=async id=>id==='signed'?source:{id:'copy',...copies[0]};
-        const getSupabaseClient=()=>({from:()=>({insert:body=>{copies.push(body);return {
-          select:()=>({single:async()=>({data:{id:'copy'}})})};}})});
+        const copy={id:'copy',status:'Draft',role:'agent',property_address:'QA',
+          offer_data:{price:400000,repairsText:'Agreed repairs',_hofOfferId:'copy'}};
+        const getOfferById=async id=>id==='signed'?source:copy;
         const resetUploadedDisclosureDraftForOffer=()=>{},setAudience=()=>{},closeAccountDashboard=()=>{},
           openWizard=()=>{},openSavedOfferInterview=()=>{},setTimeout=()=>{},logOfferEvent=async()=>{},loadMyOffers=async()=>{};
-        const window={confirm:()=>{throw Error('No confirmation required');}};
+        const window={confirm:()=>{throw Error('No confirmation required');},
+          hofDuplicateAgentOffer:async id=>{copies.push(id);return {id:'copy',copiedFromOfferId:id};}};
         ''' + helpers + flows + r'''
         (async()=>{
           await resumeOffer('signed');
-          assert.equal(copies.length,1);
+          assert.deepEqual(copies,['signed']);
           assert.equal(JSON.stringify(source),original);
-          assert.equal(copies[0].status,'Draft');
-          assert.equal(copies[0].offer_data.repairsText,'Agreed repairs');
-          assert.equal('_hof_signature_delivery' in copies[0].offer_data,false);
-          assert.equal('uploadedDisclosureDocs' in copies[0].offer_data,false);
+          assert.equal(state.data.repairsText,'Agreed repairs');
           assert.equal(state.data._hofOfferId,'copy');
           assert.equal('_hof_signature_delivery' in state.data,false);
         })().catch(e=>{console.error(e);process.exitCode=1;});
