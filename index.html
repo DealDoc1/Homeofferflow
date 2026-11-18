@@ -8893,6 +8893,21 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
   let activeOfferHistoryRequest = null;
 
+  function keepTimelineSavedDuringHistory(offer, latestOffer, previousRevision) {
+    const latest = latestOffer?.offer_data?.transactionTracking;
+    if (typeof latest?.updatedAt !== 'string' || latest.updatedAt === previousRevision) return offer;
+    const incoming = offer.offer_data?.transactionTracking;
+    const latestTime = Date.parse(latest.updatedAt);
+    const incomingTime = Date.parse(incoming?.updatedAt);
+    if (!Number.isFinite(latestTime) || latestTime < incomingTime) return offer;
+    if (latestTime === incomingTime) {
+      // The API uses microseconds, while Date.parse stops at milliseconds.
+      const fractionalSeconds = value => (String(value).match(/\.(\d+)(?:Z|[+-]\d\d:\d\d)$/i)?.[1] || '').padEnd(6, '0');
+      if (fractionalSeconds(latest.updatedAt) <= fractionalSeconds(incoming.updatedAt)) return offer;
+    }
+    return {...offer, offer_data: {...offer.offer_data, transactionTracking: latest}};
+  }
+
   async function loadMyOffers({ append = false } = {}) {
     const client = getSupabaseClient();
     const user = hofAuth.session?.user;
@@ -8914,11 +8929,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const isCurrent = () => activeOfferHistoryRequest === request &&
       hofAuth.session?.user?.id === request.userId && (window.__hofAccountProfileEpoch || 0) === request.epoch;
     const currentOffers = Array.isArray(hofAuth.myOffers) ? hofAuth.myOffers : [];
-    const existingOffers = append ? currentOffers : [];
+    const timelinesAtRequest = new Map(currentOffers.map(offer => [offer.id, offer.offer_data?.transactionTracking?.updatedAt]));
+    let offersBeforePage;
     // Keep the database cursor independent from unique rendered cards. An
     // offer can move between pages when a concurrent update changes its
     // last_updated value; using the card count would then repeat a page.
-    const offset = append ? Number(hofAuth.myOffersNextOffset || existingOffers.length) : 0;
+    const offset = append ? Number(hofAuth.myOffersNextOffset || currentOffers.length) : 0;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 60000);
     try {
@@ -8933,8 +8949,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       if (!isCurrent()) return;
       if (error) throw error;
       const page = data || [];
-      const byId = new Map(existingOffers.map(offer => [offer.id, offer]));
-      page.forEach(offer => byId.set(offer.id, offer));
+      offersBeforePage = Array.isArray(hofAuth.myOffers) ? hofAuth.myOffers : currentOffers;
+      const latestOffers = new Map(offersBeforePage.map(offer => [offer.id, offer]));
+      const byId = append ? new Map(latestOffers) : new Map();
+      page.forEach(offer => {
+        byId.set(offer.id, keepTimelineSavedDuringHistory(offer, latestOffers.get(offer.id), timelinesAtRequest.get(offer.id)));
+      });
       const loadedOffers = Array.from(byId.values());
       hofAuth.myOffers = loadedOffers;
       hofAuth.myOffersHasMore = page.length === HOF_OFFER_WORKSPACE_PAGE_SIZE;
@@ -8962,16 +8982,18 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       return loadedOffers;
     } catch (err) {
       if (!isCurrent()) return;
-      if (!append && currentOffers.length) {
+      const existingOffers = offersBeforePage ?? hofAuth.myOffers ?? currentOffers;
+      if (!append && !offersBeforePage && existingOffers.length) {
         if (refreshNotice) refreshNotice.hidden = false;
         console.warn('Offers refresh failed:', err);
-        return currentOffers;
+        return existingOffers;
       }
       if (!append && refreshNotice) refreshNotice.hidden = true;
       if (append && existingOffers.length) {
         hofAuth.myOffers = existingOffers;
         hofAuth.myOffersHasMore = true;
         hofAuth.myOffersLoadMoreError = true;
+        hofAuth.myOffersNextOffset = offset;
         list.className = '';
         list.innerHTML = renderMyOffers(existingOffers);
         console.warn('Older offers load failed:', err);
