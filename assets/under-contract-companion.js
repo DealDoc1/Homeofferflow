@@ -42,7 +42,23 @@
   }
 
   function calendarEscape(value) {
-    return String(value || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+    return String(value || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r\n|\r|\n/g, '\\n');
+  }
+
+  function foldCalendarLine(line) {
+    let folded = '';
+    let physicalLineBytes = 0;
+    for (const character of String(line)) {
+      const codePoint = character.codePointAt(0);
+      const byteLength = codePoint <= 0x7f ? 1 : codePoint <= 0x7ff ? 2 : codePoint <= 0xffff ? 3 : 4;
+      if (physicalLineBytes + byteLength > 75) {
+        folded += '\r\n ';
+        physicalLineBytes = 1;
+      }
+      folded += character;
+      physicalLineBytes += byteLength;
+    }
+    return folded;
   }
 
   function formatDate(value) {
@@ -53,19 +69,21 @@
 
   function buildCalendar({ property = '', effectiveDate = '', optionDeadline = '', closingDate = '' } = {}) {
     const events = [];
+    const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
     const address = String(property || '').trim();
     const withProperty = label => address ? `${label} — ${address}` : label;
     const addAllDayEvent = (date, summary, description) => {
       if (!validDate(date)) return;
       events.push([
         'BEGIN:VEVENT',
+        `DTSTAMP:${stamp}`,
         `UID:homeofferflow-${calendarKey(date)}-${events.length + 1}@homeofferflow.com`,
         `DTSTART;VALUE=DATE:${calendarKey(date)}`,
         `DTEND;VALUE=DATE:${calendarKey(nextDate(date))}`,
         `SUMMARY:${calendarEscape(summary)}`,
         `DESCRIPTION:${calendarEscape(description)}`,
         'END:VEVENT'
-      ].join('\r\n'));
+      ]);
     };
 
     addAllDayEvent(
@@ -85,17 +103,15 @@
     );
 
     if (!events.length) return '';
-    const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
     return [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
       'PRODID:-//HomeOfferFlow//Under Contract Timeline//EN',
       'CALSCALE:GREGORIAN',
-      `DTSTAMP:${stamp}`,
-      ...events,
+      ...events.flat(),
       'END:VCALENDAR',
       ''
-    ].join('\r\n');
+    ].map(foldCalendarLine).join('\r\n');
   }
 
   function offerList() {
