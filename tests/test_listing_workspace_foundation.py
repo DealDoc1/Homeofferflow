@@ -33,7 +33,7 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("saveButton.textContent = 'Saving seller lead…'", save)
         self.assertIn("Saving seller lead details…", save)
         self.assertIn("saveButton.disabled = false", save)
-        self.assertIn("saveButton.textContent = 'Save Seller Lead'", save)
+        self.assertIn("saveButton.textContent = label", save)
 
     def test_workspace_is_separate_from_buyer_offers_and_form_execution(self):
         self.assertIn("create table if not exists public.hof_listing_workspaces", MIGRATION)
