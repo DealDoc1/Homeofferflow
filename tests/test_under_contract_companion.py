@@ -21,21 +21,30 @@ class UnderContractCompanionTests(unittest.TestCase):
         self.assertNotIn('name="propertyAddress"', SCRIPT)
         self.assertNotIn("maps.googleapis.com", SCRIPT)
 
-    def test_private_save_is_scoped_to_the_signed_in_owner_and_offer(self):
-        self.assertIn(".eq('user_id', user.id).eq('id', offer.id).select('*').single()", SCRIPT)
-        self.assertIn("transactionTracking: tracking", SCRIPT)
-        self.assertIn("select('offer_data').eq('user_id', user.id).eq('id', offer.id).single()", SCRIPT)
-        self.assertIn("latest.data?.offer_data || data", SCRIPT)
-        self.assertIn("acceptedContractConfirmed: true", SCRIPT)
-        update_block = SCRIPT[SCRIPT.index("client.from('hof_offers').update({"):SCRIPT.index("if (result.error)")]
-        self.assertNotIn("last_updated", update_block)
-        self.assertIn("root.hofAuth?.session?.user?.id !== user.id", SCRIPT)
+    def test_private_save_uses_the_authenticated_owner_scoped_api(self):
+        self.assertIn("action: 'save_agent_contract_timeline'", SCRIPT)
+        self.assertIn("expectedUpdatedAt: saved.updatedAt || null", SCRIPT)
+        self.assertIn("Authorization: `Bearer ${root.hofAuth?.session?.access_token || ''}`", SCRIPT)
+        self.assertNotIn("getSupabaseClient", SCRIPT)
+        self.assertNotIn("client.from('hof_offers')", SCRIPT)
+        self.assertIn("const tracking = result.tracking", SCRIPT)
+        self.assertIn("root.hofAuth?.session?.user?.id === user.id", SCRIPT)
 
     def test_dates_require_signed_contract_confirmation_and_avoid_false_precision(self):
-        self.assertIn("I confirm this offer was accepted", SCRIPT)
+        self.assertIn("I confirm this offer was accepted and the dates entered are from the fully signed contract.", SCRIPT)
         self.assertIn("Some depend on receipt, weekends, legal holidays, or later events and are not calculated here.", SCRIPT)
         self.assertIn("5:00 p.m. local time where the property is located", SCRIPT)
         self.assertIn("Use the fully signed contract", SCRIPT)
+
+    def test_optional_transaction_milestones_are_manually_confirmed_and_bounded(self):
+        self.assertIn("Other dates confirmed in the signed contract", SCRIPT)
+        self.assertIn("Add up to 12 dates exactly as stated", SCRIPT)
+        self.assertIn("HomeOfferFlow will not calculate these dates.", SCRIPT)
+        self.assertIn("normalizeMilestones", SCRIPT)
+        self.assertIn("{ rejectDuplicates: true }", SCRIPT)
+        self.assertIn("Enter each confirmed date once", SCRIPT)
+        self.assertIn("milestones,", SCRIPT)
+        self.assertIn("Date entered by the agent from the fully signed contract or a written amendment.", SCRIPT)
 
     def test_analytics_are_private_aggregate_signals(self):
         analytics = SCRIPT[SCRIPT.index("contract_timeline_saved"):]

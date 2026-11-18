@@ -14,6 +14,7 @@ from io import BytesIO
 from http.server import BaseHTTPRequestHandler
 import httpx
 from pypdf import PdfReader, PdfWriter
+from lib import agent_contract_timeline
 from lib import listing_workspace_creation, listing_workspace_offer_comparison, seller_lead_creation
 from lib import platform_form_source_upload as platform_source
 from lib import partner_marketplace_agreement
@@ -429,6 +430,76 @@ async def _get(path):
         if r.status_code >= 400:
             raise RuntimeError(f"Supabase {path} failed: {r.status_code} {r.text[:300]}")
         return r.json()
+
+
+async def _save_agent_contract_timeline(user, data):
+    """Save confirmed dates on an owned, active packet using optimistic locking."""
+    if not isinstance(data, dict) or set(data) != {
+        "action", "offerId", "effectiveDate", "closingDate", "milestones", "expectedUpdatedAt"
+    }:
+        raise ValueError("Provide only the offer and confirmed contract dates.")
+    try:
+        offer_id = str(uuid.UUID(str(data.get("offerId") or "")))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("Choose a valid offer.")
+    expected = data.get("expectedUpdatedAt")
+    if expected is not None and (not isinstance(expected, str) or len(expected) > 64):
+        raise ValueError("Reload the contract timeline before saving changes.")
+    owner = urllib.parse.quote(str(user["id"]))
+    normalized_id = urllib.parse.quote(offer_id)
+    path = ("hof_offers?"
+            f"id=eq.{normalized_id}&user_id=eq.{owner}&deleted_at=is.null"
+            "&select=id,status,offer_data,option_days,signwell_document_id&limit=1")
+    rows = await _get(path)
+    if not rows:
+        raise PermissionError("That offer is unavailable.")
+    row = rows[0]
+    offer_data = row.get("offer_data") if isinstance(row.get("offer_data"), dict) else {}
+    status = " ".join(str(row.get("status") or "").strip().lower().replace("_", " ").replace("-", " ").split())
+    signwell_data = offer_data.get("signwell") if isinstance(offer_data.get("signwell"), dict) else {}
+    has_packet = bool(row.get("signwell_document_id") or offer_data.get("signwellDocumentId")
+                      or signwell_data.get("document_id"))
+    generated = status in {"generated", "created", "draft not sent"} or has_packet
+    signing = any(word in status for word in ("awaiting", "sent", "viewed", "partial"))
+    signed = status in {"signed", "buyer signed", "buyer signatures complete", "fully signed", "completed", "complete", "accepted"}
+    if not (generated or signing or signed) or any(word in status for word in ("deleted", "expired", "declined", "cancel")):
+        raise PermissionError("This offer is not available for contract timeline updates.")
+    previous = offer_data.get("transactionTracking") if isinstance(offer_data.get("transactionTracking"), dict) else {}
+    actual = previous.get("updatedAt")
+    if actual != expected:
+        raise PermissionError("Please refresh My Offers before saving. The contract timeline changed in another session.")
+    raw_days = offer_data.get("optionDays", offer_data.get("option_days", row.get("option_days")))
+    try:
+        option_days = int(raw_days) if not isinstance(raw_days, bool) and str(raw_days).strip() == str(int(raw_days)) else 0
+    except (TypeError, ValueError, OverflowError):
+        option_days = 0
+    if not 0 <= option_days <= 365:
+        option_days = 0
+    tracking = agent_contract_timeline.build_tracking(data, option_days)
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.post(
+            f"{SUPABASE_URL}/rest/v1/rpc/hof_save_agent_contract_timeline",
+            headers=_headers(),
+            json={
+                "p_offer_id": offer_id,
+                "p_owner_id": str(user["id"]),
+                "p_expected_status": row.get("status"),
+                "p_expected_updated_at": actual,
+                "p_expected_option_days": raw_days,
+                "p_tracking": tracking,
+            },
+        )
+    if response.status_code >= 400:
+        raise RuntimeError("Could not save the contract timeline.")
+    try:
+        saved = response.json()
+    except ValueError as exc:
+        raise RuntimeError("The saved contract timeline could not be confirmed.") from exc
+    if saved is None:
+        raise PermissionError("Please refresh My Offers and review the dates before saving. The offer changed while you were saving.")
+    if saved != tracking:
+        raise RuntimeError("The saved contract timeline could not be confirmed.")
+    return {"offerId": offer_id, "tracking": saved}
 
 
 async def _get_optional(path):
@@ -8779,6 +8850,20 @@ class handler(BaseHTTPRequestHandler):
                     _json(self, 503, {"error": "We couldn’t confirm the comparison change. Refresh the workspace and check it before trying again."})
                     return
                 _json(self, 201 if action == "save_listing_workspace_offer_comparison" else 200, {"ok": True, "offer": offer})
+                return
+            if data.get("action") == "save_agent_contract_timeline":
+                try:
+                    result = asyncio.run(_save_agent_contract_timeline(user, data))
+                except ValueError as exc:
+                    _json(self, 400, {"error": str(exc)})
+                    return
+                except PermissionError as exc:
+                    _json(self, 409, {"error": str(exc)})
+                    return
+                except (httpx.HTTPError, RuntimeError):
+                    _json(self, 503, {"error": "Please refresh My Offers to confirm the saved dates before trying again."})
+                    return
+                _json(self, 200, {"ok": True, **result})
                 return
             if data.get("action") == "create_seller_lead":
                 try:
