@@ -9,12 +9,13 @@ class OfferActionFeedbackTests(unittest.TestCase):
     def test_repeat_offer_errors_use_workspace_status(self):
         for message in (
             "We couldn’t reopen that offer. Refresh your workspace and try again.",
-            "We couldn’t copy that offer. Please try again.",
+            "We couldn’t confirm the copy. Retry Duplicate & edit to recover the same draft.",
             "We couldn’t start a new offer from those terms. Please try again.",
             "We couldn’t remove that offer. Please try again.",
         ):
             self.assertIn(message, INDEX)
-        self.assertGreaterEqual(INDEX.count("window.hofCustomerActionError(err,"), 4)
+        duplicate = INDEX[INDEX.index("  async function duplicateOffer("):INDEX.index("  async function reuseOfferTerms(")]
+        self.assertIn("window.announceWorkspaceStatus?.", duplicate)
         self.assertNotIn("Could not resume offer: ' + err.message", INDEX)
         self.assertNotIn("Could not duplicate offer: ' + err.message", INDEX)
 
