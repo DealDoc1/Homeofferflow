@@ -96,6 +96,7 @@ AI_CALIBRATION_SCENARIOS = {
     "AI-CAL-05",
 }
 MAX_BODY_BYTES = 12_000
+MAX_AGENT_OFFER_DRAFT_BODY_BYTES = 512 * 1024
 MAX_SOURCE_UPLOAD_BODY_BYTES = 15 * 1024 * 1024
 PUBLIC_APP_ORIGIN = (os.environ.get("PUBLIC_APP_URL") or "https://www.homeofferflow.com").rstrip("/")
 BROKERAGE_INVITE_EMAIL_RE = re.compile(r"(?=.{3,254}$)[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -768,6 +769,162 @@ async def _duplicate_agent_offer(user, data):
     if await _get(copy_lookup) == [{"id": copy_id}]:
         return result
     raise PermissionError("That copy is no longer available. Start a new copy from My Offers.")
+
+
+def _agent_offer_is_prepared(row):
+    offer_data = row.get("offer_data") if isinstance(row.get("offer_data"), dict) else {}
+    signwell = offer_data.get("signwell") if isinstance(offer_data.get("signwell"), dict) else {}
+    signwell_response = signwell.get("response") if isinstance(signwell.get("response"), dict) else {}
+    status = str(row.get("status") or "Draft").strip().lower()
+    return bool(
+        row.get("generated_at") or row.get("signwell_document_id")
+        or offer_data.get("generatedAt") or offer_data.get("generated_at")
+        or offer_data.get("signwellDocumentId") or offer_data.get("signwell_document_id")
+        or signwell.get("document_id") or signwell_response.get("id")
+        or "_hof_signature_delivery" in offer_data
+        or status not in {"draft", "generation failed"}
+    )
+
+
+async def _save_agent_offer_draft(user, data):
+    """Create or update an agent-owned draft without changing prepared packets."""
+    if not isinstance(data, dict) or set(data) - {"expectedUpdatedAt"} != {"action", "offerId", "offer"}:
+        raise ValueError("Provide only the offer draft to save.")
+    expected = data.get("expectedUpdatedAt")
+    if expected is not None and (not isinstance(expected, str) or len(expected) > 64):
+        raise ValueError("Reopen the draft to get its current version.")
+    offer = data.get("offer")
+    allowed_fields = {
+        "role", "property_address", "property_city", "property_state", "property_zip",
+        "property_county", "buyer_name", "buyer_email", "buyer_phone", "buyer2_name",
+        "buyer2_email", "seller_name", "agent_name", "agent_email", "agent_phone",
+        "agent_license", "agent_brokerage", "agent_broker_license", "offer_price",
+        "financing_type", "loan_amount", "down_payment", "earnest_money", "option_fee",
+        "option_days", "closing_date", "title_company", "escrow_agent", "offer_data",
+    }
+    if not isinstance(offer, dict) or set(offer) != allowed_fields:
+        raise ValueError("The offer draft fields are incomplete or unsupported.")
+    role = offer.get("role")
+    if role not in {"agent", "investor"}:
+        raise ValueError("Only agent and investor drafts can be saved here.")
+
+    text_limits = {
+        "property_address": 500, "property_city": 160, "property_state": 16,
+        "property_zip": 32, "property_county": 160, "buyer_name": 300,
+        "buyer_email": 320, "buyer_phone": 80, "buyer2_name": 300,
+        "buyer2_email": 320, "seller_name": 300, "agent_name": 300,
+        "agent_email": 320, "agent_phone": 80, "agent_license": 80,
+        "agent_brokerage": 300, "agent_broker_license": 80,
+        "financing_type": 80, "closing_date": 64, "title_company": 300,
+        "escrow_agent": 300,
+    }
+    if not isinstance(offer.get("property_address"), str) or not offer["property_address"].strip():
+        raise ValueError("Add a property address before saving this offer.")
+    for field, maximum in text_limits.items():
+        value = offer.get(field)
+        if value is not None and (not isinstance(value, str) or len(value) > maximum):
+            raise ValueError(f"The {field.replace('_', ' ')} value is too long or invalid.")
+    for field in ("offer_price", "loan_amount", "down_payment", "earnest_money", "option_fee"):
+        value = offer.get(field)
+        if value is not None:
+            try:
+                amount = Decimal(str(value))
+                invalid_amount = (
+                    isinstance(value, bool) or not isinstance(value, (int, float))
+                    or not amount.is_finite() or amount < 0 or len(str(value)) > 40
+                )
+            except Exception:
+                invalid_amount = True
+            if invalid_amount:
+                raise ValueError(f"The {field.replace('_', ' ')} amount is invalid.")
+    option_days = offer.get("option_days")
+    if option_days is not None and (isinstance(option_days, bool) or not isinstance(option_days, int)
+                                    or not 0 <= option_days <= 365):
+        raise ValueError("The option period is invalid.")
+    raw_data = offer.get("offer_data")
+    if not isinstance(raw_data, dict):
+        raise ValueError("The saved interview answers are invalid.")
+
+    owner = listing_workspace_offer_comparison.normalized_uuid(
+        user.get("id"), "Sign in again before saving this offer."
+    )
+    offer_data = dict(raw_data)
+    # Enforce the same clean-draft boundary server-side. In particular, the
+    # autosave endpoint must never accept copied packet identity or signing data.
+    strip_keys = {
+        "_hofOfferId", "_hofOfferUpdatedAt", "_hof_signature_delivery", "_subscription_user_id",
+        "_paragraph4_source_pdf_bytes", "backend_saved", "signwell",
+        "signwellDocumentId", "signwellStatus", "signwell_document_id",
+        "signwell_status", "generatedAt", "generated_at", "packetGeneratedAt",
+        "packetGenerationError", "packetGenerationFailedAt",
+        "packetGenerationFailureCategory", "signwellLastStatusRefresh",
+        "signwellRecipientStatuses", "signingUrl", "signing_url",
+        "embeddedSigningUrl", "embedded_signing_url", "recipients",
+        "uploadedDisclosureDocs", "uploadedDocs", "transactionTracking",
+    }
+    for key in strip_keys:
+        offer_data.pop(key, None)
+    offer_data["_hofOfferId"] = None
+    offer_data["_savedFromDashboard"] = True
+
+    record = {field: offer[field] for field in allowed_fields if field != "offer_data"}
+    record.update({"user_id": owner, "offer_data": offer_data, "last_updated": datetime.now(timezone.utc).isoformat()})
+    offer_id = data.get("offerId")
+    if offer_id is None:
+        async with httpx.AsyncClient(timeout=12) as client:
+            response = await client.post(
+                f"{SUPABASE_URL}/rest/v1/hof_offers?select=id,last_updated",
+                headers={**_headers(), "Prefer": "return=representation"},
+                json={**record, "status": "Draft"},
+            )
+        if response.status_code >= 300:
+            raise RuntimeError("Could not save the offer draft.")
+        rows = response.json()
+        if not isinstance(rows, list) or len(rows) != 1 or not rows[0].get("id") or not rows[0].get("last_updated"):
+            raise RuntimeError("The saved offer draft could not be confirmed.")
+        return {"id": rows[0]["id"], "saved": True, "created": True, "updatedAt": rows[0]["last_updated"]}
+
+    normalized_id = listing_workspace_offer_comparison.normalized_uuid(
+        offer_id, "Choose a valid offer draft."
+    )
+    record["offer_data"]["_hofOfferId"] = normalized_id
+    rows = await _get(
+        "hof_offers?"
+        f"id=eq.{urllib.parse.quote(normalized_id, safe='')}"
+        f"&user_id=eq.{urllib.parse.quote(owner, safe='')}"
+        "&deleted_at=is.null&select=id,status,last_updated,generated_at,signwell_document_id,offer_data&limit=1"
+    )
+    if not isinstance(rows, list) or not rows:
+        raise PermissionError("That offer draft is unavailable. Reload your workspace and try again.")
+    current = rows[0]
+    if _agent_offer_is_prepared(current):
+        return {"id": normalized_id, "saved": False, "created": False, "copyRequired": True}
+    version = current.get("last_updated")
+    conflict = {"id": normalized_id, "saved": False, "created": False, "copyRequired": True, "conflict": True}
+    if "expectedUpdatedAt" not in data or version != expected:
+        return conflict
+    version_filter = "last_updated=is.null" if version is None else (
+        "last_updated=eq." + urllib.parse.quote(str(version), safe="")
+    )
+    current_status = current.get("status")
+    status_filter = "status=is.null" if current_status is None else "status=eq." + urllib.parse.quote(current_status, safe="")
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.patch(
+            f"{SUPABASE_URL}/rest/v1/hof_offers?"
+            f"id=eq.{urllib.parse.quote(normalized_id, safe='')}"
+            f"&user_id=eq.{urllib.parse.quote(owner, safe='')}&deleted_at=is.null&{version_filter}&{status_filter}"
+            "&generated_at=is.null&signwell_document_id=is.null&select=id,last_updated",
+            headers={**_headers(), "Prefer": "return=representation"},
+            json=record,
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("Could not save the offer draft.")
+    changed = response.json()
+    if changed == []:
+        return conflict
+    if not isinstance(changed, list) or len(changed) != 1 or changed[0].get("id") != normalized_id or not changed[0].get("last_updated"):
+        raise RuntimeError("The saved offer draft could not be confirmed.")
+    return {"id": normalized_id, "saved": True, "created": False, "updatedAt": changed[0]["last_updated"]}
 
 
 async def _get_optional(path):
@@ -9154,6 +9311,23 @@ class handler(BaseHTTPRequestHandler):
             if data.get("action") == "upload_platform_form_source":
                 source = asyncio.run(platform_source._upload_source(user, raw_body))
                 _json(self, 201, {"ok": True, "source": source})
+                return
+            if data.get("action") == "save_agent_offer_draft":
+                if length > MAX_AGENT_OFFER_DRAFT_BODY_BYTES:
+                    _json(self, 413, {"error": "The offer draft is too large to save."})
+                    return
+                try:
+                    offer = asyncio.run(_save_agent_offer_draft(user, data))
+                except ValueError as exc:
+                    _json(self, 400, {"error": str(exc)})
+                    return
+                except PermissionError as exc:
+                    _json(self, 409, {"error": str(exc)})
+                    return
+                except (httpx.HTTPError, RuntimeError):
+                    _json(self, 503, {"error": "The draft save could not be confirmed."})
+                    return
+                _json(self, 201 if offer.get("created") else 200, {"ok": True, "offer": offer})
                 return
             if length > MAX_BODY_BYTES:
                 _json(self, 400, {"error": "Invalid request size."})
