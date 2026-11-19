@@ -1160,11 +1160,11 @@ def _create_partner_logo_upload(token, data):
     return {"bucket": "brokerage-branding", "path": path, "token": signed_token}
 
 
-def _get_partner_onboarding(token):
+def _get_partner_onboarding(token, *, allow_completed=False):
     from lib.partner_public_profile import PUBLIC_PROFILE_COLUMNS
     if not ONBOARDING_TOKEN_RE.match(token or ""):
         raise ValueError("This onboarding link is invalid.")
-    query = urlencode({"onboarding_token_hash": f"eq.{_onboarding_token_hash(token)}", "select": "id,company_name,contact_name,contact_email,partner_type,market_area,preferred_model,payment_status,partner_program,status,onboarding_token_expires_at,onboarding_website_url,onboarding_logo_url,onboarding_cta_label,onboarding_market_area,partner_agreement_status," + ",".join(PUBLIC_PROFILE_COLUMNS), "limit": "1"})
+    query = urlencode({"onboarding_token_hash": f"eq.{_onboarding_token_hash(token)}", "select": "id,company_name,contact_name,contact_email,partner_type,market_area,preferred_model,payment_status,partner_program,status,onboarding_status,onboarding_token_expires_at,onboarding_website_url,onboarding_logo_url,onboarding_cta_label,onboarding_market_area,partner_agreement_status," + ",".join(PUBLIC_PROFILE_COLUMNS), "limit": "1"})
     headers = {"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}"}
     with httpx.Client(timeout=12) as client:
         response = client.get(f"{SUPABASE_URL}/rest/v1/hof_partner_leads?{query}", headers=headers)
@@ -1175,19 +1175,22 @@ def _get_partner_onboarding(token):
     eligible_program = str((lead or {}).get("partner_program") or "commercial").lower() == "beta" or str((lead or {}).get("payment_status") or "") == "paid"
     if not lead or not eligible_program or str(lead.get("status") or "") in {"declined", "waitlist"}:
         raise LookupError("This onboarding link is unavailable.")
+    if str(lead.get("onboarding_status") or "") == "complete" and not allow_completed:
+        raise LookupError("Partner setup is already complete.")
     try:
         expires_at = datetime.fromisoformat(str(lead["onboarding_token_expires_at"]).replace("Z", "+00:00"))
     except (KeyError, TypeError, ValueError):
         raise LookupError("This onboarding link has expired.")
     if expires_at <= datetime.now(timezone.utc):
         raise LookupError("This onboarding link has expired.")
-    _record_partner_onboarding_event("partner_onboarding_opened")
+    if str(lead.get("onboarding_status") or "") != "complete":
+        _record_partner_onboarding_event("partner_onboarding_opened")
     return lead
 
 
 def _public_partner_onboarding(lead):
     from lib.partner_public_profile import PUBLIC_PROFILE_COLUMNS
-    return {key: lead.get(key) for key in ("company_name", "partner_type", "preferred_model", "onboarding_website_url", "onboarding_logo_url", "onboarding_cta_label", "onboarding_market_area", "market_area", *PUBLIC_PROFILE_COLUMNS)}
+    return {key: lead.get(key) for key in ("company_name", "partner_type", "preferred_model", "onboarding_status", "onboarding_website_url", "onboarding_logo_url", "onboarding_cta_label", "onboarding_market_area", "market_area", *PUBLIC_PROFILE_COLUMNS)}
 
 
 def _dispatch_partner_agreement_after_onboarding(lead):
@@ -1246,22 +1249,39 @@ def _dispatch_partner_agreement_after_onboarding(lead):
 
 def _complete_partner_onboarding(token, data):
     from lib.partner_public_profile import public_profile_update
-    lead = _get_partner_onboarding(token)
+    lead = _get_partner_onboarding(token, allow_completed=True)
+    current_status = str(lead.get("onboarding_status") or "").lower()
+    if current_status == "complete":
+        return _public_partner_onboarding(lead)
+    if current_status not in {"ready", "in_progress"}:
+        raise LookupError("This onboarding link is unavailable.")
     market = _text(data.get("market_area"), 300)
     if not market:
         raise ValueError("Primary market area is required.")
     now = datetime.now(timezone.utc).isoformat()
     logo_path = _text(data.get("logo_path"), 300)
     logo_url = _partner_branding_logo_url(lead.get("id"), logo_path) if logo_path else _secure_url(data.get("logo_url"), "Logo URL")
-    payload = {"onboarding_website_url": _secure_url(data.get("website_url"), "Website"), "onboarding_logo_url": logo_url, "onboarding_cta_label": _text(data.get("cta_label"), 80), "onboarding_market_area": market, "onboarding_status": "complete", "onboarding_completed_at": now, "onboarding_token_hash": None, "onboarding_token_expires_at": None, "updated_at": now}
+    payload = {"onboarding_website_url": _secure_url(data.get("website_url"), "Website"), "onboarding_logo_url": logo_url, "onboarding_cta_label": _text(data.get("cta_label"), 80), "onboarding_market_area": market, "onboarding_status": "complete", "onboarding_completed_at": now, "onboarding_token_hash": _onboarding_token_hash(token), "updated_at": now}
     profile_data = dict(data)
     headshot_path = _text(data.get('headshot_path'), 300)
     if headshot_path:
         profile_data['public_headshot_url'] = _partner_branding_logo_url(lead.get('id'), headshot_path, 'headshot')
     payload.update(public_profile_update(profile_data, lead))
+    try:
+        original_expiry = datetime.fromisoformat(str(lead["onboarding_token_expires_at"]).replace("Z", "+00:00"))
+    except (KeyError, TypeError, ValueError):
+        raise LookupError("This onboarding link has expired.")
+    recovery_expiry = min(original_expiry, datetime.now(timezone.utc) + timedelta(minutes=15))
+    payload["onboarding_token_expires_at"] = recovery_expiry.isoformat()
     headers = {"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}", "Content-Type": "application/json", "Prefer": "return=representation"}
+    query = urlencode({
+        "id": f"eq.{lead['id']}",
+        "onboarding_token_hash": f"eq.{_onboarding_token_hash(token)}",
+        "onboarding_status": f"eq.{current_status}",
+        "onboarding_token_expires_at": f"gt.{now}",
+    })
     with httpx.Client(timeout=12) as client:
-        response = client.patch(f"{SUPABASE_URL}/rest/v1/hof_partner_leads?id=eq.{lead['id']}&onboarding_token_hash=eq.{_onboarding_token_hash(token)}", headers=headers, json=payload)
+        response = client.patch(f"{SUPABASE_URL}/rest/v1/hof_partner_leads?{query}", headers=headers, json=payload)
     if response.status_code >= 300:
         raise RuntimeError("Could not save partner onboarding.")
     rows = response.json() if response.text else []
@@ -1891,7 +1911,7 @@ class handler(BaseHTTPRequestHandler):
 
             if _text(data.get('request_type'), 80) == 'partner_onboarding_get':
                 try:
-                    return _send(self, 200, {'ok': True, 'partner': _public_partner_onboarding(_get_partner_onboarding(_text(data.get('onboarding_token'), 160) or ''))})
+                    return _send(self, 200, {'ok': True, 'partner': _public_partner_onboarding(_get_partner_onboarding(_text(data.get('onboarding_token'), 160) or '', allow_completed=True))})
                 except ValueError as exc:
                     return _send(self, 400, {'error': str(exc)})
                 except LookupError as exc:

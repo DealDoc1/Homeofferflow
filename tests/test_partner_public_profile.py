@@ -39,7 +39,7 @@ class PartnerPublicProfileTests(unittest.TestCase):
 
     def test_headshot_path_is_bound_to_partner_before_any_save_or_dispatch(self):
         lead_id='b7b2ede6-bca8-400f-86d7-6ec80a5a2575'
-        with patch.object(api,'_get_partner_onboarding',return_value={'id':lead_id}), \
+        with patch.object(api,'_get_partner_onboarding',return_value={'id':lead_id,'onboarding_status':'ready'}), \
              patch.object(api.httpx,'Client') as client, \
              patch.object(api,'_dispatch_partner_agreement_after_onboarding') as dispatch:
             with self.assertRaisesRegex(ValueError,'headshot upload is unavailable'):
@@ -48,6 +48,7 @@ class PartnerPublicProfileTests(unittest.TestCase):
             client.assert_not_called(); dispatch.assert_not_called()
 
     def test_headshot_setup_uses_existing_bounded_upload_and_never_activates_placement(self):
+        from datetime import datetime, timedelta, timezone
         from tests.test_partner_self_service_onboarding import fsbo
         lead_id='b7b2ede6-bca8-400f-86d7-6ec80a5a2575'
         path='partners/'+lead_id+'/'+'a'*32+'.jpg'
@@ -59,7 +60,8 @@ class PartnerPublicProfileTests(unittest.TestCase):
             def __exit__(self,*args): return False
             def patch(self,url,**kwargs): self.payload=kwargs['json']; return Response()
         client=Client()
-        with patch.object(fsbo,'_get_partner_onboarding',return_value={'id':lead_id}), \
+        with patch.object(fsbo,'_get_partner_onboarding',return_value={'id':lead_id,'onboarding_status':'ready',
+                'onboarding_token_expires_at':(datetime.now(timezone.utc)+timedelta(days=7)).isoformat()}), \
              patch.object(fsbo.httpx,'Client',return_value=client), \
              patch.object(fsbo,'_dispatch_partner_agreement_after_onboarding'), \
              patch.object(fsbo,'_record_partner_onboarding_event'):
@@ -180,7 +182,7 @@ class PartnerPublicProfileTests(unittest.TestCase):
         self.assertNotIn(lead_core,calls[1])
 
     def test_phone_validation_occurs_before_setup_write_or_agreement_dispatch(self):
-        with patch.object(api,'_get_partner_onboarding',return_value={'id':'fixture'}), \
+        with patch.object(api,'_get_partner_onboarding',return_value={'id':'fixture','onboarding_status':'ready'}), \
              patch.object(api.httpx,'Client') as client, \
              patch.object(api,'_dispatch_partner_agreement_after_onboarding') as agreement:
             with self.assertRaises(ValueError):
