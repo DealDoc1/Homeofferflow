@@ -19,6 +19,7 @@ from lib import listing_workspace_creation, listing_workspace_offer_comparison, 
 from lib import platform_form_source_upload as platform_source
 from lib import partner_marketplace_agreement
 from lib import seller_disclosure_draft
+from lib.partner_directory_metrics import build_readiness_traffic_by_placement as aggregate_build_readiness_traffic
 from lib.seller_campaign_metrics import build_seller_campaign_channel_counts
 from lib import seller_review_access
 from lib import seller_checkout
@@ -7230,6 +7231,9 @@ class handler(BaseHTTPRequestHandler):
             partner_directory_offer_completion_impression_count = 0
             partner_directory_offer_completion_outbound_click_count = 0
             placement_ids = {str(placement.get("id") or "") for placement in partner_placements}
+            build_readiness_totals, build_readiness_by_placement = aggregate_build_readiness_traffic(events, placement_ids)
+            partner_directory_build_readiness_impression_count = build_readiness_totals["impressions"]
+            partner_directory_build_readiness_outbound_click_count = build_readiness_totals["outboundClicks"]
             partner_directory_traffic_by_placement = {
                 placement_id: {"impressions": 0, "outboundClicks": 0}
                 for placement_id in placement_ids if placement_id
@@ -7272,10 +7276,20 @@ class handler(BaseHTTPRequestHandler):
                 )
                 impressions = int(traffic["impressions"])
                 outbound_clicks = int(traffic["outboundClicks"])
+                build_readiness_traffic = build_readiness_by_placement.get(
+                    str(placement.get("id") or ""), {"impressions": 0, "outboundClicks": 0}
+                )
+                build_readiness_impressions = int(build_readiness_traffic["impressions"])
+                build_readiness_outbound_clicks = int(build_readiness_traffic["outboundClicks"])
                 placement["directoryTraffic"] = {
                     "impressions": impressions,
                     "outboundClicks": outbound_clicks,
                     "outboundClickRate": round((outbound_clicks / impressions) * 100, 1) if impressions else 0,
+                    "buildReadiness": {
+                        "impressions": build_readiness_impressions,
+                        "outboundClicks": build_readiness_outbound_clicks,
+                        "outboundClickRate": round((build_readiness_outbound_clicks / build_readiness_impressions) * 100, 1) if build_readiness_impressions else 0,
+                    },
                 }
             # A setup-link email is a deliberate platform-admin action. Keep this
             # aggregate separate from mailto follow-ups so the paid-partner
@@ -8887,6 +8901,11 @@ class handler(BaseHTTPRequestHandler):
                 "partnerDirectoryOfferCompletionOutboundClickRate": round(
                     (partner_directory_offer_completion_outbound_click_count / partner_directory_offer_completion_impression_count) * 100, 1
                 ) if partner_directory_offer_completion_impression_count else 0,
+                "partnerDirectoryBuildReadinessImpressionCount": partner_directory_build_readiness_impression_count,
+                "partnerDirectoryBuildReadinessOutboundClickCount": partner_directory_build_readiness_outbound_click_count,
+                "partnerDirectoryBuildReadinessOutboundClickRate": round(
+                    (partner_directory_build_readiness_outbound_click_count / partner_directory_build_readiness_impression_count) * 100, 1
+                ) if partner_directory_build_readiness_impression_count else 0,
                 "partnerCheckoutStartCount": partner_checkout_event_counts["checkout_started"],
                 "partnerCheckoutStripeOpenCount": partner_checkout_event_counts["stripe_opened"],
                 "partnerCheckoutCancellationCount": partner_checkout_event_counts["cancelled"],
