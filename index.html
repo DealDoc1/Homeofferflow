@@ -24631,6 +24631,7 @@ function hofSpreadsheetCsvCell(value) {
 })();
 </script>
 <style id="hof-txr1507-drafts-v1">
+#hofStandaloneSendForm button[type="submit"]:disabled { opacity:.55; cursor:not-allowed; }
   .hof-agreement-card { border:1px solid rgba(74,140,111,.34); background:rgba(74,140,111,.065); margin-top:1rem; }
   .hof-agreement-card h4 { margin-bottom:.35rem; }
   .hof-agreement-card p { color:var(--gray-light); font-size:.86rem; line-height:1.5; }
@@ -25128,6 +25129,7 @@ function hofSpreadsheetCsvCell(value) {
   }
 
   async function openSendDialog(agreement, refresh) {
+    const actor = captureViewer();
     document.getElementById('hofStandaloneSendDialog')?.remove();
     let signers = [];
     const modal = document.createElement('div');
@@ -25141,11 +25143,13 @@ function hofSpreadsheetCsvCell(value) {
       <div class="hof-agreement-footer"><button class="btn-secondary" type="button" id="hofStandaloneSendCancel">Cancel</button><button class="btn-primary" type="submit" disabled>Send signature request</button></div>
     </form>`;
     document.body.appendChild(modal);
-    modal.querySelector('#hofStandaloneSendCancel').addEventListener('click', () => modal.remove());
-    modal.addEventListener('click', event => { if (event.target === modal) modal.remove(); });
+    const recipientRead = new AbortController();
+    const closeDialog = () => { recipientRead.abort(); modal.remove(); };
+    modal.querySelector('#hofStandaloneSendCancel').addEventListener('click', closeDialog);
+    modal.addEventListener('click', event => { if (event.target === modal) closeDialog(); });
     modal.querySelector('#hofStandaloneSendForm').addEventListener('submit', async event => {
       event.preventDefault();
-      if (!signers.length) return;
+      if (!signers.length || !viewerIsCurrent(actor)) return;
       const status = modal.querySelector('#hofStandaloneSendStatus');
       const form = new FormData(event.currentTarget);
       const confirmedRecipients = signers.map(signer => ({
@@ -25200,13 +25204,15 @@ function hofSpreadsheetCsvCell(value) {
         submit.disabled = false;
       }
     });
+    const recipientTimeout = setTimeout(() => recipientRead.abort(), 20000);
     try {
       const response = await fetch(`/api/admin-dashboard?scope=standalone_signing_recipients&agreement_id=${encodeURIComponent(agreement.id)}`, {
-        headers: { Authorization: `Bearer ${token()}` }, cache: 'no-store'
+        headers: { Authorization: `Bearer ${token()}` }, cache: 'no-store', signal: recipientRead.signal
       });
-      const result = await response.json().catch(() => ({}));
+      const result = await response.json();
+      if (recipientRead.signal.aborted) throw new Error('Signing recipient lookup expired.');
       if (!response.ok) throw new Error(result.error || 'Could not load the signing recipients.');
-      if (!modal.isConnected) return;
+      if (!modal.isConnected || !viewerIsCurrent(actor)) return;
       if (!Array.isArray(result.recipients) || !result.recipients.length) throw new Error('This document has no signing recipients.');
       signers = result.recipients;
       modal.querySelector('#hofStandaloneSigningRecipients').innerHTML = signers.map(signer => signer.nameEditable
@@ -25215,15 +25221,20 @@ function hofSpreadsheetCsvCell(value) {
       modal.querySelector('#hofStandaloneSendStatus').textContent = '';
       modal.querySelector('button[type="submit"]').disabled = false;
     } catch (error) {
-      if (!modal.isConnected) return;
+      if (!modal.isConnected || !viewerIsCurrent(actor)) return;
       const status = modal.querySelector('#hofStandaloneSendStatus');
       status.className = 'hof-iabs-status error';
       console.error('Signing recipient load failed:', error);
-      status.textContent = window.hofCustomerActionError?.(error, 'We couldn’t load the signing recipients. Close this window and try again.') || 'We couldn’t load the signing recipients. Close this window and try again.';
+      const fallback = 'We couldn’t load the signing recipients. Try again.';
+      status.textContent = recipientRead.signal.aborted
+        ? 'Loading signing recipients took too long. Try again.'
+        : window.hofCustomerActionError?.(error, fallback) || fallback;
       const retry = document.createElement('button');
       retry.type = 'button'; retry.className = 'btn-secondary'; retry.textContent = 'Try again';
       retry.addEventListener('click', () => openSendDialog(agreement, refresh));
       status.appendChild(retry);
+    } finally {
+      clearTimeout(recipientTimeout);
     }
   }
 
