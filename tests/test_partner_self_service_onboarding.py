@@ -26,28 +26,69 @@ class PartnerSelfServiceOnboardingTests(unittest.TestCase):
             fsbo._secure_url("http://example.com/logo.png", "Logo URL")
 
     def test_public_payload_omits_partner_contact_data(self):
-        payload = fsbo._public_partner_onboarding({"company_name": "North Texas Title", "contact_email": "private@example.com", "market_area": "DFW"})
+        payload = fsbo._public_partner_onboarding({"company_name": "North Texas Title", "contact_email": "private@example.com", "market_area": "DFW", "onboarding_status": "complete"})
         self.assertEqual(payload["company_name"], "North Texas Title")
+        self.assertEqual(payload["onboarding_status"], "complete")
         self.assertNotIn("contact_email", payload)
 
-    def test_completed_setup_clears_the_token_and_does_not_activate_placement(self):
-        lead = {"id": "lead-1", "company_name": "North Texas Title"}
+    def test_completed_setup_keeps_only_a_short_read_only_recovery_window(self):
+        from datetime import datetime, timedelta, timezone
+        lead = {"id": "lead-1", "company_name": "North Texas Title", "onboarding_status": "ready",
+                "onboarding_token_expires_at": (datetime.now(timezone.utc) + timedelta(days=14)).isoformat()}
         response = type("Response", (), {"status_code": 200, "text": '[{}]', "json": lambda self: [{"company_name": "North Texas Title"}]})()
         class Client:
             def __enter__(self): return self
             def __exit__(self, *args): return False
-            def patch(self, *args, **kwargs): self.payload = kwargs["json"]; return response
+            def patch(self, *args, **kwargs): self.url, self.payload = args[0], kwargs["json"]; return response
         client = Client()
         with patch.object(fsbo, "_get_partner_onboarding", return_value=lead), \
              patch.object(fsbo, "_record_partner_onboarding_event") as record, \
              patch.object(fsbo.httpx, "Client", return_value=client):
             fsbo._complete_partner_onboarding("A" * 32, {"market_area": "DFW", "website_url": "https://example.com"})
-        self.assertIsNone(client.payload["onboarding_token_hash"])
+        self.assertEqual(client.payload["onboarding_token_hash"], fsbo._onboarding_token_hash("A" * 32))
+        expiry = datetime.fromisoformat(client.payload["onboarding_token_expires_at"])
+        self.assertGreater(expiry, datetime.now(timezone.utc))
+        self.assertLessEqual(expiry, datetime.now(timezone.utc) + timedelta(minutes=15, seconds=1))
         self.assertEqual(client.payload["onboarding_status"], "complete")
+        self.assertIn("onboarding_status=eq.ready", client.url)
+        self.assertIn("onboarding_token_expires_at=gt.", client.url)
         self.assertNotIn("is_active", client.payload)
         record.assert_called_once_with("partner_onboarding_completed")
 
+    def test_repeated_completion_is_read_only_and_does_not_redispatch_or_extend_expiry(self):
+        completed = {"id": "lead-1", "company_name": "North Texas Title", "onboarding_status": "complete"}
+        with patch.object(fsbo, "_get_partner_onboarding", return_value=completed) as load, \
+                patch.object(fsbo, "_dispatch_partner_agreement_after_onboarding") as dispatch, \
+                patch.object(fsbo, "_record_partner_onboarding_event") as record, \
+                patch.object(fsbo.httpx, "Client") as client:
+            result = fsbo._complete_partner_onboarding("A" * 32, {"market_area": "Changed", "logo_url": "https://attacker.invalid/logo.png"})
+        self.assertEqual(result["onboarding_status"], "complete")
+        load.assert_called_once_with("A" * 32, allow_completed=True)
+        dispatch.assert_not_called()
+        record.assert_not_called()
+        client.assert_not_called()
+
+    def test_completed_setup_receipt_is_read_only_and_expires_within_recovery_window(self):
+        from datetime import datetime, timedelta, timezone
+        lead = {"id": "lead-1", "company_name": "North Texas Title", "partner_program": "beta",
+                "status": "approved", "onboarding_status": "complete",
+                "onboarding_token_expires_at": (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat()}
+        response = type("Response", (), {"status_code": 200, "text": "[]", "json": lambda self: [lead]})()
+        class Client:
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def get(self, *args, **kwargs): self.url, self.headers = args[0], kwargs["headers"]; return response
+        client = Client()
+        with patch.object(fsbo.httpx, "Client", return_value=client), \
+                patch.object(fsbo, "_record_partner_onboarding_event") as record:
+            self.assertEqual(fsbo._get_partner_onboarding("A" * 32, allow_completed=True)["onboarding_status"], "complete")
+            with self.assertRaisesRegex(LookupError, "already complete"):
+                fsbo._get_partner_onboarding("A" * 32)
+        self.assertIn(fsbo._onboarding_token_hash("A" * 32), client.url)
+        record.assert_not_called()
+
     def test_logo_upload_is_limited_to_the_existing_branding_bucket_and_returns_only_a_signed_token(self):
+        from datetime import datetime, timedelta, timezone
         lead_id = "e35eace9-2760-4b11-a01a-07ee65f2744e"
         response = type("Response", (), {"status_code": 200, "text": '{"token":"short-lived-token"}', "json": lambda self: {"token": "short-lived-token"}})()
         class Client:
@@ -55,7 +96,8 @@ class PartnerSelfServiceOnboardingTests(unittest.TestCase):
             def __exit__(self, *args): return False
             def post(self, *args, **kwargs): self.url, self.payload = args[0], kwargs["json"]; return response
         client = Client()
-        with patch.object(fsbo, "_get_partner_onboarding", return_value={"id": lead_id}), \
+        with patch.object(fsbo, "_get_partner_onboarding", return_value={"id": lead_id, "onboarding_status": "ready",
+                "onboarding_token_expires_at": (datetime.now(timezone.utc) + timedelta(days=14)).isoformat()}), \
              patch.object(fsbo.httpx, "Client", return_value=client):
             result = fsbo._create_partner_logo_upload("A" * 32, {"content_type": "image/png", "size_bytes": 1024})
         self.assertEqual(result["bucket"], "brokerage-branding")
@@ -74,6 +116,7 @@ class PartnerSelfServiceOnboardingTests(unittest.TestCase):
         storage.assert_not_called()
 
     def test_completed_setup_accepts_only_a_logo_path_bound_to_this_partner(self):
+        from datetime import datetime, timedelta, timezone
         lead_id = "e35eace9-2760-4b11-a01a-07ee65f2744e"
         path = f"partners/{lead_id}/{'a' * 32}.webp"
         response = type("Response", (), {"status_code": 200, "text": '[{}]', "json": lambda self: [{"company_name": "North Texas Title"}]})()
@@ -82,7 +125,8 @@ class PartnerSelfServiceOnboardingTests(unittest.TestCase):
             def __exit__(self, *args): return False
             def patch(self, *args, **kwargs): self.payload = kwargs["json"]; return response
         client = Client()
-        with patch.object(fsbo, "_get_partner_onboarding", return_value={"id": lead_id}), \
+        with patch.object(fsbo, "_get_partner_onboarding", return_value={"id": lead_id, "onboarding_status": "ready",
+                "onboarding_token_expires_at": (datetime.now(timezone.utc) + timedelta(days=14)).isoformat()}), \
              patch.object(fsbo, "_record_partner_onboarding_event"), \
              patch.object(fsbo.httpx, "Client", return_value=client):
             fsbo._complete_partner_onboarding("A" * 32, {"market_area": "DFW", "logo_path": path})
