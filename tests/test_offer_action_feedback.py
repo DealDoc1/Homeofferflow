@@ -11,7 +11,7 @@ class OfferActionFeedbackTests(unittest.TestCase):
             "We couldn’t reopen that offer. Refresh your workspace and try again.",
             "We couldn’t confirm the copy. Retry Duplicate & edit to recover the same draft.",
             "We couldn’t start a new offer from those terms. Please try again.",
-            "We couldn’t remove that offer. Please try again.",
+            "We couldn’t confirm the removal. Refresh My Offers to check before trying again.",
         ):
             self.assertIn(message, INDEX)
         duplicate = INDEX[INDEX.index("  async function duplicateOffer("):INDEX.index("  async function reuseOfferTerms(")]
