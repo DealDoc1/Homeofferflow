@@ -67,7 +67,7 @@ class CloudDraftSaveRecoveryTests(unittest.TestCase):
         self.assertNotIn("generated_at:", saver)
 
     def test_resume_hydrates_packet_state_from_persisted_offer_columns(self):
-        start = HTML.index("async function resumeOffer(id, isRetry = false)")
+        start = HTML.index("async function resumeOffer(")
         end = HTML.index("async function duplicateOffer", start)
         resume = HTML[start:end]
         self.assertIn("generatedAt: offer.offer_data?.generatedAt || offer.generated_at", resume)

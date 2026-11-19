@@ -26,6 +26,26 @@
   <meta name="twitter:image" content="https://www.homeofferflow.com/assets/homeofferflow-social-preview-v2.jpg" />
   <meta name="twitter:image:alt" content="HomeOfferFlow Texas offer workflow" />
   <title>Write a Texas Real Estate Offer | HomeOfferFlow</title>
+  <script id="hof-native-offer-link-primer">
+  (function () {
+    const uuid = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+    const actions = {
+      hof_mobile_start_offer: 'start',
+      hof_resume_offer: 'resume',
+      hof_mobile_reuse_terms: 'reuse',
+      hof_mobile_duplicate_offer: 'duplicate'
+    };
+    const [entry, ...others] = new URLSearchParams(location.hash.slice(1));
+    if (!entry || others.length || !Object.hasOwn(actions, entry[0])) return;
+    const [key, value] = entry;
+    const action = actions[key];
+    // Read only one recognized fragment, leaving passwordless callbacks alone.
+    try { history.replaceState(history.state, '', location.pathname + location.search); } catch (_) {}
+    if (action === 'start' ? value !== '1' : !uuid.test(value)) return;
+    window.__hofNativeOfferLink = { action, id: action === 'start' ? '' : value.toLowerCase() };
+    window.__hofAccountRouteAuthPending = true;
+  })();
+  </script>
   <script src="/assets/partner-profile.js?v=20261106-lookup-timeout"></script>
   <link rel="stylesheet" href="/assets/partner-profile.css?v=20261021-portrait1">
   <link rel="stylesheet" href="/assets/inspection-partners.css?v=20261118-partner-retry-status">
@@ -3269,6 +3289,16 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <button type="button" class="account-tab" id="adminAccountTab" data-account-tab="admin" onclick="showAccountTab('admin')" style="display:none;">Admin</button>
     </div>
 
+    <section class="account-card" id="nativeOfferDuplicatePrompt" aria-labelledby="nativeOfferDuplicateTitle" hidden>
+      <h4 id="nativeOfferDuplicateTitle">Duplicate this offer?</h4>
+      <p id="nativeOfferDuplicateDetails"></p>
+      <p>This creates a new draft with the same buyer, property, and price. Uploaded documents and signing status stay with the original.</p>
+      <div class="account-actions-row">
+        <button class="btn-primary" id="nativeOfferDuplicateConfirm" type="button">Duplicate &amp; edit</button>
+        <button class="btn-secondary" id="nativeOfferDuplicateCancel" type="button">Cancel</button>
+      </div>
+    </section>
+
     <div class="account-panel active" id="accountPanelDashboard">
       <div class="account-card">
         <h4 id="dashboardRoleLabel">Agent Dashboard</h4>
@@ -4777,6 +4807,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     window.hofClosePdfPreview?.(false);
     window.closeOfferDetail?.();
     window.hofUnderContract?.dismiss?.();
+    window.hofClearNativeOfferDuplicatePrompt?.();
     document.getElementById('privateFormDraftsCard')?.remove();
     window.__hofAccountProfileEpoch = (window.__hofAccountProfileEpoch || 0) + 1;
     window.__hofListingWorkspaceCreateAttempts?.clear();
@@ -6165,12 +6196,14 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       return;
     }
     recordAgentLandingAuthStage('agent_landing_email_started');
+    let offerReturn = '';
     try {
       setAuthStatus('Connecting secure sign-in…');
       const client = await ensureSupabaseClient();
       if (!client) throw new Error('Secure sign-in is unavailable.');
       localStorage.setItem('hof_auth_role', hofAuth.role || 'agent');
       localStorage.setItem('hof_auth_pending', hofAuth.role || 'agent');
+      offerReturn = await rememberNativeOfferLinkForSignIn(email);
       const { error } = await client.auth.signInWithOtp({
         email,
         options: {
@@ -6183,6 +6216,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       try { sessionStorage.removeItem('hof_agent_landing_auth_funnel'); } catch (_) {}
       setAuthStatus('Secure sign-in link sent. Check your email, then return here to continue.', 'ok');
     } catch (err) {
+      try {
+        if (offerReturn && localStorage.getItem(NATIVE_OFFER_SIGN_IN_RETURN) === offerReturn) {
+          localStorage.removeItem(NATIVE_OFFER_SIGN_IN_RETURN);
+        }
+      } catch (_) {}
       console.error('Magic link failed', err);
       const fallback = 'We couldn’t email your secure sign-in link. Wait a moment and try again. If it keeps happening, contact support@homeofferflow.com.';
       setAuthStatus(window.hofCustomerActionError?.(err, fallback) || fallback, 'err');
@@ -6239,6 +6277,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     try {
       if (signedOutUserId) localStorage.setItem('hof_offer_draft_owner', signedOutUserId);
       localStorage.removeItem('hof_auth_pending');
+      localStorage.removeItem(NATIVE_OFFER_SIGN_IN_RETURN);
     } catch (e) {}
     resetProfileForSessionChange(null);
     hofAuth.session = null;
@@ -6294,12 +6333,17 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       if (hofAuth.session) {
         await ensureProfileShell(hofAuth.session);
         void flushSubscriptionCheckoutReturnEvent();
-        routeAfterMagicLinkIfNeeded(returningFromSignIn);
+        if (!(await openNativeOfferLinkAfterAuth(returningFromSignIn))) {
+          routeAfterMagicLinkIfNeeded(returningFromSignIn);
+        }
       } else if (expiredLink) {
         let role;
         try { role = localStorage.getItem('hof_auth_pending'); } catch (_) {}
         window.openAuthModal(['agent', 'broker', 'investor'].includes(role) ? role : 'agent');
         setAuthStatus('This sign-in link has expired or was already used. Enter your email to request a new link.', 'err');
+      } else if (window.__hofNativeOfferLink) {
+        window.openAuthModal('agent');
+        setAuthStatus('Sign in to open this offer action in your workspace.');
       }
 
       client.auth.onAuthStateChange(async (event, session) => {
@@ -6575,6 +6619,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   }
 
   function closeAccountDashboard() {
+    window.hofClearNativeOfferDuplicatePrompt?.();
     const modal = document.getElementById('accountModal');
     if (modal) {
       modal.classList.remove('active');
@@ -9550,14 +9595,17 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     return request;
   }
 
-  async function resumeOffer(id, isRetry = false) {
+  async function resumeOffer(id, isRetry = false, { openPreparedDetails = false } = {}) {
     const request = beginOfferOpenRequest();
     if (!request.isCurrent()) return;
     try {
       const offer = await getOfferById(id);
       if (!request.isCurrent()) return;
       if (!offer) { window.announceWorkspaceStatus?.('This offer is no longer available in your workspace. Refresh offers and try again.'); return; }
-      if (offerHasPreparedPacket(offer)) return duplicateOffer(id, false, true, request);
+      if (offerHasPreparedPacket(offer)) {
+        if (openPreparedDetails) return window.viewOfferDetails(id);
+        return duplicateOffer(id, false, true, request);
+      }
       state.data = {
         ...cleanOfferDraftData(offer.offer_data),
         buyerEmail: offer.offer_data?.buyerEmail ?? offer.buyer_email ?? offer.offer_data?.buyer_email ?? '',
@@ -9578,7 +9626,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       if (!isRetry && window.confirm('Could not resume this offer because of a temporary error. Retry now?')) {
         void logOfferEvent(id, 'resume_retry_clicked', 'Draft', 'Agent requested a retry after resume failed.').catch(() => {});
         if (!request.isCurrent()) return;
-        return resumeOffer(id, true);
+        return resumeOffer(id, true, { openPreparedDetails });
       }
       window.announceWorkspaceStatus?.(
         window.hofCustomerActionError(err, 'We couldn’t reopen that offer. Refresh your workspace and try again.')
@@ -9714,6 +9762,121 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     if (!changedQuery && !changedFragment) return;
     if (changedFragment) url.hash = fragment.toString();
     try { window.history.replaceState(window.history.state, '', url.href); } catch (_) {}
+  }
+
+  const NATIVE_OFFER_SIGN_IN_RETURN = 'hof_native_offer_sign_in_return';
+  const NATIVE_OFFER_RETURN_TTL = 15 * 60 * 1000;
+
+  async function nativeOfferSignInFingerprint(email) {
+    const input = new TextEncoder().encode(email.trim().toLowerCase());
+    const digest = await crypto.subtle.digest('SHA-256', input);
+    return Array.from(new Uint8Array(digest)).join('.');
+  }
+
+  async function rememberNativeOfferLinkForSignIn(email) {
+    const link = window.__hofNativeOfferLink;
+    if (!link) return '';
+    try {
+      // A secure link can open in a different tab. Match it to the requested
+      // account without persisting the email or changing the auth redirect.
+      const emailFingerprint = await nativeOfferSignInFingerprint(email);
+      const value = JSON.stringify({ ...link, emailFingerprint, expiresAt: Date.now() + NATIVE_OFFER_RETURN_TTL });
+      localStorage.setItem(NATIVE_OFFER_SIGN_IN_RETURN, value);
+      return value;
+    } catch (_) {
+      return '';
+    }
+  }
+
+  async function takeNativeOfferSignInReturn(user) {
+    try {
+      const value = localStorage.getItem(NATIVE_OFFER_SIGN_IN_RETURN);
+      if (!value) return null;
+      const link = JSON.parse(value);
+      if (!Number.isFinite(link.expiresAt) || link.expiresAt <= Date.now()) {
+        localStorage.removeItem(NATIVE_OFFER_SIGN_IN_RETURN);
+        return null;
+      }
+      if (!user?.email || link.emailFingerprint !== await nativeOfferSignInFingerprint(user.email) ||
+          value !== localStorage.getItem(NATIVE_OFFER_SIGN_IN_RETURN)) return null;
+      localStorage.removeItem(NATIVE_OFFER_SIGN_IN_RETURN);
+      if (link.action === 'start' && link.id === '') return link;
+      if (['resume', 'reuse', 'duplicate'].includes(link.action) &&
+          /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(link.id)) return link;
+    } catch (_) {}
+    return null;
+  }
+
+  function clearNativeOfferDuplicatePrompt() {
+    const prompt = document.getElementById('nativeOfferDuplicatePrompt');
+    if (!prompt) return;
+    prompt.hidden = true;
+    document.getElementById('nativeOfferDuplicateDetails').textContent = '';
+    document.getElementById('nativeOfferDuplicateConfirm').onclick = null;
+    document.getElementById('nativeOfferDuplicateCancel').onclick = null;
+  }
+
+  window.hofClearNativeOfferDuplicatePrompt = clearNativeOfferDuplicatePrompt;
+
+  async function reviewNativeOfferDuplicate(id, isCurrentAccount) {
+    const request = beginOfferOpenRequest();
+    const isCurrent = () => isCurrentAccount() && request.isCurrent() &&
+      document.getElementById('accountModal').classList.contains('active');
+    try {
+      const offer = await getOfferById(id);
+      if (!isCurrent()) return;
+      if (!offer) {
+        window.announceWorkspaceStatus?.('This offer is no longer available in your workspace. Refresh offers and try again.');
+        return;
+      }
+      const prompt = document.getElementById('nativeOfferDuplicatePrompt');
+      const confirmButton = document.getElementById('nativeOfferDuplicateConfirm');
+      document.getElementById('nativeOfferDuplicateDetails').textContent = offer.property_address || 'Selected offer';
+      document.getElementById('nativeOfferDuplicateCancel').onclick = () => {
+        clearNativeOfferDuplicatePrompt();
+        window.announceWorkspaceStatus?.('Copy canceled. Your original offer is unchanged.');
+      };
+      confirmButton.onclick = () => {
+        clearNativeOfferDuplicatePrompt();
+        if (isCurrent()) void duplicateOffer(id, false, true, request);
+      };
+      prompt.hidden = false;
+      confirmButton.focus();
+    } catch (error) {
+      if (isCurrent()) window.announceWorkspaceStatus?.(
+        window.hofCustomerActionError(error, 'We couldn’t open that offer. Refresh your workspace and try again.')
+      );
+    }
+  }
+
+  async function openNativeOfferLinkAfterAuth(returningFromSignIn) {
+    const user = hofAuth.session?.user;
+    const epoch = window.__hofAccountProfileEpoch;
+    const isCurrent = () => !!user?.id && hofAuth.session?.user?.id === user.id &&
+      window.__hofAccountProfileEpoch === epoch;
+    const link = returningFromSignIn
+      ? await takeNativeOfferSignInReturn(user)
+      : window.__hofNativeOfferLink;
+    delete window.__hofNativeOfferLink;
+    if (!link || !isCurrent()) return false;
+    window.__hofAccountRouteAuthPending = false;
+    window.__hofAutomaticDraftRestoreSettled = true;
+    hofAuth.routedAfterLogin = true;
+    try { localStorage.removeItem('hof_auth_pending'); } catch (_) {}
+    closeAuthModal();
+    void openAccountDashboard({ tab: 'offers' });
+    if (!hofAuth.profileReady) {
+      window.announceWorkspaceStatus?.('We couldn’t verify your workspace. Refresh, then reopen the link from HomeOfferFlow.');
+    } else if (link.action === 'start') {
+      startAccountOffer();
+    } else if (link.action === 'resume') {
+      void resumeOffer(link.id, false, { openPreparedDetails: true });
+    } else if (link.action === 'reuse') {
+      void reuseOfferTerms(link.id);
+    } else {
+      void reviewNativeOfferDuplicate(link.id, isCurrent);
+    }
+    return true;
   }
 
 function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
@@ -15296,7 +15459,7 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     // Buyer and seller visitors do not need account code to begin their
     // interview. Restore it only for an existing account session or a secure
     // magic-link callback; sign-in itself loads it on demand below.
-    if (hasSupabaseSessionHint() || hasSupabaseAuthCallback()) initSupabaseAuth();
+    if (window.__hofNativeOfferLink || hasSupabaseSessionHint() || hasSupabaseAuthCallback()) initSupabaseAuth();
     else {
       window.__hofDraftRestoreAuthReady = true;
       try { window.dispatchEvent(new Event('hof-auth-ready')); } catch (_) {}

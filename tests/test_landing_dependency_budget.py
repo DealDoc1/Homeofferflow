@@ -13,7 +13,10 @@ class LandingDependencyBudgetTests(unittest.TestCase):
         self.assertIn("SUPABASE_BROWSER_LIBRARY_URL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'", HTML)
         self.assertIn('function ensureSupabaseLibrary()', HTML)
         self.assertIn('async function ensureSupabaseClient()', HTML)
-        self.assertIn("if (hasSupabaseSessionHint() || hasSupabaseAuthCallback()) initSupabaseAuth();", HTML)
+        self.assertIn(
+            "if (window.__hofNativeOfferLink || hasSupabaseSessionHint() || hasSupabaseAuthCallback()) initSupabaseAuth();",
+            HTML,
+        )
         self.assertIn("setAuthStatus('Connecting secure sign-in…');", HTML)
         self.assertNotIn('https://js.stripe.com/v3/', HTML)
         self.assertNotIn('cdnjs.cloudflare.com/ajax/libs/pdf-lib/', HTML)
