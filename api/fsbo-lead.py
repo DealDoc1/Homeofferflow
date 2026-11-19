@@ -170,7 +170,7 @@ MONTHLY_PRICE_ENV_BY_TIER = {
 PARTNER_DIRECTORY_EVENT_TYPES = {"partner_directory_impression": "shown", "partner_directory_outbound_click": "clicked"}
 PARTNER_DIRECTORY_TIERS = {"core", "featured", "founding", "premier", "exclusive_market"}
 PARTNER_DIRECTORY_VIEWS = {"directory", "workflow"}
-PARTNER_DIRECTORY_SURFACES = {"public_directory", "fsbo_seller_plan", "pwa_provider_directory", "offer_completion", "inspection_interview", "insurance_planning"}
+PARTNER_DIRECTORY_SURFACES = {"public_directory", "fsbo_seller_plan", "pwa_provider_directory", "offer_completion", "inspection_interview", "insurance_planning", "build_readiness"}
 FSBO_LANDING_EVENT_TYPES = {
     "fsbo_landing_viewed": "viewed",
     "fsbo_landing_cta_selected": "selected",
@@ -200,7 +200,7 @@ FSBO_LANDING_EVENT_TYPES = {
     "pwa_seller_plan_opened": "opened",
 }
 FSBO_LANDING_CHANNELS = {
-    "direct", "homepage", "organic", "pwa_shortcut", "direct_outreach", "email", "seller_receipt", "social", "referral", "local_event", "print", "unspecified",
+    "direct", "homepage", "organic", "pwa_shortcut", "build_readiness", "direct_outreach", "email", "seller_receipt", "social", "referral", "local_event", "print", "unspecified",
 }
 FSBO_RECEIPT_DELIVERY_STATUSES = {"sent", "failed", "not_configured", "missing_email"}
 PARTNER_APPLICATION_RECEIPT_DELIVERY_STATUSES = {"sent", "failed", "not_configured", "missing_email"}
@@ -279,6 +279,7 @@ PUBLIC_PWA_INSTALL_SURFACES = {
     "/", "/agents", "/buyers", "/sellers", "/investors", "/partners", "/directory", "/ondemand",
     "/texas-fsbo-guide", "/texas-home-service-partner-guide", "/texas-agent-offer-workflow", "/texas-listing-workflow", "/texas-lease-offer-workflow",
     "/texas-agent-form-library", "/texas-seller-offer-review", "/texas-homebuyer-offer-guide", "/texas-investor-offer-guide",
+    "/build-readiness",
 }
 HOMEBUYER_LANDING_EVENT_TYPES = {
     "homebuyer_landing_viewed": "viewed",

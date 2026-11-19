@@ -1,13 +1,14 @@
 // Bump the shell whenever a released public workflow changes. That makes an
 // already-installed app fetch the new worker and retire stale public pages.
 // The worker activates in the background but never reloads an open workflow.
-const SHELL_CACHE = 'homeofferflow-shell-v214';
+const SHELL_CACHE = 'homeofferflow-shell-v217';
 const SHELL_ASSETS = [
   // Keep installation lightweight. Public pages cache after the visitor has
   // actually opened them; preloading every guide would spend bandwidth for
   // pages most visitors never use.
   '/manifest.webmanifest',
   '/assets/pwa-register.js',
+  '/assets/build-readiness-checklist.js',
   '/assets/pwa-share-target.js',
   '/assets/under-contract-companion.js',
   '/assets/trec-62-followup.js',
@@ -17,6 +18,8 @@ const SHELL_ASSETS = [
   '/assets/saved-disclosure-attachment.js?v=20261022-summary1',
   '/assets/agent-landing-focus.css',
   '/assets/agent-landing-focus.js',
+  '/assets/agent-build-readiness-share.css',
+  '/assets/agent-build-readiness-share.js',
   '/assets/partner-landing-focus.css',
   '/assets/partner-landing-focus.js',
   '/assets/partner-profile.js?v=20261106-lookup-timeout',
@@ -35,7 +38,7 @@ const SHELL_ASSETS = [
 // API, documents, authentication, or account-specific routes.
 const PUBLIC_PAGE_PATHS = new Set([
   '/', '/index.html', '/buyers', '/agents', '/investors', '/sellers',
-  '/partners', '/directory', '/ondemand', '/texas-fsbo-guide',
+  '/partners', '/directory', '/ondemand', '/texas-fsbo-guide', '/build-readiness',
   '/texas-seller-offer-review',
   '/texas-agent-offer-workflow', '/texas-homebuyer-offer-guide',
   '/texas-lease-offer-workflow',
@@ -48,6 +51,13 @@ const PUBLIC_PAGE_PATHS = new Set([
   '/texas-fsbo-closing-checklist',
   '/texas-investor-offer-guide',
   '/texas-home-service-partner-guide'
+]);
+
+// Cache only the two public Build Readiness hero images, and only after a
+// visitor requests them. Do not preload them for every installed user.
+const OFFLINE_PUBLIC_IMAGE_PATHS = new Set([
+  '/assets/build-readiness-blueprint-banner.jpg',
+  '/assets/build-readiness-blueprint-mobile.jpg'
 ]);
 
 self.addEventListener('install', event => {
@@ -92,6 +102,27 @@ self.addEventListener('fetch', event => {
       if (cached) return cached;
       throw error;
     }));
+    return;
+  }
+
+  if (OFFLINE_PUBLIC_IMAGE_PATHS.has(requestUrl.pathname) && !requestUrl.search &&
+      !event.request.headers.has('Authorization') && !event.request.headers.has('Range')) {
+    event.respondWith((async () => {
+      const cache = await caches.open(SHELL_CACHE);
+      const cached = await cache.match(event.request);
+      try {
+        const response = await fetch(event.request);
+        const contentType = response.headers.get('content-type') || '';
+        if (response.ok && contentType.startsWith('image/')) {
+          await cache.put(event.request, response.clone());
+          return response;
+        }
+        return cached || response;
+      } catch (error) {
+        if (cached) return cached;
+        throw error;
+      }
+    })());
     return;
   }
 

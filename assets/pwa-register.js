@@ -94,6 +94,7 @@
   const preferredLaunchKey = 'hof_pwa_preferred_launch_action';
   const installIntentSurfaceKey = 'hof_pwa_install_intent_surface';
   const publicPreferredLaunchActions = {
+    '/build-readiness': 'build_readiness',
     '/buyers': 'buyer_offer',
     '/texas-homebuyer-offer-guide': 'buyer_offer',
     '/sellers': 'seller_plan',
@@ -244,12 +245,16 @@
       waiting.postMessage({ type: 'HOF_SKIP_WAITING' });
     });
   };
-  const renderInstallCard = () => {
+  const buildReadinessSurface = window.location.pathname === '/build-readiness';
+  const renderInstallCard = ({ requested = false } = {}) => {
     // The OnDemand checkout return owns a quieter in-card install handoff.
     // Never stack this floating public card over that enrollment next step.
     if (window.location.pathname === '/ondemand') return;
-    if (!isMobileInstallSurface() || isStandaloneSurface() || !isInstallEligible() || isInstallDismissed() || isInstallRecentlyShown() || (!deferredInstallPrompt && !isIosInstallSurface()) || document.getElementById('hofPublicPwaInstallCard')) return;
-    try { if (sessionStorage.getItem(dismissKey) === '1') return; } catch (_) {}
+    if (!isMobileInstallSurface() || isStandaloneSurface() || document.getElementById('hofPublicPwaInstallCard')) return;
+    if (!requested) {
+      if (buildReadinessSurface || !isInstallEligible() || isInstallDismissed() || isInstallRecentlyShown() || (!deferredInstallPrompt && !isIosInstallSurface())) return;
+      try { if (sessionStorage.getItem(dismissKey) === '1') return; } catch (_) {}
+    }
     const card = document.createElement('aside');
     card.id = 'hofPublicPwaInstallCard';
     card.setAttribute('aria-label', 'HomeOfferFlow app installation');
@@ -301,6 +306,8 @@
       ? 'Keep your investor workspace one tap away'
       : directorySurface
       ? 'Keep the provider directory one tap away'
+      : buildReadinessSurface
+      ? 'Keep your custom-home plan one tap away'
       : fsboGuideSurface
       ? 'Keep your FSBO plan one tap away'
       : sellerNetProceedsSurface
@@ -338,13 +345,15 @@
       ? 'Install the lightweight app shell to return quickly to saved investor defaults and repeat-offer tools.'
       : directorySurface
       ? 'Install the lightweight app shell to return quickly to provider search and partner placement paths.'
+      : buildReadinessSurface
+      ? 'Install HomeOfferFlow to return to the Build Readiness Blueprint and its connected planning paths.'
       : fsboGuideSurface
       ? 'Install the lightweight app shell to return quickly to your seller plan and support paths.'
       : sellerNetProceedsSurface
       ? 'Install the lightweight app shell to return quickly to your private proceeds worksheet and seller planning paths.'
       : 'Install the lightweight app shell for faster returns to your workspace.';
-    const iosInstall = isIosInstallSurface() && !deferredInstallPrompt;
-    card.innerHTML = `<strong style="display:block;color:#e8b86d;margin-bottom:.2rem">${title}</strong><span style="display:block;color:#b6c4d5;margin-bottom:.55rem">${copy}</span><div style="display:flex;gap:.45rem;flex-wrap:wrap"><button type="button" id="hofPublicPwaInstallButton" style="padding:.45rem .65rem;border:0;border-radius:7px;background:#c8973f;color:#102033;font-weight:800;cursor:pointer">${iosInstall ? 'Show install steps' : 'Install app'}</button><button type="button" id="hofPublicPwaInstallDismiss" style="padding:.45rem .65rem;border:1px solid rgba(255,255,255,.25);border-radius:7px;background:transparent;color:#fff;cursor:pointer">Not now</button></div><div id="hofPublicPwaInstallNote" role="status" aria-live="polite" style="display:none;margin-top:.55rem;color:#b6c4d5;font-size:.8rem;line-height:1.45"></div>`;
+    const manualInstall = !deferredInstallPrompt;
+    card.innerHTML = `<strong style="display:block;color:#e8b86d;margin-bottom:.2rem">${title}</strong><span style="display:block;color:#b6c4d5;margin-bottom:.55rem">${copy}</span><div style="display:flex;gap:.45rem;flex-wrap:wrap"><button type="button" id="hofPublicPwaInstallButton" style="padding:.45rem .65rem;border:0;border-radius:7px;background:#c8973f;color:#102033;font-weight:800;cursor:pointer">${manualInstall ? 'Show install steps' : 'Install app'}</button><button type="button" id="hofPublicPwaInstallDismiss" style="padding:.45rem .65rem;border:1px solid rgba(255,255,255,.25);border-radius:7px;background:transparent;color:#fff;cursor:pointer">Not now</button></div><div id="hofPublicPwaInstallNote" role="status" aria-live="polite" style="display:none;margin-top:.55rem;color:#b6c4d5;font-size:.8rem;line-height:1.45"></div>`;
     document.body.appendChild(card);
     try { localStorage.setItem(installShownUntilKey, String(Date.now() + installShownDays * 24 * 60 * 60 * 1000)); } catch (_) {}
     trackPublicInstall('Shown');
@@ -355,6 +364,7 @@
       } catch (_) {}
       trackPublicInstall('Dismissed');
       removeInstallCard();
+      if (requested) document.getElementById('buildReadinessInstall')?.focus({ preventScroll: true });
     });
     const installButton = card.querySelector('#hofPublicPwaInstallButton');
     installButton?.addEventListener('click', async () => {
@@ -394,6 +404,19 @@
       }
     });
   };
+  const setupBuildReadinessInstall = () => {
+    if (!buildReadinessSurface || !isMobileInstallSurface() || isStandaloneSurface()) return;
+    const button = document.getElementById('buildReadinessInstall');
+    if (!button) return;
+    button.hidden = false;
+    button.addEventListener('click', () => {
+      renderInstallCard({ requested: true });
+      document.getElementById('hofPublicPwaInstallButton')?.focus({ preventScroll: true });
+    });
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setupBuildReadinessInstall, { once: true });
+  else setupBuildReadinessInstall();
+
   window.addEventListener('beforeinstallprompt', event => {
     if (!isMobileInstallSurface()) return;
     event.preventDefault();

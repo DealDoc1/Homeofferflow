@@ -47,6 +47,10 @@ class FsboLandingFunnelTests(unittest.TestCase):
         self.assertIn('"pwa_seller_plan"', API)
         self.assertIn('"fsbo_guide"', API)
 
+    def test_seller_save_status_is_visible_when_it_has_a_message(self):
+        self.assertIn("#fsboSellerStatus:not(:empty) { display:block; }", INDEX)
+        self.assertIn('id="fsboSellerStatus" class="platform-status" role="status"', INDEX)
+
     def test_unattributed_seller_funnel_events_use_safe_defaults(self):
         spec = importlib.util.spec_from_file_location("fsbo_landing", ROOT / "api" / "fsbo-lead.py")
         api = importlib.util.module_from_spec(spec)
@@ -59,6 +63,20 @@ class FsboLandingFunnelTests(unittest.TestCase):
             })
         self.assertEqual(recorded[0][3]["channel"], "unspecified")
         self.assertEqual(recorded[0][3]["surface"], "seller_landing")
+
+    def test_build_readiness_seller_funnel_channel_is_accepted_and_reported(self):
+        spec = importlib.util.spec_from_file_location("fsbo_landing_build_readiness", ROOT / "api" / "fsbo-lead.py")
+        api = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(api)
+        recorded = []
+        with patch.object(api, "_record_partner_checkout_event", side_effect=lambda *args: recorded.append(args)):
+            api._record_fsbo_landing_event({
+                "event_type": "fsbo_landing_viewed",
+                "service_level": "free_intake",
+                "channel": "build_readiness",
+            })
+        self.assertEqual(recorded[0][3]["channel"], "build_readiness")
+        self.assertIn('"direct", "homepage", "organic", "pwa_shortcut", "build_readiness"', ADMIN)
 
     def test_fsbo_guide_records_aggregate_views_and_free_plan_clicks_only(self):
         self.assertIn('/assets/fsbo-guide-metrics.js', FSBO_GUIDE)
@@ -141,7 +159,7 @@ class FsboLandingFunnelTests(unittest.TestCase):
         self.assertIn("pwa_seller_plan_shortcut_count", ADMIN)
 
     def test_private_intake_preserves_an_allowlisted_campaign_channel(self):
-        self.assertIn("const fsboCampaignChannels = new Set(['direct','homepage','organic','pwa_shortcut','direct_outreach','email','seller_receipt','social','referral','local_event','print']);", INDEX)
+        self.assertIn("const fsboCampaignChannels = new Set(['direct','homepage','organic','pwa_shortcut','build_readiness','direct_outreach','email','seller_receipt','social','referral','local_event','print']);", INDEX)
         self.assertIn("function fsboCampaignChannel()", INDEX)
         self.assertIn("const fsboCampaignChannelKey = 'hof_seller_landing_channel';", INDEX)
         self.assertIn("sessionStorage.getItem(fsboCampaignChannelKey)", INDEX)

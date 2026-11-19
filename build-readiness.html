@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#173f35">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="HomeOfferFlow">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/assets/homeofferflow-apple-touch-icon.png">
+  <meta name="description" content="Plan a North Texas custom-home journey from early discovery through financing conversations, land, builder selection, current-home sale, and move-in.">
+  <link rel="canonical" href="https://www.homeofferflow.com/build-readiness">
+  <meta property="og:title" content="Build Readiness Blueprint | HomeOfferFlow">
+  <meta property="og:description" content="A step-by-step path from equity to keys, presented by Andrew Christian of Provenance Group.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.homeofferflow.com/build-readiness">
+  <meta property="og:image" content="https://www.homeofferflow.com/assets/build-readiness-blueprint-banner.jpg">
+  <meta property="og:image:alt" content="Provenance Group Build Readiness Blueprint banner by Andrew Christian">
+  <meta name="twitter:card" content="summary_large_image">
+  <title>Build Readiness Blueprint | From Equity to Keys | HomeOfferFlow</title>
+  <style>
+    :root{--navy:#0d1f35;--deep:#07111f;--gold:#c8973f;--gold-light:#e8b86d;--white:#fff;--muted:#c0cad6;--line:rgba(255,255,255,.15)}
+    *{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,var(--navy),var(--deep));color:var(--white);font:16px/1.6 Arial,sans-serif}
+    a{color:var(--gold-light)}a:focus-visible,button:focus-visible{outline:3px solid var(--gold-light);outline-offset:3px}
+    .shell{width:min(1120px,calc(100% - 2rem));margin:auto}header{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1.1rem 0;border-bottom:1px solid var(--line)}
+    .brand{color:var(--white);font-weight:800;text-decoration:none}.brand span,.eyebrow{color:var(--gold-light)}nav{display:flex;gap:.75rem 1rem;flex-wrap:wrap}nav a{font-size:.9rem;font-weight:700;text-decoration:none}header{padding-top:max(1.1rem,env(safe-area-inset-top))}
+    main{padding:2.2rem 0 3.5rem}.breadcrumb{margin:0 0 1rem;color:var(--muted);font-size:.84rem}.breadcrumb a{font-weight:700}
+    .hero{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(300px,.92fr);align-items:center;gap:2rem;padding:1rem 0 2.4rem}
+    .eyebrow{font-size:.78rem;font-weight:900;letter-spacing:.13em;text-transform:uppercase}h1,h2,h3{font-family:Georgia,serif;line-height:1.15}h1{font-size:clamp(2.3rem,5vw,4.1rem);margin:.55rem 0 1rem;max-width:720px}h2{font-size:clamp(1.75rem,3.5vw,2.5rem);margin:.35rem 0 .7rem}h3{font-size:1.2rem;margin:.2rem 0 .45rem;color:var(--gold-light)}
+    .lead{font-size:1.08rem;color:var(--muted);max-width:690px}.actions{display:flex;gap:.7rem;flex-wrap:wrap;margin:1.35rem 0}.button{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:.72rem 1rem;border-radius:9px;background:var(--gold);color:#102033;font-weight:800;text-decoration:none}.button.secondary{background:transparent;color:var(--white);border:1px solid var(--line)}
+    .hero-picture{display:block;min-width:0}.hero-image{width:100%;height:auto;display:block;border:1px solid rgba(232,184,109,.45);border-radius:14px;box-shadow:0 18px 55px rgba(0,0,0,.25)}
+    .byline{display:grid;gap:.1rem;color:var(--muted);font-size:1rem}.byline strong,.byline .brokerage{color:var(--white);font-size:1rem;font-weight:800}
+    .steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.85rem;margin:1.4rem 0 2.5rem}.step,.path-card{padding:1.05rem;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.045)}.step-number{color:var(--gold-light);font-weight:900;letter-spacing:.04em;font-size:.78rem}.step p,.path-card p{margin:.25rem 0 0;color:var(--muted);font-size:.93rem}
+    .section-intro{max-width:740px;color:var(--muted)}.next-paths{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.85rem;margin:1.2rem 0 2.2rem}.path-card a{display:inline-block;margin-top:.75rem;font-weight:800}.note{padding:1rem 1.1rem;border-left:3px solid var(--gold);background:rgba(200,151,63,.09);border-radius:8px;color:var(--muted)}.note strong{color:var(--white)}
+    .readiness-checklist{margin:0 0 2.5rem;padding:1.2rem;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.045)}.checklist-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap}.checklist-heading p{margin:.2rem 0;color:var(--muted)}.checklist-tools{display:flex;gap:.55rem;flex-wrap:wrap}.checklist-tools button{min-height:42px;padding:.55rem .8rem;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--white);font:inherit;font-weight:700;cursor:pointer}.checklist-progress{margin:.8rem 0;color:var(--gold-light);font-size:.9rem;font-weight:800}.checklist-items{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.55rem 1rem;margin:0;padding:0;list-style:none}.checklist-items label{display:flex;align-items:flex-start;gap:.65rem;min-height:48px;padding:.65rem .7rem;border:1px solid var(--line);border-radius:8px;color:var(--white);cursor:pointer}.checklist-items input{flex:0 0 auto;width:1.1rem;height:1.1rem;margin:.14rem 0 0;accent-color:var(--gold)}.checklist-items label:has(input:checked){color:var(--muted);text-decoration:line-through;text-decoration-color:var(--gold-light)}.checklist-note{margin:.8rem 0 0;color:var(--muted);font-size:.82rem}.checklist-status{min-height:1.4em;margin:.35rem 0 0;color:var(--gold-light);font-size:.82rem}
+    footer{border-top:1px solid var(--line);padding:1.35rem 0 max(2rem,env(safe-area-inset-bottom));color:var(--muted);font-size:.85rem}.skip-link{position:absolute;left:-9999px;top:.5rem;z-index:5;background:var(--gold);color:#102033;padding:.6rem .8rem;border-radius:7px;font-weight:800}.skip-link:focus{left:.75rem}
+    @media(max-width:820px){.hero{grid-template-columns:1fr;gap:1rem}.hero-image{max-width:760px}.steps{grid-template-columns:repeat(2,minmax(0,1fr))}.next-paths{grid-template-columns:1fr}}
+    @media(max-width:480px){.shell{width:min(100% - 1.25rem,1120px)}main{padding-top:1.4rem}.steps,.checklist-items{grid-template-columns:1fr}.actions .button{width:100%}nav{gap:.45rem .75rem}}
+    .checklist-print-brand{display:none}
+    @media print{body{background:#fff;color:#102033;font-size:11pt}.shell{width:100%;margin:0}.shell>header,.hero,.steps,.next-paths,.note,footer,.skip-link,.checklist-tools{display:none!important}main{padding:0}.readiness-checklist{margin:0;padding:0;border:0;background:#fff}.readiness-checklist h2,.checklist-items label{color:#102033}.checklist-items{grid-template-columns:1fr 1fr}.checklist-items label{border-color:#aeb7c2;min-height:56px}.checklist-items label:has(input:checked){color:#102033;text-decoration:none}.checklist-items input{print-color-adjust:exact;-webkit-print-color-adjust:exact}.checklist-print-brand{display:block;color:#45515e;font-size:9pt;margin-bottom:1.2rem}}
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#blueprint-steps">Skip to the seven planning steps</a>
+  <div class="shell">
+    <header>
+      <a class="brand" href="/">Home<span>Offer</span>Flow</a>
+      <nav aria-label="Main navigation"><a href="/buyers">Homebuyer offer</a><a href="/sellers">Seller planning</a><a href="/directory">Provider directory</a></nav>
+    </header>
+    <main>
+      <nav class="breadcrumb" aria-label="Breadcrumb"><a href="/">HomeOfferFlow</a><span aria-hidden="true"> / </span><span aria-current="page">Build Readiness Blueprint</span></nav>
+      <section class="hero" aria-labelledby="blueprint-title">
+        <div>
+          <div class="eyebrow">Build Readiness Blueprint · From Equity to Keys</div>
+          <h1 id="blueprint-title">Plan the path to your custom home.</h1>
+          <p class="lead">A clear sequence for families weighing a custom build: clarify the goal, understand your current-home timing, speak with qualified financing and land professionals, choose a builder, and coordinate the move.</p>
+          <p class="byline"><span>Presented by</span><strong>Andrew Christian, REALTOR® · Provenance Group</strong><span class="brokerage">Brokered by OnDemand Realty</span></p>
+          <div class="actions"><a class="button" href="mailto:andrew@ondemanddfw.com?subject=Build%20Readiness%20Blueprint">Email Andrew</a><a class="button secondary" href="tel:+12143649890">Call Andrew</a><a class="button secondary" href="#blueprint-steps">Explore the seven steps</a></div>
+        </div>
+        <picture class="hero-picture">
+          <source media="(max-width: 640px)" srcset="/assets/build-readiness-blueprint-mobile.jpg" width="1254" height="1254">
+          <img class="hero-image" src="/assets/build-readiness-blueprint-banner.jpg" width="1280" height="474" alt="Provenance Group and Andrew Christian's Build Readiness Blueprint for planning a North Texas custom home">
+        </picture>
+      </section>
+
+      <section id="blueprint-steps" aria-labelledby="steps-title">
+        <div class="eyebrow">A step-by-step journey</div>
+        <h2 id="steps-title">From the first idea to move-in day.</h2>
+        <p class="section-intro">Use these stages to organize the questions and conversations ahead. The right order and providers depend on your goals, finances, land, and timing.</p>
+        <div class="steps">
+          <article class="step"><span class="step-number">STEP 1</span><h3>Dream &amp; discovery</h3><p>Clarify location, budget range, timing, must-haves, and whether a custom build fits your plans.</p></article>
+          <article class="step"><span class="step-number">STEP 2</span><h3>Build readiness</h3><p>Map the decisions ahead and gather the current-home, savings, and timeline details you want to discuss with qualified professionals.</p></article>
+          <article class="step"><span class="step-number">STEP 3</span><h3>Financing conversation</h3><p>Ask a qualified lender to explain available financing paths, costs, timing, and requirements for your situation.</p></article>
+          <article class="step"><span class="step-number">STEP 4</span><h3>Land strategy</h3><p>Compare location and land options, then confirm feasibility, utilities, restrictions, and costs with the appropriate professionals.</p></article>
+          <article class="step"><span class="step-number">STEP 5</span><h3>Builder &amp; design</h3><p>Compare builders, plans, written scopes, allowances, schedules, and responsibilities before making commitments.</p></article>
+          <article class="step"><span class="step-number">STEP 6</span><h3>Sell → build → transition</h3><p>If you own a home now, coordinate its sale plan with financing, construction milestones, and any temporary housing needs.</p></article>
+          <article class="step"><span class="step-number">STEP 7</span><h3>Move-in day</h3><p>Track the final dates and handoffs with your builder, lender, title provider, and other responsible parties.</p></article>
+        </div>
+      </section>
+
+      <section class="readiness-checklist" aria-labelledby="checklist-title">
+        <p class="checklist-print-brand">HomeOfferFlow · Build Readiness Blueprint · Andrew Christian, REALTOR®, Provenance Group · Brokered by OnDemand Realty<br>(214) 364-9890 · andrew@ondemanddfw.com · homeofferflow.com/build-readiness</p>
+        <div class="checklist-heading">
+          <div><div class="eyebrow">Your private planning aid</div><h2 id="checklist-title">Build readiness checklist</h2><p>Mark what you’ve explored. You can come back to this checklist or print it for a planning conversation.</p></div>
+          <div class="checklist-tools"><button type="button" id="buildReadinessInstall" hidden>Install HomeOfferFlow</button><button type="button" id="buildReadinessPrint">Print checklist</button><button type="button" id="buildReadinessClear">Clear checkmarks</button></div>
+        </div>
+        <p id="buildReadinessProgress" class="checklist-progress" role="status" aria-live="polite">0 of 7 steps marked</p>
+        <ul class="checklist-items">
+          <li><label><input type="checkbox" data-build-readiness-task="discovery"> I’ve written down what I want, where I hope to build, and when I’d like to move.</label></li>
+          <li><label><input type="checkbox" data-build-readiness-task="readiness"> I’ve listed the current-home, savings, and timing questions I want to discuss with a qualified professional.</label></li>
+          <li><label><input type="checkbox" data-build-readiness-task="financing"> I’ve discussed relevant construction financing options, costs, and requirements with a qualified lender.</label></li>
+          <li><label><input type="checkbox" data-build-readiness-task="land"> I’ve identified land or locations to explore and the feasibility questions to confirm.</label></li>
+          <li><label><input type="checkbox" data-build-readiness-task="builder"> I’ve compared builders using their written scope, allowances, schedule, and responsibilities.</label></li>
+          <li><label><input type="checkbox" data-build-readiness-task="transition"> I’ve mapped how a current-home sale, construction timing, and any temporary housing may fit together.</label></li>
+          <li><label><input type="checkbox" data-build-readiness-task="movein"> I’ve listed the final dates and handoffs to confirm with my builder, lender, title provider, and other professionals.</label></li>
+        </ul>
+        <p class="checklist-note">Only checkmarks are saved in this browser on this device. Don’t enter client, financial, or other private information here. This checklist does not calculate dates or replace advice from your professionals.</p>
+        <p id="buildReadinessChecklistStatus" class="checklist-status" aria-live="polite"></p>
+      </section>
+
+      <section aria-labelledby="next-step-title">
+        <div class="eyebrow">Use the HomeOfferFlow path that fits today</div>
+        <h2 id="next-step-title">Start with the decision in front of you.</h2>
+        <div class="next-paths">
+          <article class="path-card"><h3>Planning to sell your current home?</h3><p>Use the separate seller planning path to organize your property details and timeline.</p><a href="/sellers?utm_source=build_readiness&amp;utm_medium=owned_navigation&amp;utm_campaign=equity_to_keys">Open seller planning →</a></article>
+          <article class="path-card"><h3>Looking for a builder or contractor?</h3><p>Browse the provider directory and compare available local profiles. You may choose any provider independently.</p><a href="/directory?category=general_contractor&amp;utm_source=build_readiness&amp;utm_medium=owned_navigation&amp;utm_campaign=equity_to_keys">Browse builder and contractor providers →</a></article>
+          <article class="path-card"><h3>Writing an offer on a home?</h3><p>HomeOfferFlow has a separate guided offer path for supported Texas home purchases.</p><a href="/buyers?utm_source=build_readiness&amp;utm_medium=owned_navigation&amp;utm_campaign=equity_to_keys">Explore the homebuyer offer path →</a></article>
+        </div>
+      </section>
+
+      <p class="note"><strong>Separate roles, clear expectations.</strong> HomeOfferFlow is a software company; this page is a planning resource presented by Andrew Christian through Provenance Group, brokered by OnDemand Realty. HomeOfferFlow does not provide brokerage, builder, lending, legal, title, or construction services or advice. Financing availability and terms vary; consult qualified professionals and review their written agreements.</p>
+    </main>
+    <footer>© 2026 HomeOfferFlow · <a href="/terms.html">Terms</a> · <a href="/privacy.html">Privacy</a> · <a href="/disclaimer.html">Disclaimer</a> · <a href="/directory">Provider directory</a></footer>
+  </div>
+  <script defer src="/assets/pwa-register.js"></script>
+  <script defer src="/assets/build-readiness-checklist.js"></script>
+</body>
+</html>

@@ -75,7 +75,7 @@
       // reporting. Query text, market input, identity, and other campaign
       // values are deliberately not sent with directory events.
       const directorySource = new URLSearchParams(window.location.search).get('utm_source');
-      const directorySurface = directorySource === 'fsbo_intake' ? 'fsbo_seller_plan' : directorySource === 'pwa_shortcut' ? 'pwa_provider_directory' : 'public_directory';
+      const directorySurface = directorySource === 'fsbo_intake' ? 'fsbo_seller_plan' : directorySource === 'pwa_shortcut' ? 'pwa_provider_directory' : directorySource === 'build_readiness' ? 'build_readiness' : 'public_directory';
       const esc = value => String(value || '').replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
       const safeUrl = value => { try { const url = new URL(value); return ['http:','https:'].includes(url.protocol) ? url.href : ''; } catch (_) { return ''; } };
       const track = (name, data = {}) => { try { window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); }; window.va('event', {name, ...data}); } catch (_) {} };
@@ -119,7 +119,8 @@
         const partnerId = String(provider?.id || '').trim();
         if (!partnerId) return;
         try {
-          const key = 'hof_public_partner_impression_' + partnerId;
+          const prefix = directorySurface === 'build_readiness' ? 'hof_blueprint_partner_impression_' : 'hof_public_partner_impression_';
+          const key = prefix + partnerId;
           if (sessionStorage.getItem(key)) return;
           sessionStorage.setItem(key, '1');
         } catch (_) {}

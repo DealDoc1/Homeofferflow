@@ -1,0 +1,8 @@
+[data-hof-blueprint-share] .blueprint-share-actions { display:flex; flex-wrap:wrap; align-items:center; gap:.6rem; margin-top:.65rem; }
+[data-hof-blueprint-share] button[hidden], [data-manual-blueprint][hidden] { display:none; }
+[data-hof-blueprint-share] button { padding:.55rem .75rem; border:1px solid rgba(255,255,255,.25); border-radius:8px; background:transparent; color:#fff; font:inherit; font-weight:700; cursor:pointer; }
+[data-blueprint-status] { margin:.55rem 0 0; color:#c0cad6; font-size:.86rem; }
+[data-blueprint-status]:empty { margin:0; }
+[data-manual-blueprint] { display:block; margin-top:.5rem; color:#c0cad6; font-size:.86rem; }
+[data-manual-blueprint] input { display:block; width:100%; min-width:0; padding:.5rem; border:1px solid #8095a6; border-radius:7px; margin-top:.25rem; background:#0d1f35; color:#fff; font:inherit; }
+[data-hof-blueprint-share] a { color:var(--gold-light, #e8b86d); font-weight:700; }

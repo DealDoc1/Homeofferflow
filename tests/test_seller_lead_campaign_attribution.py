@@ -44,6 +44,18 @@ class SellerLeadCampaignAttributionTests(unittest.TestCase):
             "source": "tracked_seller_landing",
         })
 
+    def test_build_readiness_source_is_preserved_for_seller_conversion_attribution(self):
+        campaign = fsbo._seller_campaign_payload({
+            "acquisition_channel": "build_readiness",
+            "utm_source": "build_readiness",
+            "utm_medium": "owned_navigation",
+            "utm_campaign": "equity_to_keys",
+        })
+        self.assertEqual(campaign["source"], "tracked_seller_landing")
+        self.assertEqual(campaign["utm_source"], "build_readiness")
+        self.assertEqual(campaign["utm_medium"], "owned_navigation")
+        self.assertEqual(campaign["utm_campaign"], "equity_to_keys")
+
     def test_landing_channel_is_allowlisted_and_does_not_override_campaign_tags(self):
         rejected = fsbo._seller_campaign_payload({"acquisition_channel": "private-referrer.example/person"})
         self.assertEqual(rejected["source"], "website_fsbo_intake")

@@ -36,6 +36,7 @@
     const source = String(params.get('utm_source') || '').trim().toLowerCase();
     const medium = String(params.get('utm_medium') || '').trim().toLowerCase();
     if (medium === 'installed_app' || source === 'pwa_shortcut') return 'pwa_shortcut';
+    if (source === 'build_readiness') return 'build_readiness';
     if (medium === 'organic_content' || source === 'organic') return 'organic';
     if (source === 'homeofferflow' || medium === 'homepage') return 'homepage';
     if (source === 'homeofferflow_admin' && outreachChannels.has(medium)) return medium;
