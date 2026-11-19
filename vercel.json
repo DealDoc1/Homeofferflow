@@ -69,6 +69,10 @@
   },
   "rewrites": [
     {
+      "source": "/api/offer-draft",
+      "destination": "/api/create-checkout?__hof_route=offer-draft"
+    },
+    {
       "source": "/api/resend-webhook",
       "destination": "/api/fsbo-lead?resend_webhook=1"
     },
