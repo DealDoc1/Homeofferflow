@@ -27104,7 +27104,7 @@ function hofSpreadsheetCsvCell(value) {
   const installReturnRecordedKeyPrefix = 'hof_pwa_install_returned_';
   const ondemandFirstOfferAttributionKey = 'hof_ondemand_first_offer_attribution';
   const ondemandWorkflowSelectionAttributionKey = 'hof_ondemand_workflow_selection_attribution';
-  const validActions = new Set(['workspace', 'brokerage_setup', 'transaction_start', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'investor_workspace', 'partner_marketplace', 'buyer_offer']);
+  const validActions = new Set(['workspace', 'brokerage_setup', 'transaction_start', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'investor_workspace', 'partner_marketplace', 'buyer_offer', 'build_readiness']);
   const validTransactionWorkflows = new Set(['purchase', 'sale_listing', 'lease_listing', 'lease_representation']);
   let defaultWorkspaceOpened = false;
 
@@ -27171,7 +27171,7 @@ function hofSpreadsheetCsvCell(value) {
       '/', '/agents', '/buyers', '/sellers', '/investors', '/partners', '/directory', '/ondemand',
       '/texas-fsbo-guide', '/texas-home-service-partner-guide', '/texas-agent-offer-workflow',
       '/texas-listing-workflow', '/texas-lease-offer-workflow', '/texas-agent-form-library',
-      '/texas-seller-offer-review', '/texas-homebuyer-offer-guide', '/texas-investor-offer-guide'
+      '/texas-seller-offer-review', '/texas-homebuyer-offer-guide', '/texas-investor-offer-guide', '/build-readiness'
     ]);
     let surface = '';
     try { surface = String(localStorage.getItem(installIntentSurfaceKey) || ''); } catch (_) { return; }
@@ -27359,6 +27359,10 @@ function hofSpreadsheetCsvCell(value) {
 
   async function runAction(action, { resumedAfterSignIn = false } = {}){
     if (!validActions.has(action)) return;
+    if (action === 'build_readiness') {
+      window.location.assign('/build-readiness?utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=build_readiness');
+      return;
+    }
     if (action === 'seller_plan') {
       // Seller intake is intentionally public: this shortcut restores the
       // FSBO planning path without requiring a new account or native app.

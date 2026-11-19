@@ -7,13 +7,15 @@ const { test } = require('node:test');
 const html = fs.readFileSync(path.resolve(__dirname, '..', 'index.html'), 'utf8');
 const source = html.split('<script id="hof-pwa-shortcuts-v1">', 2)[1].split('</script>', 1)[0];
 
-function run({ standalone = true, ok = true, userAgent = 'Mozilla/5.0 (iPhone)' } = {}) {
-  const local = new Map([['hof_pwa_install_intent_surface', 'agent_saved_offer']]);
+function run({ standalone = true, ok = true, userAgent = 'Mozilla/5.0 (iPhone)', surface = 'agent_saved_offer', action = '' } = {}) {
+  const local = new Map([['hof_pwa_install_intent_surface', surface]]);
+  if (action) local.set('hof_pwa_preferred_launch_action', action);
   const session = new Map();
   const requests = [];
+  const assignments = [];
   const handlers = {};
   const window = {
-    location: { pathname: '/', search: '', hash: '', assign() {} },
+    location: { pathname: '/', search: '', hash: '', assign: url => assignments.push(url) },
     navigator: { standalone: false },
     matchMedia: () => ({ matches: standalone }),
     history: { replaceState() {} },
@@ -43,7 +45,7 @@ function run({ standalone = true, ok = true, userAgent = 'Mozilla/5.0 (iPhone)' 
     },
   });
   vm.runInContext(source, context);
-  return { handlers, local, session, requests };
+  return { handlers, local, session, requests, assignments };
 }
 
 test('first standalone return records only an allowlisted surface once', async () => {
@@ -69,6 +71,16 @@ test('normal browser visits do not record an installed-app return', async () => 
   x.handlers.DOMContentLoaded();
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(x.requests.length, 0);
+});
+
+test('a Build Readiness install returns to the blueprint and records the public return', async () => {
+  const x = run({ surface: '/build-readiness', action: 'build_readiness' });
+  x.handlers.DOMContentLoaded();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(x.assignments[0], '/build-readiness?utm_source=pwa_shortcut&utm_medium=installed_app&utm_campaign=build_readiness');
+  const payload = JSON.parse(x.requests[0].options.body);
+  assert.equal(payload.surface, '/build-readiness');
+  assert.equal(payload.event_type, 'pwa_install_returned');
 });
 
 test('failed recording remains retryable without duplicating the pending request', async () => {

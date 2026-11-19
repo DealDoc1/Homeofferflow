@@ -240,7 +240,7 @@ class PwaInstallExperienceTests(unittest.TestCase):
         self.assertIn("window.openAccountDashboard = async function openAccountDashboardWithPendingPwaShortcut()", INDEX)
 
     def test_only_safe_declared_shortcuts_can_be_saved_or_routed_after_authentication(self):
-        self.assertIn("const validActions = new Set(['workspace', 'brokerage_setup', 'transaction_start', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'investor_workspace', 'partner_marketplace', 'buyer_offer']);", INDEX)
+        self.assertIn("const validActions = new Set(['workspace', 'brokerage_setup', 'transaction_start', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'investor_workspace', 'partner_marketplace', 'buyer_offer', 'build_readiness']);", INDEX)
         self.assertIn("if (!validActions.has(action)) return;", INDEX)
         self.assertIn("sessionStorage.removeItem(pendingActionKey)", INDEX)
         self.assertIn("else if (action === 'relationship_drafts') await openRelationshipDrafts();", INDEX)

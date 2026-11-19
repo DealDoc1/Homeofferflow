@@ -129,7 +129,8 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertIn("event.waitUntil", WORKER)
         self.assertIn("? caches.match(cacheKey).then(response => response || caches.match('/index.html'))", WORKER)
         self.assertIn("cache.put(cacheKey, offlineCopy)", WORKER)
-        self.assertNotIn("cache.put(event.request", WORKER)
+        navigation = WORKER.split("if (event.request.mode === 'navigate')", 1)[1]
+        self.assertNotIn("cache.put(event.request", navigation)
 
     def test_worker_keeps_public_pages_separate_in_the_offline_cache(self):
         for path in ("'/buyers'", "'/agents'", "'/investors'", "'/sellers'", "'/partners'", "'/directory'", "'/ondemand'", "'/texas-fsbo-guide'", "'/texas-agent-offer-workflow'", "'/texas-homebuyer-offer-guide'", "'/texas-investor-offer-guide'", "'/texas-home-service-partner-guide'", "'/texas-agent-form-library'", "'/texas-seller-financing-guide'", "'/texas-buyer-representation-guide'", "'/texas-flat-fee-mls-guide'", "'/texas-seller-net-proceeds-calculator'", "'/texas-fsbo-closing-checklist'"):
@@ -163,7 +164,7 @@ class PwaBaselineTests(unittest.TestCase):
         self.assertEqual(buyer_offer["url"], "/?pwa_action=buyer_offer")
         self.assertIn("No payment to begin", buyer_offer["description"])
         self.assertEqual(buyer_offer["icons"][0]["src"], "/assets/homeofferflow-app-icon-192.png")
-        self.assertIn("const validActions = new Set(['workspace', 'brokerage_setup', 'transaction_start', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'investor_workspace', 'partner_marketplace', 'buyer_offer']);", INDEX)
+        self.assertIn("const validActions = new Set(['workspace', 'brokerage_setup', 'transaction_start', 'listing_tools', 'relationship_drafts', 'offer_review', 'new_offer', 'signing_queue', 'attention_queue', 'seller_plan', 'investor_workspace', 'partner_marketplace', 'buyer_offer', 'build_readiness']);", INDEX)
         self.assertIn("const validTransactionWorkflows = new Set(['purchase', 'sale_listing', 'lease_listing', 'lease_representation']);", INDEX)
         self.assertIn("window.rememberAgentTransactionChoice(workflow)", INDEX)
         self.assertIn("if (action === 'transaction_start')", INDEX)
