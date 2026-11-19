@@ -271,10 +271,10 @@ class TechnicalSeoTests(unittest.TestCase):
             r"<url>\s*<loc>(https://www\.homeofferflow\.com/[^<]*)</loc>\s*<lastmod>(\d{4}-\d{2}-\d{2})</lastmod>\s*</url>",
             SITEMAP,
         )
-        self.assertEqual(len(entries), 22)
+        self.assertEqual(len(entries), 23)
         self.assertEqual(dict(entries)["https://www.homeofferflow.com/"], "2026-09-12")
-        for path in ("/agents", "/ondemand", "/partners", "/texas-home-service-partner-guide", "/buyers", "/sellers", "/texas-fsbo-guide", "/texas-seller-offer-review", "/texas-agent-offer-workflow", "/texas-lease-offer-workflow", "/texas-listing-workflow", "/texas-agent-form-library", "/texas-seller-financing-guide", "/texas-buyer-representation-guide", "/texas-flat-fee-mls-guide", "/texas-seller-net-proceeds-calculator", "/texas-fsbo-closing-checklist", "/texas-homebuyer-offer-guide", "/texas-investor-offer-guide", "/investors", "/directory"):
-            expected = "2026-09-10" if path in {"/sellers", "/agents"} else "2026-09-08" if path in {"/texas-agent-offer-workflow", "/partners"} else "2026-09-06" if path in {"/ondemand", "/investors"} else "2026-08-27" if path in {"/buyers", "/texas-seller-net-proceeds-calculator"} else "2026-08-24"
+        for path in ("/agents", "/ondemand", "/partners", "/texas-home-service-partner-guide", "/buyers", "/sellers", "/build-readiness", "/texas-fsbo-guide", "/texas-seller-offer-review", "/texas-agent-offer-workflow", "/texas-lease-offer-workflow", "/texas-listing-workflow", "/texas-agent-form-library", "/texas-seller-financing-guide", "/texas-buyer-representation-guide", "/texas-flat-fee-mls-guide", "/texas-seller-net-proceeds-calculator", "/texas-fsbo-closing-checklist", "/texas-homebuyer-offer-guide", "/texas-investor-offer-guide", "/investors", "/directory"):
+            expected = "2026-11-18" if path == "/build-readiness" else "2026-09-10" if path in {"/sellers", "/agents"} else "2026-09-08" if path == "/partners" else "2026-09-08" if path == "/texas-agent-offer-workflow" else "2026-09-06" if path in {"/ondemand", "/investors"} else "2026-08-27" if path in {"/buyers", "/texas-seller-net-proceeds-calculator"} else "2026-08-24"
             self.assertEqual(dict(entries)[f"https://www.homeofferflow.com{path}"], expected)
 
     def test_revenue_guides_show_and_describe_their_real_site_hierarchy(self):

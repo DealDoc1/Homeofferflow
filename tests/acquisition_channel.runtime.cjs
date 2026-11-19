@@ -25,6 +25,7 @@ test('classifies explicit privacy-safe campaign channels', () => {
   assert.equal(classify({ search: '?utm_source=email' }), 'email');
   assert.equal(classify({ search: '?utm_source=organic' }), 'organic');
   assert.equal(classify({ search: '?utm_source=pwa_shortcut' }), 'pwa_shortcut');
+  assert.equal(classify({ search: '?utm_source=build_readiness&utm_medium=owned_navigation&utm_campaign=equity_to_keys' }), 'build_readiness');
   assert.equal(classify({ search: '?utm_source=homeofferflow&utm_medium=homepage' }), 'homepage');
   assert.equal(classify({ search: '?utm_source=homeofferflow_admin&utm_medium=direct_outreach' }), 'direct_outreach');
 });

@@ -19,6 +19,7 @@ from lib import listing_workspace_creation, listing_workspace_offer_comparison, 
 from lib import platform_form_source_upload as platform_source
 from lib import partner_marketplace_agreement
 from lib import seller_disclosure_draft
+from lib.seller_campaign_metrics import build_seller_campaign_channel_counts
 from lib import seller_review_access
 from lib import seller_checkout
 from lib import seller_financing
@@ -7332,6 +7333,7 @@ class handler(BaseHTTPRequestHandler):
                 lead for lead in seller_leads
                 if str(lead.get("source") or "").lower() == "tracked_seller_landing"
             ]
+            seller_campaign_channel_counts = build_seller_campaign_channel_counts(tracked_seller_campaign_leads)
             for lead in tracked_seller_campaign_leads:
                 medium = str(lead.get("utm_medium") or "").strip().lower()
                 if medium in seller_campaign_medium_counts and medium != "other_tracked":
@@ -8542,7 +8544,7 @@ class handler(BaseHTTPRequestHandler):
                 item for item in seller_landing_events if item.get("event_type") == "fsbo_support_paths_expanded"
             ])
             seller_landing_channels = (
-                "direct", "homepage", "organic", "pwa_shortcut", "direct_outreach", "email", "seller_receipt", "social",
+                "direct", "homepage", "organic", "pwa_shortcut", "build_readiness", "direct_outreach", "email", "seller_receipt", "social",
                 "referral", "local_event", "print", "unspecified",
             )
             seller_landing_view_counts_by_channel = {
@@ -8775,6 +8777,7 @@ class handler(BaseHTTPRequestHandler):
                 "sellerPackageRequestCounts": seller_package_request_counts,
                 "sellerCampaignLeadCount": len(tracked_seller_campaign_leads),
                 "sellerCampaignMediumCounts": seller_campaign_medium_counts,
+                "sellerCampaignChannelCounts": seller_campaign_channel_counts,
                 "landingAudienceSelectionCount": sum(landing_audience_selection_counts.values()),
                 "landingAudienceSelectionCounts": landing_audience_selection_counts,
                 "qualifiedSellerLeadCount": len([lead for lead in seller_leads if lead.get("status") in {"qualified", "converted"}]),

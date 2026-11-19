@@ -200,7 +200,7 @@ FSBO_LANDING_EVENT_TYPES = {
     "pwa_seller_plan_opened": "opened",
 }
 FSBO_LANDING_CHANNELS = {
-    "direct", "homepage", "organic", "pwa_shortcut", "direct_outreach", "email", "seller_receipt", "social", "referral", "local_event", "print", "unspecified",
+    "direct", "homepage", "organic", "pwa_shortcut", "build_readiness", "direct_outreach", "email", "seller_receipt", "social", "referral", "local_event", "print", "unspecified",
 }
 FSBO_RECEIPT_DELIVERY_STATUSES = {"sent", "failed", "not_configured", "missing_email"}
 PARTNER_APPLICATION_RECEIPT_DELIVERY_STATUSES = {"sent", "failed", "not_configured", "missing_email"}
