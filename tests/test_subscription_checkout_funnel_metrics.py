@@ -155,7 +155,8 @@ class SubscriptionCheckoutFunnelMetricTests(unittest.TestCase):
         self.assertIn("agent_activation", source)
         self.assertIn("subscription_cancel_recovery", source)
         self.assertIn("source: subscriptionCheckoutSource(pending.source)", source)
-        self.assertIn("if (logged) {", source)
+        self.assertIn("if (logged && sessionStorage.getItem(SUBSCRIPTION_CHECKOUT_RETURN_KEY) === raw) {", source)
+        self.assertNotIn("await flushSubscriptionCheckoutReturnEvent();", source)
         self.assertIn("sessionStorage.removeItem(SUBSCRIPTION_CHECKOUT_RETURN_KEY)", source)
         self.assertIn("sessionStorage.removeItem(SUBSCRIPTION_CHECKOUT_SOURCE_KEY)", source)
 

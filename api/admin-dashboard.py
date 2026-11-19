@@ -1062,6 +1062,71 @@ async def _record_offer_event(user_id, event_type, message, metadata=None):
         return
 
 
+async def _record_user_offer_event(user, data):
+    """Write bounded browser telemetry using the verified session identity."""
+    if not isinstance(data, dict) or set(data) != {
+        "action", "offerId", "eventType", "status", "message", "metadata"
+    }:
+        raise ValueError("Provide only the event details to record.")
+    owner = listing_workspace_offer_comparison.normalized_uuid(
+        user.get("id"), "Sign in again before recording this activity."
+    )
+    event_type = data.get("eventType")
+    if not isinstance(event_type, str) or not re.fullmatch(r"[a-z][a-z0-9_]{0,79}", event_type):
+        raise ValueError("The activity type is invalid.")
+    status = data.get("status")
+    if status is not None and (not isinstance(status, str) or len(status) > 80):
+        raise ValueError("The activity status is invalid.")
+    message = data.get("message")
+    if message is not None and (not isinstance(message, str) or len(message) > 240):
+        raise ValueError("The activity message is too long or invalid.")
+    metadata = data.get("metadata")
+    if metadata is None:
+        metadata = {}
+    if not isinstance(metadata, dict) or len(metadata) > 24:
+        raise ValueError("The activity details are invalid.")
+    try:
+        metadata_bytes = json.dumps(metadata, ensure_ascii=False, allow_nan=False).encode("utf-8")
+    except (TypeError, ValueError, RecursionError):
+        raise ValueError("The activity details are invalid.")
+    if len(metadata_bytes) > 4096:
+        raise ValueError("The activity details are too large.")
+
+    raw_offer_id = data.get("offerId")
+    offer_id = None
+    if raw_offer_id is not None:
+        offer_id = listing_workspace_offer_comparison.normalized_uuid(
+            raw_offer_id, "Choose a valid offer for this activity."
+        )
+        rows = await _get(
+            "hof_offers?"
+            f"id=eq.{urllib.parse.quote(offer_id, safe='')}"
+            f"&user_id=eq.{urllib.parse.quote(owner, safe='')}"
+            "&select=id&limit=1"
+        )
+        if not isinstance(rows, list) or not rows:
+            raise PermissionError("That offer is unavailable.")
+
+    payload = {
+        "offer_id": offer_id,
+        "user_id": owner,
+        "event_type": event_type,
+        "status": status.strip() or None if isinstance(status, str) else None,
+        "message": message.strip() or None if isinstance(message, str) else None,
+        "metadata": metadata,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.post(
+            f"{SUPABASE_URL}/rest/v1/hof_offer_events",
+            headers={**_headers(), "Prefer": "return=minimal"},
+            json=payload,
+        )
+    if response.status_code >= 300:
+        raise RuntimeError("Could not record this activity.")
+    return {"recorded": True}
+
+
 async def _patch(table, query, payload, *, expected_id=None):
     """Patch a service-owned row and fail closed on non-success responses."""
     prefer = "return=minimal"
@@ -9460,6 +9525,20 @@ class handler(BaseHTTPRequestHandler):
                     _json(self, 503, {"error": "We couldn’t confirm the comparison change. Refresh the workspace and check it before trying again."})
                     return
                 _json(self, 201 if action == "save_listing_workspace_offer_comparison" else 200, {"ok": True, "offer": offer})
+                return
+            if data.get("action") == "record_offer_event":
+                try:
+                    event = asyncio.run(_record_user_offer_event(user, data))
+                except ValueError as exc:
+                    _json(self, 400, {"error": str(exc)})
+                    return
+                except PermissionError as exc:
+                    _json(self, 403, {"error": str(exc)})
+                    return
+                except (httpx.HTTPError, RuntimeError):
+                    _json(self, 503, {"error": "Could not record this activity."})
+                    return
+                _json(self, 200, {"ok": True, "event": event})
                 return
             if data.get("action") == "delete_agent_offer":
                 try:

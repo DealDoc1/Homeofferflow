@@ -8,7 +8,7 @@ const code = html.match(/<script>\s*([\s\S]*?)<\/script>/)[1];
 const session = id => ({user: {id, email: `${id}@example.com`}, access_token: `fictional-${id}`});
 const deferred = () => { let resolve; const promise = new Promise(r => { resolve = r; }); return {promise, resolve}; };
 async function settle() { for (let i = 0; i < 30; i++) await new Promise(r => setImmediate(r)); }
-function fixture({saved = session('a'), savedRead, failRead = false, access = async () => false, search = '?checkout=success'} = {}) {
+function fixture({saved = session('a'), savedRead, failRead = false, access = async () => false, search = '?checkout=success', eventResponseOk = true} = {}) {
   const elements = new Map();
   const el = id => {
     if (!elements.has(id)) elements.set(id, {style: {}, textContent: '', innerHTML: '', checked: false,
@@ -16,7 +16,7 @@ function fixture({saved = session('a'), savedRead, failRead = false, access = as
       addEventListener(name, fn) { this.listeners[name] = fn; }, appendChild() {}, setAttribute() {}, focus() {}, checkValidity() { return true; }});
     return elements.get(id);
   };
-  let listener; const calls = []; const storage = new Map();
+  let listener; const calls = []; const apiEvents = []; let directWrites = 0; const storage = new Map();
   const auth = {
     onAuthStateChange(fn) { listener = fn; },
     async getSession() { if (failRead) throw Error('temporary read failure'); return savedRead ? await savedRead.promise : {data: {session: saved}}; },
@@ -24,17 +24,40 @@ function fixture({saved = session('a'), savedRead, failRead = false, access = as
   const location = {origin: 'https://www.homeofferflow.com', pathname: '/ondemand', search, href: `https://www.homeofferflow.com/ondemand${search}`, assign() { throw Error('unexpected navigation'); }};
   const context = {URL, URLSearchParams, Date, navigator: {userAgent: 'desktop'}, console: {warn() {}},
     document: {referrer: '', title: 'HomeOfferFlow', getElementById: el, documentElement: {style: {setProperty() {}}}, createElement: () => ({style: {}})},
-    window: {location, history: {replaceState() {}}, addEventListener() {}, supabase: {createClient: () => ({auth, from: () => ({insert: async () => ({error: null})})})}},
+    window: {location, history: {replaceState() {}}, addEventListener() {}, supabase: {createClient: () => ({auth, from: () => ({insert: async () => { directWrites++; return {error: null}; }})})}},
     sessionStorage: {getItem: k => storage.get(k), setItem: (k,v) => storage.set(k,v)},
     setTimeout: fn => { queueMicrotask(fn); return 1; },
     fetch: async (url, options) => {
       if (url.includes('status=access')) { calls.push(options.headers.Authorization); return {ok: true, json: async () => ({access: await access(options.headers.Authorization)})}; }
+      if (url === '/api/admin-dashboard') {
+        apiEvents.push({headers: options.headers, body: JSON.parse(options.body)});
+        return {ok: eventResponseOk, json: async () => ({ok: eventResponseOk})};
+      }
       return {ok: true, json: async () => ({brokerage: {}})};
     },
   };
   vm.runInNewContext(code, context);
-  return {el, calls, emit: value => listener('SIGNED_IN', value)};
+  return {el, calls, apiEvents, get directWrites() { return directWrites; }, emit: value => listener('SIGNED_IN', value)};
 }
+test('OnDemand checkout returns record funnel events through the authenticated API', async () => {
+  const f = fixture({search: '?checkout=cancelled'}); await settle();
+  assert.equal(f.apiEvents.length, 2);
+  assert.equal(f.apiEvents[0].headers.Authorization, 'Bearer fictional-a');
+  assert.equal(f.apiEvents[0].body.action, 'record_offer_event');
+  assert.equal(f.apiEvents[0].body.offerId, null);
+  assert.equal(f.apiEvents[0].body.eventType, 'subscription_checkout_returned');
+  assert.equal(f.apiEvents[0].body.status, 'cancelled');
+  assert.equal(f.apiEvents[0].body.metadata.source, 'ondemand');
+  assert.equal(f.apiEvents[1].body.eventType, 'subscription_checkout_recovery_shown');
+  assert.equal(f.apiEvents[1].body.status, 'shown');
+  assert.equal(f.directWrites, 0);
+});
+test('a funnel API failure does not block the canceled-checkout recovery path', async () => {
+  const f = fixture({search: '?checkout=cancelled', eventResponseOk: false}); await settle();
+  assert.equal(f.apiEvents.length, 2);
+  assert.equal(f.el('checkoutRecovery').style.display, 'block');
+  assert.equal(f.directWrites, 0);
+});
 test('a success URL never exposes workspace links before server access confirmation', async () => {
   const pending = deferred(); const f = fixture({access: () => pending.promise}); await settle();
   assert.equal(f.el('workspaceButton').style.display, 'none');

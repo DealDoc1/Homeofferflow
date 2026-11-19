@@ -439,8 +439,8 @@
       // the main product.  The launch page is intentionally standalone, so it
       // cannot reuse index.html's event helper.
       async function recordCheckoutFunnelEvent(eventType, result = "") {
-        const user = state.session?.user;
-        if (!user?.id) return;
+        const session = state.session;
+        if (!session?.user?.id || !session?.access_token) return;
         let channel = "unspecified";
         let campaign = "";
         try {
@@ -457,18 +457,25 @@
           : "";
         try {
           if (storageKey && sessionStorage.getItem(storageKey) === "1") return;
-          const { error } = await client.from("hof_offer_events").insert({
-            offer_id: null,
-            user_id: user.id,
-            event_type: eventType,
-            status: result || null,
-            message: result
-              ? `Returned from OnDemand Stripe checkout: ${result}.`
-              : "OnDemand Stripe checkout started.",
-            metadata: { source: "ondemand", plan: "agent", billing: "monthly", channel, ...(campaign ? {utmCampaign: campaign} : {}) },
-            created_at: new Date().toISOString()
+          const response = await fetch("/api/admin-dashboard", {
+            method: "POST",
+            keepalive: true,
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({
+              action: "record_offer_event",
+              offerId: null,
+              eventType,
+              status: result || null,
+              message: result
+                ? `Returned from OnDemand Stripe checkout: ${result}.`
+                : "OnDemand Stripe checkout started.",
+              metadata: { source: "ondemand", plan: "agent", billing: "monthly", channel, ...(campaign ? {utmCampaign: campaign} : {}) }
+            })
           });
-          if (error) throw error;
+          if (!response.ok) throw new Error("The checkout activity could not be recorded.");
           if (storageKey) sessionStorage.setItem(storageKey, "1");
         } catch (error) {
           // Telemetry must never interrupt a signed-in agent's enrollment.
@@ -674,7 +681,7 @@
         showStatus("");
         try {
           await recordLegalAcceptance();
-          await recordCheckoutFunnelEvent("subscription_checkout_started");
+          void recordCheckoutFunnelEvent("subscription_checkout_started");
           const response = await fetch("/api/create-subscription-checkout", {
             method: "POST",
             headers: {
@@ -808,13 +815,13 @@
         const activeSession = state.session || initialSession;
         const checkoutResult = params.get("checkout");
         if (checkoutResult === "success" || checkoutResult === "cancelled") {
-          await recordCheckoutFunnelEvent("subscription_checkout_returned", checkoutResult);
+          void recordCheckoutFunnelEvent("subscription_checkout_returned", checkoutResult);
         }
         if (checkoutResult === "success" && activeSession?.user?.id) {
           await confirmActivatedWorkspace();
         }
         if (checkoutResult === "cancelled" && activeSession?.user?.id) {
-          await recordCheckoutFunnelEvent("subscription_checkout_recovery_shown", "shown");
+          void recordCheckoutFunnelEvent("subscription_checkout_recovery_shown", "shown");
         }
         await acceptBrokerageInvite(activeSession);
       }
