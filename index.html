@@ -20970,7 +20970,7 @@ function hofSpreadsheetCsvCell(value) {
         <button class="offer-action-btn" type="button" onclick="copyOfferSummary('${esc(o.id)}')">Copy summary</button>
         ${['generated', 'signing', 'signed'].includes(bucketForOffer(o)) ? `<button class="offer-action-btn" type="button" onclick="hofOpenOfferPdf('${esc(o.id)}', this)">Print unsigned copy</button>` : ''}
         ${bucketForOffer(o) === 'signed' ? `<button class="offer-action-btn" type="button" onclick="hofOpenOfferPdf('${esc(o.id)}', this, true)">Signed PDF</button>` : ''}
-        <button class="offer-action-btn" type="button" onclick="window.startOfferSellerDisclosure('${esc(o.id)}')">Seller’s disclosure</button>
+        <button class="offer-action-btn" type="button" onclick="window.startOfferSellerDisclosure('${esc(o.id)}', this)">Seller’s disclosure</button>
         ${hasDoc ? `<button class="offer-action-btn" type="button" onclick="refreshSignWellStatus('${esc(o.id)}', this)">Refresh</button>` : `<button class="offer-action-btn" type="button" onclick="viewOfferDetails('${esc(o.id)}')">Status</button>`}
         ${canRetrySigning ? `<button class="offer-action-btn" type="button" onclick="retryOfferSignature('${esc(o.id)}', this)">Retry signing</button>` : ''}
         ${needsBuyerReminder ? `<button class="offer-action-btn" type="button" onclick="copyBuyerSigningReminder('${esc(o.id)}')">Copy buyer reminder</button>` : ''}
@@ -21254,6 +21254,13 @@ function hofSpreadsheetCsvCell(value) {
 
   function announceWorkspaceStatus(message){
     let status = document.getElementById('hofWorkspaceStatus');
+    if (!message) {
+      if (status) {
+        window.clearTimeout(status._hofDismissTimer);
+        status.remove();
+      }
+      return;
+    }
     if (!status) {
       status = document.createElement('div');
       status.id = 'hofWorkspaceStatus';
@@ -26079,6 +26086,8 @@ function hofSpreadsheetCsvCell(value) {
 </script>
 
 <style id="hof-seller-disclosure-draft-ui-v1">
+.hof-seller-disclosure-card > p,.hof-seller-disclosure-workspace > summary small{color:var(--gray-light)}
+.hof-seller-disclosure-workspace > summary{color:var(--white)}
 .hof-seller-disclosure-card .hof-seller-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .hof-seller-disclosure-card .hof-seller-grid>label{min-width:0}
 .hof-seller-disclosure-card .hof-seller-grid input,.hof-seller-disclosure-card .hof-seller-grid select{width:100%;min-width:0;max-width:100%;box-sizing:border-box}
@@ -26267,38 +26276,68 @@ function hofSpreadsheetCsvCell(value) {
     window.setTimeout(open, 250);
     window.setTimeout(open, 900);
   };
-  root.startOfferSellerDisclosure = async function startOfferSellerDisclosure(offerId) {
-    const userId = root.hofAuth?.session?.user?.id, client = root.getSupabaseClient?.();
-    if (!userId || !client || !active()) return;
+  root.startOfferSellerDisclosure = async function startOfferSellerDisclosure(offerId, button) {
+    const userId = root.hofAuth?.session?.user?.id;
+    const token = root.hofAuth?.session?.access_token;
+    if (button?.disabled || !active()) return;
+    if (!userId || !token) {
+      root.announceWorkspaceStatus?.('Sign in again to open the seller’s disclosure from this offer.');
+      return;
+    }
+    const id = String(offerId || '').toLowerCase();
     const revision = ++listingDisclosureHandoffRevision;
-    const {data, error} = await client.from('hof_offers')
-      .select('id,user_id,property_address,offer_data').eq('id', String(offerId)).eq('user_id', userId)
-      .is('deleted_at', null).maybeSingle();
-    if (revision !== listingDisclosureHandoffRevision || root.hofAuth?.session?.user?.id !== userId) return;
+    const epoch = root.__hofAccountProfileEpoch || 0;
+    const isCurrent = () => revision === listingDisclosureHandoffRevision &&
+      active() && root.hofAuth?.session?.user?.id === userId && (root.__hofAccountProfileEpoch || 0) === epoch;
+    const label = button?.textContent;
+    if (button) { button.disabled = true; button.textContent = 'Opening disclosure…'; }
+    root.announceWorkspaceStatus?.('');
+    try {
+      const params = new URLSearchParams({scope: 'agent_seller_disclosure_offer_context', offer_id: id});
+      const response = await fetch(`/api/admin-dashboard?${params.toString()}`, {
+        headers: {Authorization: `Bearer ${token}`},
+        signal: AbortSignal.timeout(15000)
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!isCurrent()) return;
+      if (response.status === 404 || response.status === 401) {
+        root.announceWorkspaceStatus?.(response.status === 404
+          ? 'This offer is unavailable. Refresh My Offers to see your current offers.'
+          : 'Sign in again to open the seller’s disclosure from this offer.');
+        return;
+      }
+      if (!response.ok || result.context?.offerId !== id) throw new Error('Offer disclosure unavailable');
+      if (!document.getElementById('hofSellerDisclosureCard')) await renderCard();
+      if (isCurrent()) await openOfferDisclosureContext(result.context, isCurrent);
+    } catch (_) {
+      if (isCurrent()) root.announceWorkspaceStatus?.('Couldn’t load offer details. Choose Seller’s disclosure to try again.');
+    } finally {
+      if (button) { button.disabled = false; button.textContent = label; }
+    }
+  };
+  async function openOfferDisclosureContext(context, isCurrent) {
+    if (!document.getElementById('hofSellerDisclosureCard')) return;
     await root.openSellerDisclosureDraftWorkspace();
     const card = document.getElementById('hofSellerDisclosureCard'), status = document.getElementById('hofSellerDraftStatus');
-    if (!card) return;
-    if (error || data?.id !== String(offerId) || data?.user_id !== userId) {
-      if (status) status.textContent = 'We could not open that offer for this account.'; return;
-    }
+    if (!card || !isCurrent()) return;
     const fields = ['hofSellerAddress','hofSeller1','hofSeller2','hofSellerEmail','hofSeller2Email','hofBuyer1','hofBuyer2','hofWaterSource'];
     const responses = [...card.querySelectorAll('[data-seller-response], [data-water-response]')];
     if ((card.dataset.loadedDraftId || fields.some(id => document.getElementById(id)?.value) || responses.some(f => f.value))
         && !await confirmListingDisclosureReplacement()) return;
-    if (revision !== listingDisclosureHandoffRevision || root.hofAuth?.session?.user?.id !== userId || document.getElementById('hofSaveSellerDraft')?.disabled) return;
+    if (!isCurrent() || document.getElementById('hofSellerDisclosureCard') !== card ||
+        document.getElementById('hofSaveSellerDraft')?.disabled) return;
     fields.forEach(id => { document.getElementById(id).value = ''; }); responses.forEach(f => { f.value = ''; });
     delete card.dataset.loadedDraftId; delete card.dataset.sellerDraftId;
     document.getElementById('hofSellerWorkspace').value = '';
-    const saved = data.offer_data || {};
-    document.getElementById('hofSellerAddress').value = data.property_address || saved.propertyAddress || saved.propAddress || '';
-    document.getElementById('hofSeller1').value = saved.seller1Name || saved.seller1 || '';
-    document.getElementById('hofSeller2').value = saved.seller2Name || saved.seller2 || '';
-    document.getElementById('hofSellerEmail').value = saved.seller1Email || '';
-    document.getElementById('hofSeller2Email').value = saved.seller2Email || '';
+    document.getElementById('hofSellerAddress').value = context.propertyAddress || '';
+    document.getElementById('hofSeller1').value = context.seller1Name || '';
+    document.getElementById('hofSeller2').value = context.seller2Name || '';
+    document.getElementById('hofSellerEmail').value = context.seller1Email || '';
+    document.getElementById('hofSeller2Email').value = context.seller2Email || '';
     document.getElementById('hofSendSellerReview').disabled = true;
     syncWaterRightsVisibility(); syncDisclosureDetails(card);
     if (status) status.textContent = 'Offer details added. Confirm the seller contacts, save the disclosure, then send the questionnaire. You do not need to answer for the seller.';
-  };
+  }
   root.filterSellerDisclosureDrafts = function filterSellerDisclosureDrafts(value) {
     const query = String(value || '').trim().toLowerCase();
     const rows = Array.from(document.querySelectorAll('[data-seller-draft-row]'));
