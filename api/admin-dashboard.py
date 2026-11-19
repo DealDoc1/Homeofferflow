@@ -666,7 +666,20 @@ def _project_agent_offer_workspace_row(row):
     return projected
 
 
-async def _agent_offer_history(user, offset=0, limit=25):
+_AGENT_OFFER_CARD_FIELDS = (
+    "id", "property_address", "buyer_name", "buyer2_name", "buyer2_legacy_name",
+    "offer_price", "legacy_offer_price", "status", "signwell_status", "last_updated", "created_at",
+)
+_AGENT_OFFER_CARD_SELECT = ",".join(
+    {
+        "buyer2_name": "buyer2_name:offer_data->>buyer2",
+        "buyer2_legacy_name": "buyer2_legacy_name:offer_data->>buyer2Name",
+        "legacy_offer_price": "legacy_offer_price:offer_data->>offerPrice",
+    }.get(field, field) for field in _AGENT_OFFER_CARD_FIELDS
+)
+
+
+async def _agent_offer_history(user, offset=0, limit=25, *, view="workspace"):
     owner = listing_workspace_offer_comparison.normalized_uuid(
         user.get("id"), "Sign in again to view your offers."
     )
@@ -675,23 +688,29 @@ async def _agent_offer_history(user, offset=0, limit=25):
         limit = int(limit)
     except (TypeError, ValueError):
         raise ValueError("Choose a valid offer history page.")
-    if offset < 0 or offset > 100000 or limit != 25:
+    if offset < 0 or offset > 100000 or limit != 25 or view not in {"workspace", "summary"}:
         raise ValueError("Choose a valid offer history page.")
+    summary = view == "summary"
+    selection = _AGENT_OFFER_CARD_SELECT if summary else _AGENT_OFFER_WORKSPACE_SELECT
+    order = "last_updated.desc.nullslast,created_at.desc.nullslast,id.desc" if summary else "last_updated.desc,id.desc"
     rows = await _get(
         "hof_offers?"
         f"user_id=eq.{urllib.parse.quote(owner, safe='')}"
         "&deleted_at=is.null"
-        f"&select={_AGENT_OFFER_WORKSPACE_SELECT}"
-        f"&order=last_updated.desc,id.desc&offset={offset}&limit={limit}"
+        f"&select={selection}"
+        f"&order={order}&offset={offset}&limit={limit + int(summary)}"
     )
     if not isinstance(rows, list):
         raise RuntimeError("Offer history response is unavailable.")
-    safe_rows = [_project_agent_offer_workspace_row(row) for row in rows]
+    safe_rows = (
+        [{key: row.get(key) for key in _AGENT_OFFER_CARD_FIELDS} for row in rows[:limit]]
+        if summary else [_project_agent_offer_workspace_row(row) for row in rows]
+    )
     return {
         "offers": safe_rows,
         "offset": offset,
         "nextOffset": offset + len(safe_rows),
-        "hasMore": len(safe_rows) == limit,
+        "hasMore": len(rows) > limit and offset + limit <= 100000 if summary else len(safe_rows) == limit,
     }
 
 
@@ -6713,11 +6732,13 @@ class handler(BaseHTTPRequestHandler):
                 _json(self, 200, detail)
                 return
             if scope == "agent_offer_history":
+                view = {"view": query["view"][0]} if "view" in query else {}
                 try:
                     history = asyncio.run(_agent_offer_history(
                         user,
                         (query.get("offset") or ["0"])[0],
                         (query.get("limit") or ["25"])[0],
+                        **view,
                     ))
                 except ValueError as exc:
                     _json(self, 400, {"error": str(exc)})

@@ -16,6 +16,21 @@ OWNER = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
 
 
 class AgentOfferHistoryAPITests(unittest.TestCase):
+    def test_summary_projects_only_native_card_fields_and_looks_one_row_ahead(self):
+        row = {"id": "offer-id", "buyer2_legacy_name": "Co-buyer", "legacy_offer_price": "325000",
+               "buyer_email": "buyer@example.test", "signwell_document_id": "private", "offer_data": {"private": True}}
+        with patch.object(API, "_get", AsyncMock(return_value=[row] * 26)) as get:
+            page = asyncio.run(API._agent_offer_history({"id": OWNER}, 25, view="summary"))
+        query = get.await_args.args[0]
+        self.assertIn(f"user_id=eq.{OWNER}&deleted_at=is.null", query)
+        self.assertIn("last_updated.desc.nullslast,created_at.desc.nullslast,id.desc&offset=25&limit=26", query)
+        self.assertIn("buyer2_name:offer_data->>buyer2", query)
+        self.assertNotIn("buyer_email", query)
+        self.assertEqual((len(page["offers"]), page["nextOffset"], page["hasMore"]), (25, 50, True))
+        self.assertEqual(page["offers"][0]["buyer2_legacy_name"], "Co-buyer")
+        self.assertEqual(page["offers"][0]["legacy_offer_price"], "325000")
+        self.assertTrue({"buyer_email", "offer_data", "signwell_document_id"}.isdisjoint(page["offers"][0]))
+
     def test_history_is_owner_scoped_paginated_and_projects_only_workspace_data(self):
         row = {
             "id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "user_id": OWNER,
