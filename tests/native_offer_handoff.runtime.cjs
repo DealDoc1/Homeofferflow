@@ -15,16 +15,23 @@ const returnKey = 'hof_native_offer_sign_in_return';
 
 function setup(hash, { user = owner, storage = new Map(), now = 1000000 } = {}) {
   const calls = [];
+  const timers = [];
   const elements = new Map();
   const element = name => {
     if (!elements.has(name)) elements.set(name, {
-      hidden: true, textContent: '', classList: { contains: () => true },
+      hidden: true, textContent: '', dataset: {}, classList: { contains: () => true },
+      closest: () => null, setAttribute() {}, scrollIntoView() {},
       focus() { calls.push(['focus', name]); }
     });
     return elements.get(name);
   };
   const window = {
     __hofAccountProfileEpoch: 1,
+    setTimeout: callback => timers.push(callback),
+    hofOpenAgentPackageInterview: (workflow, options) => {
+      calls.push(['representation', workflow, options.directPackage]);
+      return true;
+    },
     announceWorkspaceStatus: message => calls.push(['status', message])
   };
   const hofAuth = { profileReady: true, session: user ? { user } : null };
@@ -38,7 +45,15 @@ function setup(hash, { user = owner, storage = new Map(), now = 1000000 } = {}) 
       setItem: (key, value) => storage.set(key, value),
       removeItem: key => storage.delete(key)
     },
-    document: { getElementById: element },
+    document: {
+      getElementById: element,
+      querySelector: () => element('hofStandaloneAgreementSearch')
+    },
+    accountTabSelectionRevision: 0,
+    showAccountTab: tab => {
+      context.accountTabSelectionRevision++;
+      calls.push(['tab', tab]);
+    },
     closeAuthModal() {},
     openAccountDashboard: async ({ tab }) => calls.push(['dashboard', tab]),
     startAccountOffer: () => calls.push(['start']),
@@ -49,7 +64,7 @@ function setup(hash, { user = owner, storage = new Map(), now = 1000000 } = {}) 
     getOfferById: async () => ({ property_address: '42 Fictional Way' })
   });
   vm.runInContext(primer + '\n' + runtime, context);
-  return { context, elements, calls, storage, hofAuth, window };
+  return { context, elements, calls, storage, hofAuth, window, timers };
 }
 
 test('links select the existing start, resume and reuse actions after authentication', async () => {
@@ -70,6 +85,10 @@ test('ignores malformed, repeated and ambiguous links without touching Supabase 
     '#hof_resume_offer=bogus', '#hof_mobile_start_offer=0',
     '#hof_resume_offer=' + id + '&hof_resume_offer=' + id,
     '#hof_resume_offer=' + id + '&hof_mobile_start_offer=1',
+    '#hof_mobile_prepared_documents=',
+    '#hof_mobile_custom_document_package=2',
+    '#hof_mobile_representation_package=landlord',
+    '#hof_mobile_listing_package_preview=buyer',
     '#access_token=fixture&refresh_token=fixture&type=magiclink'
   ]) {
     const { calls, context } = setup(hash);
@@ -77,6 +96,45 @@ test('ignores malformed, repeated and ambiguous links without touching Supabase 
     assert.ok(calls.every(([action]) => action === 'replace'));
     if (hash.includes('access_token')) assert.deepEqual(calls, []);
   }
+});
+
+test('document links select the exact live choice or clearly explain an unavailable package', async () => {
+  for (const [hash, tab, expected, message] of [
+    ['#hof_mobile_representation_package=buyer', 'relationships', ['representation', 'purchase', 'representation'], /representation agreement/],
+    ['#hof_mobile_representation_package=tenant', 'relationships', ['representation', 'lease_representation', 'representation'], /representation agreement/],
+    ['#hof_mobile_listing_package_preview=seller', 'seller', ['focus', 'nativeDocumentHandoffStatus'], /packet previews aren’t available/],
+    ['#hof_mobile_listing_package_preview=landlord', 'seller', ['focus', 'nativeDocumentHandoffStatus'], /packet previews aren’t available/],
+    ['#hof_mobile_custom_document_package=1', 'relationships', ['focus', 'nativeDocumentHandoffStatus'], /Custom document packages aren’t available/],
+    ['#hof_mobile_prepared_documents=1', 'relationships', ['focus', 'hofStandaloneAgreementSearch']]
+  ]) {
+    const { context, calls, timers, elements, window } = setup(hash);
+    assert.equal(await context.openNativeOfferLinkAfterAuth(false), true);
+    for (const timer of timers) timer();
+    assert.deepEqual(calls, [['replace', '/?fixture=1'], ['dashboard', tab], ['tab', tab], expected]);
+    if (message) assert.match(elements.get('nativeDocumentHandoffStatus').textContent, message);
+    if (hash.endsWith('=seller')) assert.equal(window.hofAgentWorkflowContext, 'sale_listing');
+    if (hash.endsWith('=landlord')) assert.equal(window.hofAgentWorkflowContext, 'lease_listing');
+    assert.ok(window.hofClearNativeDocumentHandoffStatus);
+    window.hofClearNativeDocumentHandoffStatus('profile');
+    assert.equal(elements.get('nativeDocumentHandoffStatus').hidden, true);
+    assert.equal(elements.get('nativeDocumentHandoffStatus').textContent, '');
+  }
+});
+
+test('a document return preserves the tenant choice without opening a second account’s form', async () => {
+  const start = setup('#hof_mobile_representation_package=tenant', { user: null });
+  await start.context.rememberNativeOfferLinkForSignIn(owner.email);
+  const callback = setup('', { storage: start.storage });
+  assert.equal(await callback.context.openNativeOfferLinkAfterAuth(true), true);
+  callback.hofAuth.session.user = { id: 'other' };
+  for (const timer of callback.timers) timer();
+  assert.deepEqual(callback.calls, [['dashboard', 'relationships'], ['tab', 'relationships']]);
+
+  await start.context.rememberNativeOfferLinkForSignIn(owner.email);
+  const ownerCallback = setup('', { storage: start.storage });
+  assert.equal(await ownerCallback.context.openNativeOfferLinkAfterAuth(true), true);
+  for (const timer of ownerCallback.timers) timer();
+  assert.deepEqual(ownerCallback.calls.at(-1), ['representation', 'lease_representation', 'representation']);
 });
 
 test('a saved sign-in return is account-bound, expiring, callback-only and consumed once', async () => {
