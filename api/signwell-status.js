@@ -9,7 +9,7 @@ async function verifyUser(req) {
   const auth = req.headers.authorization || '';
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
 
-  if (!token) throw new Error('Missing auth token.');
+  if (!token) throw Object.assign(new Error('Missing auth token.'), {statusCode: 401});
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     throw new Error('Missing Supabase environment variables.');
   }
@@ -24,7 +24,8 @@ async function verifyUser(req) {
   const user = await response.json().catch(() => ({}));
 
   if (!response.ok || !user.id || !user.email) {
-    throw new Error('Could not verify signed-in user.');
+    const statusCode = response.ok || [401, 403].includes(response.status) ? 401 : 503;
+    throw Object.assign(new Error('Could not verify signed-in user.'), {statusCode});
   }
 
   return {
@@ -115,7 +116,7 @@ function extractDocumentStatus(document = {}) {
   return cleanStatusLabel(rawStatus);
 }
 
-function extractRecipientStatuses(document = {}) {
+function extractRecipientStatuses(document = {}, preferPopulated = false) {
   const recipientSources = [
     document.recipients,
     document.signers,
@@ -125,7 +126,7 @@ function extractRecipientStatuses(document = {}) {
     document.data?.participants
   ];
 
-  const recipients = recipientSources.find((arr) => Array.isArray(arr)) || [];
+  const recipients = recipientSources.find((arr) => Array.isArray(arr) && (!preferPopulated || arr.length > 0)) || [];
 
   return recipients.map((r) => ({
     name: r.name || r.recipient_name || r.full_name || r.first_name || '',
@@ -135,6 +136,19 @@ function extractRecipientStatuses(document = {}) {
     completed_at: r.completed_at || r.signed_at || r.finished_at || null,
     viewed_at: r.viewed_at || null
   }));
+}
+
+function summarizeSignerProgress(document) {
+  const signers = extractRecipientStatuses(document, true).filter(recipient => {
+    const role = String(recipient.role || '').trim().toLowerCase().replace(/[_\s-]+/g, ' ');
+    return !['cc', 'copy', 'carbon copy', 'copy only', 'cc only'].includes(role);
+  });
+  if (!signers.length) return null;
+  const completed = signers.filter(recipient => {
+    const status = String(recipient.status || '').trim().toLowerCase();
+    return Boolean(recipient.completed_at) || ['signed', 'complete', 'completed', 'finished'].includes(status);
+  }).length;
+  return {completed, total: signers.length};
 }
 
 function deriveStatus(document = {}) {
@@ -180,7 +194,8 @@ async function getOfferForUser(offerId, user) {
   const filters = [
     `id=eq.${encodeURIComponent(offerId)}`,
     `user_id=eq.${encodeURIComponent(user.id)}`,
-    'select=id,user_id,signwell_document_id,offer_data,status,last_updated'
+    'deleted_at=is.null',
+    'select=id,user_id,signwell_document_id,offer_data,status,last_updated,signwell_status'
   ];
 
   const rows = await supabaseRequest(`hof_offers?${filters.join('&')}`, {
@@ -466,18 +481,20 @@ async function updateSellerDisclosureStatus(draft, status, documentId, user) {
 }
 
 module.exports = async (req, res) => {
+  res.setHeader?.('Cache-Control', 'private, no-store');
   if (req.method !== 'POST') {
     return json(res, 405, { error: 'Method not allowed' });
   }
 
+  let compactResponse = false;
   try {
-    const user = await verifyUser(req);
-
     const body =
       typeof req.body === 'object' && req.body
         ? req.body
         : JSON.parse(req.body || '{}');
 
+    compactResponse = body?.responseShape === 'status_only';
+    const user = await verifyUser(req);
     const offerId = body.offerId || body.offer_id || '';
     const agreementId = body.agreementId || body.agreement_id || '';
     const sellerDisclosureId = body.sellerDisclosureId || body.seller_disclosure_id || '';
@@ -489,6 +506,9 @@ module.exports = async (req, res) => {
 
     const isStandaloneAgreement = Boolean(agreementId);
     const isSellerDisclosure = Boolean(sellerDisclosureId);
+    if (compactResponse && (!offerId || downloadCompletedPdf || preparePurchase)) {
+      throw new Error('Choose an offer to check signing status.');
+    }
     if (preparePurchase && !isSellerDisclosure) throw new Error('Choose a signed seller disclosure.');
     const packet = isSellerDisclosure
       ? await getSellerDisclosureForUser(sellerDisclosureId, user, preparePurchase)
@@ -535,6 +555,18 @@ module.exports = async (req, res) => {
         ? await updateStandaloneAgreementStatus(packet, status, documentId, document, user)
         : await updateOfferStatus(packet, status, documentId, document, user);
 
+    if (compactResponse) {
+      const currentStatus = cleanStatusLabel(status);
+      const savedStatus = String(packet.signwell_status || '').trim().toLowerCase();
+      return json(res, 200, {
+        ok: true,
+        offerId: packet.id,
+        status: currentStatus,
+        emailDeliveryBounced: currentStatus === 'Bounced' || ['bounced', 'email delivery bounced'].includes(savedStatus),
+        signerProgress: summarizeSignerProgress(document)
+      });
+    }
+
     return json(res, 200, {
       ok: true,
       offerId: isStandaloneAgreement || isSellerDisclosure ? null : packet.id,
@@ -549,6 +581,13 @@ module.exports = async (req, res) => {
       recipientStatuses: extractRecipientStatuses(document)
     });
   } catch (err) {
+    if (compactResponse) {
+      const statusCode = [401, 409, 503].includes(err?.statusCode) ? err.statusCode : 400;
+      const error = statusCode === 401
+        ? 'Sign in again before refreshing signing status.'
+        : 'We couldn’t confirm the latest signing status. Refresh this card and try again.';
+      return json(res, statusCode, {error});
+    }
     console.error('SignWell status refresh failed:', err);
     return json(res, err?.statusCode === 409 ? 409 : 400, {
       error: err?.message || 'SignWell status refresh failed.'

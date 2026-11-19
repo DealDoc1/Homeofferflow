@@ -56,13 +56,14 @@ class SignwellStatusRuntimeTests(unittest.TestCase):
           const writes = [], providerCalls = [], eventWrites = [];
           let offerData = {}, committedTimelineRevision;
           let providerDocument = {}, allowRead = true, rejectStaleWrite = false, savedOfferStatus = 'draft', sellerExtras = {};
+          let savedSignwellStatus = null, allowAuth = true;
           const response = (data, ok=true) => ({ok,status:ok?200:403,
             json:async()=>data,text:async()=>JSON.stringify(data),
             arrayBuffer:async()=>Buffer.from('%PDF-test')});
           const tables={offerId:'hof_offers',agreementId:'hof_standalone_agreements',
             sellerDisclosureId:'hof_seller_disclosure_drafts'};
           const fetch = async (url,options={}) => {
-            if (url.includes('/auth/v1/user')) return response({id:'owner',email:'owner@example.com'});
+            if (url.includes('/auth/v1/user')) return response({id:'owner',email:'owner@example.com'}, allowAuth);
             if (url.startsWith('https://www.signwell.com/')) {
               providerCalls.push({url,options});
               return response(providerDocument);
@@ -91,7 +92,7 @@ class SignwellStatusRuntimeTests(unittest.TestCase):
                 return response([{id:'packet',...payload}]);
               }
               return response(allowRead?[{id:'packet',user_id:'owner',agent_user_id:'owner',
-                signwell_document_id:'provider-doc',status:table==='hof_offers'?savedOfferStatus:'draft',updated_at:'2026-09-15T10:00:00Z',last_updated:'2026-09-15T10:00:00Z',offer_data:offerData,agreement_data:{},...(table==='hof_seller_disclosure_drafts'?sellerExtras:{})}]:[]);
+                signwell_document_id:'provider-doc',status:table==='hof_offers'?savedOfferStatus:'draft',updated_at:'2026-09-15T10:00:00Z',last_updated:'2026-09-15T10:00:00Z',offer_data:offerData,agreement_data:{},signwell_status:savedSignwellStatus,...(table==='hof_seller_disclosure_drafts'?sellerExtras:{})}]:[]);
             }
             if (url.endsWith('/hof_offer_events')) { eventWrites.push(options.body); return response(null); }
             throw new Error('Unexpected request: '+url);
@@ -103,7 +104,7 @@ class SignwellStatusRuntimeTests(unittest.TestCase):
           const run = async (kind,doc,action='refresh_status',extra={})=>{
             providerDocument=doc; writes.length=0; providerCalls.length=0; eventWrites.length=0;
             const res={status(code){this.code=code;return this},json(body){this.body=body;return this},
-              setHeader(){},send(body){this.body=body;return this}};
+              headers:{},setHeader(name,value){this.headers[name]=value;},send(body){this.body=body;return this}};
             await context.module.exports({method:'POST',headers:{authorization:'Bearer test-token'},
               body:{[kind]:'packet',action,...extra}},res);
             assert.ok(providerCalls.every(call=>(call.options.method||'GET')==='GET'));
@@ -114,6 +115,49 @@ class SignwellStatusRuntimeTests(unittest.TestCase):
                                  + '\n})().catch(e=>{console.error(e);process.exitCode=1});'],
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_native_status_only_returns_safe_counts_and_keeps_the_web_response_compatible(self):
+        self.run_js('''
+          savedSignwellStatus='Email Delivery Bounced';
+          const signers=[
+            {name:'First Buyer',email:'fixture@example.test',status:'signed'},
+            {name:'Second Buyer',status:'awaiting_signature'},
+            {name:'Internal Copy',role:'copy_only',status:'complete'}
+          ];
+          const document={status:'pending',recipients:[],signers};
+          const compact=await run('offerId',document,'refresh_status',{responseShape:'status_only'});
+          assert.equal(compact.code,200);
+          assert.equal(compact.headers['Cache-Control'],'private, no-store');
+          assert.deepEqual(JSON.parse(JSON.stringify(compact.body)),{
+            ok:true,offerId:'packet',status:'Partially Signed',
+            emailDeliveryBounced:true,signerProgress:{completed:1,total:2}
+          });
+          assert.equal(writes.length,1);
+          assert.equal(eventWrites.length,1);
+          const standard=await run('offerId',{status:'pending',recipients:signers});
+          assert.equal(standard.code,200);
+          assert.equal(standard.body.recipientStatuses[0].name,'First Buyer');
+          assert.equal(standard.body.signerProgress,undefined);
+          const noSigners=await run('offerId',{status:'sent',recipients:[signers[2]]},'refresh_status',{responseShape:'status_only'});
+          assert.equal(noSigners.body.signerProgress,null);
+        ''')
+
+    def test_native_status_only_supports_session_expiry_and_keeps_offer_ownership(self):
+        self.run_js('''
+          allowAuth=false;
+          const expired=await run('offerId',{},'refresh_status',{responseShape:'status_only'});
+          assert.equal(expired.code,401);
+          assert.match(expired.body.error,/Sign in again/);
+          assert.equal(providerCalls.length,0);
+          assert.equal(writes.length,0);
+          allowAuth=true;
+          allowRead=false;
+          const denied=await run('offerId',{},'refresh_status',{responseShape:'status_only'});
+          assert.equal(denied.code,400);
+          assert.doesNotMatch(denied.body.error,/access denied|Supabase/);
+          assert.equal(providerCalls.length,0);
+          assert.equal(writes.length,0);
+        ''')
 
     def test_prepare_disclosure_attachment_is_completed_owned_property_matched_and_read_only(self):
         self.run_js('''

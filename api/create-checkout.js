@@ -122,6 +122,9 @@ function safeOrigin(req) {
 }
 
 module.exports = async (req, res) => {
+  if (req.query?.__hof_route === 'offer-draft') {
+    return require('../lib/offer-draft-handler')(req, res);
+  }
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }

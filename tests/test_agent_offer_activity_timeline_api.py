@@ -45,12 +45,46 @@ class AgentOfferActivityTimelineAPITests(unittest.TestCase):
         self.assertIn("order=created_at.desc,id.desc&limit=20", event_query)
         self.assertNotIn("signwell_document_id=", event_query)
         self.assertEqual(result["offerId"], OFFER)
+        self.assertEqual(set(result), {"offerId", "events"})
         self.assertEqual(result["events"][0]["status"], "awaiting_signature")
         self.assertEqual(result["events"][0]["metadata"], {
             "signwell_status": "awaiting signature",
             "message": "Buyer signing is pending.",
             "signwell_document_id": "doc_123",
         })
+
+    def test_paginated_route_limits_fields_and_returns_next_offset(self):
+        handler = SimpleNamespace(
+            path=f"/api/admin-dashboard?scope=agent_offer_activity_timeline&offer_id={OFFER}&offset=10&page_size=1",
+            headers={"authorization": "Bearer token"},
+        )
+        rows = [
+            {"id": "one", "event_type": "resume_clicked", "status": "Draft", "created_at": "2026-10-29",
+             "metadata": {"message": "Private text"}},
+            {"id": "two", "event_type": "resume_clicked", "status": "Draft", "created_at": "2026-10-28"},
+        ]
+        with patch.object(API, "SUPABASE_URL", "https://private.example"), \
+             patch.object(API, "SUPABASE_SERVICE_ROLE_KEY", "service-role"), \
+             patch.object(API, "_verified_user", AsyncMock(return_value={"id": OWNER})), \
+             patch.object(API, "_get", AsyncMock(side_effect=[[{"id": OFFER}], rows])) as get, \
+             patch.object(API, "_json") as respond:
+            API.handler.do_GET(handler)
+        offer_query, event_query = [call.args[0] for call in get.await_args_list]
+        self.assertIn(f"user_id=eq.{OWNER}", offer_query)
+        self.assertIn(f"user_id=eq.{OWNER}&offer_id=eq.{OFFER}", event_query)
+        self.assertIn("order=created_at.desc,id.desc&offset=10&limit=2", event_query)
+        self.assertNotIn("metadata", event_query)
+        self.assertEqual(respond.call_args.args[1:], (200, {
+            "offerId": OFFER, "nextOffset": 11, "hasMore": True,
+            "events": [{"id": "one", "event_type": "resume_clicked", "status": "Draft", "created_at": "2026-10-29"}],
+        }))
+
+    def test_invalid_page_is_rejected_before_reading_storage(self):
+        for offset, size in (("-1", "10"), ("10001", "10"), ("0", "0"), ("0", "21"), ("1.5", "10")):
+            with self.subTest(offset=offset, size=size), patch.object(API, "_get", AsyncMock()) as get:
+                with self.assertRaises(ValueError):
+                    asyncio.run(API._agent_offer_activity_timeline({"id": OWNER}, OFFER, offset=offset, page_size=size))
+                get.assert_not_awaited()
 
     def test_missing_or_foreign_offer_does_not_query_events(self):
         with patch.object(API, "_get", AsyncMock(return_value=[])) as get:

@@ -534,13 +534,22 @@ async def _agent_seller_disclosure_offer_context(user, offer_id):
     }
 
 
-async def _agent_offer_activity_timeline(user, offer_id, offer_verified=False):
+async def _agent_offer_activity_timeline(user, offer_id, offer_verified=False, *, offset=None, page_size=None):
     owner = listing_workspace_offer_comparison.normalized_uuid(
         user.get("id"), "Sign in again to open this offer."
     )
     offer_id = listing_workspace_offer_comparison.normalized_uuid(
         offer_id, "Choose a valid offer."
     )
+    paginated = offset is not None or page_size is not None
+    if paginated:
+        try:
+            offset = int(offset if offset is not None else "0")
+            page_size = int(page_size if page_size is not None else "20")
+        except (TypeError, ValueError):
+            raise ValueError("Choose a valid offer activity page.")
+        if not 0 <= offset <= 10000 or not 1 <= page_size <= 20:
+            raise ValueError("Choose a valid offer activity page.")
     if not offer_verified:
         offer_rows = await _get(
             "hof_offers?"
@@ -552,12 +561,14 @@ async def _agent_offer_activity_timeline(user, offer_id, offer_verified=False):
             raise RuntimeError("Offer activity ownership check failed.")
         if not offer_rows:
             return None
+    selection = "id,event_type,status,created_at" if paginated else "id,event_type,status,metadata,created_at"
+    page_query = f"offset={offset}&limit={page_size + 1}" if paginated else "limit=20"
     event_rows = await _get(
         "hof_offer_events?"
         f"user_id=eq.{urllib.parse.quote(owner, safe='')}"
         f"&offer_id=eq.{urllib.parse.quote(offer_id, safe='')}"
-        "&select=id,event_type,status,metadata,created_at"
-        "&order=created_at.desc,id.desc&limit=20"
+        f"&select={selection}"
+        f"&order=created_at.desc,id.desc&{page_query}"
     )
     if not isinstance(event_rows, list):
         raise RuntimeError("Offer activity response is unavailable.")
@@ -566,7 +577,7 @@ async def _agent_offer_activity_timeline(user, offer_id, offer_verified=False):
         return value.strip()[:limit] if isinstance(value, str) else ""
 
     events = []
-    for row in event_rows:
+    for row in event_rows[:page_size] if paginated else event_rows:
         metadata = row.get("metadata") if isinstance(row.get("metadata"), dict) else {}
         safe_metadata = {
             key: safe_text(metadata.get(key), limit)
@@ -580,10 +591,14 @@ async def _agent_offer_activity_timeline(user, offer_id, offer_verified=False):
             "id": row.get("id"),
             "event_type": safe_text(row.get("event_type"), 120),
             "status": safe_text(row.get("status"), 80),
-            "metadata": safe_metadata,
+            **({"metadata": safe_metadata} if not paginated else {}),
             "created_at": safe_text(row.get("created_at"), 64),
         })
-    return {"offerId": offer_id, "events": events}
+    result = {"offerId": offer_id, "events": events}
+    if paginated:
+        next_offset = offset + len(events)
+        result.update(nextOffset=next_offset, hasMore=len(event_rows) > page_size and next_offset <= 10000)
+    return result
 
 
 _AGENT_OFFER_WORKSPACE_FIELDS = (
@@ -651,7 +666,20 @@ def _project_agent_offer_workspace_row(row):
     return projected
 
 
-async def _agent_offer_history(user, offset=0, limit=25):
+_AGENT_OFFER_CARD_FIELDS = (
+    "id", "property_address", "buyer_name", "buyer2_name", "buyer2_legacy_name",
+    "offer_price", "legacy_offer_price", "status", "signwell_status", "last_updated", "created_at",
+)
+_AGENT_OFFER_CARD_SELECT = ",".join(
+    {
+        "buyer2_name": "buyer2_name:offer_data->>buyer2",
+        "buyer2_legacy_name": "buyer2_legacy_name:offer_data->>buyer2Name",
+        "legacy_offer_price": "legacy_offer_price:offer_data->>offerPrice",
+    }.get(field, field) for field in _AGENT_OFFER_CARD_FIELDS
+)
+
+
+async def _agent_offer_history(user, offset=0, limit=25, *, view="workspace"):
     owner = listing_workspace_offer_comparison.normalized_uuid(
         user.get("id"), "Sign in again to view your offers."
     )
@@ -660,23 +688,29 @@ async def _agent_offer_history(user, offset=0, limit=25):
         limit = int(limit)
     except (TypeError, ValueError):
         raise ValueError("Choose a valid offer history page.")
-    if offset < 0 or offset > 100000 or limit != 25:
+    if offset < 0 or offset > 100000 or limit != 25 or view not in {"workspace", "summary"}:
         raise ValueError("Choose a valid offer history page.")
+    summary = view == "summary"
+    selection = _AGENT_OFFER_CARD_SELECT if summary else _AGENT_OFFER_WORKSPACE_SELECT
+    order = "last_updated.desc.nullslast,created_at.desc.nullslast,id.desc" if summary else "last_updated.desc,id.desc"
     rows = await _get(
         "hof_offers?"
         f"user_id=eq.{urllib.parse.quote(owner, safe='')}"
         "&deleted_at=is.null"
-        f"&select={_AGENT_OFFER_WORKSPACE_SELECT}"
-        f"&order=last_updated.desc,id.desc&offset={offset}&limit={limit}"
+        f"&select={selection}"
+        f"&order={order}&offset={offset}&limit={limit + int(summary)}"
     )
     if not isinstance(rows, list):
         raise RuntimeError("Offer history response is unavailable.")
-    safe_rows = [_project_agent_offer_workspace_row(row) for row in rows]
+    safe_rows = (
+        [{key: row.get(key) for key in _AGENT_OFFER_CARD_FIELDS} for row in rows[:limit]]
+        if summary else [_project_agent_offer_workspace_row(row) for row in rows]
+    )
     return {
         "offers": safe_rows,
         "offset": offset,
         "nextOffset": offset + len(safe_rows),
-        "hasMore": len(safe_rows) == limit,
+        "hasMore": len(rows) > limit and offset + limit <= 100000 if summary else len(safe_rows) == limit,
     }
 
 
@@ -6616,9 +6650,12 @@ class handler(BaseHTTPRequestHandler):
                 _json(self, 200, {"context": context})
                 return
             if scope == "agent_offer_activity_timeline":
+                pagination = {
+                    key: query[key][0] for key in ("offset", "page_size") if key in query
+                }
                 try:
                     timeline = asyncio.run(_agent_offer_activity_timeline(
-                        user, (query.get("offer_id") or [""])[0]
+                        user, (query.get("offer_id") or [""])[0], **pagination
                     ))
                 except ValueError as exc:
                     _json(self, 400, {"error": str(exc)})
@@ -6695,11 +6732,13 @@ class handler(BaseHTTPRequestHandler):
                 _json(self, 200, detail)
                 return
             if scope == "agent_offer_history":
+                view = {"view": query["view"][0]} if "view" in query else {}
                 try:
                     history = asyncio.run(_agent_offer_history(
                         user,
                         (query.get("offset") or ["0"])[0],
                         (query.get("limit") or ["25"])[0],
+                        **view,
                     ))
                 except ValueError as exc:
                     _json(self, 400, {"error": str(exc)})

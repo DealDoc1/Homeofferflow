@@ -119,6 +119,21 @@ function call(body, origin = 'https://www.homeofferflow.com') {
 
 
 class CreateCheckoutRuntimeTests(unittest.TestCase):
+    def test_native_draft_route_and_runtime(self):
+        config = json.loads((ROOT / "vercel.json").read_text())
+        self.assertIn({
+            "source": "/api/offer-draft",
+            "destination": "/api/create-checkout?__hof_route=offer-draft",
+        }, config["rewrites"])
+        result = subprocess.run(
+            ["node", "--test", "tests/offer_draft_api.runtime.cjs"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_server_enforces_fulfilled_plan_price_and_redirect_contract(self):
         result = subprocess.run(
             ["node", "-e", NODE_TEST],
