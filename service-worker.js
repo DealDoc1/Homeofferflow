@@ -18,6 +18,8 @@ const SHELL_ASSETS = [
   '/assets/saved-disclosure-attachment.js?v=20261022-summary1',
   '/assets/agent-landing-focus.css',
   '/assets/agent-landing-focus.js',
+  '/assets/agent-build-readiness-share.css',
+  '/assets/agent-build-readiness-share.js',
   '/assets/partner-landing-focus.css',
   '/assets/partner-landing-focus.js',
   '/assets/partner-profile.js?v=20261106-lookup-timeout',

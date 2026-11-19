@@ -30,6 +30,19 @@ class BuildReadinessChecklistTests(unittest.TestCase):
         self.assertIn("hof:build-readiness-checklist:v1", SCRIPT)
         self.assertNotIn("fetch(", SCRIPT)
 
+    def test_agent_copy_action_uses_the_same_public_blueprint_on_both_surfaces(self):
+        client_path = "/build-readiness?utm_source=agent_workspace&amp;utm_medium=agent_page&amp;utm_campaign=equity_to_keys"
+        for filename in ("agents.html", "index.html"):
+            markup = (ROOT / filename).read_text(encoding="utf-8")
+            with self.subTest(page=filename):
+                self.assertIn(f'data-blueprint-link href="{client_path}"', markup)
+                self.assertIn("data-copy-blueprint hidden", markup)
+                self.assertIn('data-blueprint-status role="status" aria-live="polite"', markup)
+                self.assertIn('<label data-manual-blueprint hidden>Client link<input type="url" readonly></label>', markup)
+                self.assertIn('src="/assets/agent-build-readiness-share.js"', markup)
+        self.assertIn("'/assets/agent-build-readiness-share.js'", WORKER)
+        self.assertIn("'/assets/agent-build-readiness-share.css'", WORKER)
+
     def test_browser_runtime_restores_saves_clears_and_handles_storage_failure(self):
         result = subprocess.run(
             ["node", str(ROOT / "tests" / "build_readiness_checklist.runtime.cjs")],

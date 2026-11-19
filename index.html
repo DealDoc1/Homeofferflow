@@ -2992,6 +2992,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
 <script defer src="/assets/uploaded-pdf-signing-placement.js"></script>
 <script defer src="/assets/saved-disclosure-attachment.js?v=20261022-summary1"></script>
+<link rel="stylesheet" href="/assets/agent-build-readiness-share.css">
+<script defer src="/assets/agent-build-readiness-share.js"></script>
 </head>
 
 <body>
@@ -3282,6 +3284,16 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <div class="account-actions-row" role="group" aria-label="Common client document" style="margin-top:.55rem;">
             <button class="btn-secondary" type="button" onclick="startAgentBuyerRepresentation()">Prepare a buyer representation agreement</button>
           </div>
+          <details data-hof-blueprint-share style="margin-top:1rem;">
+            <summary>Build Readiness Blueprint</summary>
+            <p style="color:var(--gray-light);margin:.5rem 0 0;">Share the planning guide with a client who’s considering a custom home.</p>
+            <div class="blueprint-share-actions">
+              <a data-blueprint-link href="/build-readiness?utm_source=agent_workspace&amp;utm_medium=agent_page&amp;utm_campaign=equity_to_keys">Open the Blueprint</a>
+              <button type="button" data-copy-blueprint hidden>Copy client link</button>
+            </div>
+            <div data-blueprint-status role="status" aria-live="polite"></div>
+            <label data-manual-blueprint hidden>Client link<input type="url" readonly></label>
+          </details>
           <button id="agentWorkflowResume" class="btn-secondary" type="button" style="display:none;margin-top:.65rem;"></button>
           <p id="agentWorkflowStartStatus" role="status" aria-live="polite" style="color:var(--gray-light);font-size:.84rem;line-height:1.5;margin:.8rem 0 0;">Choose a transaction type to get started.</p>
         </div>
