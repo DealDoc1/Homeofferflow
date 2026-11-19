@@ -47,15 +47,19 @@
     const current = directoryRequests.get(view);
     if (!current || Date.now() >= current.expiresAt) {
       const query = new URLSearchParams({partner_directory:'1',surface:view});
-      const request = fetch('/api/fsbo-lead?' + query)
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 12000);
+      const request = fetch('/api/fsbo-lead?' + query, {signal:controller.signal})
       .then(async response => {
         const result = await response.json();
-        if (!response.ok || !result.ok) throw new Error('Directory unavailable');
-        return Array.isArray(result.partners) ? result.partners : [];
+        if (!response.ok || result?.ok !== true || !Array.isArray(result.partners)) {
+          throw new Error('Directory unavailable');
+        }
+        return result.partners;
       }).catch(error => {
         if (directoryRequests.get(view)?.request === request) directoryRequests.delete(view);
         throw error;
-      });
+      }).finally(() => clearTimeout(timeout));
       directoryRequests.set(view,{expiresAt:Date.now()+300000,request});
     }
     return directoryRequests.get(view).request;

@@ -5,7 +5,8 @@ from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 STYLE_VERSION='?v=20261021-portrait1'
-PARTNER_API_VERSION='?v=20261028-public-placement-labels1'
+PARTNER_API_VERSION='?v=20261106-lookup-timeout'
+WORKFLOW_PARTNER_VERSION='?v=20261118-partner-retry-status'
 
 
 class PartnerAssetVersionsTests(unittest.TestCase):
@@ -16,13 +17,14 @@ class PartnerAssetVersionsTests(unittest.TestCase):
                 self.assertIn('/assets/'+asset+version+'"',html)
                 self.assertNotIn('/assets/'+asset+'"',html)
         html=(ROOT/'index.html').read_text()
-        for asset in ('inspection-partners.js','insurance-partners.js'):
-            self.assertIn('/assets/'+asset+PARTNER_API_VERSION+'"',html)
+        for asset in ('inspection-partners.js','insurance-partners.js','inspection-partners.css'):
+            self.assertIn('/assets/'+asset+WORKFLOW_PARTNER_VERSION+'"',html)
 
     def test_installed_shell_prewarms_the_same_versioned_partner_assets(self):
         worker=(ROOT/'service-worker.js').read_text()
         versions = {'partner-profile.js':PARTNER_API_VERSION,'partner-profile.css':STYLE_VERSION,
-                    'inspection-partners.js':PARTNER_API_VERSION,'insurance-partners.js':PARTNER_API_VERSION}
+                    'inspection-partners.js':WORKFLOW_PARTNER_VERSION,'insurance-partners.js':WORKFLOW_PARTNER_VERSION,
+                    'inspection-partners.css':WORKFLOW_PARTNER_VERSION}
         for asset,version in versions.items():
             self.assertIn("'/assets/"+asset+version+"'",worker)
             self.assertNotIn("'/assets/"+asset+"'",worker)

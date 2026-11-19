@@ -8,18 +8,22 @@ test('optional public portrait leaves insurance choice and contact routing intac
  assert.match(p.target.innerHTML,/has-portrait/);assert.match(p.target.innerHTML,/hof-partner-headshot/);
  assert.match(p.target.innerHTML,/tel:\+19034362470/);assert.match(p.target.innerHTML,/not shared automatically/);
 });
-function setup({active=true,open=true,providers=[provider],fail=false,deferred=false,missing=false,legacyProfile=false}={}) {
-  let activeStep=active, resolveRequest, observer, toggle;
+function setup({active=true,open=true,providers=[provider],fail=false,failOnce=false,deferred=false,missing=false,legacyProfile=false}={}) {
+  let activeStep=active, resolveRequest, observer, toggle, failuresRemaining=failOnce?1:0;
   const calls=[], handlers=[];
   const target={hidden:true,innerHTML:'',querySelectorAll(){return [...this.innerHTML.matchAll(/<a\b[^>]*>/g)].map(match=>{
     const markup=match[0],id=(markup.match(/data-partner-id="([^"]+)"/)||[])[1],brand=(markup.match(/data-insurance-brand="([^"]+)"/)||[])[1];
     return {dataset:{partnerId:id,insuranceBrand:brand},addEventListener:(_,fn)=>handlers.push({markup,fn})};
-  });}};
+  });},querySelector(selector){
+    return selector==='[data-partner-retry]'&&this.innerHTML.includes('data-partner-retry')
+      ? {disabled:false,textContent:'Try again',addEventListener:(event,fn)=>handlers.push({retry:true,fn})}
+      : null;
+  }};
   const step={classList:{contains:()=>activeStep}}, planner={open,addEventListener:(_,fn)=>{toggle=fn;}};
-  const sandbox={window:{},URL,URLSearchParams,Date,Promise,Set,document:{readyState:'complete',addEventListener(){},getElementById:id=>missing?null:({step4:step,paymentCalcCard:planner,hofInsurancePartners:target}[id])},
+  const sandbox={window:{},URL,URLSearchParams,AbortController,setTimeout,clearTimeout,Date,Promise,Set,document:{readyState:'complete',addEventListener(){},getElementById:id=>missing?null:({step4:step,paymentCalcCard:planner,hofInsurancePartners:target}[id])},
     MutationObserver:class{constructor(fn){observer=fn;}observe(){}},fetch:async(url,options)=>{
-      calls.push({url,options}); if(options) return {ok:true,json:async()=>({ok:true})};
-      if(fail)throw Error('unavailable');
+      calls.push({url,options}); if(options?.method==='POST') return {ok:true,json:async()=>({ok:true})};
+      if(fail||failuresRemaining>0){if(failuresRemaining>0)failuresRemaining--;throw Error('unavailable');}
       if(deferred)return new Promise(resolve=>{resolveRequest=()=>resolve({ok:true,json:async()=>({ok:true,partners:providers})});});
       return {ok:true,json:async()=>({ok:true,partners:providers})};
     }};
@@ -37,7 +41,7 @@ test('renders approved central insurance profile with separate website and call 
   for(const text of ['Fictional QA Insurance','Home insurance · Sponsored · Premier Partner','North Texas','excluding coastal','tel:+19034362470','Visit website','Optional service providers','not shared automatically']){
     assert.ok(p.target.innerHTML.includes(text),text);
   }
-  assert.equal(p.calls.filter(c=>!c.options).length,1);
+  assert.equal(p.calls.filter(c=>c.options?.method!=='POST').length,1);
 });
 test('no lookup before both finance step and optional planner are open',async()=>{
   const p=setup({active:false,open:false});await p.flush();assert.equal(p.calls.length,0);
@@ -46,12 +50,24 @@ test('no lookup before both finance step and optional planner are open',async()=
 });
 test('closing planner during lookup does not show or count a hidden card, reopening reuses cache',async()=>{
   const p=setup({deferred:true});p.open(false);p.resolve();await p.flush();
-  assert.equal(p.target.hidden,true);assert.equal(p.calls.filter(c=>c.options).length,0);
-  p.open(true);await p.flush();assert.equal(p.target.hidden,false);assert.equal(p.calls.filter(c=>!c.options).length,1);
+  assert.equal(p.target.hidden,true);assert.equal(p.calls.filter(c=>c.options?.method==='POST').length,0);
+  p.open(true);await p.flush();assert.equal(p.target.hidden,false);assert.equal(p.calls.filter(c=>c.options?.method!=='POST').length,1);
 });
-test('unavailable directory, wrong category and bad websites stay hidden without blocking',async()=>{
-  for(const options of [{missing:true},{fail:true},{providers:[]},{providers:[{...provider,partner_type:'roofing'}]},{providers:[{...provider,website_url:'javascript:evil'}]}]){
-    const p=setup(options);await p.flush();assert.equal(p.target.hidden,true);assert.equal(p.calls.filter(c=>c.options).length,0);
+test('temporary directory failure gives a non-blocking, accessible retry',async()=>{
+  const p=setup({fail:true});await p.flush();assert.equal(p.target.hidden,false);
+  assert.match(p.target.innerHTML,/role="status" aria-live="polite"/);
+  assert.match(p.target.innerHTML,/planning can continue without them/);assert.match(p.target.innerHTML,/data-partner-retry/);
+  assert.equal(p.calls.filter(c=>c.options?.method==='POST').length,0);
+});
+test('retry after a temporary directory failure renders the provider card',async()=>{
+  const p=setup({failOnce:true});await p.flush();assert.equal(p.target.hidden,false);
+  p.handlers.find(handler=>handler.retry).fn();await p.flush();
+  assert.equal(p.target.hidden,false);assert.match(p.target.innerHTML,/Fictional QA Insurance/);
+  assert.equal(p.calls.filter(c=>c.options?.method!=='POST').length,2);
+});
+test('missing container, wrong category and bad websites stay hidden without blocking',async()=>{
+  for(const options of [{missing:true},{providers:[]},{providers:[{...provider,partner_type:'roofing'}]},{providers:[{...provider,website_url:'javascript:evil'}]}]){
+    const p=setup(options);await p.flush();assert.equal(p.target.hidden,true);assert.equal(p.calls.filter(c=>c.options?.method==='POST').length,0);
   }
 });
 test('escapes content and never falls back to private contact data or unsafe artwork',async()=>{
@@ -60,8 +76,16 @@ test('escapes content and never falls back to private contact data or unsafe art
 });
 test('click/impression analytics contain placement metadata only and impressions deduplicate',async()=>{
   const p=setup();await p.flush();p.handlers.find(h=>h.markup.includes('tel:')).fn();await p.flush();
-  const events=p.calls.filter(c=>c.options).map(c=>JSON.parse(c.options.body));
+  const events=p.calls.filter(c=>c.options?.method==='POST').map(c=>JSON.parse(c.options.body));
   assert.deepEqual(events.map(e=>e.event_type),['partner_directory_impression','partner_directory_outbound_click']);
   for(const event of events){assert.equal(event.directory_surface,'insurance_planning');assert.deepEqual(Object.keys(event).sort(),['directory_surface','event_type','partner_id','partner_type','placement_tier','request_type'].sort());}
-  p.open(false);p.open(true);await p.flush();assert.equal(p.calls.filter(c=>c.options).length,2);
+  p.open(false);p.open(true);await p.flush();assert.equal(p.calls.filter(c=>c.options?.method==='POST').length,2);
+});
+
+test('a confirmed empty response clears the previous retry message',async()=>{
+  const p=setup({failOnce:true,providers:[]});await p.flush();
+  assert.equal(p.target.hidden,false);
+  p.handlers.find(handler=>handler.retry).fn();await p.flush();
+  assert.equal(p.target.hidden,true);
+  assert.equal(p.target.innerHTML,'');
 });

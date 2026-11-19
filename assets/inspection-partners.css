@@ -10,4 +10,7 @@
 .hof-inspection-partner-copy .hof-partner-actions{display:flex;gap:1rem;flex-wrap:wrap;margin-top:.6rem}
 .hof-inspection-partner-copy a{color:var(--gold-light)}
 .hof-inspection-choice{font-size:.72rem;color:var(--gray-light);margin:.6rem 0 0}
+.hof-partner-load-status{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin:0;color:var(--gray-light);font-size:.86rem;line-height:1.5}
+.hof-partner-load-status button{flex-shrink:0;white-space:nowrap}
 @media(max-width:600px){.hof-inspection-partner{grid-template-columns:minmax(0,1fr)}.hof-inspection-partner-logo{max-width:260px}.hof-inspection-partner-logo img{max-height:95px}}
+@media(max-width:600px){.hof-partner-load-status{align-items:stretch;flex-direction:column}}
