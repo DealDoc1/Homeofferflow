@@ -10,7 +10,7 @@ const block = (tag, id) => {
   return match[1];
 };
 const script = block('script', 'hof-standalone-agreement-signing-v1');
-const preamble = script.slice(script.indexOf('const root = window;'), script.indexOf('const activeAgent'));
+const preamble = script.slice(script.indexOf('const root = window;'), script.indexOf('async function loadAgreements'));
 const dialog = script.slice(script.indexOf('async function openSendDialog'), script.indexOf('async function refreshAgreementSignWellStatus'));
 const style = block('style', 'hof-txr1507-drafts-v1');
 
@@ -26,7 +26,7 @@ const style = block('style', 'hof-txr1507-drafts-v1');
       *{box-sizing:border-box}body{font-family:Arial;margin:0;background:#0d1f35}
       input{background:#132c45;border:1px solid #8095a6;border-radius:6px}
       button{padding:12px;border-radius:6px}${style}</style></head><body><script>
-      window.hofAuth={session:{access_token:'offline-test'}};
+      window.hofAuth={session:{user:{id:'offline-agent'},access_token:'offline-test'}};
       window.posts=[];window.failSend=true;
       window.contacts=[
         {id:'1',name:'QA Client',email:'',emailEditable:true,label:'Client 1'},
@@ -56,7 +56,7 @@ const style = block('style', 'hof-txr1507-drafts-v1');
     await brokerEmail.fill('broker@example.test');
     assert.equal(await page.locator('form').evaluate(form => form.checkValidity()), true);
     await submit.click();
-    await page.getByText('Temporary delivery issue. Try again.', {exact:true}).waitFor();
+    await page.getByText('We couldn’t send the signature request. Your document is still saved—please try again.', {exact:true}).waitFor();
     assert.equal(await brokerName.inputValue(), 'QA Broker');
     assert.equal(await brokerEmail.inputValue(), 'broker@example.test');
     assert.equal(await submit.isEnabled(), true);
