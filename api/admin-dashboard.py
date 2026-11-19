@@ -497,6 +497,41 @@ async def _save_agent_contract_timeline(user, data):
     return {"offerId": offer_id, "tracking": saved}
 
 
+async def _agent_seller_disclosure_offer_context(user, offer_id):
+    owner = listing_workspace_offer_comparison.normalized_uuid(
+        user.get("id"), "Sign in again to open this offer."
+    )
+    offer_id = listing_workspace_offer_comparison.normalized_uuid(
+        offer_id, "Choose a valid offer."
+    )
+    rows = await _get(
+        "hof_offers?"
+        f"id=eq.{urllib.parse.quote(offer_id, safe='')}"
+        f"&user_id=eq.{urllib.parse.quote(owner, safe='')}"
+        "&deleted_at=is.null&select=id,property_address,offer_data&limit=1"
+    )
+    if rows == []:
+        return None
+    if (not isinstance(rows, list) or len(rows) != 1
+            or not isinstance(rows[0], dict) or rows[0].get("id") != offer_id):
+        raise RuntimeError("Offer disclosure context is temporarily unavailable.")
+    row = rows[0]
+    details = row.get("offer_data") if isinstance(row.get("offer_data"), dict) else {}
+
+    def text(value, limit):
+        return value.strip()[:limit] if isinstance(value, str) else ""
+
+    return {
+        "offerId": offer_id,
+        "propertyAddress": text(row.get("property_address"), 500)
+        or text(details.get("propertyAddress") or details.get("propAddress"), 500),
+        "seller1Name": text(details.get("seller1Name") or details.get("seller1"), 180),
+        "seller2Name": text(details.get("seller2Name") or details.get("seller2"), 180),
+        "seller1Email": text(details.get("seller1Email"), 254),
+        "seller2Email": text(details.get("seller2Email"), 254),
+    }
+
+
 async def _agent_offer_activity_timeline(user, offer_id, offer_verified=False):
     owner = listing_workspace_offer_comparison.normalized_uuid(
         user.get("id"), "Sign in again to open this offer."
@@ -6496,6 +6531,22 @@ class handler(BaseHTTPRequestHandler):
                     _json(self, 403, {"error": str(exc)})
                     return
                 _json(self, 200, payload)
+                return
+            if scope == "agent_seller_disclosure_offer_context":
+                try:
+                    context = asyncio.run(_agent_seller_disclosure_offer_context(
+                        user, (query.get("offer_id") or [""])[0]
+                    ))
+                except ValueError as exc:
+                    _json(self, 400, {"error": str(exc)})
+                    return
+                except (httpx.HTTPError, RuntimeError):
+                    _json(self, 503, {"error": "Offer details are temporarily unavailable."})
+                    return
+                if not context:
+                    _json(self, 404, {"error": "That offer is unavailable."})
+                    return
+                _json(self, 200, {"context": context})
                 return
             if scope == "agent_offer_activity_timeline":
                 try:

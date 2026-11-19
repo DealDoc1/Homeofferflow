@@ -1,4 +1,5 @@
 from pathlib import Path
+import subprocess
 import unittest
 
 
@@ -6,6 +7,13 @@ INDEX = (Path(__file__).resolve().parents[1] / "index.html").read_text(encoding=
 
 
 class SubscriptionFeedbackTests(unittest.TestCase):
+    def test_subscription_checkout_recovery_runtime(self):
+        result = subprocess.run(
+            ["node", "--test", str(Path(__file__).with_name("subscription_checkout_recovery.runtime.cjs"))],
+            capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_subscription_card_exposes_accessible_action_status(self):
         self.assertIn('id="subscriptionActionStatus"', INDEX)
         self.assertIn('role="status" aria-live="polite"', INDEX)
@@ -18,7 +26,11 @@ class SubscriptionFeedbackTests(unittest.TestCase):
 
     def test_billing_and_checkout_failures_use_inline_status(self):
         self.assertIn("setSubscriptionActionStatus('Could not open billing portal: '", INDEX)
-        self.assertIn("setSubscriptionActionStatus('Subscription checkout failed: '", INDEX)
+        start = INDEX.index("  async function startSubscriptionCheckout(")
+        checkout = INDEX[start:INDEX.index("  function checkSubscriptionReturn(", start)]
+        self.assertIn("We couldn’t open subscription checkout.", checkout)
+        self.assertIn("We couldn’t check your acceptance of the current terms.", checkout)
+        self.assertIn("window.hofCustomerActionError?.(err, fallback) || fallback", checkout)
         self.assertNotIn("alert('Could not open billing portal: '", INDEX)
         self.assertNotIn("alert('Subscription checkout failed: '", INDEX)
 

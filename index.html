@@ -26,11 +26,11 @@
   <meta name="twitter:image" content="https://www.homeofferflow.com/assets/homeofferflow-social-preview-v2.jpg" />
   <meta name="twitter:image:alt" content="HomeOfferFlow Texas offer workflow" />
   <title>Write a Texas Real Estate Offer | HomeOfferFlow</title>
-  <script src="/assets/partner-profile.js?v=20261028-public-placement-labels1"></script>
+  <script src="/assets/partner-profile.js?v=20261106-lookup-timeout"></script>
   <link rel="stylesheet" href="/assets/partner-profile.css?v=20261021-portrait1">
-  <link rel="stylesheet" href="/assets/inspection-partners.css">
-  <script src="/assets/inspection-partners.js?v=20261028-public-placement-labels1" defer></script>
-  <script src="/assets/insurance-partners.js?v=20261028-public-placement-labels1" defer></script>
+  <link rel="stylesheet" href="/assets/inspection-partners.css?v=20261118-partner-retry-status">
+  <script src="/assets/inspection-partners.js?v=20261118-partner-retry-status" defer></script>
+  <script src="/assets/insurance-partners.js?v=20261118-partner-retry-status" defer></script>
   <script id="hof-agent-route-primer-v1">
   // Keep only the four declared agent-route labels during this page load.
   // This contains no customer, property, account, or campaign information.
@@ -6893,6 +6893,14 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   }
 
   const SUBSCRIPTION_CHECKOUT_SOURCE_KEY = 'hof_subscription_checkout_source';
+  let subscriptionCheckoutRedirected = false;
+
+  window.addEventListener('pageshow', event => {
+    if (!event.persisted || !subscriptionCheckoutRedirected) return;
+    subscriptionCheckoutRedirected = false;
+    window.__hofSubscriptionCheckoutInFlight = false;
+    setSubscriptionActionStatus('You’re back from checkout. If you completed payment, reopen Account to refresh your subscription.', 'ok');
+  });
 
   function subscriptionCheckoutSource(value) {
     const allowed = new Set(['homeofferflow', 'subscription_card', 'subscription_reactivation', 'agent_activation', 'subscription_cancel_recovery']);
@@ -6912,23 +6920,25 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
     if (!email || !email.includes('@') || !accessToken) {
       window.__hofSubscriptionCheckoutInFlight = false;
-      setAuthStatus('Please sign in before starting a subscription.', 'err');
       openAuthModal(normalizedPlan);
+      setAuthStatus('Please sign in before starting a subscription.', 'err');
       return;
     }
 
-    if (!await ensureCurrentLegalAcceptanceForSubscription()) {
-      window.__hofSubscriptionCheckoutInFlight = false;
-      return;
-    }
-
+    const epoch = window.__hofAccountProfileEpoch;
+    const isCurrent = () => hofAuth.session?.user?.id === user?.id && window.__hofAccountProfileEpoch === epoch;
+    let checkoutStarted = false;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 60000);
+    let timeout;
     try {
+      if (!await ensureCurrentLegalAcceptanceForSubscription()) return;
+      if (!isCurrent()) return;
       setSubscriptionActionBusy('Opening secure Stripe Checkout…');
       try { sessionStorage.setItem(SUBSCRIPTION_CHECKOUT_SOURCE_KEY, normalizedSource); } catch (e) {}
+      checkoutStarted = true;
       logOfferEvent(null, 'subscription_checkout_started', '', 'Stripe subscription checkout started.', { source: normalizedSource, plan: normalizedPlan, billing: normalizedBilling });
 
+      timeout = setTimeout(() => controller.abort(), 60000);
       const response = await fetch('/api/create-subscription-checkout', {
         method: 'POST',
         signal: controller.signal,
@@ -6947,23 +6957,31 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
       const result = await response.json();
       if (!response.ok || result.error) throw new Error(result.error || 'Could not start subscription checkout.');
+      if (!isCurrent()) return;
       if (!result.url) throw new Error('Stripe did not return a checkout URL.');
       // The checkout endpoint records the redirect milestone only after
       // Stripe returns a usable session. Keeping it server-side avoids losing
       // the event during this cross-origin navigation or counting it twice.
       window.location.href = result.url;
+      subscriptionCheckoutRedirected = true;
     } catch (err) {
-      window.__hofSubscriptionCheckoutInFlight = false;
-      try { sessionStorage.removeItem(SUBSCRIPTION_CHECKOUT_SOURCE_KEY); } catch (e) {}
-      logOfferEvent(null, 'subscription_checkout_failed', 'failed', 'Subscription checkout request failed before redirect.', { source: normalizedSource, plan: normalizedPlan, billing: normalizedBilling });
+      if (!isCurrent()) return;
+      if (checkoutStarted) logOfferEvent(null, 'subscription_checkout_failed', 'failed', 'Subscription checkout request failed before redirect.', { source: normalizedSource, plan: normalizedPlan, billing: normalizedBilling });
       console.error('Subscription checkout failed:', err);
-      if (controller.signal.aborted) {
-        setSubscriptionActionStatus('Opening subscription checkout took too long. Please try again.');
-      } else {
-        setSubscriptionActionStatus('Subscription checkout failed: ' + (err?.message || err));
-      }
+      const fallback = checkoutStarted
+        ? 'We couldn’t open subscription checkout. Please try again.'
+        : 'We couldn’t check your acceptance of the current terms. Please try again before checkout.';
+      setSubscriptionActionStatus(controller.signal.aborted
+        ? 'Opening subscription checkout took too long. Please try again.'
+        : window.hofCustomerActionError?.(err, fallback) || fallback);
     } finally {
       clearTimeout(timeout);
+      if (!subscriptionCheckoutRedirected) {
+        window.__hofSubscriptionCheckoutInFlight = false;
+        if (checkoutStarted) {
+          try { sessionStorage.removeItem(SUBSCRIPTION_CHECKOUT_SOURCE_KEY); } catch (_) {}
+        }
+      }
     }
   }
 
@@ -7180,19 +7198,21 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   async function recordCurrentLegalAcceptance(source = 'offer_wizard') {
     const client = getSupabaseClient();
     const user = hofAuth.session?.user;
+    const epoch = window.__hofAccountProfileEpoch;
     if (!client || !user) return false;
     const key = `hof_legal_acceptance_recorded_${LEGAL_POLICY_VERSION}_${user.id}`;
     try {
-      if (sessionStorage.getItem(key) === '1') return true;
+      try { if (sessionStorage.getItem(key) === '1') return true; } catch (_) {}
       const { error } = await client.from('hof_legal_acceptances').insert({
         user_id: user.id,
         policy_version: LEGAL_POLICY_VERSION,
         source
-      });
+      }).abortSignal(AbortSignal.timeout(15000));
+      if (hofAuth.session?.user?.id !== user.id || window.__hofAccountProfileEpoch !== epoch) return false;
       // One immutable acceptance per policy version is intentional. A retry
       // after a completed insert is still a successful acknowledgement.
       if (error && error.code !== '23505') throw error;
-      sessionStorage.setItem(key, '1');
+      try { sessionStorage.setItem(key, '1'); } catch (_) {}
       return true;
     } catch (err) {
       console.warn('Legal acceptance record could not be saved:', err);
@@ -7238,25 +7258,35 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   async function ensureCurrentLegalAcceptanceForSubscription() {
     const client = getSupabaseClient();
     const user = hofAuth.session?.user;
+    const epoch = window.__hofAccountProfileEpoch;
+    const isCurrent = () => hofAuth.session?.user?.id === user?.id && window.__hofAccountProfileEpoch === epoch;
     if (!client || !user) return false;
     const recordedKey = `hof_legal_acceptance_recorded_${LEGAL_POLICY_VERSION}_${user.id}`;
     try {
-      if (sessionStorage.getItem(recordedKey) === '1') return true;
+      try { if (sessionStorage.getItem(recordedKey) === '1') return true; } catch (_) {}
       const { data, error } = await client
         .from('hof_legal_acceptances')
         .select('policy_version')
+        .eq('user_id', user.id)
         .eq('policy_version', LEGAL_POLICY_VERSION)
-        .limit(1);
-      if (!error && Array.isArray(data) && data.length) {
-        sessionStorage.setItem(recordedKey, '1');
+        .limit(1)
+        .abortSignal(AbortSignal.timeout(15000));
+      if (!isCurrent()) return false;
+      if (error) throw error;
+      if (Array.isArray(data) && data.length) {
+        try { sessionStorage.setItem(recordedKey, '1'); } catch (_) {}
         return true;
       }
     } catch (error) {
       console.warn('Current legal acceptance lookup failed:', error);
+      if (isCurrent()) setSubscriptionActionStatus('We couldn’t check your acceptance of the current terms. Please try again before checkout.');
+      return false;
     }
 
     if (!await subscriptionLegalConsentModal()) return false;
+    if (!isCurrent()) return false;
     const recorded = await recordCurrentLegalAcceptance('subscription_checkout');
+    if (!isCurrent()) return false;
     if (!recorded) {
       setSubscriptionActionStatus('We could not save your legal acceptance. Please try again before checkout.');
       return false;
@@ -12035,84 +12065,6 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     window.setHofModalIsolation?.(overlay, false);
     document.body.style.overflow = '';
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  async function forceOfferPacketStatus(offerId, status, extra = {}) {
-    const client = getSupabaseClient();
-    const user = hofAuth.session?.user;
-    if (!client || !user || !offerId) return null;
-
-    const buyerEmail =
-      state.data.buyerEmail ||
-      getVal('buyerEmail') ||
-      getVal('paymentEmail') ||
-      '';
-
-    const signwellDocumentId =
-      extra?.signwell?.document_id ||
-      extra?.signwell?.response?.id ||
-      state.data.signwell?.document_id ||
-      state.data.signwell?.response?.id ||
-      state.data.signwellDocumentId ||
-      '';
-
-    const signwellStatus =
-      extra?.signwell?.response?.status ||
-      extra?.signwell?.status ||
-      state.data.signwell?.response?.status ||
-      state.data.signwell?.status ||
-      '';
-
-    const nowIso = new Date().toISOString();
-    const generatedAt = status === 'Generated' ? (extra.packetGeneratedAt || state.data.generatedAt || nowIso) : (state.data.generatedAt || null);
-
-    try {
-      const payload = {
-        status,
-        buyer_email: buyerEmail || null,
-        signwell_document_id: signwellDocumentId || null,
-        signwell_status: signwellStatus || null,
-        generated_at: generatedAt,
-        offer_data: {
-          ...(state.data || {}),
-          buyerEmail,
-          signwellDocumentId,
-          signwellStatus,
-          generatedAt,
-          _hofOfferId: offerId,
-          ...extra
-        },
-        last_updated: nowIso
-      };
-
-      const { data, error } = await client
-        .from('hof_offers')
-        .update(payload)
-        .eq('user_id', user.id)
-        .eq('id', offerId)
-        .select('*')
-        .single();
-
-      if (error) throw error;
-      state.data._hofOfferId = offerId;
-      return data;
-    } catch (err) {
-      console.warn('Force offer packet status update failed:', err);
-      return null;
-    }
-  }
-
-  async function forceOfferGeneratedStatus(offerId, extra = {}) {
-    return forceOfferPacketStatus(offerId, 'Generated', extra);
-  }
-
-  async function forceOfferGenerationFailedStatus(offerId, err, extra = {}) {
-    const message = err?.message || String(err || 'Packet generation failed.');
-    return forceOfferPacketStatus(offerId, 'Generation Failed', {
-      ...extra,
-      packetGenerationError: message,
-      packetGenerationFailedAt: new Date().toISOString()
-    });
   }
 
   function packetGenerationFailureDetails(err) {
@@ -20970,7 +20922,7 @@ function hofSpreadsheetCsvCell(value) {
         <button class="offer-action-btn" type="button" onclick="copyOfferSummary('${esc(o.id)}')">Copy summary</button>
         ${['generated', 'signing', 'signed'].includes(bucketForOffer(o)) ? `<button class="offer-action-btn" type="button" onclick="hofOpenOfferPdf('${esc(o.id)}', this)">Print unsigned copy</button>` : ''}
         ${bucketForOffer(o) === 'signed' ? `<button class="offer-action-btn" type="button" onclick="hofOpenOfferPdf('${esc(o.id)}', this, true)">Signed PDF</button>` : ''}
-        <button class="offer-action-btn" type="button" onclick="window.startOfferSellerDisclosure('${esc(o.id)}')">Seller’s disclosure</button>
+        <button class="offer-action-btn" type="button" onclick="window.startOfferSellerDisclosure('${esc(o.id)}', this)">Seller’s disclosure</button>
         ${hasDoc ? `<button class="offer-action-btn" type="button" onclick="refreshSignWellStatus('${esc(o.id)}', this)">Refresh</button>` : `<button class="offer-action-btn" type="button" onclick="viewOfferDetails('${esc(o.id)}')">Status</button>`}
         ${canRetrySigning ? `<button class="offer-action-btn" type="button" onclick="retryOfferSignature('${esc(o.id)}', this)">Retry signing</button>` : ''}
         ${needsBuyerReminder ? `<button class="offer-action-btn" type="button" onclick="copyBuyerSigningReminder('${esc(o.id)}')">Copy buyer reminder</button>` : ''}
@@ -21254,6 +21206,13 @@ function hofSpreadsheetCsvCell(value) {
 
   function announceWorkspaceStatus(message){
     let status = document.getElementById('hofWorkspaceStatus');
+    if (!message) {
+      if (status) {
+        window.clearTimeout(status._hofDismissTimer);
+        status.remove();
+      }
+      return;
+    }
     if (!status) {
       status = document.createElement('div');
       status.id = 'hofWorkspaceStatus';
@@ -26079,6 +26038,8 @@ function hofSpreadsheetCsvCell(value) {
 </script>
 
 <style id="hof-seller-disclosure-draft-ui-v1">
+.hof-seller-disclosure-card > p,.hof-seller-disclosure-workspace > summary small{color:var(--gray-light)}
+.hof-seller-disclosure-workspace > summary{color:var(--white)}
 .hof-seller-disclosure-card .hof-seller-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .hof-seller-disclosure-card .hof-seller-grid>label{min-width:0}
 .hof-seller-disclosure-card .hof-seller-grid input,.hof-seller-disclosure-card .hof-seller-grid select{width:100%;min-width:0;max-width:100%;box-sizing:border-box}
@@ -26267,38 +26228,68 @@ function hofSpreadsheetCsvCell(value) {
     window.setTimeout(open, 250);
     window.setTimeout(open, 900);
   };
-  root.startOfferSellerDisclosure = async function startOfferSellerDisclosure(offerId) {
-    const userId = root.hofAuth?.session?.user?.id, client = root.getSupabaseClient?.();
-    if (!userId || !client || !active()) return;
+  root.startOfferSellerDisclosure = async function startOfferSellerDisclosure(offerId, button) {
+    const userId = root.hofAuth?.session?.user?.id;
+    const token = root.hofAuth?.session?.access_token;
+    if (button?.disabled || !active()) return;
+    if (!userId || !token) {
+      root.announceWorkspaceStatus?.('Sign in again to open the seller’s disclosure from this offer.');
+      return;
+    }
+    const id = String(offerId || '').toLowerCase();
     const revision = ++listingDisclosureHandoffRevision;
-    const {data, error} = await client.from('hof_offers')
-      .select('id,user_id,property_address,offer_data').eq('id', String(offerId)).eq('user_id', userId)
-      .is('deleted_at', null).maybeSingle();
-    if (revision !== listingDisclosureHandoffRevision || root.hofAuth?.session?.user?.id !== userId) return;
+    const epoch = root.__hofAccountProfileEpoch || 0;
+    const isCurrent = () => revision === listingDisclosureHandoffRevision &&
+      active() && root.hofAuth?.session?.user?.id === userId && (root.__hofAccountProfileEpoch || 0) === epoch;
+    const label = button?.textContent;
+    if (button) { button.disabled = true; button.textContent = 'Opening disclosure…'; }
+    root.announceWorkspaceStatus?.('');
+    try {
+      const params = new URLSearchParams({scope: 'agent_seller_disclosure_offer_context', offer_id: id});
+      const response = await fetch(`/api/admin-dashboard?${params.toString()}`, {
+        headers: {Authorization: `Bearer ${token}`},
+        signal: AbortSignal.timeout(15000)
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!isCurrent()) return;
+      if (response.status === 404 || response.status === 401) {
+        root.announceWorkspaceStatus?.(response.status === 404
+          ? 'This offer is unavailable. Refresh My Offers to see your current offers.'
+          : 'Sign in again to open the seller’s disclosure from this offer.');
+        return;
+      }
+      if (!response.ok || result.context?.offerId !== id) throw new Error('Offer disclosure unavailable');
+      if (!document.getElementById('hofSellerDisclosureCard')) await renderCard();
+      if (isCurrent()) await openOfferDisclosureContext(result.context, isCurrent);
+    } catch (_) {
+      if (isCurrent()) root.announceWorkspaceStatus?.('Couldn’t load offer details. Choose Seller’s disclosure to try again.');
+    } finally {
+      if (button) { button.disabled = false; button.textContent = label; }
+    }
+  };
+  async function openOfferDisclosureContext(context, isCurrent) {
+    if (!document.getElementById('hofSellerDisclosureCard')) return;
     await root.openSellerDisclosureDraftWorkspace();
     const card = document.getElementById('hofSellerDisclosureCard'), status = document.getElementById('hofSellerDraftStatus');
-    if (!card) return;
-    if (error || data?.id !== String(offerId) || data?.user_id !== userId) {
-      if (status) status.textContent = 'We could not open that offer for this account.'; return;
-    }
+    if (!card || !isCurrent()) return;
     const fields = ['hofSellerAddress','hofSeller1','hofSeller2','hofSellerEmail','hofSeller2Email','hofBuyer1','hofBuyer2','hofWaterSource'];
     const responses = [...card.querySelectorAll('[data-seller-response], [data-water-response]')];
     if ((card.dataset.loadedDraftId || fields.some(id => document.getElementById(id)?.value) || responses.some(f => f.value))
         && !await confirmListingDisclosureReplacement()) return;
-    if (revision !== listingDisclosureHandoffRevision || root.hofAuth?.session?.user?.id !== userId || document.getElementById('hofSaveSellerDraft')?.disabled) return;
+    if (!isCurrent() || document.getElementById('hofSellerDisclosureCard') !== card ||
+        document.getElementById('hofSaveSellerDraft')?.disabled) return;
     fields.forEach(id => { document.getElementById(id).value = ''; }); responses.forEach(f => { f.value = ''; });
     delete card.dataset.loadedDraftId; delete card.dataset.sellerDraftId;
     document.getElementById('hofSellerWorkspace').value = '';
-    const saved = data.offer_data || {};
-    document.getElementById('hofSellerAddress').value = data.property_address || saved.propertyAddress || saved.propAddress || '';
-    document.getElementById('hofSeller1').value = saved.seller1Name || saved.seller1 || '';
-    document.getElementById('hofSeller2').value = saved.seller2Name || saved.seller2 || '';
-    document.getElementById('hofSellerEmail').value = saved.seller1Email || '';
-    document.getElementById('hofSeller2Email').value = saved.seller2Email || '';
+    document.getElementById('hofSellerAddress').value = context.propertyAddress || '';
+    document.getElementById('hofSeller1').value = context.seller1Name || '';
+    document.getElementById('hofSeller2').value = context.seller2Name || '';
+    document.getElementById('hofSellerEmail').value = context.seller1Email || '';
+    document.getElementById('hofSeller2Email').value = context.seller2Email || '';
     document.getElementById('hofSendSellerReview').disabled = true;
     syncWaterRightsVisibility(); syncDisclosureDetails(card);
     if (status) status.textContent = 'Offer details added. Confirm the seller contacts, save the disclosure, then send the questionnaire. You do not need to answer for the seller.';
-  };
+  }
   root.filterSellerDisclosureDrafts = function filterSellerDisclosureDrafts(value) {
     const query = String(value || '').trim().toLowerCase();
     const rows = Array.from(document.querySelectorAll('[data-seller-draft-row]'));

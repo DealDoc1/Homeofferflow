@@ -45,7 +45,7 @@ test('website cannot be misleadingly labeled Call while approved custom labels s
 });
 test('partner profiles request independent directory and workflow views from the shared API',async()=>{
   const calls=[];
-  const sandbox={window:{},URL,URLSearchParams,Date,document:{addEventListener(){}},fetch:async url=>{
+  const sandbox={window:{},URL,URLSearchParams,Date,AbortController,setTimeout,clearTimeout,document:{addEventListener(){}},fetch:async url=>{
     calls.push(String(url));return {ok:true,json:async()=>({ok:true,partners:[]})};
   }};
   vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../assets/partner-profile.js'),'utf8'),sandbox);
@@ -58,6 +58,35 @@ test('partner profiles request independent directory and workflow views from the
   assert.equal(shared.placementLabel({placement_tier:'founding',is_category_founder:true}),'Founding Partner');
   assert.equal(shared.placementLabel({placement_tier:'premier',is_category_founder:true}),'Founding Partner · Featured Partner');
   assert.equal(shared.topWorkflowPremier([{placement_tier:'premier'},{id:'top',placement_tier:'exclusive_market'},{id:'second',placement_tier:'exclusive_market'}]).id,'top');
+});
+test('an incomplete workflow response is rejected and can be retried immediately',async()=>{
+  let calls=0;
+  const sandbox={window:{},URL,URLSearchParams,Date,AbortController,setTimeout,clearTimeout,fetch:async()=>({
+    ok:true,json:async()=>++calls===1?{ok:true}:{ok:true,partners:[]}
+  })};
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../assets/partner-profile.js'),'utf8'),sandbox);
+  const {load}=sandbox.window.hofPartnerProfile;
+  await assert.rejects(load('workflow'),/Directory unavailable/);
+  assert.equal((await load('workflow')).length,0);
+  await load('workflow');
+  assert.equal(calls,2);
+});
+test('a stalled workflow lookup is aborted and the next attempt makes a fresh request',async()=>{
+  let expire, calls=0, cleared=0;
+  const sandbox={window:{},URL,URLSearchParams,Date,AbortController,
+    setTimeout(callback,ms){assert.equal(ms,12000);expire=callback;return 1;},
+    clearTimeout(){cleared++;},
+    fetch(_url,{signal}){
+      if (++calls===1) return new Promise((_,reject)=>signal.addEventListener('abort',()=>reject(Error('aborted'))));
+      return Promise.resolve({ok:true,json:async()=>({ok:true,partners:[]})});
+    }};
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../assets/partner-profile.js'),'utf8'),sandbox);
+  const pending=sandbox.window.hofPartnerProfile.load('workflow');
+  expire();
+  await assert.rejects(pending,/aborted/);
+  assert.equal((await sandbox.window.hofPartnerProfile.load('workflow')).length,0);
+  assert.equal(calls,2);
+  assert.equal(cleared,2);
 });
 test('all completion actions use existing privacy-safe tracking markers',()=>{
   const markup=profile.actions(provider,esc,'data-offer-completion-partner-link');

@@ -13,24 +13,28 @@ test('optional public portrait is available with or without a company logo',asyn
  }
 });
 
-function setup({active = true, providers = [provider], fail = false, deferred = false,legacyProfile=false} = {}) {
-  let isActive = active, now = 1000, resolveRequest;
+function setup({active = true, providers = [provider], fail = false, failOnce = false, deferred = false,legacyProfile=false} = {}) {
+  let isActive = active, now = 1000, resolveRequest, failuresRemaining = failOnce ? 1 : 0;
   const calls = [], handlers = [];
   const target = {hidden:true,innerHTML:'',querySelectorAll(){
     return [...this.innerHTML.matchAll(/<a\b[^>]*>/g)].map(match => {
       const markup=match[0], id=(markup.match(/data-partner-id="([^"]+)"/)||[])[1], brand=(markup.match(/data-inspection-brand="([^"]+)"/)||[])[1];
       return {dataset:{partnerId:id,inspectionBrand:brand},addEventListener:(event,fn)=>handlers.push({event,fn,id:id||brand,markup})};
     });
+  },querySelector(selector){
+    return selector === '[data-partner-retry]' && this.innerHTML.includes('data-partner-retry')
+      ? {disabled:false,textContent:'Try again',addEventListener:(event,fn)=>handlers.push({event,fn,retry:true})}
+      : null;
   }};
   const step = {classList:{contains:()=>isActive}};
   let observer;
-  const sandbox = {window:{},URL,URLSearchParams,Date:{now:()=>now},Promise,Set,
+  const sandbox = {window:{},URL,URLSearchParams,AbortController,setTimeout,clearTimeout,Date:{now:()=>now},Promise,Set,
     document:{readyState:'complete',addEventListener(){},getElementById:id=>id==='step6'?step:target},
     MutationObserver:class {constructor(fn){observer=fn;}observe(){}},
     fetch:async(url, options)=>{
       calls.push({url,options});
       if(options?.method==='POST') return {ok:true,json:async()=>({ok:true})};
-      if(fail) throw new Error('fixture unavailable');
+      if(fail || failuresRemaining > 0) { if(failuresRemaining > 0) failuresRemaining--; throw new Error('fixture unavailable'); }
       if(deferred) return new Promise(resolve=>{resolveRequest=()=>resolve({ok:true,json:async()=>({ok:true,partners:providers})});});
       return {ok:true,json:async()=>({ok:true,partners:providers})};
     },
@@ -56,7 +60,7 @@ test('active inspection step uses central public profile, correct logo and separ
   assert.match(p.target.innerHTML,/tel:\+19728376378/);
   assert.match(p.target.innerHTML,/Visit website/);
   assert.match(p.target.innerHTML,/Optional service providers/);
-  assert.equal(p.calls.filter(c=>!c.options).length,1);
+  assert.equal(p.calls.filter(c=>c.options?.method!=='POST').length,1);
 });
 
 test('no provider lookup or analytics happens before the inspection step is visible',async()=>{
@@ -70,15 +74,29 @@ test('leaving the step during loading does not render or count a hidden impressi
   const p=setup({deferred:true});
   p.setActive(false);p.resolve();await p.flush();
   assert.equal(p.target.hidden,true);
-  assert.equal(p.calls.filter(c=>c.options).length,0);
+  assert.equal(p.calls.filter(c=>c.options?.method==='POST').length,0);
   p.setActive(true);await p.flush();
   assert.equal(p.target.hidden,false);
-  assert.equal(p.calls.filter(c=>!c.options).length,1);
+  assert.equal(p.calls.filter(c=>c.options?.method!=='POST').length,1);
 });
 
-test('directory failure and no active roofing profile never block the interview or show a blank advertisement',async()=>{
-  for(const options of [{fail:true},{providers:[]},{providers:[{...provider,partner_type:'lender'}]},{providers:[{...provider,website_url:'javascript:evil'}]}]){
-    const p=setup(options);await p.flush();assert.equal(p.target.hidden,true);assert.equal(p.calls.filter(c=>c.options).length,0);
+test('temporary directory failure gives a non-blocking, accessible retry',async()=>{
+  const p=setup({fail:true});await p.flush();assert.equal(p.target.hidden,false);
+  assert.match(p.target.innerHTML,/role="status" aria-live="polite"/);
+  assert.match(p.target.innerHTML,/continue without them/);assert.match(p.target.innerHTML,/data-partner-retry/);
+  assert.equal(p.calls.filter(c=>c.options?.method==='POST').length,0);
+});
+
+test('retry after a temporary directory failure renders the provider card',async()=>{
+  const p=setup({failOnce:true});await p.flush();assert.equal(p.target.hidden,false);
+  p.handlers.find(handler=>handler.retry).fn();await p.flush();
+  assert.equal(p.target.hidden,false);assert.match(p.target.innerHTML,/Fictional QA Roofing/);
+  assert.equal(p.calls.filter(c=>c.options?.method!=='POST').length,2);
+});
+
+test('no active roofing profile stays hidden without blocking or showing an empty advertisement',async()=>{
+  for(const options of [{providers:[]},{providers:[{...provider,partner_type:'lender'}]},{providers:[{...provider,website_url:'javascript:evil'}]}]){
+    const p=setup(options);await p.flush();assert.equal(p.target.hidden,true);assert.equal(p.calls.filter(c=>c.options?.method==='POST').length,0);
   }
 });
 
@@ -91,7 +109,7 @@ test('profile values cannot inject markup, credentials or private-contact fallba
 test('impression and clicks carry only allowed aggregate placement metadata, never customer or offer data',async()=>{
   const p=setup();await p.flush();
   p.handlers.find(h=>h.markup.includes('tel:')).fn();await p.flush();
-  const events=p.calls.filter(c=>c.options).map(c=>JSON.parse(c.options.body));
+  const events=p.calls.filter(c=>c.options?.method==='POST').map(c=>JSON.parse(c.options.body));
   assert.deepEqual(events.map(e=>e.event_type),['partner_directory_impression','partner_directory_outbound_click']);
   for(const event of events){
     assert.deepEqual(Object.keys(event).sort(),['directory_surface','event_type','partner_id','partner_type','placement_tier','request_type'].sort());
@@ -100,17 +118,17 @@ test('impression and clicks carry only allowed aggregate placement metadata, nev
     assert.equal(event.placement_tier,'exclusive_market');
   }
   p.setActive(false);p.setActive(true);await p.flush();
-  assert.equal(p.calls.filter(c=>c.options).length,2);
+  assert.equal(p.calls.filter(c=>c.options?.method==='POST').length,2);
 });
 
 test('inspection and follow-up share one pending/cached lookup, then refresh after five minutes',async()=>{
   const p=setup({deferred:true});
   const followup=p.sandbox.window.hofPartnerProfile.load('workflow');
   assert.equal(p.calls.length,1);p.resolve();await followup;await p.flush();
-  await p.sandbox.window.hofPartnerProfile.load('workflow');assert.equal(p.calls.filter(c=>!c.options).length,1);
+  await p.sandbox.window.hofPartnerProfile.load('workflow');assert.equal(p.calls.filter(c=>c.options?.method!=='POST').length,1);
   p.setTime(302000);
   const fresh=p.sandbox.window.hofPartnerProfile.load('workflow');
-  assert.equal(p.calls.filter(c=>!c.options).length,2);p.resolve();await fresh;
+  assert.equal(p.calls.filter(c=>c.options?.method!=='POST').length,2);p.resolve();await fresh;
 });
 
 test('public directory cache permits a new attempt after an unsuccessful lookup',async()=>{
@@ -118,4 +136,12 @@ test('public directory cache permits a new attempt after an unsuccessful lookup'
   await assert.rejects(p.sandbox.window.hofPartnerProfile.load());
   await assert.rejects(p.sandbox.window.hofPartnerProfile.load());
   assert.equal(p.calls.length,2);
+});
+
+test('a confirmed empty response clears the previous retry message',async()=>{
+  const p=setup({failOnce:true,providers:[]});await p.flush();
+  assert.equal(p.target.hidden,false);
+  p.handlers.find(handler=>handler.retry).fn();await p.flush();
+  assert.equal(p.target.hidden,true);
+  assert.equal(p.target.innerHTML,'');
 });
