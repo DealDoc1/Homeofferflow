@@ -8,6 +8,11 @@ API = (ROOT / "api" / "fill-pdf.py").read_text(encoding="utf-8")
 
 
 class SubscriptionPacketGenerationSecurityTests(unittest.TestCase):
+    def test_browser_cannot_write_packet_status_or_signing_state_directly(self):
+        self.assertNotIn("forceOfferPacketStatus", HTML)
+        self.assertNotIn(".from('hof_offers')", HTML)
+        self.assertIn("def save_generated_offer_to_supabase(", API)
+
     def test_browser_marks_subscribed_generation_and_sends_its_session_token(self):
         start = HTML.index("async function generateSubscribedPacket()")
         end = HTML.index("async function", start + 1)

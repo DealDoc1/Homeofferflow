@@ -14,7 +14,7 @@ HYDROSTATIC_END = HTML.index('  function markHydrostaticInterviewIssues(', HYDRO
 class SubscriberPartialDeliveryRuntimeTests(unittest.TestCase):
     def run_generation(self, status, result, storage_blocked=False):
         harness = '''
-        const calls = {usage:[], refreshed:0, failed:[], success:[], logs:[], saves:[], requests:[]};
+        const calls = {usage:[], refreshed:0, recovery:[], success:[], logs:[], saves:[], requests:[]};
         const state = {data:{buyerEmail:'buyer@example.test',userType:'agent',_hofOfferId:'owned-offer'}};
         const hofAuth = {session:{access_token:'fixture',user:{email:'agent@example.test'}}};
         const window = {};
@@ -32,13 +32,11 @@ class SubscriberPartialDeliveryRuntimeTests(unittest.TestCase):
         const validateUploadedDisclosureDocs = ()=>true;
         const saveOfferDraftToSupabase = async status=>{calls.saves.push(status);return {id:'owned-offer'};};
         const logOfferEvent = async(...args)=>calls.logs.push(args);
-        const forceOfferGeneratedStatus = async()=>{};
         const recordUsageEvent = async(...args)=>calls.usage.push(args);
         const loadCurrentUsage = async()=>{calls.refreshed++;};
         const showPaymentSuccess = (...args)=>calls.success.push(args);
-        const forceOfferGenerationFailedStatus = async(...args)=>calls.failed.push(args);
         const packetGenerationFailureDetails = ()=>({category:'unknown'});
-        const showPacketGenerationRecoveryNotice = ()=>{};
+        const showPacketGenerationRecoveryNotice = failure=>calls.recovery.push(failure.category);
         const console = {error:()=>{}};
         const fetch = async(url, options)=>{calls.requests.push({url,options});return {
           ok:STATUS >= 200 && STATUS < 300,
@@ -57,7 +55,7 @@ class SubscriberPartialDeliveryRuntimeTests(unittest.TestCase):
                   'signwell': {'ok': True, 'document_id': 'original-document'}}
         actual = self.run_generation(202, result)
         calls = actual['calls']
-        self.assertEqual(calls['failed'], [])
+        self.assertEqual(calls['recovery'], [])
         self.assertEqual(len(calls['requests']), 1)
         self.assertEqual(calls['requests'][0]['url'], '/api/fill-pdf')
         self.assertEqual(calls['success'][0][1]['documentEmail']['status'], 'unconfirmed')
@@ -70,7 +68,7 @@ class SubscriberPartialDeliveryRuntimeTests(unittest.TestCase):
         calls = self.run_generation(500, {'error': 'Packet could not be generated.'})['calls']
         self.assertEqual(calls['success'], [])
         self.assertEqual(calls['usage'], [])
-        self.assertEqual(calls['failed'], [])
+        self.assertEqual(calls['recovery'], ['unknown'])
 
     def test_accepted_email_result_reaches_success_page(self):
         calls = self.run_generation(200, {'status': 'ok', 'packetGenerated': True, 'usage': {'status': 'recorded'}, 'documentEmail': {'status': 'accepted'},
@@ -81,13 +79,13 @@ class SubscriberPartialDeliveryRuntimeTests(unittest.TestCase):
         calls = self.run_generation(200, {'packetGenerated': True})['calls']
         self.assertEqual(calls['success'], [])
         self.assertEqual(calls['usage'], [])
-        self.assertEqual(calls['failed'], [])
+        self.assertEqual(calls['recovery'], ['unknown'])
 
     def test_busy_or_uncertain_request_never_overwrites_saved_status(self):
         for code in ('packet_generation_busy', 'packet_generation_unconfirmed', 'packet_allowance_unavailable'):
             with self.subTest(code=code):
                 calls = self.run_generation(409, {'error': 'Check your saved offer.', 'code': code})['calls']
-                self.assertEqual(calls['failed'], [])
+                self.assertEqual(calls['recovery'], ['unknown'])
                 self.assertEqual(calls['saves'], [])
                 self.assertEqual(calls['usage'], [])
 
@@ -97,7 +95,7 @@ class SubscriberPartialDeliveryRuntimeTests(unittest.TestCase):
             'signwell': {'ok': True}}, storage_blocked=True)
         self.assertEqual(len(actual['calls']['requests']), 1)
         self.assertEqual(len(actual['calls']['success']), 1)
-        self.assertEqual(actual['calls']['failed'], [])
+        self.assertEqual(actual['calls']['recovery'], [])
 
 
 if __name__ == '__main__':
