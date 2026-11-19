@@ -33,7 +33,22 @@
       hof_mobile_start_offer: 'start',
       hof_resume_offer: 'resume',
       hof_mobile_reuse_terms: 'reuse',
-      hof_mobile_duplicate_offer: 'duplicate'
+      hof_mobile_duplicate_offer: 'duplicate',
+      hof_mobile_custom_document_package: 'custom',
+      hof_mobile_representation_package: 'representation',
+      hof_mobile_listing_package_preview: 'listing',
+      hof_mobile_prepared_documents: 'prepared'
+    };
+    const choices = {
+      representation: ['buyer', 'tenant'],
+      listing: ['seller', 'landlord']
+    };
+    const flags = ['start', 'custom', 'prepared'];
+    window.hofValidateNativeWorkspaceLink = ({ action, id, choice }) => {
+      if (Object.hasOwn(choices, action)) return id === '' && choices[action].includes(choice);
+      if (choice !== undefined) return false;
+      if (flags.includes(action)) return id === '';
+      return ['resume', 'reuse', 'duplicate'].includes(action) && typeof id === 'string' && uuid.test(id);
     };
     const [entry, ...others] = new URLSearchParams(location.hash.slice(1));
     if (!entry || others.length || !Object.hasOwn(actions, entry[0])) return;
@@ -41,8 +56,11 @@
     const action = actions[key];
     // Read only one recognized fragment, leaving passwordless callbacks alone.
     try { history.replaceState(history.state, '', location.pathname + location.search); } catch (_) {}
-    if (action === 'start' ? value !== '1' : !uuid.test(value)) return;
-    window.__hofNativeOfferLink = { action, id: action === 'start' ? '' : value.toLowerCase() };
+    if (flags.includes(action) && value !== '1') return;
+    const link = Object.hasOwn(choices, action) ? { action, id: '', choice: value }
+      : { action, id: flags.includes(action) ? '' : value.toLowerCase() };
+    if (!window.hofValidateNativeWorkspaceLink(link)) return;
+    window.__hofNativeOfferLink = link;
     window.__hofAccountRouteAuthPending = true;
   })();
   </script>
@@ -3298,6 +3316,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         <button class="btn-secondary" id="nativeOfferDuplicateCancel" type="button">Cancel</button>
       </div>
     </section>
+    <div class="account-card" id="nativeDocumentHandoffStatus" role="status" tabindex="-1" hidden></div>
 
     <div class="account-panel active" id="accountPanelDashboard">
       <div class="account-card">
@@ -4808,6 +4827,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     window.closeOfferDetail?.();
     window.hofUnderContract?.dismiss?.();
     window.hofClearNativeOfferDuplicatePrompt?.();
+    window.hofClearNativeDocumentHandoffStatus?.();
     document.getElementById('privateFormDraftsCard')?.remove();
     window.__hofAccountProfileEpoch = (window.__hofAccountProfileEpoch || 0) + 1;
     window.__hofListingWorkspaceCreateAttempts?.clear();
@@ -6401,6 +6421,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   let accountWorkspaceOpenRevision = 0;
   function showAccountTab(tab = 'dashboard') {
     accountTabSelectionRevision += 1;
+    window.hofClearNativeDocumentHandoffStatus?.(tab);
     document.querySelectorAll('[data-account-tab]').forEach(btn => btn.classList.toggle('active', btn.dataset.accountTab === tab));
     document.querySelectorAll('.account-panel').forEach(panel => panel.classList.remove('active'));
     const panel = document.getElementById('accountPanel' + tab.charAt(0).toUpperCase() + tab.slice(1));
@@ -6620,6 +6641,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
   function closeAccountDashboard() {
     window.hofClearNativeOfferDuplicatePrompt?.();
+    window.hofClearNativeDocumentHandoffStatus?.();
     const modal = document.getElementById('accountModal');
     if (modal) {
       modal.classList.remove('active');
@@ -8802,10 +8824,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         : type === 'purchase_addendum'
           ? 'Which purchase document does this transaction need?'
           : 'What does this customer need?';
+      const instructions = type === 'representation' && options.standaloneOnly
+        ? 'Choose the representation agreement that fits. Notices and disclosures are separate in Guided Forms.'
+        : 'Choose the document that fits. We’ll guide you through only the details it requires.';
       const savedAgreementAction = type === 'representation'
         ? '<button type="button" class="btn-secondary" data-find-saved-agreement>Find a saved agreement</button>'
         : '';
-      followUp.innerHTML = `<div class="hof-agreement-dialog" role="dialog" aria-modal="true" aria-labelledby="hofAgentPackageFollowUpTitle"><p class="hof-agent-question-step">One more question</p><h3 id="hofAgentPackageFollowUpTitle">${prompt}</h3><p>Choose the document that fits. We’ll guide you through only the details it requires.</p><div class="hof-agreement-grid">${choices.map((choice, index) => `<button type="button" class="btn-secondary hof-agent-package-choice" data-follow-up-choice="${index}" style="text-align:left;padding:1rem"><strong style="display:block;color:var(--white)${choice.copy ? ';margin-bottom:.35rem' : ''}">${choice.label}</strong>${choice.copy ? `<span style="display:block;color:var(--gray-light);font-weight:400;line-height:1.45">${choice.copy}</span>` : ''}</button>`).join('')}</div><div class="hof-agreement-footer"><button type="button" class="btn-secondary" id="hofAgentPackageFollowUpCancel">Back</button>${savedAgreementAction}</div></div>`;
+      followUp.innerHTML = `<div class="hof-agreement-dialog" role="dialog" aria-modal="true" aria-labelledby="hofAgentPackageFollowUpTitle"><p class="hof-agent-question-step">One more question</p><h3 id="hofAgentPackageFollowUpTitle">${prompt}</h3><p>${instructions}</p><div class="hof-agreement-grid">${choices.map((choice, index) => `<button type="button" class="btn-secondary hof-agent-package-choice" data-follow-up-choice="${index}" style="text-align:left;padding:1rem"><strong style="display:block;color:var(--white)${choice.copy ? ';margin-bottom:.35rem' : ''}">${choice.label}</strong>${choice.copy ? `<span style="display:block;color:var(--gray-light);font-weight:400;line-height:1.45">${choice.copy}</span>` : ''}</button>`).join('')}</div><div class="hof-agreement-footer"><button type="button" class="btn-secondary" id="hofAgentPackageFollowUpCancel">Back</button>${savedAgreementAction}</div></div>`;
       document.body.appendChild(followUp);
       if (direct) {
         window.logOfferEvent?.(null, 'agent_form_package_direct_question_opened', 'viewed', 'Agent reached the necessary document choice directly after choosing the transaction.', { workflow: kind, package_type: type });
@@ -9800,9 +9825,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       if (!user?.email || link.emailFingerprint !== await nativeOfferSignInFingerprint(user.email) ||
           value !== localStorage.getItem(NATIVE_OFFER_SIGN_IN_RETURN)) return null;
       localStorage.removeItem(NATIVE_OFFER_SIGN_IN_RETURN);
-      if (link.action === 'start' && link.id === '') return link;
-      if (['resume', 'reuse', 'duplicate'].includes(link.action) &&
-          /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(link.id)) return link;
+      if (window.hofValidateNativeWorkspaceLink(link)) return link;
     } catch (_) {}
     return null;
   }
@@ -9849,6 +9872,53 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     }
   }
 
+  window.hofClearNativeDocumentHandoffStatus = (activeTab) => {
+    const status = document.getElementById('nativeDocumentHandoffStatus');
+    if (!status || status.dataset.tab === activeTab) return;
+    status.hidden = true;
+    status.textContent = '';
+    delete status.dataset.tab;
+  };
+
+  function openNativeDocumentLink(link, isCurrent) {
+    const listing = link.action === 'listing';
+    const tab = listing ? 'seller' : 'relationships';
+    window.hofAgentWorkflowContext = listing
+      ? (link.choice === 'seller' ? 'sale_listing' : 'lease_listing')
+      : (link.action === 'representation' && link.choice === 'tenant' ? 'lease_representation' : '');
+    void openAccountDashboard({ tab });
+    showAccountTab(tab);
+    const tabRevision = accountTabSelectionRevision;
+    const notices = {
+      custom: 'Custom document packages aren’t available here yet. You can prepare individual documents in Guided Forms or find documents you’ve already prepared.',
+      listing: 'Listing packet previews aren’t available from this link yet. Use this listing workspace to organize the property and client details.',
+      representation: 'You can prepare the representation agreement here. Open Guided Forms for separate notices and disclosures.'
+    };
+    const status = document.getElementById('nativeDocumentHandoffStatus');
+    if (notices[link.action]) {
+      status.dataset.tab = tab;
+      status.textContent = notices[link.action];
+      status.hidden = false;
+    }
+    window.setTimeout(() => {
+      if (!isCurrent() || tabRevision !== accountTabSelectionRevision ||
+          !document.getElementById('accountModal')?.classList.contains('active')) return;
+      if (link.action === 'representation') {
+        const workflow = link.choice === 'buyer' ? 'purchase' : 'lease_representation';
+        if (window.hofOpenAgentPackageInterview?.(workflow, { directPackage: 'representation', standaloneOnly: true })) return;
+      }
+      const search = link.action === 'prepared'
+        ? document.querySelector('#accountPanelRelationships #hofStandaloneAgreementSearch') : null;
+      const disclosure = search?.closest('details');
+      if (disclosure) disclosure.open = true;
+      const target = search || (link.action === 'prepared'
+        ? document.getElementById('relationshipDraftsHeading') : status);
+      if (!search) target?.setAttribute('tabindex', '-1');
+      target?.scrollIntoView({ block: 'center' });
+      target?.focus({ preventScroll: true });
+    }, 0);
+  }
+
   async function openNativeOfferLinkAfterAuth(returningFromSignIn) {
     const user = hofAuth.session?.user;
     const epoch = window.__hofAccountProfileEpoch;
@@ -9864,6 +9934,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     hofAuth.routedAfterLogin = true;
     try { localStorage.removeItem('hof_auth_pending'); } catch (_) {}
     closeAuthModal();
+    if (hofAuth.profileReady && ['representation', 'listing', 'custom', 'prepared'].includes(link.action)) {
+      openNativeDocumentLink(link, isCurrent);
+      return true;
+    }
     void openAccountDashboard({ tab: 'offers' });
     if (!hofAuth.profileReady) {
       window.announceWorkspaceStatus?.('We couldn’t verify your workspace. Refresh, then reopen the link from HomeOfferFlow.');
