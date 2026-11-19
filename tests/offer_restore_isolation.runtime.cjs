@@ -539,7 +539,8 @@ for(const edited of [false,true])test(`account initialization automatic restore 
   Object.assign(c,{supabaseAuthInitialization:null,
     URLSearchParams,
     ensureSupabaseClient:async()=>({auth:{getSession:async()=>({data:{session:{user:{id:'owner'}}}}),onAuthStateChange(){}}}),
-    updateAuthUI(){},cleanSupabaseAuthUrlNoise(){},ensureProfileShell:async()=>{},flushSubscriptionCheckoutReturnEvent:async()=>{},routeAfterMagicLinkIfNeeded(){}});
+    updateAuthUI(){},cleanSupabaseAuthUrlNoise(){},ensureProfileShell:async()=>{},flushSubscriptionCheckoutReturnEvent:async()=>{},
+    openNativeOfferLinkAfterAuth:async()=>false,routeAfterMagicLinkIfNeeded(){}});
   vm.runInContext(source('  async function initSupabaseAuth()', '  function isProfileMeaningful('),c);
   const pending=c.initSupabaseAuth();
   if(edited)c.beginOfferOpenRequest();
