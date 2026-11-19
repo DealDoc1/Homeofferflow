@@ -3381,6 +3381,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     <div class="account-panel" id="accountPanelOffers">
       <div class="account-card">
         <h4>My Offers</h4>
+        <p id="myOffersSigningSyncStatus" class="offer-workspace-note" role="status" aria-atomic="true"></p>
         <p id="myOffersRefreshNotice" class="offer-workspace-note" role="status" hidden>Couldn’t refresh offers. You’re viewing the last loaded results. Use Sync signing status to try again.</p>
         <div id="myOffersList" class="offer-empty">No saved offers yet. Create your first offer and future work will appear here.</div>
         <div class="account-actions-row">
@@ -4843,9 +4844,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     hofAuth.myOffers = [];
     hofAuth.myOffersHasMore = false;
     hofAuth.myOffersLoadMoreError = false;
+    hofAuth.myOffersRefreshError = false;
     hofAuth.myOffersNextOffset = 0;
     const refreshNotice = document.getElementById('myOffersRefreshNotice');
     if (refreshNotice) refreshNotice.hidden = true;
+    const signingSyncStatus = document.getElementById('myOffersSigningSyncStatus');
+    if (signingSyncStatus) signingSyncStatus.textContent = '';
     const offersList = document.getElementById('myOffersList');
     if (offersList) offersList.textContent = '';
     if (window.hofOfferWorkspaceV10) {
@@ -9069,7 +9073,10 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       hofAuth.myOffersHasMore = history.hasMore;
       hofAuth.myOffersLoadMoreError = false;
       hofAuth.myOffersNextOffset = history.nextOffset;
-      if (!append && refreshNotice) refreshNotice.hidden = true;
+      if (!append) {
+        hofAuth.myOffersRefreshError = false;
+        if (refreshNotice) refreshNotice.hidden = true;
+      }
       if (!loadedOffers.length) {
         list.className = 'offer-empty';
         list.textContent = 'No saved offers yet. Create your first offer and future offers will show here.';
@@ -9091,6 +9098,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       return loadedOffers;
     } catch (err) {
       if (!isCurrent()) return;
+      if (!append) hofAuth.myOffersRefreshError = true;
       const existingOffers = offersBeforePage ?? hofAuth.myOffers ?? currentOffers;
       if (!append && !offersBeforePage && existingOffers.length) {
         if (refreshNotice) refreshNotice.hidden = false;
@@ -9404,11 +9412,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   }
 
   async function refreshSignWellStatus(offerId, buttonEl, skipReload = false, suppressAlert = false) {
-    if (!offerId || buttonEl?.disabled) return;
+    if (!offerId || buttonEl?.disabled) return false;
     const accessToken = hofAuth.session?.access_token;
     if (!accessToken) {
       setAuthStatus('Please sign in before refreshing SignWell status.', 'err');
-      return;
+      return false;
     }
 
     const originalText = buttonEl ? buttonEl.textContent : '';
@@ -9446,6 +9454,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         if (adminContent) adminContent.dataset.loaded = '0';
         await loadAdminDashboard(true);
       }
+      return true;
     } catch (err) {
       console.error('SignWell status refresh failed:', err);
       if (!suppressAlert && viewerIsCurrent()) {
@@ -9455,6 +9464,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           window.announceWorkspaceStatus?.('Could not refresh SignWell status: ' + (err?.message || err));
         }
       }
+      return false;
     } finally {
       clearTimeout(timeout);
       if (buttonEl) {
@@ -20895,6 +20905,7 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
   .offer-workspace-tags span { display:inline-flex; border-radius:999px; padding:.24rem .55rem; background:rgba(255,255,255,.055); border:1px solid rgba(255,255,255,.11); color:var(--gray-light); font-size:.67rem; font-weight:900; }
   .offer-workspace-tags span.good { border-color:rgba(74,140,111,.34); color:var(--sage-light); background:rgba(74,140,111,.08); }
   .offer-workspace-note { margin-top:.64rem; color:var(--gray); font-size:.72rem; line-height:1.4; }
+  #myOffersSigningSyncStatus:not(:empty) { margin:.5rem 0 .85rem; color:var(--white); font-size:.875rem; }
   .offer-workspace-actions { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:.45rem; padding:.75rem .92rem .92rem; border-top:1px solid rgba(255,255,255,.07); background:rgba(0,0,0,.12); }
   .offer-workspace-actions .offer-action-btn { width:100%; justify-content:center; min-height:38px; }
   .offer-next-action { display:inline-flex; align-items:center; gap:.35rem; border:1px solid rgba(200,151,63,.3); background:rgba(200,151,63,.08); color:var(--gold-light); border-radius:999px; padding:.3rem .55rem; font-size:.68rem; font-weight:900; margin-top:.45rem; }
@@ -21432,17 +21443,47 @@ function hofSpreadsheetCsvCell(value) {
     }
   };
   root.loadOlderOffers = root.loadOlderOffers || window.loadOlderOffers;
-  let lastAutomaticSigningSyncAt = 0;
+  let signingSyncAccount;
   root.hofRefreshOfferWorkspace = async function({ automatic = false } = {}){
     if (typeof root.loadMyOffers !== 'function') return rerender();
+    const userId = root.hofAuth?.session?.user?.id;
+    if (!userId) return;
+    const epoch = root.__hofAccountProfileEpoch || 0;
+    if (signingSyncAccount?.userId !== userId || signingSyncAccount?.epoch !== epoch) {
+      signingSyncAccount = { userId, epoch, automaticAt: null, pending: null };
+    }
+    const account = signingSyncAccount;
+    const isCurrent = () => root.hofAuth?.session?.user?.id === userId &&
+      (root.__hofAccountProfileEpoch || 0) === epoch;
+    const setStatus = message => {
+      if (!isCurrent()) return;
+      const status = document.getElementById('myOffersSigningSyncStatus');
+      if (status) status.textContent = message;
+    };
+    if (account.pending) {
+      if (!automatic) {
+        account.pending.manual = true;
+        setStatus('Checking signing status…');
+      }
+      return account.pending.promise;
+    }
     if (automatic) {
       const now = Date.now();
       // A tab can be selected repeatedly as an account modal opens or rerenders.
       // Keep live status useful without needlessly querying SignWell each time.
-      if (now - lastAutomaticSigningSyncAt < 120000) return;
-      lastAutomaticSigningSyncAt = now;
+      if (account.automaticAt !== null && now - account.automaticAt < 120000) return;
+      account.automaticAt = now;
     }
-    const offers = Array.isArray(root.hofAuth?.myOffers) ? root.hofAuth.myOffers : await root.loadMyOffers();
+    const check = { manual: !automatic };
+    account.pending = check;
+    if (check.manual) setStatus('Checking signing status…');
+    check.promise = syncWorkspaceSigningStatus(check, isCurrent, setStatus).finally(() => {
+      if (account.pending === check) account.pending = null;
+    });
+    return check.promise;
+  };
+
+  function offersAwaitingSigningStatus(offers) {
     // SignWell documents can remain in Created until a recipient opens the
     // request. They still need a live refresh; omitting that state made the
     // workspace skip a meaningful share of outstanding signing packets.
@@ -21450,7 +21491,7 @@ function hofSpreadsheetCsvCell(value) {
       'created', 'sent', 'viewed', 'partially_signed',
       'awaiting_signature', 'awaiting_buyer_signature', 'in_progress'
     ]);
-    const active = (offers || []).filter(offer => {
+    return (Array.isArray(offers) ? offers : []).filter(offer => {
       const data = offer?.offer_data || {};
       const documentId = offer?.signwell_document_id || data.signwellDocumentId || data.signwell?.document_id || data.signwell?.response?.id;
       const status = String(getOfferBestStatus(offer) || '').toLowerCase().replace(/\s+/g, '_');
@@ -21460,11 +21501,38 @@ function hofSpreadsheetCsvCell(value) {
       const bUpdated = new Date(b?.last_updated || b?.updated_at || b?.created_at || 0).getTime() || 0;
       return aUpdated - bUpdated;
     }).slice(0, 10);
-    if (active.length && typeof root.refreshSignWellStatus === 'function') {
-      await Promise.allSettled(active.map(offer => root.refreshSignWellStatus(offer.id, null, true, true)));
+  }
+
+  async function syncWorkspaceSigningStatus(check, isCurrent, setStatus) {
+    try {
+      let active = offersAwaitingSigningStatus(root.hofAuth.myOffers);
+      let updated;
+      if (!active.length) {
+        updated = await root.loadMyOffers();
+        if (!isCurrent()) return;
+        active = offersAwaitingSigningStatus(updated);
+      }
+      const checks = await Promise.allSettled(active.map(offer =>
+        root.refreshSignWellStatus?.(offer.id, null, true, true)
+      ));
+      if (!isCurrent()) return;
+      if (active.length) updated = await root.loadMyOffers();
+      if (!check.manual || !isCurrent()) return;
+      const succeeded = checks.filter(result => result.status === 'fulfilled' && result.value === true).length;
+      const failed = checks.length - succeeded;
+      const pieces = [];
+      if (succeeded) pieces.push(`Checked signing status for ${succeeded} offer${succeeded === 1 ? '' : 's'}.`);
+      if (failed) pieces.push(`Couldn’t check ${failed} offer${failed === 1 ? '' : 's'}.`);
+      if (!Array.isArray(updated) || root.hofAuth.myOffersRefreshError) {
+        pieces.push('The offer list couldn’t refresh.');
+      }
+      if (failed || !Array.isArray(updated) || root.hofAuth.myOffersRefreshError) pieces.push('Try syncing again.');
+      setStatus(pieces.join(' ') || 'No loaded offers need a signing status check.');
+    } catch (error) {
+      console.warn('Signing status sync failed:', error);
+      if (check.manual) setStatus('We couldn’t sync signing status. Try again.');
     }
-    await root.loadMyOffers();
-  };
+  }
   root.hofReuseTermsFromMostRecentOffer = function(){
     const offers = sortedOffers(state.offers || []);
     if (!offers.length) { window.announceWorkspaceStatus?.('No saved offers to reuse yet. Create an offer first, then reusable terms will appear here.'); return; }

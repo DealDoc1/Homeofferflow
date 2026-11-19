@@ -1,4 +1,5 @@
 from pathlib import Path
+import subprocess
 import unittest
 
 
@@ -37,7 +38,8 @@ class OfferWorkspaceRetryTests(unittest.TestCase):
     def test_workspace_refresh_syncs_active_signwell_documents_before_reload(self):
         self.assertIn("root.hofRefreshOfferWorkspace = async function({ automatic = false } = {})", HTML)
         self.assertIn("'awaiting_buyer_signature'", HTML)
-        self.assertIn("Promise.allSettled(active.map(offer => root.refreshSignWellStatus", HTML)
+        self.assertIn("Promise.allSettled(active.map(offer =>", HTML)
+        self.assertIn("root.refreshSignWellStatus?.(offer.id, null, true, true)", HTML)
         self.assertIn("return aUpdated - bUpdated;", HTML)
         self.assertIn("slice(0, 10)", HTML)
         self.assertIn("skipReload = false, suppressAlert = false", HTML)
@@ -45,9 +47,15 @@ class OfferWorkspaceRetryTests(unittest.TestCase):
 
     def test_opening_offers_automatically_syncs_with_a_short_cooldown(self):
         self.assertIn("window.hofRefreshOfferWorkspace({ automatic: true })", HTML)
-        self.assertIn("let lastAutomaticSigningSyncAt = 0;", HTML)
-        self.assertIn("now - lastAutomaticSigningSyncAt < 120000", HTML)
+        self.assertIn("now - account.automaticAt < 120000", HTML)
         self.assertIn("window.refreshSignWellStatus = refreshSignWellStatus;", HTML)
+
+    def test_workspace_signing_sync_runtime(self):
+        result = subprocess.run(
+            ["node", "--test", str(Path(__file__).with_name("offer_workspace_signing_sync.runtime.cjs"))],
+            capture_output=True, text=True, timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_workspace_has_a_stale_draft_and_signing_attention_queue(self):
         self.assertIn("function needsAttention(o)", HTML)
