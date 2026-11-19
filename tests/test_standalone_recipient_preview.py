@@ -212,7 +212,7 @@ class SigningRecipientConfirmationTests(unittest.TestCase):
         self.assertIn("readonly", source)
         self.assertIn("confirmedRecipients", source)
         self.assertIn('type="submit" disabled', source)
-        self.assertIn("if (!signers.length) return;", source)
+        self.assertIn("if (!signers.length || !viewerIsCurrent(actor)) return;", source)
 
 
 if __name__ == "__main__":

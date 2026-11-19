@@ -6,7 +6,7 @@ import unittest
 
 HTML = (Path(__file__).resolve().parents[1] / 'index.html').read_text()
 START = HTML.index("modal.querySelector('#hofStandaloneSendForm').addEventListener('submit', async event => {")
-SUBMIT = HTML[START:HTML.index('    });\n    try {', START) + len('    });')]
+SUBMIT = HTML[START:HTML.index('    });\n    const recipientTimeout', START) + len('    });')]
 START = HTML.index("          const canRetryUnsent = agreement.status === 'failed'")
 CONTROLS = HTML[START:HTML.index('          return `<div', START)]
 
@@ -40,6 +40,7 @@ class SignwellRecoveryUiTests(unittest.TestCase):
           const status={textContent:'',className:''}, submit={disabled:false};
           const formElement={querySelector:()=>submit,addEventListener:(_,fn)=>handler=fn};
           const modal={querySelector:key=>key==='#hofStandaloneSendForm'?formElement:status,remove:()=>removals++};
+          const actor={id:'qa-agent'}, viewerIsCurrent=value=>value===actor;
           const root={}, agreement={id:'draft-id',form_code:'TXR-1507'};
           const token=()=> 'test-session';
           const signers=[{id:'1',name:'Customer',emailEditable:true}];
@@ -51,6 +52,17 @@ class SignwellRecoveryUiTests(unittest.TestCase):
             return {ok:RESPONSE_OK,json:async()=>(PAYLOAD)};
           };
         '''.replace('REFRESH_FAILS', json.dumps(refresh_fails)).replace('RESPONSE_OK', json.dumps(response_ok)).replace('PAYLOAD', json.dumps(payload)) + SUBMIT
+
+    def test_recipient_fetch_and_body_are_bounded_and_keep_send_locked_until_review_is_ready(self):
+        start = HTML.index('    const recipientTimeout')
+        section = HTML[start:HTML.index('  async function refreshAgreementSignWellStatus', start)]
+        self.assertIn("setTimeout(() => recipientRead.abort(), 20000)", section)
+        self.assertIn("cache: 'no-store', signal: recipientRead.signal", section)
+        self.assertLess(section.index('await response.json()'), section.index('if (recipientRead.signal.aborted)'))
+        self.assertIn("Loading signing recipients took too long. Try again.", section)
+        self.assertIn("clearTimeout(recipientTimeout)", section)
+        self.assertLess(section.index('await response.json()'), section.index('.disabled = false'))
+        self.assertIn("if (!modal.isConnected || !viewerIsCurrent(actor)) return;", section)
 
     def test_successful_delivery_is_not_reported_as_failed_when_list_refresh_fails(self):
         self.run_js(self.submit_case({'message': 'Signature request sent.'}, refresh_fails=True) + '''
