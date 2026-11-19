@@ -6293,7 +6293,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       cleanSupabaseAuthUrlNoise();
       if (hofAuth.session) {
         await ensureProfileShell(hofAuth.session);
-        await flushSubscriptionCheckoutReturnEvent();
+        void flushSubscriptionCheckoutReturnEvent();
         routeAfterMagicLinkIfNeeded(returningFromSignIn);
       } else if (expiredLink) {
         let role;
@@ -6316,7 +6316,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         updateAuthUI();
         if (session) {
           await ensureProfileShell(session);
-          await flushSubscriptionCheckoutReturnEvent();
+          void flushSubscriptionCheckoutReturnEvent();
           if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || localStorage.getItem('hof_auth_pending')) routeAfterMagicLinkIfNeeded();
         }
       });
@@ -6641,7 +6641,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const inserted = await client.from('hof_subscriptions').insert(payload).select('*').single();
       if (inserted.error) throw inserted.error;
       hofAuth.subscription = inserted.data;
-      await logOfferEvent(null, 'subscription_shell_created', 'beta', 'Beta subscription shell created automatically.', { plan: defaultPlan, role });
+      void logOfferEvent(null, 'subscription_shell_created', 'beta', 'Beta subscription shell created automatically.', { plan: defaultPlan, role });
       renderSubscriptionCard();
       return inserted.data;
     } catch (err) {
@@ -7012,7 +7012,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
     if (result === 'success') {
       setTimeout(async () => {
-        await flushSubscriptionCheckoutReturnEvent();
+        void flushSubscriptionCheckoutReturnEvent();
         let subscription = await loadOrCreateSubscription();
         for (let attempt = 0; attempt < 4 && subscription && subscription.status === 'beta'; attempt += 1) {
           await new Promise(resolve => setTimeout(resolve, 750));
@@ -7029,7 +7029,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     }
     if (result === 'cancelled') {
       setTimeout(async () => {
-        await flushSubscriptionCheckoutReturnEvent();
+        void flushSubscriptionCheckoutReturnEvent();
         try {
           sessionStorage.setItem('hof_subscription_checkout_cancelled', '1');
           sessionStorage.setItem('hof_subscription_checkout_cancelled_context', JSON.stringify({
@@ -7115,12 +7115,15 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     }
   }
 
+  let checkoutReturnEventInFlight = null;
   async function flushSubscriptionCheckoutReturnEvent() {
     if (!hofAuth?.session?.user) return false;
+    let raw = null;
     try {
-      const raw = sessionStorage.getItem(SUBSCRIPTION_CHECKOUT_RETURN_KEY);
+      raw = sessionStorage.getItem(SUBSCRIPTION_CHECKOUT_RETURN_KEY);
       const pending = raw ? JSON.parse(raw) : null;
-      if (!pending || !['success', 'cancelled'].includes(pending.result)) return false;
+      if (checkoutReturnEventInFlight || !pending || !['success', 'cancelled'].includes(pending.result)) return false;
+      checkoutReturnEventInFlight = raw;
       const logged = await logOfferEvent(
         null,
         'subscription_checkout_returned',
@@ -7130,7 +7133,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           : 'Returned from Stripe subscription checkout without completing payment.',
         { source: subscriptionCheckoutSource(pending.source), plan: pending.plan, billing: pending.billing }
       );
-      if (logged) {
+      if (logged && sessionStorage.getItem(SUBSCRIPTION_CHECKOUT_RETURN_KEY) === raw) {
         sessionStorage.removeItem(SUBSCRIPTION_CHECKOUT_RETURN_KEY);
         sessionStorage.removeItem(SUBSCRIPTION_CHECKOUT_SOURCE_KEY);
       }
@@ -7138,6 +7141,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     } catch (error) {
       console.warn('Subscription return analytics could not be saved:', error);
       return false;
+    } finally {
+      if (checkoutReturnEventInFlight === raw) checkoutReturnEventInFlight = null;
     }
   }
 
@@ -7190,20 +7195,27 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   }
 
   async function logOfferEvent(offerId, eventType, status = '', message = '', metadata = {}) {
-    const client = getSupabaseClient();
-    const user = hofAuth.session?.user;
-    if (!client || !user) return false;
+    const accessToken = hofAuth.session?.access_token;
+    if (!accessToken) return false;
     try {
-      const { error } = await client.from('hof_offer_events').insert({
-        offer_id: offerId || state.data?._hofOfferId || null,
-        user_id: user.id,
-        event_type: eventType,
-        status: status || null,
-        message: message || null,
-        metadata: metadata || {},
-        created_at: new Date().toISOString()
+      const response = await fetch('/api/admin-dashboard', {
+        method: 'POST',
+        keepalive: true,
+        signal: AbortSignal.timeout(12000),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+          action: 'record_offer_event',
+          offerId: offerId || state.data?._hofOfferId || null,
+          eventType,
+          status: status || null,
+          message: message || null,
+          metadata: metadata || {}
+        })
       });
-      if (error) throw error;
+      if (!response.ok) throw new Error('The activity could not be recorded.');
       return true;
     } catch (err) {
       console.warn('Offer event log failed:', err);
@@ -7820,7 +7832,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       if (!feedbackResponse.ok || !feedbackResult.feedback) throw new Error(feedbackResult.error || 'Feedback could not be saved.');
       const savedFeedback = feedbackResult.feedback;
       if (issueType === 'ai_review') {
-        await logOfferEvent(null, 'ai_calibration_review_completed', 'completed', 'AI calibration review completed.', {
+        void logOfferEvent(null, 'ai_calibration_review_completed', 'completed', 'AI calibration review completed.', {
           calibrationScenario: /^AI-CAL-0[1-5]$/.test(String(calibrationScenario || '')) ? calibrationScenario : null,
           disposition: aiReviewFields.disposition
         });
@@ -9559,12 +9571,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       request.draft = state.data;
       resetUploadedDisclosureDraftForOffer(offer.offer_data || {});
       openSavedOfferInterview();
-      await logOfferEvent(offer.id, isRetry ? 'resume_retry_succeeded' : 'resume_clicked', offer.status || 'Draft', isRetry ? 'Offer resumed after a dashboard retry.' : 'Offer resumed from dashboard.').catch(() => {});
+      void logOfferEvent(offer.id, isRetry ? 'resume_retry_succeeded' : 'resume_clicked', offer.status || 'Draft', isRetry ? 'Offer resumed after a dashboard retry.' : 'Offer resumed from dashboard.').catch(() => {});
     } catch (err) {
       if (!request.isCurrent()) return;
       console.error('Resume failed:', err);
       if (!isRetry && window.confirm('Could not resume this offer because of a temporary error. Retry now?')) {
-        await logOfferEvent(id, 'resume_retry_clicked', 'Draft', 'Agent requested a retry after resume failed.').catch(() => {});
+        void logOfferEvent(id, 'resume_retry_clicked', 'Draft', 'Agent requested a retry after resume failed.').catch(() => {});
         if (!request.isCurrent()) return;
         return resumeOffer(id, true);
       }
@@ -9590,7 +9602,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       // The copy remains saved if creation already completed, but an older
       // navigation must not reopen it over the user's newer selection.
       if (!isCurrent()) return;
-      await logOfferEvent(duplicate.id, isRetry ? 'duplicate_retry_succeeded' : 'duplicated', 'Draft', isRetry ? 'Offer duplicated after a dashboard retry.' : 'Offer duplicated from dashboard.', { copied_from_offer_id: id }).catch(() => {});
+      void logOfferEvent(duplicate.id, isRetry ? 'duplicate_retry_succeeded' : 'duplicated', 'Draft', isRetry ? 'Offer duplicated after a dashboard retry.' : 'Offer duplicated from dashboard.', { copied_from_offer_id: id }).catch(() => {});
       if (!isCurrent()) return;
       // A dashboard refresh failure must not retry an already-created copy.
       await loadMyOffers().catch(err => console.warn('Offer list refresh failed:', err));
@@ -9600,7 +9612,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       if (!isCurrent()) return;
       console.error('Duplicate failed:', err);
       if (!isRetry && err.retryable !== false && window.confirm('Could not confirm the copy. Retry to recover the same draft?')) {
-        await logOfferEvent(id, 'duplicate_retry_clicked', 'Draft', 'Agent requested a retry after duplicate failed.').catch(() => {});
+        void logOfferEvent(id, 'duplicate_retry_clicked', 'Draft', 'Agent requested a retry after duplicate failed.').catch(() => {});
         if (!isCurrent()) return;
         return duplicateOffer(id, true, openAfterDuplicate, request);
       }
@@ -9643,7 +9655,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       resetUploadedDisclosureDraftForOffer({});
       openSavedOfferInterview();
       updateSaveStatus('Financing and closing preferences copied. Add the new buyer and property details.');
-      await logOfferEvent(offer.id, 'terms_reuse_clicked', 'Draft', 'Started a terms-only offer from a prior workspace offer.', { reuse_mode: 'terms_only' }).catch(() => {});
+      void logOfferEvent(offer.id, 'terms_reuse_clicked', 'Draft', 'Started a terms-only offer from a prior workspace offer.', { reuse_mode: 'terms_only' }).catch(() => {});
     } catch (err) {
       if (!request.isCurrent()) return;
       console.error('Terms-only offer start failed:', err);
@@ -9679,7 +9691,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const refresh = loadMyOffers().catch(err => console.warn('Offer removed but My Offers could not refresh:', err));
     window.announceWorkspaceStatus?.('Offer removed from My Offers.');
     if (!removed.alreadyRemoved) {
-      await logOfferEvent(id, 'deleted', 'Deleted', 'Offer deleted from dashboard.').catch(err => console.warn('Offer deleted but activity could not be recorded:', err));
+      void logOfferEvent(id, 'deleted', 'Deleted', 'Offer deleted from dashboard.').catch(err => console.warn('Offer deleted but activity could not be recorded:', err));
     }
     await refresh;
   }
@@ -12133,7 +12145,7 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
       }
       retry.disabled = true;
       try {
-        await logOfferEvent(
+        void logOfferEvent(
           state?.data?._hofOfferId || null,
           'subscription_packet_generation_retry_clicked',
           'Generation Failed',
@@ -13393,7 +13405,7 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
       // The server saves this request and owns packet/signing state changes.
       // A browser retry must not erase its delivery journal or saved status.
 
-      await logOfferEvent(
+      void logOfferEvent(
         offerId,
         'subscription_packet_generation_started',
         'Generating',
@@ -13479,12 +13491,12 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
       state.data.signwellStatus = result.signwell?.response?.status || result.signwell?.status || state.data.signwellStatus || '';
       state.data.generatedAt = new Date().toISOString();
 
-      await logOfferEvent(
+      void logOfferEvent(
         offerId,
         'subscription_packet_generated',
         'Generated',
         'Subscribed account generated packet and email/signature flow was triggered.',
-        { role: state.data.userType || hofAuth.role || 'agent', signwell: result.signwell || null }
+        { role: state.data.userType || hofAuth.role || 'agent' }
       );
 
       await loadCurrentUsage();
@@ -13496,11 +13508,11 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
       const failure = packetGenerationFailureDetails(err);
       // A lost response can follow successful generation and delivery. Do not
       // overwrite the server's saved packet/signing state with a browser error.
-      await logOfferEvent(
+      void logOfferEvent(
         offerId,
         'subscription_packet_generation_failed',
         'Generation Failed',
-        err?.message || String(err || 'Packet generation failed.'),
+        'Packet generation failed.',
         { role: state.data.userType || hofAuth.role || 'agent', errorCategory: failure.category }
       );
       showPacketGenerationRecoveryNotice(failure);

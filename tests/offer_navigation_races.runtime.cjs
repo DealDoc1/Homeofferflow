@@ -117,13 +117,15 @@ for (const failingSideEffect of ['logOfferEvent','loadMyOffers']) {
     assert.equal(x.duplicateCalls.length,1); assert.equal(x.c.state.data._hofOfferId,'copy'); assert.deepEqual(x.alerts,[]);
   });
 }
-test('a selection made while retry logging runs cancels the old retry',async()=>{
+test('slow retry logging cannot delay navigation or reopen a superseded offer',async()=>{
   const x=setup(), logged=deferred();
   x.c.window.confirm=()=>true;
   x.c.logOfferEvent=async(_,event)=>event==='resume_retry_clicked'?logged.promise:undefined;
   const a=x.c.resumeOffer('a'); x.reads[0].reject(new Error('network')); await tick();
-  const b=x.c.resumeOffer('b'); await x.reply(1,offer('b')); await b;
-  logged.resolve(); await tick(); assert.equal(x.reads.length,2); await a;
+  assert.equal(x.reads[1]?.id,'a');
+  const b=x.c.resumeOffer('b'); await x.reply(2,offer('b')); await b;
+  await x.reply(1,offer('a')); await a;
+  logged.resolve();
   assert.equal(x.c.state.data._hofOfferId,'b');
 });
 for (const operation of ['resumeOffer','reuseOfferTerms']) {
