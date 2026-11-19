@@ -6893,6 +6893,14 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   }
 
   const SUBSCRIPTION_CHECKOUT_SOURCE_KEY = 'hof_subscription_checkout_source';
+  let subscriptionCheckoutRedirected = false;
+
+  window.addEventListener('pageshow', event => {
+    if (!event.persisted || !subscriptionCheckoutRedirected) return;
+    subscriptionCheckoutRedirected = false;
+    window.__hofSubscriptionCheckoutInFlight = false;
+    setSubscriptionActionStatus('You’re back from checkout. If you completed payment, reopen Account to refresh your subscription.', 'ok');
+  });
 
   function subscriptionCheckoutSource(value) {
     const allowed = new Set(['homeofferflow', 'subscription_card', 'subscription_reactivation', 'agent_activation', 'subscription_cancel_recovery']);
@@ -6912,23 +6920,25 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
     if (!email || !email.includes('@') || !accessToken) {
       window.__hofSubscriptionCheckoutInFlight = false;
-      setAuthStatus('Please sign in before starting a subscription.', 'err');
       openAuthModal(normalizedPlan);
+      setAuthStatus('Please sign in before starting a subscription.', 'err');
       return;
     }
 
-    if (!await ensureCurrentLegalAcceptanceForSubscription()) {
-      window.__hofSubscriptionCheckoutInFlight = false;
-      return;
-    }
-
+    const epoch = window.__hofAccountProfileEpoch;
+    const isCurrent = () => hofAuth.session?.user?.id === user?.id && window.__hofAccountProfileEpoch === epoch;
+    let checkoutStarted = false;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 60000);
+    let timeout;
     try {
+      if (!await ensureCurrentLegalAcceptanceForSubscription()) return;
+      if (!isCurrent()) return;
       setSubscriptionActionBusy('Opening secure Stripe Checkout…');
       try { sessionStorage.setItem(SUBSCRIPTION_CHECKOUT_SOURCE_KEY, normalizedSource); } catch (e) {}
+      checkoutStarted = true;
       logOfferEvent(null, 'subscription_checkout_started', '', 'Stripe subscription checkout started.', { source: normalizedSource, plan: normalizedPlan, billing: normalizedBilling });
 
+      timeout = setTimeout(() => controller.abort(), 60000);
       const response = await fetch('/api/create-subscription-checkout', {
         method: 'POST',
         signal: controller.signal,
@@ -6947,23 +6957,31 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
       const result = await response.json();
       if (!response.ok || result.error) throw new Error(result.error || 'Could not start subscription checkout.');
+      if (!isCurrent()) return;
       if (!result.url) throw new Error('Stripe did not return a checkout URL.');
       // The checkout endpoint records the redirect milestone only after
       // Stripe returns a usable session. Keeping it server-side avoids losing
       // the event during this cross-origin navigation or counting it twice.
       window.location.href = result.url;
+      subscriptionCheckoutRedirected = true;
     } catch (err) {
-      window.__hofSubscriptionCheckoutInFlight = false;
-      try { sessionStorage.removeItem(SUBSCRIPTION_CHECKOUT_SOURCE_KEY); } catch (e) {}
-      logOfferEvent(null, 'subscription_checkout_failed', 'failed', 'Subscription checkout request failed before redirect.', { source: normalizedSource, plan: normalizedPlan, billing: normalizedBilling });
+      if (!isCurrent()) return;
+      if (checkoutStarted) logOfferEvent(null, 'subscription_checkout_failed', 'failed', 'Subscription checkout request failed before redirect.', { source: normalizedSource, plan: normalizedPlan, billing: normalizedBilling });
       console.error('Subscription checkout failed:', err);
-      if (controller.signal.aborted) {
-        setSubscriptionActionStatus('Opening subscription checkout took too long. Please try again.');
-      } else {
-        setSubscriptionActionStatus('Subscription checkout failed: ' + (err?.message || err));
-      }
+      const fallback = checkoutStarted
+        ? 'We couldn’t open subscription checkout. Please try again.'
+        : 'We couldn’t check your acceptance of the current terms. Please try again before checkout.';
+      setSubscriptionActionStatus(controller.signal.aborted
+        ? 'Opening subscription checkout took too long. Please try again.'
+        : window.hofCustomerActionError?.(err, fallback) || fallback);
     } finally {
       clearTimeout(timeout);
+      if (!subscriptionCheckoutRedirected) {
+        window.__hofSubscriptionCheckoutInFlight = false;
+        if (checkoutStarted) {
+          try { sessionStorage.removeItem(SUBSCRIPTION_CHECKOUT_SOURCE_KEY); } catch (_) {}
+        }
+      }
     }
   }
 
@@ -7180,19 +7198,21 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   async function recordCurrentLegalAcceptance(source = 'offer_wizard') {
     const client = getSupabaseClient();
     const user = hofAuth.session?.user;
+    const epoch = window.__hofAccountProfileEpoch;
     if (!client || !user) return false;
     const key = `hof_legal_acceptance_recorded_${LEGAL_POLICY_VERSION}_${user.id}`;
     try {
-      if (sessionStorage.getItem(key) === '1') return true;
+      try { if (sessionStorage.getItem(key) === '1') return true; } catch (_) {}
       const { error } = await client.from('hof_legal_acceptances').insert({
         user_id: user.id,
         policy_version: LEGAL_POLICY_VERSION,
         source
-      });
+      }).abortSignal(AbortSignal.timeout(15000));
+      if (hofAuth.session?.user?.id !== user.id || window.__hofAccountProfileEpoch !== epoch) return false;
       // One immutable acceptance per policy version is intentional. A retry
       // after a completed insert is still a successful acknowledgement.
       if (error && error.code !== '23505') throw error;
-      sessionStorage.setItem(key, '1');
+      try { sessionStorage.setItem(key, '1'); } catch (_) {}
       return true;
     } catch (err) {
       console.warn('Legal acceptance record could not be saved:', err);
@@ -7238,25 +7258,35 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   async function ensureCurrentLegalAcceptanceForSubscription() {
     const client = getSupabaseClient();
     const user = hofAuth.session?.user;
+    const epoch = window.__hofAccountProfileEpoch;
+    const isCurrent = () => hofAuth.session?.user?.id === user?.id && window.__hofAccountProfileEpoch === epoch;
     if (!client || !user) return false;
     const recordedKey = `hof_legal_acceptance_recorded_${LEGAL_POLICY_VERSION}_${user.id}`;
     try {
-      if (sessionStorage.getItem(recordedKey) === '1') return true;
+      try { if (sessionStorage.getItem(recordedKey) === '1') return true; } catch (_) {}
       const { data, error } = await client
         .from('hof_legal_acceptances')
         .select('policy_version')
+        .eq('user_id', user.id)
         .eq('policy_version', LEGAL_POLICY_VERSION)
-        .limit(1);
-      if (!error && Array.isArray(data) && data.length) {
-        sessionStorage.setItem(recordedKey, '1');
+        .limit(1)
+        .abortSignal(AbortSignal.timeout(15000));
+      if (!isCurrent()) return false;
+      if (error) throw error;
+      if (Array.isArray(data) && data.length) {
+        try { sessionStorage.setItem(recordedKey, '1'); } catch (_) {}
         return true;
       }
     } catch (error) {
       console.warn('Current legal acceptance lookup failed:', error);
+      if (isCurrent()) setSubscriptionActionStatus('We couldn’t check your acceptance of the current terms. Please try again before checkout.');
+      return false;
     }
 
     if (!await subscriptionLegalConsentModal()) return false;
+    if (!isCurrent()) return false;
     const recorded = await recordCurrentLegalAcceptance('subscription_checkout');
+    if (!isCurrent()) return false;
     if (!recorded) {
       setSubscriptionActionStatus('We could not save your legal acceptance. Please try again before checkout.');
       return false;
