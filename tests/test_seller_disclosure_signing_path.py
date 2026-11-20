@@ -1,5 +1,6 @@
 import importlib.util
 from pathlib import Path
+import subprocess
 import unittest
 
 
@@ -58,6 +59,30 @@ class SellerDisclosureSigningPathTests(unittest.TestCase):
         self.assertIn("hof-seller-refresh-signing", source)
         self.assertIn("hof-seller-download-signed", source)
         self.assertIn("HomeOfferFlow-signed-seller-disclosure.pdf", source)
+
+
+    def test_download_reader_confirms_pdf_bytes_before_use(self):
+        source = (ROOT / "index.html").read_text(encoding="utf-8")
+        start = source.index("  async function readSellerDisclosurePdf(")
+        end = source.index("  const activeSellerSigningActions", start)
+        scenario = """
+const assert = require('node:assert/strict');
+(async () => {
+    const controller = new AbortController();
+    const response = (body, type) => new Response(body, {headers: {'content-type': type}});
+    await assert.rejects(readSellerDisclosurePdf(response('%PDF-1.7', 'text/html'), controller.signal));
+    await assert.rejects(readSellerDisclosurePdf(response('invalid', 'application/pdf'), controller.signal));
+    await assert.rejects(readSellerDisclosurePdf(response('', 'application/pdf'), controller.signal));
+    const valid = await readSellerDisclosurePdf(response('%PDF-1.7', 'application/pdf'), controller.signal);
+    assert.equal(await valid.text(), '%PDF-1.7');
+    controller.abort();
+    await assert.rejects(readSellerDisclosurePdf(response('%PDF-1.7', 'application/pdf'), controller.signal),
+        {name: 'AbortError'});
+})().catch(error => { console.error(error); process.exitCode = 1; });
+"""
+        result = subprocess.run(["node", "-"], input=source[start:end] + scenario,
+                                capture_output=True, text=True, timeout=15)
+        self.assertEqual(result.returncode, 0, result.stderr)
 
 
 if __name__ == "__main__":
