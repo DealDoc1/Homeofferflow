@@ -133,7 +133,9 @@ class SellerDisclosureAgentUiTests(unittest.TestCase):
         self.assertNotIn("membership?.status === 'active'", script)
         self.assertNotIn("root.hofPlatform?.brokerage?.id || profile().brokerage_id", script)
         self.assertIn("Answer a short set of property questions", script)
-        self.assertIn("if (active()) refreshDrafts();", script)
+        self.assertIn("if (!panel || !active() || document.getElementById", script)
+        self.assertIn("void refreshDrafts();", script)
+        self.assertIn("window.hofClearSellerDisclosureDraftView?.();", html)
         self.assertIn("loadBrokerageFoundationWithSellerDisclosureDrafts", script)
         self.assertIn("await renderCard();", script)
 
