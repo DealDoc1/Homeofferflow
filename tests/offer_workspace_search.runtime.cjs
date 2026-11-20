@@ -13,7 +13,9 @@ const document = {activeElement:input, getElementById:id=>id === 'myOffersList' 
 Object.defineProperty(list, 'innerHTML', {set:()=>{containerWrites++; document.activeElement=null;}});
 const saved = {};
 const root = {};
-vm.runInNewContext(script, {window:root,document,sessionStorage:{getItem:()=>null,setItem:(key,value)=>saved[key]=value},console,URLSearchParams,Date});
+const getOfferBestStatus = html.slice(html.indexOf('  function getOfferBestStatus('), html.indexOf('  function getOfferSigningBucket('));
+const cleanOfferStatus = html.slice(html.indexOf(' function cleanOfferStatus('), html.indexOf('  function offerStatusClass('));
+vm.runInNewContext(getOfferBestStatus+'\n'+cleanOfferStatus+'\nObject.assign(window,{getOfferBestStatus,cleanOfferStatus});\n'+script, {window:root,document,sessionStorage:{getItem:()=>null,setItem:(key,value)=>saved[key]=value},console,URLSearchParams,Date});
 const offers = [
  {id:'fictional-a',property_address:'123 Maple Lane',buyer_name:'Alex Lee',status:'Draft',last_updated:'2026-11-04'},
  {id:'fictional-b',property_address:'456 Oak Road',buyer_name:'Bob Lee',status:'Draft',last_updated:'2026-11-03'}
@@ -88,6 +90,7 @@ const attentionOffers = [
  {id:'recent',property_address:'Pine Street',status:'Draft',last_updated:new Date().toISOString(),offer_price:300}
 ];
 assert.match(root.hofRenderOfferWorkspaceV10(attentionOffers), /hofReviewAllOffersNeedingAttention\(\)">Review all 2 needing attention/);
+
 root.hofSetOfferWorkspaceSort('price_desc');
 root.hofSetOfferWorkspaceSearch('Maple');
 assert.doesNotMatch(cards.innerHTML,/Oak Road/);
@@ -101,3 +104,22 @@ assert.equal(document.activeElement,summary);
 root.hofSetOfferWorkspaceSearch('');
 assert.match(cards.innerHTML,/Oak Road[\s\S]*Maple Lane/);
 assert.doesNotMatch(cards.innerHTML,/Pine Street/);
+
+root.hofClearOfferWorkspaceFilters();
+const confirmationPending = {
+ id:'pending-send', property_address:'18 Fictional Circle', status:'Generated', signwell_status:'Draft',
+ signwell_document_id:'fixture', last_updated:new Date().toISOString(),
+ offer_data:{_hof_signature_delivery:{version:1,confirmationPending:true}}
+};
+const pendingWorkspace = root.hofRenderOfferWorkspaceV10([...attentionOffers, confirmationPending]);
+assert.match(pendingWorkspace,/Today’s priority<\/div><strong>18 Fictional Circle/);
+assert.match(pendingWorkspace,/Delivery unconfirmed/);
+assert.match(pendingWorkspace,/Check signing status before retrying/);
+assert.match(pendingWorkspace,/data-signing-offer-id="pending-send"/);
+assert.doesNotMatch(pendingWorkspace,/copyBuyerSigningReminder\('pending-send'\)/);
+const reconciled = root.hofRenderOfferWorkspaceV10([{
+ ...confirmationPending, status:'Sent for Signature', signwell_status:'Sent',
+ offer_data:{_hof_signature_delivery:{version:1}}
+}]);
+assert.doesNotMatch(reconciled,/Delivery unconfirmed/);
+assert.match(reconciled,/Awaiting signature/);

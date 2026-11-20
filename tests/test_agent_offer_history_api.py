@@ -31,6 +31,29 @@ class AgentOfferHistoryAPITests(unittest.TestCase):
         self.assertEqual(page["offers"][0]["legacy_offer_price"], "325000")
         self.assertTrue({"buyer_email", "offer_data", "signwell_document_id"}.isdisjoint(page["offers"][0]))
 
+    def test_delivery_projection_flags_only_the_matching_unconfirmed_saved_request(self):
+        row = {
+            "status": "Generated", "signwell_document_id": "tracked-id", "signwell_status": "Draft - Not Sent",
+            "offer_data": {"_hof_signature_delivery": {
+                "version": 1, "phase": "sending", "document_id": "tracked-id",
+                "attempt_id": "private", "fingerprint": "private", "recipients": ["private"],
+            }},
+        }
+        for overrides, expected in (
+            ({}, True), ({"signwell_status": None}, True), ({"signwell_status": "sent"}, False),
+            ({"signwell_status": "Expired"}, False), ({"signwell_status": "Bounced"}, False),
+            ({"status": "Buyer Signed"}, False), ({"signwell_document_id": "different-id"}, False),
+        ):
+            with self.subTest(overrides=overrides):
+                projected = API._project_agent_offer_workspace_row({**row, **overrides})
+                flags = {"version": 1}
+                if expected:
+                    flags["confirmationPending"] = True
+                self.assertEqual(projected["offer_data"]["_hof_signature_delivery"], flags)
+        row["offer_data"]["_hof_signature_delivery"]["phase"] = "prepared"
+        projected = API._project_agent_offer_workspace_row(row)
+        self.assertEqual(projected["offer_data"]["_hof_signature_delivery"], {"version": 1})
+
     def test_history_is_owner_scoped_paginated_and_projects_only_workspace_data(self):
         row = {
             "id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "user_id": OWNER,
