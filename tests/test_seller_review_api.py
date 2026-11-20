@@ -80,9 +80,12 @@ class SellerReviewApiTests(unittest.TestCase):
 
     def test_draft_list_uses_permission_checked_api_for_review_progress(self):
         ui = (ROOT / "index.html").read_text()
-        self.assertIn("/api/admin-dashboard?scope=seller_disclosure_drafts", ui)
-        self.assertIn("Authorization: 'Bearer ' + token", ui)
-        self.assertIn("return payload.drafts || []", ui)
+        start = ui.index("async function loadDrafts(token, signal)")
+        loader = ui[start:ui.index("function syncWaterRightsVisibility", start)]
+        self.assertIn("/api/admin-dashboard?scope=seller_disclosure_drafts", loader)
+        self.assertIn("Authorization: 'Bearer ' + token", loader)
+        self.assertIn("if (!Array.isArray(payload.drafts)) throw", loader)
+        self.assertIn("return payload.drafts;", loader)
 
     def test_incomplete_review_can_restore_recipients_for_follow_up(self):
         ui = (ROOT / "index.html").read_text()
