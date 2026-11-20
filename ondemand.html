@@ -241,7 +241,8 @@
           <label for="email">Your OnDemand agent email</label>
           <input id="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required aria-required="true" />
           <button id="signInButton" type="button" style="margin-top:12px">Email my secure sign-in link</button>
-          <p class="fine"><strong>Step 1 of 3:</strong> Secure sign-in uses no password. Your card is added later at Stripe; no charge today.</p>
+          <p id="enrollmentSignInHint" class="fine"><strong>Step 1 of 3:</strong> Secure sign-in uses no password. Your card is added later at Stripe; no charge today.</p>
+          <p id="checkoutSignInHint" class="fine" hidden>Sign in with the OnDemand email you used at checkout to confirm your workspace access.</p>
         </div>
 
         <details class="enrollment-details" id="enrollmentDetails">
@@ -354,6 +355,7 @@
       });
       const $ = (id) => document.getElementById(id);
       const initialParams = new URLSearchParams(window.location.search);
+      const returnedFromCheckout = initialParams.get("checkout") === "success";
       const state = {
         session: null,
         sessionEpoch: 0,
@@ -572,7 +574,7 @@
         const signedIn = Boolean(session?.user?.email);
         $("signedOut").style.display = signedIn ? "none" : "block";
         $("signedIn").style.display = signedIn ? "block" : "none";
-        $("enrollmentDetails").hidden = signedIn;
+        $("enrollmentDetails").hidden = signedIn || returnedFromCheckout;
         $("signedInEmail").textContent = session?.user?.email || "";
         // Supabase can emit TOKEN_REFRESHED while an agent is reviewing the
         // enrollment terms. Preserve their visible choice for the same account;
@@ -586,7 +588,7 @@
           $("terms").checked = false;
           $("checkoutButton").disabled = true;
         }
-        const checkoutComplete = signedIn && new URLSearchParams(window.location.search).get("checkout") === "success";
+        const checkoutComplete = signedIn && returnedFromCheckout;
         const checkoutCancelled = signedIn && new URLSearchParams(window.location.search).get("checkout") === "cancelled";
         const workspaceReady = checkoutComplete && state.activationStatus === "ready";
         $("enrollmentConsent").style.display = checkoutComplete ? "none" : "flex";
@@ -642,12 +644,16 @@
         emailInput.setAttribute("aria-invalid", "false");
         setBusy(button, true, "Sending…", "Email my secure sign-in link");
         showStatus("");
+        const redirectUrl = new URL("/ondemand", window.location.origin);
+        if (state.inviteToken) redirectUrl.searchParams.set("invite", state.inviteToken);
+        if (returnedFromCheckout) redirectUrl.searchParams.set("checkout", "success");
+
         let error = null;
         try {
           ({ error } = await client.auth.signInWithOtp({
             email,
             options: {
-              emailRedirectTo: `${window.location.origin}/ondemand${state.inviteToken ? `?invite=${encodeURIComponent(state.inviteToken)}` : ""}`,
+              emailRedirectTo: redirectUrl.href,
               data: { signup_source: "ondemand" }
             }
           }));
@@ -663,7 +669,9 @@
           return;
         }
         recordAggregateLandingEvent("ondemand_magic_link_requested");
-        showStatus(`Check ${email} for your secure link, then open it in this browser to finish starting your 60-day trial.`, "ok");
+        showStatus(returnedFromCheckout
+          ? `Check ${email} for your secure link. Open it to sign in and confirm your workspace access.`
+          : `Check ${email} for your secure link, then open it in this browser to finish starting your 60-day trial.`, "ok");
       }
 
       async function startCheckout() {
@@ -721,11 +729,14 @@
         const request = (async () => {
           for (let attempt = 0; attempt < 6; attempt += 1) {
             if (!isCurrent()) return false;
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 8000);
             try {
               const response = await fetch("/api/create-subscription-checkout?launch=ondemand&status=access", {
-                headers: { "Authorization": `Bearer ${state.session.access_token}` }
+                headers: { "Authorization": `Bearer ${state.session.access_token}` },
+                signal: controller.signal
               });
-              const data = await response.json().catch(() => ({}));
+              const data = await response.json();
               if (!isCurrent()) return false;
               if (response.ok && data.access === true) {
                 state.activationStatus = "ready";
@@ -736,7 +747,10 @@
                 return true;
               }
             } catch (_) {
-              // A temporary connection issue should not imply activated access.
+              // After a stalled connection, give the agent an immediate retry.
+              if (controller.signal.aborted) break;
+            } finally {
+              clearTimeout(timeout);
             }
             if (attempt < 5) await new Promise((resolve) => setTimeout(resolve, 1000));
           }
@@ -773,8 +787,11 @@
         // own recovery message and the checkout endpoint still enforces the
         // authoritative enrollment rules.
         void loadConfig();
-        if (params.get("checkout") === "success") {
-          showStatus("Your secure checkout is complete. Open your workspace or choose your first transaction while agent access finishes activating.", "ok");
+        if (returnedFromCheckout) {
+          $("enrollmentSignInHint").hidden = true;
+          $("checkoutSignInHint").hidden = false;
+          $("enrollmentDetails").hidden = true;
+          showStatus("You’ve returned from secure checkout.", "ok");
         } else if (params.get("checkout") === "cancelled") {
           showStatus("Checkout was canceled. Your card was not saved and your trial did not start.", "err");
         }

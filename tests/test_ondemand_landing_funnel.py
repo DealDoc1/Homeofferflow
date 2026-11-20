@@ -185,6 +185,7 @@ const end = html.indexOf('$("signInButton").addEventListener', start);
 if (start < 0 || end < 0) throw new Error('init not found');
 const state = {session: null};
 const window = {location: {search: ''}};
+const returnedFromCheckout = false;
 const document = {referrer: '', title: 'HomeOfferFlow'};
 let listener = null;
 let statusMessage = '';
@@ -256,6 +257,7 @@ const $ = id => elements[id];
 const refreshRenewalDate = () => {};
 const renderInstallHint = () => {};
 const window = {location: {search: ''}};
+const returnedFromCheckout = false;
 eval(html.slice(start, end));
 
 renderSession({user: {id: 'agent-1', email: 'agent@example.com'}, access_token: 'first'});
@@ -294,7 +296,7 @@ if (elements.terms.checked || !elements.checkoutButton.disabled) throw new Error
         ):
             self.assertIn(text, ONDEMAND)
         self.assertLess(ONDEMAND.index('id="signedOut"'), ONDEMAND.index('id="enrollmentDetails"'))
-        self.assertIn('$("enrollmentDetails").hidden = signedIn;', ONDEMAND)
+        self.assertIn('$("enrollmentDetails").hidden = signedIn || returnedFromCheckout;', ONDEMAND)
         self.assertNotIn("Start my 60-day free trial", ONDEMAND)
 
     def test_landing_attribution_keeps_referrers_private_but_distinguishes_direct_and_referral_visits(self):

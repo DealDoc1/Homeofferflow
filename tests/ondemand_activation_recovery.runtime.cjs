@@ -16,19 +16,28 @@ function fixture({saved = session('a'), savedRead, failRead = false, access = as
       addEventListener(name, fn) { this.listeners[name] = fn; }, appendChild() {}, setAttribute() {}, focus() {}, checkValidity() { return true; }});
     return elements.get(id);
   };
+  const timers = new Map();
   let listener; const calls = []; const apiEvents = []; let directWrites = 0; const storage = new Map();
+  const otpRequests = [];
   const auth = {
+    async signInWithOtp(params) { otpRequests.push(params); return {error: null}; },
     onAuthStateChange(fn) { listener = fn; },
     async getSession() { if (failRead) throw Error('temporary read failure'); return savedRead ? await savedRead.promise : {data: {session: saved}}; },
   };
   const location = {origin: 'https://www.homeofferflow.com', pathname: '/ondemand', search, href: `https://www.homeofferflow.com/ondemand${search}`, assign() { throw Error('unexpected navigation'); }};
-  const context = {URL, URLSearchParams, Date, navigator: {userAgent: 'desktop'}, console: {warn() {}},
+  const context = {URL, URLSearchParams, Date, AbortController, navigator: {userAgent: 'desktop'}, console: {warn() {}},
     document: {referrer: '', title: 'HomeOfferFlow', getElementById: el, documentElement: {style: {setProperty() {}}}, createElement: () => ({style: {}})},
     window: {location, history: {replaceState() {}}, addEventListener() {}, supabase: {createClient: () => ({auth, from: () => ({insert: async () => { directWrites++; return {error: null}; }})})}},
     sessionStorage: {getItem: k => storage.get(k), setItem: (k,v) => storage.set(k,v)},
-    setTimeout: fn => { queueMicrotask(fn); return 1; },
+    setTimeout(fn, ms) {
+      const id = Symbol();
+      if (ms === 1000) queueMicrotask(fn);
+      else timers.set(id, {fn, ms});
+      return id;
+    },
+    clearTimeout: id => timers.delete(id),
     fetch: async (url, options) => {
-      if (url.includes('status=access')) { calls.push(options.headers.Authorization); return {ok: true, json: async () => ({access: await access(options.headers.Authorization)})}; }
+      if (url.includes('status=access')) { calls.push(options.headers.Authorization); return {ok: true, json: async () => ({access: await access(options.headers.Authorization, options.signal)})}; }
       if (url === '/api/admin-dashboard') {
         apiEvents.push({headers: options.headers, body: JSON.parse(options.body)});
         return {ok: eventResponseOk, json: async () => ({ok: eventResponseOk})};
@@ -37,7 +46,7 @@ function fixture({saved = session('a'), savedRead, failRead = false, access = as
     },
   };
   vm.runInNewContext(code, context);
-  return {el, calls, apiEvents, get directWrites() { return directWrites; }, emit: value => listener('SIGNED_IN', value)};
+  return {el, calls, apiEvents, timers, otpRequests, get directWrites() { return directWrites; }, emit: value => listener('SIGNED_IN', value)};
 }
 test('OnDemand checkout returns record funnel events through the authenticated API', async () => {
   const f = fixture({search: '?checkout=cancelled'}); await settle();
@@ -113,4 +122,70 @@ test('a checkout return uses access recovery rather than asking for checkout aga
   assert.equal(enrollment.el('terms').checked, false);
   assert.equal(enrollment.el('checkoutButton').disabled, true);
   assert.equal(enrollment.calls.length, 0);
+});
+
+test('a stalled access response releases the agent to retry without reopening checkout', async () => {
+  let stalled = true;
+  const f = fixture({access: (_auth, signal) => {
+    if (!stalled) return true;
+    return new Promise((_resolve, reject) => {
+      signal.addEventListener('abort', () => reject(signal.reason), {once: true});
+    });
+  }});
+  await settle();
+  assert.equal(f.el('activationRetryButton').hidden, true);
+  assert.equal(f.timers.size, 1);
+  const [{fn, ms}] = f.timers.values();
+  assert.equal(ms, 8000);
+  fn();
+  await settle();
+  assert.equal(f.calls.length, 1);
+  assert.equal(f.timers.size, 0);
+  assert.equal(f.el('activationRetryButton').hidden, false);
+  assert.equal(f.el('checkoutButton').style.display, 'none');
+  assert.equal(f.el('workspaceButton').style.display, 'none');
+
+  stalled = false;
+  await f.el('activationRetryButton').listeners.click();
+  await settle();
+  assert.equal(f.calls.length, 2);
+  assert.equal(f.timers.size, 0);
+  assert.equal(f.el('activationRetryButton').hidden, true);
+  assert.equal(f.el('workspaceButton').style.display, 'block');
+  assert.equal(f.el('firstOfferButton').style.display, 'block');
+});
+
+test('sign-in from checkout resumes authenticated access confirmation without forwarding the Stripe session', async () => {
+  const checkoutReturn = fixture({saved: null, search: '?checkout=success&session_id=fictional-checkout&next=https://example.com'});
+  await settle();
+  assert.equal(checkoutReturn.el('enrollmentDetails').hidden, true);
+  assert.equal(checkoutReturn.el('enrollmentSignInHint').hidden, true);
+  assert.equal(checkoutReturn.el('checkoutSignInHint').hidden, false);
+  assert.equal(checkoutReturn.calls.length, 0);
+  checkoutReturn.el('email').value = 'agent@example.com';
+  await checkoutReturn.el('signInButton').listeners.click();
+
+  assert.match(checkoutReturn.el('status').textContent, /confirm your workspace access/);
+  const redirect = new URL(checkoutReturn.otpRequests[0].options.emailRedirectTo);
+  assert.equal(redirect.href, 'https://www.homeofferflow.com/ondemand?checkout=success');
+  let authorized = false;
+  const callback = fixture({search: redirect.search, access: async () => authorized});
+  await settle();
+  assert.equal(callback.el('checkoutButton').style.display, 'none');
+  assert.equal(callback.el('workspaceButton').style.display, 'none');
+  assert.ok(callback.calls.every(auth => auth === 'Bearer fictional-a'));
+  authorized = true;
+  await callback.el('activationRetryButton').listeners.click();
+  assert.equal(callback.el('workspaceButton').style.display, 'block');
+});
+test('ordinary brokerage sign-in retains its invite and stays on enrollment', async () => {
+  const f = fixture({saved: null, search: '?invite=fixture%2Btoken'});
+  await settle();
+  f.el('email').value = 'agent@example.com';
+  await f.el('signInButton').listeners.click();
+  const redirect = new URL(f.otpRequests[0].options.emailRedirectTo);
+  assert.equal(redirect.pathname, '/ondemand');
+  assert.equal(redirect.searchParams.get('invite'), 'fixture+token');
+  assert.equal(redirect.searchParams.has('checkout'), false);
+  assert.match(f.el('status').textContent, /finish starting your 60-day trial/);
 });

@@ -1128,7 +1128,7 @@ class OnDemandLaunchPageTests(unittest.TestCase):
     def test_launch_requires_authenticated_checkout_and_terms_confirmation(self):
         self.assertIn('"Authorization": `Bearer ${state.session.access_token}`', LAUNCH_HTML)
         self.assertIn('id="terms" type="checkbox"', LAUNCH_HTML)
-        self.assertIn('emailRedirectTo: `${window.location.origin}/ondemand${state.inviteToken', LAUNCH_HTML)
+        self.assertIn('emailRedirectTo: redirectUrl.href', LAUNCH_HTML)
         self.assertIn('action: "accept_brokerage_invite"', LAUNCH_HTML)
         self.assertIn("Sign in with the email address that received this brokerage invite", ADMIN_PATH.read_text(encoding="utf-8"))
 
