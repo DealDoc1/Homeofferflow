@@ -120,6 +120,9 @@ test('the priority action checks only the offer shown on the button, beyond the 
   assert.equal(status.textContent, 'Signing status checked for this offer.');
   assert.equal(button.disabled, false);
   assert.equal(button.textContent, 'Check signing status');
+  root.hofAuth.myOffersRefreshError = true;
+  await root.hofSyncPrioritySigningStatus(button);
+  assert.match(status.textContent, /Signing status checked. The offer list couldn’t refresh/);
 });
 
 test('overlapping offer refresh callers share a request and a failed check can retry', async () => {

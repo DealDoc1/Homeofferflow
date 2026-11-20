@@ -21471,7 +21471,7 @@ function hofSpreadsheetCsvCell(value) {
       const updated = await root.loadMyOffers();
       if (!isCurrent()) return;
       announceWorkspaceStatus(!Array.isArray(updated) || root.hofAuth.myOffersRefreshError
-        ? 'Signing status checked. The offer list couldn’t refresh. Use Retry offers to update it.'
+        ? 'Signing status checked. The offer list couldn’t refresh. Reload My Offers to see the latest status.'
         : 'Signing status checked for this offer.');
     } finally {
       if (button.isConnected) { button.disabled = false; button.textContent = originalLabel; }
