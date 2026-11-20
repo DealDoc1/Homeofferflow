@@ -9032,7 +9032,26 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     return {...offer, offer_data: {...offer.offer_data, transactionTracking: latest}};
   }
 
-  async function loadMyOffers({ append = false } = {}) {
+  function renderOfferHistoryResult(list, offers, pagingButton) {
+    const search = document.getElementById('offerWorkspaceSearch');
+    const selection = search && document.activeElement === search
+      ? [search.selectionStart, search.selectionEnd, search.selectionDirection]
+      : null;
+    const restorePagingFocus = pagingButton && document.activeElement === pagingButton;
+    list.className = '';
+    list.innerHTML = renderMyOffers(offers);
+    if (selection) {
+      const updatedSearch = document.getElementById('offerWorkspaceSearch');
+      updatedSearch?.focus({ preventScroll: true });
+      updatedSearch?.setSelectionRange(...selection);
+    } else if (restorePagingFocus) {
+      const target = list.querySelector('#loadOlderOffersButton') ||
+        list.querySelector('.offer-workspace-result-summary');
+      target?.focus();
+    }
+  }
+
+  async function loadMyOffers({ append = false, pagingButton = null } = {}) {
     const user = hofAuth.session?.user;
     const list = document.getElementById('myOffersList');
     if (!list) return;
@@ -9047,7 +9066,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       list.textContent = 'Sign in to view offers.';
       return [];
     }
-    const request = { userId: user.id, epoch: window.__hofAccountProfileEpoch || 0 };
+    const request = { userId: user.id, epoch: window.__hofAccountProfileEpoch || 0, append };
     activeOfferHistoryRequest = request;
     const isCurrent = () => activeOfferHistoryRequest === request &&
       hofAuth.session?.user?.id === request.userId && (window.__hofAccountProfileEpoch || 0) === request.epoch;
@@ -9083,17 +9102,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         try { renderAgentActivationCard(); } catch (e) {}
         return [];
       }
-      const search = document.getElementById('offerWorkspaceSearch');
-      const selection = search && document.activeElement === search
-        ? [search.selectionStart, search.selectionEnd, search.selectionDirection]
-        : null;
-      list.className = '';
-      list.innerHTML = renderMyOffers(loadedOffers);
-      if (selection) {
-        const updatedSearch = document.getElementById('offerWorkspaceSearch');
-        updatedSearch?.focus({ preventScroll: true });
-        updatedSearch?.setSelectionRange(...selection);
-      }
+      renderOfferHistoryResult(list, loadedOffers, pagingButton);
       try { renderAgentActivationCard(); } catch (e) {}
       return loadedOffers;
     } catch (err) {
@@ -9111,8 +9120,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
         hofAuth.myOffersHasMore = true;
         hofAuth.myOffersLoadMoreError = true;
         hofAuth.myOffersNextOffset = offset;
-        list.className = '';
-        list.innerHTML = renderMyOffers(existingOffers);
+        renderOfferHistoryResult(list, existingOffers, pagingButton);
         console.warn('Older offers load failed:', err);
         return existingOffers;
       }
@@ -9131,7 +9139,24 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
   }
 
   window.loadOlderOffers = async function loadOlderOffers() {
-    return loadMyOffers({ append: true });
+    const button = document.getElementById('loadOlderOffersButton');
+    if (activeOfferHistoryRequest?.append &&
+        activeOfferHistoryRequest.userId === hofAuth.session?.user?.id &&
+        activeOfferHistoryRequest.epoch === (window.__hofAccountProfileEpoch || 0)) return;
+    const label = button?.textContent;
+    if (button) {
+      // Keep the paging control focusable while the request is in progress.
+      button.setAttribute('aria-disabled', 'true');
+      button.textContent = 'Loading older offers…';
+    }
+    try {
+      return await loadMyOffers({ append: true, pagingButton: button });
+    } finally {
+      if (button) {
+        button.removeAttribute('aria-disabled');
+        button.textContent = label;
+      }
+    }
   };
 
   function formatOfferDate(value) {
@@ -21371,7 +21396,7 @@ function hofSpreadsheetCsvCell(value) {
     const canLoadMore = !!root.hofAuth?.myOffersHasMore;
     const loadMoreFailed = !!root.hofAuth?.myOffersLoadMoreError;
     const historyControl = canLoadMore
-      ? `<div style="display:flex;justify-content:center;margin-top:1rem;"><button type="button" class="btn-secondary" onclick="loadOlderOffers()">${loadMoreFailed ? 'Retry loading older offers' : 'Load 25 older offers'}</button></div>`
+      ? `<div style="display:flex;justify-content:center;margin-top:1rem;"><button id="loadOlderOffersButton" type="button" class="btn-secondary" onclick="loadOlderOffers()">${loadMoreFailed ? 'Retry loading older offers' : 'Load 25 older offers'}</button></div>`
       : safe.length >= 25
         ? '<div class="offer-workspace-note" style="text-align:center;margin-top:1rem;">All saved offers currently loaded.</div>'
         : '';

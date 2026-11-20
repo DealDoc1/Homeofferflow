@@ -81,3 +81,89 @@ const clearTimeout = callback => { if (expire===callback) expire=null; };
             capture_output=True, text=True, timeout=20,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_paging_keeps_focus_and_ignores_repeated_activation(self):
+        html = (Path(__file__).resolve().parents[1] / "index.html").read_text()
+        start = html.index("  const HOF_OFFER_WORKSPACE_PAGE_SIZE")
+        end = html.index("  function formatOfferDate", start)
+        setup = """
+const assert = require('node:assert/strict');
+const pending = [];
+const hofAuth = {
+  session: {user: {id: 'agent'}, access_token: 'fictional'},
+  myOffers: [{id: 'first'}], myOffersHasMore: true, myOffersNextOffset: 25
+};
+const window = {hofLoadAgentOfferHistory: offset => {
+  assert.equal(offset, hofAuth.myOffersNextOffset);
+  return new Promise((resolve, reject) => pending.push({resolve, reject}));
+}};
+const renderMyOffers = () => '';
+const body = {};
+const other = {};
+function control(text = '') {
+  return {textContent: text, attrs: {},
+    setAttribute(name, value) { this.attrs[name] = value; },
+    removeAttribute(name) { delete this.attrs[name]; },
+    focus() { document.activeElement = this; }
+  };
+}
+let button = control('Load 25 older offers');
+let summary = control();
+const list = {
+  set innerHTML(_) {
+    if (document.activeElement === button) document.activeElement = body;
+    button = hofAuth.myOffersHasMore
+      ? control(hofAuth.myOffersLoadMoreError ? 'Retry loading older offers' : 'Load 25 older offers')
+      : null;
+    summary = control();
+  },
+  querySelector(selector) {
+    return selector === '#loadOlderOffersButton' ? button : summary;
+  }
+};
+const document = {
+  activeElement: body,
+  getElementById: id => ({myOffersList: list, loadOlderOffersButton: button})[id]
+};
+"""
+        scenario = """
+(async () => {
+  button.focus();
+  const initial = button;
+  const fail = window.loadOlderOffers();
+  assert.equal(initial.attrs['aria-disabled'], 'true');
+  assert.equal(document.activeElement, initial);
+  await window.loadOlderOffers();
+  assert.equal(pending.length, 1);
+  pending[0].reject(new Error('fictional connection failure'));
+  await fail;
+  assert.equal(document.activeElement, button);
+  assert.equal(button.textContent, 'Retry loading older offers');
+  assert.equal(button.attrs['aria-disabled'], undefined);
+
+  const retry = window.loadOlderOffers();
+  pending[1].resolve({offers: [{id: 'older'}], hasMore: true, nextOffset: 26});
+  await retry;
+  assert.equal(document.activeElement, button);
+  assert.equal(button.textContent, 'Load 25 older offers');
+
+  const moved = window.loadOlderOffers();
+  document.activeElement = other;
+  pending[2].resolve({offers: [{id: 'older-still'}], hasMore: true, nextOffset: 27});
+  await moved;
+  assert.equal(document.activeElement, other);
+
+  button.focus();
+  const final = window.loadOlderOffers();
+  pending[3].resolve({offers: [{id: 'last'}], hasMore: false, nextOffset: 28});
+  await final;
+  assert.equal(button, null);
+  assert.equal(document.activeElement, summary);
+  assert.deepEqual(hofAuth.myOffers.map(offer => offer.id), ['first', 'older', 'older-still', 'last']);
+})().catch(error => { console.error(error); process.exitCode = 1; });
+"""
+        result = subprocess.run(
+            ["node", "-"], input=setup + html[start:end] + scenario,
+            capture_output=True, text=True, timeout=20,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
