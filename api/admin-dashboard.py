@@ -656,6 +656,20 @@ def _project_agent_offer_workspace_row(row):
     delivery = raw_data.get("_hof_signature_delivery")
     if isinstance(delivery, dict) and isinstance(delivery.get("version"), int):
         offer_data["_hof_signature_delivery"] = {"version": delivery["version"]}
+        document_id = row.get("signwell_document_id")
+        provider_status = re.sub(r"[_\s-]+", " ", str(row.get("signwell_status") or "").strip().lower())
+        if (
+            delivery["version"] == 1
+            and delivery.get("phase") == "sending"
+            and document_id
+            and delivery.get("document_id") == document_id
+            and str(row.get("status") or "").strip().lower() in {"generated", "generation failed"}
+            and provider_status in {
+                "", "created", "draft", "generated", "saved", "not sent",
+                "draft not sent", "delivery unconfirmed",
+            }
+        ):
+            offer_data["_hof_signature_delivery"]["confirmationPending"] = True
     tracking = raw_data.get("transactionTracking")
     if isinstance(tracking, dict):
         safe_tracking = agent_contract_timeline.project_tracking(tracking)

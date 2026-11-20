@@ -9165,6 +9165,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
   function getOfferBestStatus(offer = {}) {
     const d = offer.offer_data || {};
+    if (d._hof_signature_delivery?.confirmationPending === true) return 'Delivery unconfirmed';
     const signwellStatuses = [
       offer.signwell_status,
       offer.display_status,
@@ -9319,7 +9320,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       const hasSignwellDoc = !!(o.signwell_document_id || d.signwellDocumentId || d.signwell?.document_id || d.signwell?.response?.id);
       const canRetryBuyerSigning = (!hasSignwellDoc || d._hof_signature_delivery?.version === 1) && ['generated', 'generation failed'].includes(String(o.status || '').toLowerCase());
       const signingBucket = getOfferSigningBucket(o);
-      const signingLabel = signingBucket === 'signed' ? 'Buyer signatures complete'
+      const signingLabel = status === 'Delivery unconfirmed' ? 'Delivery unconfirmed'
+        : signingBucket === 'signed' ? 'Buyer signatures complete'
         : signingBucket === 'partial' ? 'Partially signed'
         : signingBucket === 'viewed' ? 'Buyer viewed'
         : signingBucket === 'awaiting' ? 'Awaiting buyer signature'
@@ -9359,7 +9361,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
           <button class="offer-action-btn" type="button" onclick="viewOfferDetails('${escapeAttr(o.id)}')">View</button>
           <button class="offer-action-btn" type="button" onclick="resumeOffer('${escapeAttr(o.id)}')">Resume</button>
           <button class="offer-action-btn" type="button" onclick="duplicateOffer('${escapeAttr(o.id)}', false, true)">Duplicate &amp; edit</button>
-          ${hasSignwellDoc ? `<button class="offer-action-btn" type="button" onclick="refreshSignWellStatus('${escapeAttr(o.id)}', this)">Refresh</button>` : ''}
+          ${hasSignwellDoc ? `<button class="offer-action-btn" type="button" onclick="refreshSignWellStatus('${escapeAttr(o.id)}', this)">${status === 'Delivery unconfirmed' ? 'Check signing status' : 'Refresh'}</button>` : ''}
           ${canRetryBuyerSigning ? `<button class="offer-action-btn" type="button" onclick="retryOfferSignature('${escapeAttr(o.id)}', this)">Retry signing</button>` : ''}
           <button class="offer-action-btn danger" type="button" onclick="deleteOffer('${escapeAttr(o.id)}')">Delete</button>
         </div>
@@ -20968,6 +20970,7 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
     .offer-launch-grid, .offer-workspace-stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
     .offer-focus-card { display:block; }
     .offer-focus-actions { justify-content:flex-start; margin-top:.7rem; }
+    .offer-focus-actions .offer-action-btn { flex:0 1 auto; min-width:0; min-height:44px; max-width:100%; white-space:normal; }
     .offer-workspace-filter-row { display:block; }
     .offer-search-wrap, .offer-sort-select { width:100%; margin-bottom:.55rem; }
     .offer-filter-tabs { overflow:auto; flex-wrap:nowrap; padding-bottom:.1rem; -webkit-overflow-scrolling:touch; }
@@ -21156,12 +21159,13 @@ function hofSpreadsheetCsvCell(value) {
     const b = bucketForOffer(o);
     const d = o.offer_data || {};
     const hasDoc = !!(o.signwell_document_id || d.signwellDocumentId || d.signwell?.document_id || d.signwell?.response?.id);
-    if (cleanStatus(o).toLowerCase() === 'draft - not sent') return 'Not sent yet';
+    const status = cleanStatus(o).toLowerCase();
+    if (status === 'delivery unconfirmed') return 'Delivery unconfirmed';
+    if (status === 'draft - not sent') return 'Not sent yet';
     if (b === 'signed') return 'Buyer signed';
     if (b === 'signing') {
-      const s = cleanStatus(o).toLowerCase();
-      if (s.includes('partial')) return 'Partially signed';
-      if (s.includes('viewed')) return 'Buyer viewed';
+      if (status.includes('partial')) return 'Partially signed';
+      if (status.includes('viewed')) return 'Buyer viewed';
       return 'Awaiting signature';
     }
     if (b === 'generated' || hasDoc) return 'Packet generated';
@@ -21173,6 +21177,7 @@ function hofSpreadsheetCsvCell(value) {
     const status = cleanStatus(o).toLowerCase();
     const contractTimeline = o.offer_data?.transactionTracking;
     const ageDays = Math.floor((Date.now() - new Date(o.last_updated || o.created_at || Date.now()).getTime()) / 86400000);
+    if (status === 'delivery unconfirmed') return 'Check signing status before retrying';
     if (status.includes('expired')) return 'Signature link expired — duplicate into a new draft to resend';
     if (b === 'draft' && ageDays >= 2) return 'Resume this stale draft';
     if ((b === 'generated' || b === 'signing') && ageDays >= 2) return 'Refresh signing status and follow up';
@@ -21209,6 +21214,7 @@ function hofSpreadsheetCsvCell(value) {
   function needsAttention(o){
     const bucket = bucketForOffer(o);
     const status = cleanStatus(o).toLowerCase();
+    if (status === 'delivery unconfirmed') return true;
     if (status.includes('expired')) return true;
     if (!['draft', 'generated', 'signing'].includes(bucket)) return false;
     const updated = new Date(o.last_updated || o.created_at || 0).getTime();
@@ -21251,6 +21257,8 @@ function hofSpreadsheetCsvCell(value) {
   function priorityOffer(offers){
     const urgency = { signing: 0, generated: 1, draft: 2 };
     return (offers || []).filter(needsAttention).slice().sort((a, b) => {
+      const pendingDifference = Number(cleanStatus(b) === 'Delivery unconfirmed') - Number(cleanStatus(a) === 'Delivery unconfirmed');
+      if (pendingDifference) return pendingDifference;
       const bucketDifference = (urgency[bucketForOffer(a)] ?? 9) - (urgency[bucketForOffer(b)] ?? 9);
       if (bucketDifference) return bucketDifference;
       return new Date(a.last_updated || a.created_at || 0) - new Date(b.last_updated || b.created_at || 0);
@@ -21303,7 +21311,7 @@ function hofSpreadsheetCsvCell(value) {
         ${['generated', 'signing', 'signed'].includes(bucketForOffer(o)) ? `<button class="offer-action-btn" type="button" onclick="hofOpenOfferPdf('${esc(o.id)}', this)">Print unsigned copy</button>` : ''}
         ${bucketForOffer(o) === 'signed' ? `<button class="offer-action-btn" type="button" onclick="hofOpenOfferPdf('${esc(o.id)}', this, true)">Signed PDF</button>` : ''}
         <button class="offer-action-btn" type="button" onclick="window.startOfferSellerDisclosure('${esc(o.id)}', this)">Seller’s disclosure</button>
-        ${hasDoc ? `<button class="offer-action-btn" type="button" onclick="refreshSignWellStatus('${esc(o.id)}', this)">Refresh</button>` : `<button class="offer-action-btn" type="button" onclick="viewOfferDetails('${esc(o.id)}')">Status</button>`}
+        ${hasDoc ? `<button class="offer-action-btn" type="button" onclick="refreshSignWellStatus('${esc(o.id)}', this)">${st === 'Delivery unconfirmed' ? 'Check signing status' : 'Refresh'}</button>` : `<button class="offer-action-btn" type="button" onclick="viewOfferDetails('${esc(o.id)}')">Status</button>`}
         ${canRetrySigning ? `<button class="offer-action-btn" type="button" onclick="retryOfferSignature('${esc(o.id)}', this)">Retry signing</button>` : ''}
         ${needsBuyerReminder ? `<button class="offer-action-btn" type="button" onclick="copyBuyerSigningReminder('${esc(o.id)}')">Copy buyer reminder</button>` : ''}
         ${canTrackContract ? `<button class="offer-action-btn" type="button" data-contract-timeline-offer="${esc(o.id)}" onclick="window.hofUnderContract?.open('${esc(o.id)}')">${contractTimeline.effectiveDate ? 'Contract timeline' : 'Track accepted contract'}</button>` : ''}
@@ -21328,9 +21336,10 @@ function hofSpreadsheetCsvCell(value) {
     const priority = priorityOffer(safe);
     const priorityProperty = priority && (priority.property_address || priority.offer_data?.propertyAddress || priority.offer_data?.propAddress || 'Untitled offer');
     const priorityNeedsBuyerReminder = priority && bucketForOffer(priority) === 'signing';
+    const priorityNeedsStatusCheck = priorityNeedsBuyerReminder || (priority && cleanStatus(priority) === 'Delivery unconfirmed');
     const focusCard = priority ? `<section class="offer-focus-card" aria-label="Priority offer follow-up">
-      <div><div class="offer-focus-kicker">Today’s priority</div><strong>${esc(priorityProperty)}</strong><p>${esc(nextAction(priority))}. This is the oldest active item that needs attention.</p></div>
-      <div class="offer-focus-actions">${priorityNeedsBuyerReminder ? `<button class="offer-action-btn" type="button" data-signing-offer-id="${esc(priority.id)}" onclick="hofSyncPrioritySigningStatus(this)">Check signing status</button>` : ''}<button class="offer-action-btn" type="button" onclick="hofOpenPriorityOffer('${esc(priority.id)}')">Open priority offer</button>${priorityNeedsBuyerReminder ? `<button class="offer-action-btn" type="button" onclick="copyBuyerSigningReminder('${esc(priority.id)}')">Copy buyer reminder</button>` : ''}<button class="offer-action-btn" type="button" onclick="hofReviewAllOffersNeedingAttention()">Review all ${c.attention} needing attention</button></div>
+      <div><div class="offer-focus-kicker">Today’s priority</div><strong>${esc(priorityProperty)}</strong><p>${esc(nextAction(priority))}.</p></div>
+      <div class="offer-focus-actions">${priorityNeedsStatusCheck ? `<button class="offer-action-btn" type="button" data-signing-offer-id="${esc(priority.id)}" onclick="hofSyncPrioritySigningStatus(this)">Check signing status</button>` : ''}<button class="offer-action-btn" type="button" onclick="hofOpenPriorityOffer('${esc(priority.id)}')">Open priority offer</button>${priorityNeedsBuyerReminder ? `<button class="offer-action-btn" type="button" onclick="copyBuyerSigningReminder('${esc(priority.id)}')">Copy buyer reminder</button>` : ''}<button class="offer-action-btn" type="button" onclick="hofReviewAllOffersNeedingAttention()">Review all ${c.attention} needing attention</button></div>
     </section>` : '';
     const volume = safe.reduce((sum,o) => sum + Number(o.offer_price || o.offer_data?.offerPrice || 0), 0);
     const tab = (key,label) => `<button type="button" class="offer-filter-tab ${state.filter===key?'active':''}" aria-pressed="${state.filter===key ? 'true' : 'false'}" onclick="hofSetOfferWorkspaceFilter('${key}')">${label} <span>${c[key] || 0}</span></button>`;
