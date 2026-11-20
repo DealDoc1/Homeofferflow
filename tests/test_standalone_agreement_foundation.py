@@ -512,7 +512,10 @@ class StandaloneAgreementFoundationTests(unittest.TestCase):
         preview_scope = HTML[HTML.index('id="hof-private-form-drafts-v1"'):HTML.index('id="hof-seller-disclosure-draft-ui-v1"')]
         self.assertIn('id="hof-private-form-drafts-v1"', HTML)
         self.assertIn(".from('hof_standalone_agreements')", HTML)
-        self.assertIn(".eq('agent_user_id', user.id)", HTML)
+        start = HTML.index("async function loadPrivateDrafts(ownerId, signal)")
+        loader = HTML[start:HTML.index("let activePrivateDraftLoad", start)]
+        self.assertIn(".eq('agent_user_id', ownerId)", loader)
+        self.assertIn(".abortSignal(signal)", loader)
         self.assertIn(".eq('status', 'draft')", HTML)
         self.assertIn("Review your saved documents here before choosing the next step for each one.", HTML)
         self.assertIn("Preview PDF", HTML)
