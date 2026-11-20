@@ -9381,35 +9381,63 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
 
 
   async function retryOfferSignature(offerId, buttonEl) {
-    if (!offerId || !hofAuth.session?.access_token) {
+    const userId = hofAuth.session?.user?.id;
+    const accessToken = hofAuth.session?.access_token;
+    if (!offerId || !userId || !accessToken) {
       setAuthStatus('Please sign in before retrying buyer signing.', 'err');
       return;
     }
+    const epoch = window.__hofAccountProfileEpoch || 0;
+    const pending = offerSignatureRetries.get(offerId);
+    if (pending?.userId === userId && pending.epoch === epoch) return;
+    const attempt = { userId, epoch };
+    offerSignatureRetries.set(offerId, attempt);
+    const isCurrent = () => hofAuth.session?.user?.id === userId &&
+      (window.__hofAccountProfileEpoch || 0) === epoch;
+    const announce = message => {
+      if (isCurrent()) window.announceWorkspaceStatus?.(message);
+    };
+    const unknown = 'Delivery couldn’t be confirmed. Reload My Offers and check signing status before retrying.';
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
     const original = buttonEl?.textContent || 'Retry signing';
-    if (buttonEl) { buttonEl.disabled = true; buttonEl.textContent = 'Starting…'; }
+    if (buttonEl) { buttonEl.disabled = true; buttonEl.textContent = 'Checking delivery…'; }
+    let confirmed = false;
     try {
       const response = await fetch('/api/fill-pdf', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${hofAuth.session.access_token}` },
+        signal: controller.signal,
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({ action: 'retry_offer_signature', offerId })
       });
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok || !result.ok) {
-        const deliveryError = new Error(result.error || 'Delivery could not be confirmed. Check your offer’s signature status.');
-        deliveryError.customerSafe = Boolean(result.deliveryUnconfirmed);
-        throw deliveryError;
+      const result = await response.json().catch(() => null);
+      if (!isCurrent()) return;
+      if (controller.signal.aborted) {
+        announce(unknown);
+        return;
       }
-      window.announceWorkspaceStatus?.(result.message || 'Buyer signature request sent.');
-      try { await loadMyOffers(); } catch (_) {
-        window.announceWorkspaceStatus?.((result.message || 'Buyer signature request sent.') + ' Your offer list could not refresh. Check its status from your account.');
+      if (!response.ok || result?.ok !== true) {
+        announce(result?.deliveryUnconfirmed && result.error ? result.error
+          : response.status === 401 ? 'Sign in again before retrying buyer signing.' : unknown);
+        return;
       }
-    } catch (error) {
-      console.error('Signature delivery failed:', error);
-      const fallback = 'We couldn’t send the signature request. Your document is still saved—please try again.';
-      window.announceWorkspaceStatus?.(error.customerSafe ? error.message : (window.hofCustomerActionError?.(error, fallback) || fallback));
-      if (buttonEl) { buttonEl.disabled = false; buttonEl.textContent = original; }
+      confirmed = true;
+      if (buttonEl) buttonEl.textContent = 'Delivery checked';
+      const message = result.message || 'Buyer signing status recovered.';
+      announce(message);
+      const offers = await loadMyOffers().catch(() => null);
+      if (!Array.isArray(offers) || hofAuth.myOffersRefreshError) {
+        announce(message + ' Your offer list could not refresh. Reload My Offers to see the latest status.');
+      }
+    } catch (_) {
+      announce(unknown);
+    } finally {
+      clearTimeout(timeout);
+      if (offerSignatureRetries.get(offerId) === attempt) offerSignatureRetries.delete(offerId);
+      if (buttonEl && !confirmed) { buttonEl.disabled = false; buttonEl.textContent = original; }
     }
   }
+  const offerSignatureRetries = new Map();
 
   async function refreshSignWellStatus(offerId, buttonEl, skipReload = false, suppressAlert = false) {
     if (!offerId || buttonEl?.disabled) return false;

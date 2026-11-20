@@ -55,7 +55,7 @@ class PlainLanguageWorkspaceErrorTests(unittest.TestCase):
 
         for recovery_copy in (
             "We couldn’t prepare the mineral addendum. Please review your answers and try again.",
-            "We couldn’t send the signature request. Your document is still saved—please try again.",
+            "Delivery couldn’t be confirmed. Reload My Offers and check signing status before retrying.",
             "We couldn’t load the brokerage activity. Refresh and try again.",
             "We couldn’t load the signing recipients. Try again.",
             "We couldn’t download the completed PDF. Please try again.",

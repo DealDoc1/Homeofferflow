@@ -9,22 +9,31 @@ HANDLER = HTML[HTML.index('  async function retryOfferSignature('):HTML.index(' 
 
 
 class OfferRecoveryUiTests(unittest.TestCase):
-    def run_case(self, payload, *, success=True, refresh_fails=False, signed_in=True):
+    def run_case(self, payload, *, success=True, refresh_fails=False, signed_in=True, mode='normal'):
         setup = '''
         const messages=[],requests=[];
         let refreshes=0;
-        const hofAuth={session:SIGNED_IN?{access_token:'test-only'}:null};
+        const hofAuth={session:SIGNED_IN?{access_token:'test-only',user:{id:'agent'}}:null};
+        const mode=MODE;
+        const setTimeout=(callback,delay)=>globalThis.setTimeout(callback, Math.min(delay, 40));
         const window={announceWorkspaceStatus:message=>messages.push(message)};
         const setAuthStatus=message=>messages.push(message);
         const fetch=async(url,options)=>{
           requests.push({url,body:JSON.parse(options.body),headers:options.headers});
+          if(mode==='timeout') return new Promise((_,reject)=>{
+            options.signal.addEventListener('abort',()=>reject(options.signal.reason),{once:true});
+          });
+          if(mode==='network') throw Error('connection closed');
+          if(mode==='switch') hofAuth.session={access_token:'other',user:{id:'other'}};
           return {ok:SUCCESS,json:async()=>(PAYLOAD)};
         };
-        const loadMyOffers=async()=>{refreshes++;if(REFRESH_FAILS)throw Error('List unavailable')};
+        const loadMyOffers=async()=>{refreshes++;if(REFRESH_FAILS)throw Error('List unavailable');return []};
         const button={disabled:false,textContent:'Retry signing'};
-        '''.replace('SIGNED_IN', json.dumps(signed_in)).replace('SUCCESS', json.dumps(success)).replace('PAYLOAD', json.dumps(payload)).replace('REFRESH_FAILS', json.dumps(refresh_fails))
+        '''.replace('SIGNED_IN', json.dumps(signed_in)).replace('SUCCESS', json.dumps(success)).replace('PAYLOAD', json.dumps(payload)).replace('REFRESH_FAILS', json.dumps(refresh_fails)).replace('MODE', json.dumps(mode))
         script = setup + HANDLER + '''
-        retryOfferSignature('offer-id',button).then(()=>{
+        const attempt=retryOfferSignature('offer-id',button);
+        const duplicate=mode==='double' ? retryOfferSignature('offer-id',{disabled:false}) : null;
+        Promise.all([attempt,duplicate]).then(()=>{
           process.stdout.write(JSON.stringify({messages,requests,refreshes,button}));
         }).catch(error=>{console.error(error);process.exitCode=1});
         '''
@@ -35,6 +44,7 @@ class OfferRecoveryUiTests(unittest.TestCase):
     def test_success_survives_list_refresh_failure_without_reenabling_send(self):
         result = self.run_case({'ok': True, 'message': 'Signature request sent.'}, refresh_fails=True)
         self.assertTrue(result['button']['disabled'])
+        self.assertEqual(result['button']['textContent'], 'Delivery checked')
         self.assertEqual(len(result['requests']), 1)
         self.assertEqual(result['requests'][0]['body'], {'action': 'retry_offer_signature', 'offerId': 'offer-id'})
         self.assertEqual(result['requests'][0]['headers']['Authorization'], 'Bearer test-only')
@@ -58,3 +68,22 @@ class OfferRecoveryUiTests(unittest.TestCase):
         result = self.run_case({}, signed_in=False)
         self.assertEqual(result['requests'], [])
         self.assertIn('sign in', result['messages'][0])
+
+    def test_timeout_and_transport_failures_report_unconfirmed_delivery(self):
+        for mode in ('timeout', 'network'):
+            with self.subTest(mode=mode):
+                result = self.run_case({}, mode=mode)
+                self.assertEqual(len(result['requests']), 1)
+                self.assertEqual(result['refreshes'], 0)
+                self.assertFalse(result['button']['disabled'])
+                self.assertIn('Reload My Offers and check signing status before retrying', result['messages'][0])
+
+    def test_switching_accounts_drops_late_feedback(self):
+        result = self.run_case({'ok': True}, mode='switch')
+        self.assertEqual(result['messages'], [])
+        self.assertEqual(result['refreshes'], 0)
+
+    def test_overlapping_buttons_for_an_offer_send_one_request(self):
+        result = self.run_case({'ok': True}, mode='double')
+        self.assertEqual(len(result['requests']), 1)
+        self.assertEqual(result['messages'], ['Buyer signing status recovered.'])
