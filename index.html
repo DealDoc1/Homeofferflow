@@ -26599,7 +26599,7 @@ function hofSpreadsheetCsvCell(value) {
 .hof-seller-response-row{display:grid;grid-template-columns:1fr 95px;align-items:center;gap:8px}
 .hof-seller-explanation{display:block;margin-top:12px;min-width:0}
 .hof-seller-explanation textarea,.hof-seller-explanation input,.hof-seller-explanation select{display:block;width:100%;min-width:0;max-width:100%;box-sizing:border-box;margin-top:6px;padding:10px;border-radius:8px;resize:vertical;font:inherit}
-.hof-seller-disclosure-card .hof-seller-conditional[hidden],.hof-seller-saved-detail[hidden],.hof-seller-disclosure-card [data-seller-draft-row][hidden]{display:none!important}
+.hof-seller-disclosure-card .hof-seller-conditional[hidden],.hof-seller-saved-detail[hidden],.hof-seller-disclosure-card [data-seller-draft-row][hidden],#hofRetrySellerPreview[hidden]{display:none!important}
 .hof-seller-saved-detail{display:block;margin-top:5px;color:var(--gold-light);font-size:.8rem;line-height:1.4}
 .hof-seller-disclosure-card .hof-seller-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 @media(max-width:700px){.hof-seller-disclosure-card .hof-seller-grid,.hof-seller-response-grid{grid-template-columns:1fr}}
@@ -26642,7 +26642,11 @@ function hofSpreadsheetCsvCell(value) {
   }
   root.loadSellerDisclosureDraft = function loadSellerDisclosureDraft(draftId) {
     const draft = draftCache.get(String(draftId || ''));
-    if (!draft) return;
+    if (!draft || document.getElementById('hofSaveSellerDraft')?.disabled) return;
+    activeSellerDisclosurePreview?.abort();
+    activeSellerDisclosurePreview = null;
+    const retryPreview = document.getElementById('hofRetrySellerPreview');
+    if (retryPreview) retryPreview.hidden = true;
     const setValue = (id, value) => { const field = document.getElementById(id); if (field) field.value = value || ''; };
     setValue('hofSellerWorkspace', draft.listing_workspace_id);
     setValue('hofSellerAddress', draft.property_address);
@@ -26932,35 +26936,52 @@ function hofSpreadsheetCsvCell(value) {
       await refreshDrafts();
     } catch (error) { console.error('Seller disclosure signing status refresh failed:', error); if (status) status.textContent = window.hofCustomerActionError?.(error, 'We couldn’t refresh the signing status. Please try again.') || 'We couldn’t refresh the signing status. Please try again.'; }
   }
-  async function previewSellerDisclosure(draftId, button) {
-    const token = root.hofAuth?.session?.access_token;
-    const status = document.getElementById('hofSellerDraftStatus');
-    const originalLabel = button?.textContent || 'Preview PDF';
-    if (!token || !draftId) {
-      if (status) status.textContent = 'Sign in and choose a seller disclosure first.';
-      return false;
-    }
+  let activeSellerDisclosurePreview;
+  async function previewSellerDisclosure(draftId, button, { saved = false } = {}) {
     const session = root.hofAuth?.session;
     const epoch = root.__hofAccountProfileEpoch;
-    const isCurrent = () => root.hofAuth?.session === session &&
-      root.__hofAccountProfileEpoch === epoch && (!button || button.isConnected);
+    const card = document.getElementById('hofSellerDisclosureCard');
+    const status = card?.querySelector('#hofSellerDraftStatus');
+    const retry = card?.querySelector('#hofRetrySellerPreview');
+    const originalLabel = button?.textContent || 'Preview PDF';
+    if (!session?.access_token || !session.user?.id || !draftId || !status || !retry) return false;
+
+    activeSellerDisclosurePreview?.abort();
+    const controller = new AbortController();
+    activeSellerDisclosurePreview = controller;
+    const timeout = setTimeout(() => controller.abort(), 30000);
+    const isCurrent = () => activeSellerDisclosurePreview === controller && card.isConnected &&
+      root.hofAuth?.session?.user?.id === session.user.id && root.__hofAccountProfileEpoch === epoch;
+    // Keep an activated retry control in place until the replacement is ready.
+    retry.hidden = button !== retry;
     if (button) { button.disabled = true; button.textContent = 'Loading…'; }
+    if (saved) status.textContent = 'Disclosure saved. Opening the preview…';
     try {
-      const response = await fetch('/api/admin-dashboard?preview_seller_disclosure=' + encodeURIComponent(draftId), {headers:{Authorization:'Bearer ' + token}});
-      if (!response.ok) throw new Error('Seller disclosure preview is unavailable.');
-      const draft = draftCache.get(String(draftId));
-      if (!root.hofShowPdfPreview) throw new Error('Seller disclosure preview is temporarily unavailable.');
+      const response = await fetch('/api/admin-dashboard?preview_seller_disclosure=' + encodeURIComponent(draftId), {
+        headers: {Authorization: 'Bearer ' + session.access_token},
+        signal: controller.signal
+      });
+      const mimeType = response.headers.get('content-type')?.split(';')[0].trim().toLowerCase();
+      if (!response.ok || mimeType !== 'application/pdf') throw new Error('Preview response is not a PDF.');
       const blob = await response.blob();
-      if (!isCurrent()) return;
-      root.hofShowPdfPreview(blob, draft?.property_address ? 'Seller disclosure preview' : 'Seller disclosure', button);
-      if (status) status.textContent = 'Disclosure saved. Review the completed PDF, then send it to the seller when you are ready.';
+      if (await blob.slice(0, 5).text() !== '%PDF-') throw new Error('Preview response is not a PDF.');
+      controller.signal.throwIfAborted();
+      if (!isCurrent()) return false;
+      if (!root.hofShowPdfPreview) throw new Error('Preview viewer is unavailable.');
+      root.hofShowPdfPreview(blob, 'Seller disclosure preview', button === retry ? card.querySelector('#hofSaveSellerDraft') : button);
+      retry.hidden = true;
+      status.textContent = 'Disclosure saved. Review the completed PDF, then send it to the seller when you are ready.';
       return true;
     } catch (error) {
-      if (!isCurrent()) return;
-      console.error('Seller disclosure preview failed:', error);
-      if (status) status.textContent = window.hofCustomerActionError?.(error, 'We couldn’t open the seller disclosure preview. Please try again.') || 'We couldn’t open the seller disclosure preview. Please try again.';
+      if (!isCurrent()) return false;
+      console.warn('Seller disclosure preview failed:', error);
+      status.textContent = 'The disclosure is saved. We couldn’t open the preview. Try opening it again.';
+      retry.dataset.draftId = String(draftId);
+      retry.hidden = false;
       return false;
     } finally {
+      clearTimeout(timeout);
+      if (activeSellerDisclosurePreview === controller) activeSellerDisclosurePreview = null;
       if (button) { button.disabled = false; button.textContent = originalLabel; }
     }
   }
@@ -26968,6 +26989,8 @@ function hofSpreadsheetCsvCell(value) {
   root.hofClearSellerDisclosureDraftView = () => {
     activeDraftLoad?.abort();
     activeDraftLoad = null;
+    activeSellerDisclosurePreview?.abort();
+    activeSellerDisclosurePreview = null;
     draftCache.clear();
     document.getElementById('hofSellerDisclosureCard')?.remove();
   };
@@ -27038,8 +27061,12 @@ function hofSpreadsheetCsvCell(value) {
       '<details class="hof-seller-step" open><summary><span class="hof-seller-step-number">1</span><span class="hof-seller-step-copy"><strong>Property and people</strong><small>Tell us who is involved and select the disclosure form.</small></span></summary><div class="hof-seller-grid"><label>Link to a listing (optional)<select id="hofSellerWorkspace"><option value="">Do not link this disclosure to a listing</option></select></label><label>Property address<input id="hofSellerAddress" maxlength="400" autocomplete="street-address" inputmode="text" placeholder="Street address, city, state, ZIP"></label><label>Disclosure form<select id="hofSellerSource"></select></label><label>Seller 1 name<input id="hofSeller1" maxlength="180"></label><label>Seller 1 review email<input id="hofSellerEmail" type="email" maxlength="320" autocomplete="email" placeholder="seller1@example.com"></label><label>Seller 2 name (optional)<input id="hofSeller2" maxlength="180"></label><label>Seller 2 review email (optional)<input id="hofSeller2Email" type="email" maxlength="320" autocomplete="email" placeholder="seller2@example.com"></label><label>Buyer 1 name (optional)<input id="hofBuyer1" maxlength="180"></label><label>Buyer 2 name (optional)<input id="hofBuyer2" maxlength="180"></label></div></details>' +
       '<details class="hof-seller-step"><summary><span class="hof-seller-step-number">2</span><span class="hof-seller-step-copy"><strong>Property details</strong><small>Work through systems, known conditions, repairs, and flood history.</small></span></summary>' + renderResponses() + '</details>' +
       '<details class="hof-seller-step"><summary><span class="hof-seller-step-number">3</span><span class="hof-seller-step-copy"><strong>Water rights, if they apply</strong><small>Add this only when the property needs a water-rights disclosure.</small></span></summary><label>Water-rights disclosure (optional)<select id="hofWaterSource"><option value="">Do not include</option></select></label><div id="hofSellerWaterResponses" hidden>' + renderWaterResponses() + '</div></details>' +
-      '<div class="hof-seller-actions"><button class="btn-primary" type="button" id="hofSaveSellerDraft">Save and preview</button><button class="btn-secondary" type="button" id="hofSendSellerReview" disabled>Send seller review email</button><span id="hofSellerDraftStatus" class="hof-iabs-status" role="status" aria-live="polite" aria-atomic="true"></span></div><h5>Saved seller disclosures</h5><div class="hof-seller-actions"><input id="hofSellerDraftFilter" type="search" placeholder="Search address or seller" aria-label="Search saved seller disclosures" oninput="filterSellerDisclosureDrafts(this.value)"><span id="hofSellerDraftSummary" class="hof-iabs-status"></span></div><p id="hofSellerDraftLoadStatus" class="hof-iabs-status" role="status"></p><button type="button" class="btn-secondary" id="hofRetrySellerDrafts" hidden>Retry saved disclosures</button><ul id="hofSellerDraftList" class="hof-private-form-drafts-list"></ul></div></details>';
+      '<div class="hof-seller-actions"><button class="btn-primary" type="button" id="hofSaveSellerDraft">Save and preview</button><button class="btn-secondary" type="button" id="hofSendSellerReview" disabled>Send seller review email</button><span id="hofSellerDraftStatus" class="hof-iabs-status" role="status" aria-live="polite" aria-atomic="true"></span><button class="btn-secondary" type="button" id="hofRetrySellerPreview" hidden>Retry preview</button></div><h5>Saved seller disclosures</h5><div class="hof-seller-actions"><input id="hofSellerDraftFilter" type="search" placeholder="Search address or seller" aria-label="Search saved seller disclosures" oninput="filterSellerDisclosureDrafts(this.value)"><span id="hofSellerDraftSummary" class="hof-iabs-status"></span></div><p id="hofSellerDraftLoadStatus" class="hof-iabs-status" role="status"></p><button type="button" class="btn-secondary" id="hofRetrySellerDrafts" hidden>Retry saved disclosures</button><ul id="hofSellerDraftList" class="hof-private-form-drafts-list"></ul></div></details>';
     panel.appendChild(card);
+    const retryPreview = card.querySelector('#hofRetrySellerPreview');
+    retryPreview.addEventListener('click', () => {
+      if (!retryPreview.disabled) void previewSellerDisclosure(retryPreview.dataset.draftId, retryPreview);
+    });
     const retry = card.querySelector('#hofRetrySellerDrafts');
     retry.addEventListener('click', () => {
       if (retry.getAttribute('aria-disabled') !== 'true') void refreshDrafts();
@@ -27088,18 +27115,31 @@ function hofSpreadsheetCsvCell(value) {
       saveButton.setAttribute('aria-busy', 'true');
       saveButton.textContent = 'Saving…';
       status.textContent = 'Saving your disclosure…';
+      retryPreview.hidden = true;
       try {
         const response = await fetch('/api/admin-dashboard',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer ' + token},body:JSON.stringify(payload)});
         const result = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(result.error || 'Could not save the seller disclosure.');
-        status.textContent = 'Preparing your completed disclosure for review…';
-        card.dataset.sellerDraftId = result.draft?.id || '';
-        card.dataset.loadedDraftId = result.draft?.id || '';
+        if (!isCurrent()) return;
+        if (response.status >= 400 && response.status < 500) {
+          const fallback = 'We couldn’t save the disclosure. Review your answers and try again.';
+          status.textContent = root.hofCustomerActionError?.(new Error(result.error), fallback) || fallback;
+          return;
+        }
+        if (!response.ok) throw new Error('Could not save the seller disclosure.');
+        const draftId = result.draft?.id;
+        if (typeof draftId !== 'string' || !draftId.trim()) throw new Error('Saved disclosure could not be confirmed.');
+        card.dataset.sellerDraftId = draftId;
+        card.dataset.loadedDraftId = draftId;
         const sendButton = document.getElementById('hofSendSellerReview');
-        if (sendButton) sendButton.disabled = !(card.dataset.sellerDraftId && document.getElementById('hofSellerEmail').value.trim());
-        await refreshDrafts();
-        await previewSellerDisclosure(card.dataset.sellerDraftId, saveButton);
-      } catch (error) { console.error('Seller disclosure preparation failed:', error); status.textContent = window.hofCustomerActionError?.(error, 'We couldn’t prepare the seller disclosure. Please review your answers and try again.') || 'We couldn’t prepare the seller disclosure. Please review your answers and try again.'; }
+        if (sendButton) sendButton.disabled = !document.getElementById('hofSellerEmail').value.trim();
+        void refreshDrafts();
+        await previewSellerDisclosure(draftId, saveButton, { saved: true });
+      } catch (error) {
+        if (!isCurrent()) return;
+        console.warn('Seller disclosure save could not be confirmed:', error);
+        status.textContent = 'We couldn’t confirm the save. Check Saved seller disclosures before trying again.';
+        void refreshDrafts();
+      }
       finally { saveButton.disabled = false; saveButton.setAttribute('aria-busy', 'false'); saveButton.textContent = 'Save and preview'; }
     });
     document.getElementById('hofSellerEmail').addEventListener('input', () => {
