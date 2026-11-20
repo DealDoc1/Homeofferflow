@@ -20,7 +20,7 @@ class SellerDisclosureFeedbackTests(unittest.TestCase):
         self.assertIn("saveButton.disabled = false", script)
         self.assertIn("saveButton.textContent = 'Save and preview'", script)
         self.assertIn("async function previewSellerDisclosure", script)
-        self.assertIn("await previewSellerDisclosure(card.dataset.sellerDraftId, saveButton)", script)
+        self.assertIn("await previewSellerDisclosure(draftId, saveButton, { saved: true })", script)
         self.assertIn("Review the completed PDF, then send it to the seller", script)
         self.assertIn("document.getElementById('hofSellerDraftStatus')", script)
         self.assertIn("Sign in before saving this seller disclosure.", script)

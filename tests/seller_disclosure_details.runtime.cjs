@@ -17,7 +17,7 @@ function setup(){
   escape:v=>String(v??'').replace(/[&<>"]/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[x]))};
  vm.createContext(c);
  c.window=root;vm.runInContext(shared,c);
- vm.runInContext('const draftCache=new Map();const {renderResponses,renderWaterResponses,collectDisclosureResponses,disclosureDetailRelevant,syncDisclosureDetails}=window.hofDisclosureInterview;'+
+ vm.runInContext('let activeSellerDisclosurePreview;const draftCache=new Map();const {renderResponses,renderWaterResponses,collectDisclosureResponses,disclosureDetailRelevant,syncDisclosureDetails}=window.hofDisclosureInterview;'+
    '\nthis.qa={renderResponses,renderWaterResponses,collectDisclosureResponses,disclosureDetailRelevant,syncDisclosureDetails,cache:draftCache};',c);
  for(const kind of ['seller','water']){
   const markup=kind==='seller'?c.qa.renderResponses():c.qa.renderWaterResponses();

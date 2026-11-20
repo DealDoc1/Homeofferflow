@@ -41,7 +41,10 @@ class AgentLibraryFeedbackTests(unittest.TestCase):
         self.assertNotIn("window.open('', '_blank')", INDEX)
         self.assertIn("root.hofShowPdfPreview = function hofShowPdfPreview", INDEX)
         self.assertIn("root.hofShowPdfPreview(blob, agreement.form_code, button);", INDEX)
-        self.assertIn("root.hofShowPdfPreview(blob, draft?.property_address", INDEX)
+        start = INDEX.index("async function previewSellerDisclosure(")
+        preview = INDEX[start:INDEX.index("let activeDraftLoad", start)]
+        self.assertIn("root.hofShowPdfPreview(blob, 'Seller disclosure preview'", preview)
+        self.assertNotIn("window.open(", preview)
         self.assertIn("root.hofShowPdfPreview(blob, draft?.form_code, button);", INDEX)
         self.assertIn("URL.revokeObjectURL(blobUrl)", INDEX)
 
