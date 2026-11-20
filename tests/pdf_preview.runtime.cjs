@@ -6,7 +6,7 @@ const vm = require('node:vm');
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const start = html.indexOf('  let pdfPreviewOpener;');
-const end = html.indexOf('  async function loadPrivateDrafts()', start);
+const end = html.indexOf('  async function loadPrivateDrafts(', start);
 assert.ok(start >= 0 && end > start, 'Production PDF preview helpers must exist');
 const source = html.slice(start, end);
 

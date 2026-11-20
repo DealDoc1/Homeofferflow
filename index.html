@@ -26302,6 +26302,8 @@ function hofSpreadsheetCsvCell(value) {
 <style id="hof-private-form-drafts-v1">
   .hof-private-form-drafts-card { border:1px solid rgba(113,184,157,.30); background:rgba(74,140,111,.055); margin-top:1rem; }
   .hof-private-form-drafts-card h4 { margin-bottom:.35rem; }
+  .hof-private-form-drafts-card label { color:var(--white); }
+  .hof-private-form-drafts-card #privateDraftRetry[hidden] { display:none; }
   .hof-private-form-drafts-card p { color:var(--gray-light); font-size:.86rem; line-height:1.5; }
   .hof-private-form-drafts-list { list-style:none; margin:.8rem 0 0; padding:0; border-top:1px solid rgba(255,255,255,.10); }
   .hof-private-form-drafts-list li { display:flex; justify-content:space-between; align-items:flex-start; gap:.7rem; padding:.65rem 0; border-bottom:1px solid rgba(255,255,255,.08); color:var(--gray-light); font-size:.84rem; line-height:1.4; }
@@ -26404,46 +26406,54 @@ function hofSpreadsheetCsvCell(value) {
     close.focus();
   };
 
-  async function loadPrivateDrafts() {
+  async function loadPrivateDrafts(ownerId, signal) {
     const client = root.getSupabaseClient?.();
-    const user = root.hofAuth?.session?.user;
-    if (!client || !user) return [];
-      const { data, error } = await client
-        .from('hof_standalone_agreements')
-        .select('id,form_code,source_revision,status,client_names,created_at,updated_at')
-      .eq('agent_user_id', user.id)
+    if (!client) throw new Error('Saved documents connection is unavailable.');
+    const { data, error } = await client
+      .from('hof_standalone_agreements')
+      .select('id,form_code,source_revision,status,client_names,created_at,updated_at')
+      .eq('agent_user_id', ownerId)
       .eq('status', 'draft')
       .order('updated_at', { ascending:false })
-      .limit(25);
+      .limit(25)
+      .abortSignal(signal);
     if (error) throw error;
-    return data || [];
+    if (!Array.isArray(data) || data.some(row => !row?.id)) {
+      throw new Error('Invalid saved documents response.');
+    }
+    return data;
   }
 
-  let latestPrivateDraftLoad;
-  async function refreshPrivateDrafts(restoreRetryFocus = false) {
+  let activePrivateDraftLoad;
+  async function refreshPrivateDrafts() {
     const list = document.getElementById('privateFormDraftsList');
-    if (!list) return;
+    const ownerId = root.hofAuth?.session?.user?.id;
+    if (!list || !ownerId) return;
     const searchRow = document.getElementById('privateDraftSearchRow');
     const search = document.getElementById('privateDraftSearch');
     const searchStatus = document.getElementById('privateDraftSearchStatus');
-    if (searchStatus) searchStatus.textContent = '';
-    if (searchRow) searchRow.hidden = true;
-    if (search) {
-      search.value = '';
-      search.oninput = null;
-    }
-    const ownerId = root.hofAuth?.session?.user?.id;
+    const loadStatus = document.getElementById('privateDraftLoadStatus');
+    const retry = document.getElementById('privateDraftRetry');
     const epoch = root.__hofAccountProfileEpoch;
-    const request = latestPrivateDraftLoad = {};
-    const isCurrent = () => latestPrivateDraftLoad === request && list.isConnected &&
+    activePrivateDraftLoad?.abort();
+    const controller = new AbortController();
+    activePrivateDraftLoad = controller;
+    const timeout = setTimeout(() => controller.abort(), 12000);
+    const isCurrent = () => activePrivateDraftLoad === controller && list.isConnected &&
       root.hofAuth?.session?.user?.id === ownerId && root.__hofAccountProfileEpoch === epoch;
-    const restoreFocus = target => {
-      if (restoreRetryFocus && document.activeElement === document.body) target?.focus();
-    };
-    list.innerHTML = '<li>Loading saved form drafts…</li>';
+    retry.setAttribute('aria-disabled', 'true');
+    loadStatus.textContent = 'Loading saved documents…';
     try {
-      const drafts = await loadPrivateDrafts();
+      const drafts = await loadPrivateDrafts(ownerId, controller.signal);
       if (!isCurrent()) return;
+      if (searchStatus) searchStatus.textContent = '';
+      searchRow.hidden = true;
+      search.oninput = null;
+      loadStatus.textContent = '';
+      const finish = () => {
+        if (document.activeElement === retry) list.focus();
+        retry.hidden = true;
+      };
       if (!drafts.length) {
         list.innerHTML = '<li>No saved documents for review yet.<br><button type="button" class="btn-secondary" style="margin-top:.55rem" data-start-agent-transaction>Start a transaction</button></li>';
         list.querySelector('[data-start-agent-transaction]')?.addEventListener('click', () => {
@@ -26451,7 +26461,7 @@ function hofSpreadsheetCsvCell(value) {
           start?.scrollIntoView({ behavior:'smooth', block:'center' });
           start?.focus();
         });
-        restoreFocus(list);
+        finish();
         return;
       }
       list.innerHTML = drafts.map(draft => {
@@ -26460,7 +26470,7 @@ function hofSpreadsheetCsvCell(value) {
           : 'Client name not available';
         return `<li><span><strong>${escape(draft.form_code)}</strong> · ${clients}<br><small>Approved source revision: ${escape(draft.source_revision)} · ${formatDate(draft.updated_at || draft.created_at)}</small></span><span><button type="button" class="btn-secondary hof-private-draft-preview" data-agreement-id="${escape(draft.id)}">Preview PDF</button></span></li>`;
       }).join('');
-      if (search && searchRow && drafts.length > 1) {
+      if (drafts.length > 1 || search.value) {
         const rows = Array.from(list.children);
         const empty = document.createElement('li');
         empty.textContent = 'No saved documents match your search.';
@@ -26483,8 +26493,8 @@ function hofSpreadsheetCsvCell(value) {
           }
         };
         searchRow.hidden = false;
+        search.oninput();
       }
-      restoreFocus(list);
       list.querySelectorAll('.hof-private-draft-preview').forEach(button => {
         button.addEventListener('click', async () => {
           const token = root.hofAuth?.session?.access_token;
@@ -26514,13 +26524,16 @@ function hofSpreadsheetCsvCell(value) {
           }
         });
       });
+      finish();
     } catch (error) {
       if (!isCurrent()) return;
-      console.error('Private form draft list failed:', error);
-      list.innerHTML = '<li>Couldn’t load saved documents. Check your connection and try again. <button type="button" class="btn-secondary" data-retry-private-drafts>Retry</button></li>';
-      const retry = list.querySelector('[data-retry-private-drafts]');
-      retry?.addEventListener('click', () => refreshPrivateDrafts(document.activeElement === retry));
-      restoreFocus(retry);
+      console.warn('Private form draft list failed:', error);
+      loadStatus.textContent = 'Couldn’t load saved documents. Check your connection and try again.';
+      retry.hidden = false;
+    } finally {
+      clearTimeout(timeout);
+      if (isCurrent()) retry.removeAttribute('aria-disabled');
+      if (activePrivateDraftLoad === controller) activePrivateDraftLoad = null;
     }
   }
   root.hofRefreshPrivateDrafts = refreshPrivateDrafts;
@@ -26543,9 +26556,15 @@ function hofSpreadsheetCsvCell(value) {
       </p>
       <div id="privateDraftSearchStatus" class="hof-iabs-status" role="status" aria-atomic="true"></div>
       <div id="privateFormDraftsStatus" class="hof-iabs-status" role="status" aria-live="polite"></div>
-      <ul id="privateFormDraftsList" class="hof-private-form-drafts-list" tabindex="-1"><li>Loading saved form drafts…</li></ul>`;
+      <div id="privateDraftLoadStatus" class="hof-iabs-status" role="status"></div>
+      <button id="privateDraftRetry" class="btn-secondary" type="button" hidden>Retry</button>
+      <ul id="privateFormDraftsList" class="hof-private-form-drafts-list" tabindex="-1" aria-label="Saved documents for review"></ul>`;
     panel.appendChild(card);
-    refreshPrivateDrafts();
+    const retry = card.querySelector('#privateDraftRetry');
+    retry.addEventListener('click', () => {
+      if (retry.getAttribute('aria-disabled') !== 'true') void refreshPrivateDrafts();
+    });
+    void refreshPrivateDrafts();
   }
 
   const priorDashboard = root.renderAccountDashboard;
