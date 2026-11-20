@@ -721,11 +721,14 @@
         const request = (async () => {
           for (let attempt = 0; attempt < 6; attempt += 1) {
             if (!isCurrent()) return false;
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 8000);
             try {
               const response = await fetch("/api/create-subscription-checkout?launch=ondemand&status=access", {
-                headers: { "Authorization": `Bearer ${state.session.access_token}` }
+                headers: { "Authorization": `Bearer ${state.session.access_token}` },
+                signal: controller.signal
               });
-              const data = await response.json().catch(() => ({}));
+              const data = await response.json();
               if (!isCurrent()) return false;
               if (response.ok && data.access === true) {
                 state.activationStatus = "ready";
@@ -736,7 +739,10 @@
                 return true;
               }
             } catch (_) {
-              // A temporary connection issue should not imply activated access.
+              // After a stalled connection, give the agent an immediate retry.
+              if (controller.signal.aborted) break;
+            } finally {
+              clearTimeout(timeout);
             }
             if (attempt < 5) await new Promise((resolve) => setTimeout(resolve, 1000));
           }
@@ -774,7 +780,7 @@
         // authoritative enrollment rules.
         void loadConfig();
         if (params.get("checkout") === "success") {
-          showStatus("Your secure checkout is complete. Open your workspace or choose your first transaction while agent access finishes activating.", "ok");
+          showStatus("You’ve returned from secure checkout.", "ok");
         } else if (params.get("checkout") === "cancelled") {
           showStatus("Checkout was canceled. Your card was not saved and your trial did not start.", "err");
         }
