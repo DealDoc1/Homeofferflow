@@ -9718,39 +9718,62 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     }
   }
 
-  async function duplicateOffer(id) {
-    const isRetry = arguments[1] === true;
-    const openAfterDuplicate = arguments[2] === true;
-    const user = hofAuth.session?.user;
-    if (!user) return;
-    const userId = user.id;
-    const request = openAfterDuplicate ? (arguments[3] || beginOfferOpenRequest()) : null;
-    const isCurrent = () => hofAuth.session?.user?.id === userId && (!request || request.isCurrent());
-    if (!isCurrent()) return;
-    try {
-      const duplicate = await window.hofDuplicateAgentOffer(id);
-      if (!isCurrent()) return;
-      if (!duplicate?.id) { window.announceWorkspaceStatus?.('This offer is no longer available in your workspace. Refresh offers and try again.'); return; }
-      // The copy remains saved if creation already completed, but an older
-      // navigation must not reopen it over the user's newer selection.
-      if (!isCurrent()) return;
-      void logOfferEvent(duplicate.id, isRetry ? 'duplicate_retry_succeeded' : 'duplicated', 'Draft', isRetry ? 'Offer duplicated after a dashboard retry.' : 'Offer duplicated from dashboard.', { copied_from_offer_id: id }).catch(() => {});
-      if (!isCurrent()) return;
-      // A dashboard refresh failure must not retry an already-created copy.
-      await loadMyOffers().catch(err => console.warn('Offer list refresh failed:', err));
-      if (!isCurrent()) return;
-      if (openAfterDuplicate) return resumeOffer(duplicate.id);
-    } catch (err) {
-      if (!isCurrent()) return;
-      console.error('Duplicate failed:', err);
-      if (!isRetry && err.retryable !== false && window.confirm('Could not confirm the copy. Retry to recover the same draft?')) {
-        void logOfferEvent(id, 'duplicate_retry_clicked', 'Draft', 'Agent requested a retry after duplicate failed.').catch(() => {});
-        if (!isCurrent()) return;
-        return duplicateOffer(id, true, openAfterDuplicate, request);
+  const activeOfferCopies = new Map();
+  async function duplicateOffer(id, isRetry = false, openAfterDuplicate = false, request = null) {
+    const userId = hofAuth.session?.user?.id;
+    if (!userId) return;
+    const epoch = window.__hofAccountProfileEpoch || 0;
+    const key = JSON.stringify([userId, epoch, String(id).toLowerCase()]);
+    const active = activeOfferCopies.get(key);
+    if (active) {
+      if (openAfterDuplicate && !active.opening && (!active.request?.isCurrent() || request?.isCurrent())) {
+        active.request = request || beginOfferOpenRequest();
       }
-      window.announceWorkspaceStatus?.(
-        err.retryable === false ? err.message : 'We couldn’t confirm the copy. Retry Duplicate & edit to recover the same draft.'
-      );
+      window.announceWorkspaceStatus?.('Your draft copy is in progress.');
+      return active.promise;
+    }
+    const operation = { request: openAfterDuplicate ? request || beginOfferOpenRequest() : null, opening: false };
+    const isCurrent = () => hofAuth.session?.user?.id === userId &&
+      (window.__hofAccountProfileEpoch || 0) === epoch &&
+      (!operation.request || operation.request.isCurrent());
+    if (!isCurrent()) return;
+    activeOfferCopies.set(key, operation);
+
+    async function copy(retry) {
+      try {
+        const duplicate = await window.hofDuplicateAgentOffer(id);
+        if (!isCurrent()) return;
+        if (!duplicate?.id) {
+          window.announceWorkspaceStatus?.('This offer is no longer available in your workspace. Refresh offers and try again.');
+          return;
+        }
+        void logOfferEvent(duplicate.id, retry ? 'duplicate_retry_succeeded' : 'duplicated', 'Draft', retry ? 'Offer duplicated after a dashboard retry.' : 'Offer duplicated from dashboard.', { copied_from_offer_id: id }).catch(() => {});
+        // A dashboard refresh failure must not retry an already-created copy.
+        await loadMyOffers().catch(err => console.warn('Offer list refresh failed:', err));
+        if (!isCurrent()) return;
+        if (operation.request) {
+          operation.opening = true;
+          return resumeOffer(duplicate.id);
+        }
+      } catch (err) {
+        if (!isCurrent()) return;
+        console.error('Duplicate failed:', err);
+        if (!retry && err.retryable !== false && window.confirm('Could not confirm the copy. Retry to recover the same draft?')) {
+          void logOfferEvent(id, 'duplicate_retry_clicked', 'Draft', 'Agent requested a retry after duplicate failed.').catch(() => {});
+          if (isCurrent()) return copy(true);
+          return;
+        }
+        window.announceWorkspaceStatus?.(
+          err.retryable === false ? err.message : 'We couldn’t confirm the copy. Retry Duplicate & edit to recover the same draft.'
+        );
+      }
+    }
+
+    operation.promise = copy(isRetry);
+    try {
+      return await operation.promise;
+    } finally {
+      activeOfferCopies.delete(key);
     }
   }
 

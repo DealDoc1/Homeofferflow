@@ -8,7 +8,7 @@ HTML = (ROOT / "index.html").read_text(encoding="utf-8")
 
 class OfferDuplicateWorkspaceTests(unittest.TestCase):
     def test_duplicate_uses_authenticated_server_action_and_preserves_recovery(self):
-        start = HTML.index("async function duplicateOffer(id)")
+        start = HTML.index("async function duplicateOffer(id,")
         end = HTML.index("\n  async function reuseOfferTerms", start)
         body = HTML[start:end]
 
@@ -18,7 +18,7 @@ class OfferDuplicateWorkspaceTests(unittest.TestCase):
         self.assertIn("loadMyOffers().catch", body)
         self.assertIn("return resumeOffer(duplicate.id)", body)
         self.assertIn("duplicate_retry_clicked", body)
-        self.assertIn("return duplicateOffer(id, true, openAfterDuplicate, request)", body)
+        self.assertIn("return copy(true)", body)
 
     def test_both_offer_detail_views_use_the_authenticated_api(self):
         for owner in ("root", "window"):
@@ -46,9 +46,9 @@ class OfferDuplicateWorkspaceTests(unittest.TestCase):
         self.assertIn("isRetry = false", resume)
         self.assertIn("resume_retry_clicked", resume)
         self.assertIn("return resumeOffer(id, true, { openPreparedDetails })", resume)
-        self.assertIn("arguments[1] === true", duplicate)
+        self.assertIn("isRetry = false", duplicate)
         self.assertIn("duplicate_retry_clicked", duplicate)
-        self.assertIn("return duplicateOffer(id, true, openAfterDuplicate, request)", duplicate)
+        self.assertIn("return copy(true)", duplicate)
         self.assertIn("openAfterDuplicate", duplicate)
         self.assertIn("return resumeOffer(duplicate.id)", duplicate)
 

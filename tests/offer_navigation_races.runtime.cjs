@@ -135,3 +135,41 @@ for (const operation of ['resumeOffer','reuseOfferTerms']) {
     assert.equal(x.opened.length,1); assert.deepEqual(x.alerts,[]);
   });
 }
+
+test('repeating Duplicate and edit during saving, refreshing, or opening creates just one draft', async () => {
+  const x = setup(), refresh = deferred();
+  x.c.loadMyOffers = () => refresh.promise;
+  const initial = x.c.duplicateOffer('a', false, true);
+  const whileSaving = x.c.duplicateOffer('a', false, true);
+  assert.equal(x.duplicateCalls.length, 1);
+  x.duplicateCalls[0].resolve({id: 'copy'});
+  await tick();
+  const whileRefreshing = x.c.duplicateOffer('a', false, true);
+  assert.equal(x.duplicateCalls.length, 1);
+  refresh.resolve();
+  await tick();
+  const whileOpening = x.c.duplicateOffer('a', false, true);
+  assert.equal(x.duplicateCalls.length, 1);
+  assert.equal(x.reads[0]?.id, 'copy');
+  await x.reply(0, offer('copy'));
+  await Promise.all([initial, whileSaving, whileRefreshing, whileOpening]);
+  assert.equal(x.opened.length, 1);
+  assert.equal(x.logs.filter(([, event]) => event === 'duplicated').length, 1);
+  assert.equal(x.c.state.data._hofOfferId, 'copy');
+});
+
+test('a deliberate copy after the previous editor opens can start a new draft', async () => {
+  const x = setup();
+  const initial = x.c.duplicateOffer('a', false, true);
+  x.duplicateCalls[0].resolve({id: 'copy'});
+  await tick();
+  await x.reply(0, offer('copy'));
+  await initial;
+  const next = x.c.duplicateOffer('a', false, true);
+  assert.equal(x.duplicateCalls.length, 2);
+  x.duplicateCalls[1].resolve({id: 'second-copy'});
+  await tick();
+  await x.reply(1, offer('second-copy'));
+  await next;
+  assert.equal(x.c.state.data._hofOfferId, 'second-copy');
+});
