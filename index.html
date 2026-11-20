@@ -9428,23 +9428,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     const accountEpoch = window.__hofAccountProfileEpoch || 0;
     const viewerIsCurrent = () => hofAuth.session?.access_token === accessToken &&
       (window.__hofAccountProfileEpoch || 0) === accountEpoch;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 60000);
     try {
-      const response = await fetch('/api/signwell-status', {
-        method: 'POST',
-        signal: controller.signal,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
-        body: JSON.stringify({ offerId })
-      });
-
-      const result = await response.json().catch(() => ({}));
-      if (!viewerIsCurrent()) return;
-      if (controller.signal.aborted) throw controller.signal.reason;
-      if (!response.ok || result.error) throw new Error(result.error || 'Could not refresh SignWell status.');
+      await requestOfferSigningStatus(offerId, accessToken, accountEpoch);
+      if (!viewerIsCurrent()) return false;
 
       if (!skipReload) await loadMyOffers();
       if (!viewerIsCurrent()) return;
@@ -9458,21 +9444,54 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     } catch (err) {
       console.error('SignWell status refresh failed:', err);
       if (!suppressAlert && viewerIsCurrent()) {
-        if (controller.signal.aborted) {
-          window.announceWorkspaceStatus?.('Checking signature status took too long. Try refreshing again.');
-        } else {
-          window.announceWorkspaceStatus?.('Could not refresh SignWell status: ' + (err?.message || err));
-        }
+        window.announceWorkspaceStatus?.(err?.message || 'Couldn’t check signing status. Try again.');
       }
       return false;
     } finally {
-      clearTimeout(timeout);
       if (buttonEl) {
         buttonEl.disabled = false;
         buttonEl.textContent = originalText || 'Refresh Status';
       }
     }
   }
+  const offerSigningStatusRequests = new Map();
+  function requestOfferSigningStatus(offerId, accessToken, accountEpoch) {
+    const pending = offerSigningStatusRequests.get(offerId);
+    if (pending?.accessToken === accessToken && pending.accountEpoch === accountEpoch) {
+      return pending.promise;
+    }
+    const request = { accessToken, accountEpoch };
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
+    request.promise = (async () => {
+      try {
+        const response = await fetch('/api/signwell-status', {
+          method: 'POST',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          },
+          body: JSON.stringify({ offerId })
+        });
+        const result = await response.json().catch(() => null);
+        if (controller.signal.aborted) throw controller.signal.reason;
+        if (!response.ok || result?.ok !== true || result.offerId !== offerId ||
+            typeof result.status !== 'string' || !result.status.trim()) {
+          throw new Error('Couldn’t confirm signing status. Try again.');
+        }
+      } catch (error) {
+        if (controller.signal.aborted) throw new Error('Checking signature status took too long. Try refreshing again.');
+        throw error;
+      }
+    })().finally(() => {
+      clearTimeout(timeout);
+      if (offerSigningStatusRequests.get(offerId) === request) offerSigningStatusRequests.delete(offerId);
+    });
+    offerSigningStatusRequests.set(offerId, request);
+    return request.promise;
+  }
+
   // Make the function explicit for later enhancement scripts.  Classic-script
   // function declarations are globally reachable today, but this avoids a
   // fragile dependency on that browser behavior for workspace batch refreshes.
@@ -21283,7 +21302,7 @@ function hofSpreadsheetCsvCell(value) {
     const priorityNeedsBuyerReminder = priority && bucketForOffer(priority) === 'signing';
     const focusCard = priority ? `<section class="offer-focus-card" aria-label="Priority offer follow-up">
       <div><div class="offer-focus-kicker">Today’s priority</div><strong>${esc(priorityProperty)}</strong><p>${esc(nextAction(priority))}. This is the oldest active item that needs attention.</p></div>
-      <div class="offer-focus-actions">${priorityNeedsBuyerReminder ? '<button class="offer-action-btn" type="button" onclick="hofSyncPrioritySigningStatus(this)">Sync SignWell now</button>' : ''}<button class="offer-action-btn" type="button" onclick="hofOpenPriorityOffer('${esc(priority.id)}')">Open priority offer</button>${priorityNeedsBuyerReminder ? `<button class="offer-action-btn" type="button" onclick="copyBuyerSigningReminder('${esc(priority.id)}')">Copy buyer reminder</button>` : ''}<button class="offer-action-btn" type="button" onclick="hofReviewAllOffersNeedingAttention()">Review all ${c.attention} needing attention</button></div>
+      <div class="offer-focus-actions">${priorityNeedsBuyerReminder ? `<button class="offer-action-btn" type="button" data-signing-offer-id="${esc(priority.id)}" onclick="hofSyncPrioritySigningStatus(this)">Check signing status</button>` : ''}<button class="offer-action-btn" type="button" onclick="hofOpenPriorityOffer('${esc(priority.id)}')">Open priority offer</button>${priorityNeedsBuyerReminder ? `<button class="offer-action-btn" type="button" onclick="copyBuyerSigningReminder('${esc(priority.id)}')">Copy buyer reminder</button>` : ''}<button class="offer-action-btn" type="button" onclick="hofReviewAllOffersNeedingAttention()">Review all ${c.attention} needing attention</button></div>
     </section>` : '';
     const volume = safe.reduce((sum,o) => sum + Number(o.offer_price || o.offer_data?.offerPrice || 0), 0);
     const tab = (key,label) => `<button type="button" class="offer-filter-tab ${state.filter===key?'active':''}" aria-pressed="${state.filter===key ? 'true' : 'false'}" onclick="hofSetOfferWorkspaceFilter('${key}')">${label} <span>${c[key] || 0}</span></button>`;
@@ -21425,21 +21444,37 @@ function hofSpreadsheetCsvCell(value) {
     root.viewOfferDetails?.(offerId);
   };
   root.hofSyncPrioritySigningStatus = async function(button){
-    if (button?.disabled) return;
-    const priority = priorityOffer(state.offers || []);
-    const originalLabel = button?.textContent || 'Sync SignWell now';
-    if (button) { button.disabled = true; button.textContent = 'Syncing SignWell…'; }
+    if (!button || button.disabled) return;
+    const offerId = button.dataset.signingOfferId;
+    const userId = root.hofAuth?.session?.user?.id;
+    if (!userId || !offerId || !state.offers.some(offer => offer.id === offerId)) return;
+    const epoch = root.__hofAccountProfileEpoch || 0;
+    const isCurrent = () => root.hofAuth?.session?.user?.id === userId &&
+      (root.__hofAccountProfileEpoch || 0) === epoch;
+    const originalLabel = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Checking signing status…';
     try {
-      await root.logOfferEvent?.(
-        priority?.id || null,
+      void root.logOfferEvent?.(
+        offerId,
         'priority_signing_sync_selected',
         'selected',
         'Agent selected a priority SignWell status sync.',
         { surface: 'offer_workspace' }
       );
-      await root.hofRefreshOfferWorkspace();
+      const confirmed = await root.refreshSignWellStatus(offerId, null, true, true);
+      if (!isCurrent()) return;
+      if (!confirmed) {
+        announceWorkspaceStatus('Couldn’t check this offer’s signing status. Try again.');
+        return;
+      }
+      const updated = await root.loadMyOffers();
+      if (!isCurrent()) return;
+      announceWorkspaceStatus(!Array.isArray(updated) || root.hofAuth.myOffersRefreshError
+        ? 'Signing status checked. The offer list couldn’t refresh. Use Retry offers to update it.'
+        : 'Signing status checked for this offer.');
     } finally {
-      if (button?.isConnected) { button.disabled = false; button.textContent = originalLabel; }
+      if (button.isConnected) { button.disabled = false; button.textContent = originalLabel; }
     }
   };
   root.loadOlderOffers = root.loadOlderOffers || window.loadOlderOffers;

@@ -6,7 +6,7 @@ const test = require('node:test');
 const vm = require('node:vm');
 
 const html = fs.readFileSync('index.html', 'utf8');
-const sync = html.slice(html.indexOf('  let signingSyncAccount;'), html.indexOf('  root.hofReuseTermsFromMostRecentOffer'));
+const sync = html.slice(html.indexOf('  root.hofSyncPrioritySigningStatus ='), html.indexOf('  root.hofReuseTermsFromMostRecentOffer'));
 const refresh = html.slice(html.indexOf('  async function refreshSignWellStatus('), html.indexOf('  window.refreshSignWellStatus = refreshSignWellStatus;'));
 
 const offer = (id, status = 'Sent', day = 1) => ({
@@ -27,6 +27,8 @@ function setup(offers = []) {
   const context = vm.createContext({
     root, window: root, document, console: { warn() {}, error() {} }, hofAuth,
     getOfferBestStatus: row => row.status, rerender() {},
+    state: { get offers() { return hofAuth.myOffers; } },
+    announceWorkspaceStatus: message => { status.textContent = message; },
     AbortController, setTimeout, clearTimeout
   });
   vm.runInContext(sync + '\n' + refresh + '\nthis.refreshSignWellStatus = refreshSignWellStatus;', context);
@@ -101,9 +103,40 @@ test('account changes suppress late results and reset the automatic cooldown', a
 
 test('the actual per-offer handler distinguishes a confirmed provider result from a failure', async () => {
   const { context, calls } = setup([offer('active')]);
-  context.fetch = async () => ({ ok: true, json: async () => ({ status: 'Sent' }) });
+  context.fetch = async () => ({ ok: true, json: async () => ({ ok: true, offerId: 'active', status: 'Sent' }) });
   assert.equal(await context.refreshSignWellStatus('active', null, true, true), true);
+  context.fetch = async () => ({ ok: true, json: async () => ({ ok: true, offerId: 'other', status: 'Sent' }) });
+  assert.equal(await context.refreshSignWellStatus('active', null, true, true), false);
   context.fetch = async () => ({ ok: false, json: async () => ({ error: 'fixture failure' }) });
   assert.equal(await context.refreshSignWellStatus('active', null, true, true), false);
   assert.deepEqual(calls, []);
+});
+
+test('the priority action checks only the offer shown on the button, beyond the bulk cap', async () => {
+  const { root, status, calls } = setup(Array.from({ length: 11 }, (_, index) => offer('offer-' + index)));
+  const button = { dataset: { signingOfferId: 'offer-10' }, isConnected: true, textContent: 'Check signing status' };
+  await root.hofSyncPrioritySigningStatus(button);
+  assert.deepEqual(calls, ['offer-10', 'list']);
+  assert.equal(status.textContent, 'Signing status checked for this offer.');
+  assert.equal(button.disabled, false);
+  assert.equal(button.textContent, 'Check signing status');
+});
+
+test('overlapping offer refresh callers share a request and a failed check can retry', async () => {
+  const { context } = setup();
+  let finish;
+  let count = 0;
+  context.fetch = () => {
+    count++;
+    return new Promise(resolve => { finish = resolve; });
+  };
+  const batch = context.refreshSignWellStatus('offer', null, true, true);
+  const priority = context.refreshSignWellStatus('offer', null, true, true);
+  assert.equal(count, 1);
+  finish({ ok: false, json: async () => null });
+  assert.deepEqual(await Promise.all([batch, priority]), [false, false]);
+  const retry = context.refreshSignWellStatus('offer', null, true, true);
+  assert.equal(count, 2);
+  finish({ ok: true, json: async () => ({ ok: true, offerId: 'offer', status: 'Sent' }) });
+  assert.equal(await retry, true);
 });

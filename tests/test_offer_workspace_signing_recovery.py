@@ -39,9 +39,9 @@ process.stdout.write(JSON.stringify(results));
         self.assertIn("onclick=\"copyBuyerSigningReminder('${esc(priority.id)}')\"", HTML)
 
     def test_priority_signing_follow_up_can_refresh_status_before_an_agent_uses_a_reminder(self):
-        self.assertIn("onclick=\"hofSyncPrioritySigningStatus(this)\">Sync SignWell now</button>", HTML)
+        self.assertIn("data-signing-offer-id=\"${esc(priority.id)}\" onclick=\"hofSyncPrioritySigningStatus(this)\">Check signing status</button>", HTML)
         self.assertIn("root.hofSyncPrioritySigningStatus = async function(button)", HTML)
-        self.assertIn("button.textContent = 'Syncing SignWell…'", HTML)
+        self.assertIn("button.textContent = 'Checking signing status…'", HTML)
         self.assertIn("'priority_signing_sync_selected'", HTML)
 
     def test_reminder_requires_agent_review_before_any_external_communication(self):
