@@ -273,7 +273,11 @@ class ListingWorkspaceFoundationTests(unittest.TestCase):
         self.assertIn("Save status", INDEX)
         self.assertIn("deleteListingWorkspaceOffer", INDEX)
         self.assertIn("Remove", INDEX)
-        self.assertIn(".eq('agent_user_id', user.id)", INDEX)
+        api = (ROOT / "api" / "admin-dashboard.py").read_text()
+        start = api.index("async def _agent_listing_workspace_offer_comparisons")
+        comparison = api[start:api.index("async def _agent_seller_leads", start)]
+        self.assertIn("await _owned_listing_workspace(user, workspace_id)", comparison)
+        self.assertIn("&agent_user_id=eq.{owner}", comparison)
         self.assertIn("updateListingWorkspaceStatus", INDEX)
         self.assertIn("listingWorkspaceStatusOptions", INDEX)
         self.assertIn("It is not a recommendation or contract decision.", INDEX)
