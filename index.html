@@ -4867,6 +4867,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     if (sellerPanel) sellerPanel.textContent = '';
     delete window.__hofListingWorkspaceSetupDraft;
     window.hofClearSellerLeadView?.();
+    window.hofClearSellerDisclosureDraftView?.();
     if (window.hofPlatform) {
       window.hofPlatform.brokerage = null;
       window.hofPlatform.brokerageMembership = null;
@@ -26561,6 +26562,7 @@ function hofSpreadsheetCsvCell(value) {
 <style id="hof-seller-disclosure-draft-ui-v1">
 .hof-seller-disclosure-card > p,.hof-seller-disclosure-workspace > summary small{color:var(--gray-light)}
 .hof-seller-disclosure-workspace > summary{color:var(--white)}
+.hof-seller-disclosure-card h5{color:var(--white);margin-top:1rem}
 .hof-seller-disclosure-card .hof-seller-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .hof-seller-disclosure-card .hof-seller-grid>label{min-width:0}
 .hof-seller-disclosure-card .hof-seller-grid input,.hof-seller-disclosure-card .hof-seller-grid select{width:100%;min-width:0;max-width:100%;box-sizing:border-box}
@@ -26578,7 +26580,7 @@ function hofSpreadsheetCsvCell(value) {
 .hof-seller-response-row{display:grid;grid-template-columns:1fr 95px;align-items:center;gap:8px}
 .hof-seller-explanation{display:block;margin-top:12px;min-width:0}
 .hof-seller-explanation textarea,.hof-seller-explanation input,.hof-seller-explanation select{display:block;width:100%;min-width:0;max-width:100%;box-sizing:border-box;margin-top:6px;padding:10px;border-radius:8px;resize:vertical;font:inherit}
-.hof-seller-disclosure-card .hof-seller-conditional[hidden],.hof-seller-saved-detail[hidden]{display:none!important}
+.hof-seller-disclosure-card .hof-seller-conditional[hidden],.hof-seller-saved-detail[hidden],.hof-seller-disclosure-card [data-seller-draft-row][hidden]{display:none!important}
 .hof-seller-saved-detail{display:block;margin-top:5px;color:var(--gold-light);font-size:.8rem;line-height:1.4}
 .hof-seller-disclosure-card .hof-seller-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 @media(max-width:700px){.hof-seller-disclosure-card .hof-seller-grid,.hof-seller-response-grid{grid-template-columns:1fr}}
@@ -26599,18 +26601,18 @@ function hofSpreadsheetCsvCell(value) {
   async function approvedSources() {
     return root.hofLoadApprovedFormCatalog();
   }
-  async function loadDrafts() {
-    const token = root.hofAuth?.session?.access_token;
-    if (!token) return [];
+  async function loadDrafts(token, signal) {
     const response = await fetch('/api/admin-dashboard?scope=seller_disclosure_drafts', {
-      headers: {Authorization: 'Bearer ' + token}
+      headers: {Authorization: 'Bearer ' + token},
+      signal
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.error || 'Could not load saved seller disclosures.');
     // The permission-checked API joins the private review-link state and
     // returns sellerReviewProgress; direct browser reads cannot see that
     // service-role-only table and made every saved draft look unrequested.
-    return payload.drafts || [];
+    if (!Array.isArray(payload.drafts)) throw new Error('Invalid saved disclosures response.');
+    return payload.drafts;
   }
   function syncWaterRightsVisibility() {
     const source = document.getElementById('hofWaterSource');
@@ -26816,12 +26818,13 @@ function hofSpreadsheetCsvCell(value) {
     const rows = Array.from(document.querySelectorAll('[data-seller-draft-row]'));
     let visible = 0;
     rows.forEach(row => {
-      const matches = !query || String(row.dataset.search || '').includes(query);
+      const matches = !query || String(row.dataset.search || '').toLowerCase().includes(query);
       row.hidden = !matches;
       if (matches) visible += 1;
     });
     const summary = document.getElementById('hofSellerDraftSummary');
-    if (summary) summary.textContent = query ? `${visible} matching disclosure${visible === 1 ? '' : 's'}.` : `${visible} saved disclosure${visible === 1 ? '' : 's'} shown.`;
+    if (!summary || !document.getElementById('hofSellerDraftList')?.childElementCount) return;
+    summary.textContent = query ? `${visible} matching disclosure${visible === 1 ? '' : 's'}.` : `${visible} saved disclosure${visible === 1 ? '' : 's'} shown.`;
   };
   const sellerReviewStatus = draft => {
     const progress = draft?.sellerReviewProgress || {};
@@ -26942,11 +26945,33 @@ function hofSpreadsheetCsvCell(value) {
       if (button) { button.disabled = false; button.textContent = originalLabel; }
     }
   }
+  let activeDraftLoad;
+  root.hofClearSellerDisclosureDraftView = () => {
+    activeDraftLoad?.abort();
+    activeDraftLoad = null;
+    draftCache.clear();
+    document.getElementById('hofSellerDisclosureCard')?.remove();
+  };
+
   async function refreshDrafts() {
     const list = document.getElementById('hofSellerDraftList');
-    if (!list) return;
+    const retry = document.getElementById('hofRetrySellerDrafts');
+    const status = document.getElementById('hofSellerDraftLoadStatus');
+    const search = document.getElementById('hofSellerDraftFilter');
+    const session = root.hofAuth?.session;
+    if (!list || !session?.access_token || !session.user?.id) return;
+    const epoch = root.__hofAccountProfileEpoch;
+    activeDraftLoad?.abort();
+    const controller = new AbortController();
+    activeDraftLoad = controller;
+    const isCurrent = () => activeDraftLoad === controller && list.isConnected &&
+      root.hofAuth?.session?.user?.id === session.user.id && root.__hofAccountProfileEpoch === epoch;
+    const timeout = setTimeout(() => controller.abort(), 12000);
+    retry.setAttribute('aria-disabled', 'true');
+    status.textContent = 'Loading saved seller disclosures…';
     try {
-      const drafts = await loadDrafts();
+      const drafts = await loadDrafts(session.access_token, controller.signal);
+      if (!isCurrent()) return;
       draftCache.clear(); drafts.forEach(d => draftCache.set(String(d.id), d));
       list.innerHTML = drafts.length ? drafts.map(d => {
         const progress = d.sellerReviewProgress || {};
@@ -26957,8 +26982,10 @@ function hofSpreadsheetCsvCell(value) {
         const downloadSigned = d.signwell_document_id && d.status === 'signed' ? '<button type="button" class="btn-secondary hof-seller-download-signed" data-id="' + escape(d.id) + '">Download signed PDF</button>' : '';
         return '<li data-seller-draft-row data-search="' + escape([d.property_address, ...(d.seller_names || []), d.status, d.disclosure_source_revision, d.water_source_revision, reviewStatus].filter(Boolean).join(' ')) + '"><span><strong>' + escape(d.property_address) + '</strong><br><small>' + escape((d.seller_names || []).join(', ')) + ' · ' + escape(d.disclosure_source_revision || '') + (d.water_source_revision ? ' + TREC-61-0' : '') + ' · ' + escape(reviewStatus) + '</small></span><button type="button" class="btn-secondary hof-seller-load" data-id="' + escape(d.id) + '">Open</button>' + followUp + '<button type="button" class="btn-secondary hof-seller-preview" data-id="' + escape(d.id) + '">Preview PDF</button>' + refreshSigning + downloadSigned + sendForSignature + '</li>';
       }).join('') : '<li>No saved seller disclosures yet.</li>';
-      const summary = document.getElementById('hofSellerDraftSummary');
-      if (summary) summary.textContent = `${drafts.length} saved disclosure${drafts.length === 1 ? '' : 's'} shown.`;
+      root.filterSellerDisclosureDrafts(search.value);
+      if (document.activeElement === retry) search.focus();
+      retry.hidden = true;
+      status.textContent = '';
       list.querySelectorAll('.hof-seller-preview').forEach(button => button.addEventListener('click', () => previewSellerDisclosure(button.dataset.id, button)));
       list.querySelectorAll('.hof-seller-load').forEach(button => button.addEventListener('click', () => root.loadSellerDisclosureDraft(button.dataset.id)));
       list.querySelectorAll('.hof-seller-send-signing').forEach(button => button.addEventListener('click', () => openSellerDisclosureSignature(draftCache.get(String(button.dataset.id)))));
@@ -26973,7 +27000,16 @@ function hofSpreadsheetCsvCell(value) {
         root.loadSellerDisclosureDraft(button.dataset.id);
         setTimeout(() => document.getElementById('hofSendSellerReview')?.focus(), 0);
       }));
-    } catch (error) { console.error(error); list.innerHTML = '<li>Could not load saved seller disclosures.</li>'; }
+    } catch (error) {
+      if (!isCurrent()) return;
+      console.warn('Saved seller disclosure load failed:', error);
+      status.textContent = 'We couldn’t load saved seller disclosures. Try again.';
+      retry.hidden = false;
+    } finally {
+      clearTimeout(timeout);
+      if (isCurrent()) retry.removeAttribute('aria-disabled');
+      if (activeDraftLoad === controller) activeDraftLoad = null;
+    }
   }
   async function renderCard() {
     const panel = document.getElementById('accountPanelDashboard');
@@ -26983,8 +27019,12 @@ function hofSpreadsheetCsvCell(value) {
       '<details class="hof-seller-step" open><summary><span class="hof-seller-step-number">1</span><span class="hof-seller-step-copy"><strong>Property and people</strong><small>Tell us who is involved and select the disclosure form.</small></span></summary><div class="hof-seller-grid"><label>Link to a listing (optional)<select id="hofSellerWorkspace"><option value="">Do not link this disclosure to a listing</option></select></label><label>Property address<input id="hofSellerAddress" maxlength="400" autocomplete="street-address" inputmode="text" placeholder="Street address, city, state, ZIP"></label><label>Disclosure form<select id="hofSellerSource"></select></label><label>Seller 1 name<input id="hofSeller1" maxlength="180"></label><label>Seller 1 review email<input id="hofSellerEmail" type="email" maxlength="320" autocomplete="email" placeholder="seller1@example.com"></label><label>Seller 2 name (optional)<input id="hofSeller2" maxlength="180"></label><label>Seller 2 review email (optional)<input id="hofSeller2Email" type="email" maxlength="320" autocomplete="email" placeholder="seller2@example.com"></label><label>Buyer 1 name (optional)<input id="hofBuyer1" maxlength="180"></label><label>Buyer 2 name (optional)<input id="hofBuyer2" maxlength="180"></label></div></details>' +
       '<details class="hof-seller-step"><summary><span class="hof-seller-step-number">2</span><span class="hof-seller-step-copy"><strong>Property details</strong><small>Work through systems, known conditions, repairs, and flood history.</small></span></summary>' + renderResponses() + '</details>' +
       '<details class="hof-seller-step"><summary><span class="hof-seller-step-number">3</span><span class="hof-seller-step-copy"><strong>Water rights, if they apply</strong><small>Add this only when the property needs a water-rights disclosure.</small></span></summary><label>Water-rights disclosure (optional)<select id="hofWaterSource"><option value="">Do not include</option></select></label><div id="hofSellerWaterResponses" hidden>' + renderWaterResponses() + '</div></details>' +
-      '<div class="hof-seller-actions"><button class="btn-primary" type="button" id="hofSaveSellerDraft">Save and preview</button><button class="btn-secondary" type="button" id="hofSendSellerReview" disabled>Send seller review email</button><span id="hofSellerDraftStatus" class="hof-iabs-status" role="status" aria-live="polite" aria-atomic="true"></span></div><h5>Saved seller disclosures</h5><div class="hof-seller-actions"><input id="hofSellerDraftFilter" type="search" placeholder="Search address or seller" aria-label="Search saved seller disclosures" oninput="filterSellerDisclosureDrafts(this.value)"><span id="hofSellerDraftSummary" class="hof-iabs-status"></span></div><ul id="hofSellerDraftList" class="hof-private-form-drafts-list"><li>Loading…</li></ul></div></details>';
+      '<div class="hof-seller-actions"><button class="btn-primary" type="button" id="hofSaveSellerDraft">Save and preview</button><button class="btn-secondary" type="button" id="hofSendSellerReview" disabled>Send seller review email</button><span id="hofSellerDraftStatus" class="hof-iabs-status" role="status" aria-live="polite" aria-atomic="true"></span></div><h5>Saved seller disclosures</h5><div class="hof-seller-actions"><input id="hofSellerDraftFilter" type="search" placeholder="Search address or seller" aria-label="Search saved seller disclosures" oninput="filterSellerDisclosureDrafts(this.value)"><span id="hofSellerDraftSummary" class="hof-iabs-status"></span></div><p id="hofSellerDraftLoadStatus" class="hof-iabs-status" role="status"></p><button type="button" class="btn-secondary" id="hofRetrySellerDrafts" hidden>Retry saved disclosures</button><ul id="hofSellerDraftList" class="hof-private-form-drafts-list"></ul></div></details>';
     panel.appendChild(card);
+    const retry = card.querySelector('#hofRetrySellerDrafts');
+    retry.addEventListener('click', () => {
+      if (retry.getAttribute('aria-disabled') !== 'true') void refreshDrafts();
+    });
     card.addEventListener('change', () => syncDisclosureDetails(card));
     card.addEventListener('input', () => syncDisclosureDetails(card));
     syncDisclosureDetails(card);
@@ -26992,6 +27032,7 @@ function hofSpreadsheetCsvCell(value) {
     const epoch = root.__hofAccountProfileEpoch;
     const isCurrent = () => card.isConnected && userId === root.hofAuth?.session?.user?.id &&
       epoch === root.__hofAccountProfileEpoch;
+    void refreshDrafts();
     try {
       const sources = await approvedSources();
       if (!isCurrent()) return;
@@ -27079,7 +27120,6 @@ function hofSpreadsheetCsvCell(value) {
         button.disabled = false;
       }
     });
-    if (active()) refreshDrafts();
   }
   const previous = root.renderAccountDashboard;
   root.renderAccountDashboard = function renderAccountDashboardWithSellerDisclosureDrafts() { if (typeof previous === 'function') previous.apply(this, arguments); renderCard(); };
