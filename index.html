@@ -26904,37 +26904,74 @@ function hofSpreadsheetCsvCell(value) {
       } catch (error) { console.error('Seller disclosure signature request failed:', error); message.textContent = window.hofCustomerActionError?.(error, 'We couldn’t send the seller disclosure for signature. Your document is still saved—please try again.') || 'We couldn’t send the seller disclosure for signature. Your document is still saved—please try again.'; button.disabled = false; }
     });
   }
-  async function refreshSellerDisclosureSigning(draft, downloadCompleted = false) {
-    const token = root.hofAuth?.session?.access_token;
+  async function readSellerDisclosurePdf(response, signal) {
+    const mimeType = response.headers.get('content-type')?.split(';')[0].trim().toLowerCase();
+    if (mimeType !== 'application/pdf') throw new Error('Seller disclosure response is not a PDF.');
+    const pdf = await response.blob();
+    if (await pdf.slice(0, 5).text() !== '%PDF-') throw new Error('Seller disclosure response is not a PDF.');
+    signal.throwIfAborted();
+    return pdf;
+  }
+
+  const activeSellerSigningActions = new Map();
+  async function refreshSellerDisclosureSigning(draft, button, downloadCompleted = false) {
+    const session = root.hofAuth?.session;
+    const epoch = root.__hofAccountProfileEpoch;
     const status = document.getElementById('hofSellerDraftStatus');
-    if (!token || !draft?.id) { if (status) status.textContent = 'Sign in and choose a seller disclosure first.'; return; }
+    if (!session?.access_token || !session.user?.id || !draft?.id || !status) return;
+    const key = String(draft.id);
+    if (activeSellerSigningActions.has(key)) return;
+    const controller = new AbortController();
+    activeSellerSigningActions.set(key, controller);
+    const isCurrent = () => activeSellerSigningActions.get(key) === controller && status.isConnected &&
+      root.hofAuth?.session?.user?.id === session.user.id && root.__hofAccountProfileEpoch === epoch;
+    const timeout = setTimeout(() => controller.abort(), 30000);
+    const label = button.textContent;
+    button.disabled = true;
+    button.textContent = downloadCompleted ? 'Downloading…' : 'Checking…';
+    status.textContent = downloadCompleted ? 'Preparing your signed seller disclosure…' : 'Checking signing status…';
     try {
       const response = await fetch('/api/signwell-status', {
         method: 'POST',
-        headers: {'Content-Type':'application/json', Authorization:'Bearer ' + token},
-        body: JSON.stringify({sellerDisclosureId:draft.id, action:downloadCompleted ? 'download_completed_pdf' : 'refresh_status'})
+        headers: {'Content-Type':'application/json', Authorization:'Bearer ' + session.access_token},
+        body: JSON.stringify({sellerDisclosureId:draft.id, action:downloadCompleted ? 'download_completed_pdf' : 'refresh_status'}),
+        signal: controller.signal
       });
-      if (downloadCompleted) {
-        if (!response.ok) {
-          const result = await response.json().catch(() => ({}));
-          throw new Error(result.error || 'The signed seller disclosure is not available yet.');
-        }
-        const url = URL.createObjectURL(await response.blob());
+      if (!isCurrent()) return;
+      if (downloadCompleted && response.ok) {
+        const pdf = await readSellerDisclosurePdf(response, controller.signal);
+        if (!isCurrent()) return;
+        const url = URL.createObjectURL(pdf);
         const link = document.createElement('a');
         link.href = url;
         link.download = 'HomeOfferFlow-signed-seller-disclosure.pdf';
         document.body.appendChild(link);
         link.click();
         link.remove();
-        URL.revokeObjectURL(url);
-        if (status) status.textContent = 'Signed seller disclosure downloaded.';
+        window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+        status.textContent = 'Signed seller disclosure download started.';
         return;
       }
       const result = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(result.error || 'Could not refresh signing status.');
-      if (status) status.textContent = result.status === 'Buyer Signatures Complete' ? 'All signatures are complete. Your signed seller disclosure is ready to download.' : 'Signing status refreshed.';
-      await refreshDrafts();
-    } catch (error) { console.error('Seller disclosure signing status refresh failed:', error); if (status) status.textContent = window.hofCustomerActionError?.(error, 'We couldn’t refresh the signing status. Please try again.') || 'We couldn’t refresh the signing status. Please try again.'; }
+      if (!isCurrent()) return;
+      controller.signal.throwIfAborted();
+      if (!response.ok) throw new Error(result.error || 'Seller disclosure signing request failed.');
+      if (typeof result.status !== 'string' || !result.status.trim()) throw new Error('Signing status could not be confirmed.');
+      status.textContent = result.status === 'Buyer Signatures Complete' ? 'All signatures are complete. Your signed seller disclosure is ready to download.' : 'Signing status refreshed.';
+      void refreshDrafts();
+    } catch (error) {
+      if (!isCurrent()) return;
+      console.warn('Seller disclosure signing action failed:', error);
+      const fallback = downloadCompleted
+        ? 'We couldn’t download the signed seller disclosure. Please try again.'
+        : 'We couldn’t refresh the signing status. Please try again.';
+      status.textContent = root.hofCustomerActionError?.(error, fallback) || fallback;
+    } finally {
+      clearTimeout(timeout);
+      if (activeSellerSigningActions.get(key) === controller) activeSellerSigningActions.delete(key);
+      button.disabled = false;
+      button.textContent = label;
+    }
   }
   let activeSellerDisclosurePreview;
   async function previewSellerDisclosure(draftId, button, { saved = false } = {}) {
@@ -26961,11 +26998,8 @@ function hofSpreadsheetCsvCell(value) {
         headers: {Authorization: 'Bearer ' + session.access_token},
         signal: controller.signal
       });
-      const mimeType = response.headers.get('content-type')?.split(';')[0].trim().toLowerCase();
-      if (!response.ok || mimeType !== 'application/pdf') throw new Error('Preview response is not a PDF.');
-      const blob = await response.blob();
-      if (await blob.slice(0, 5).text() !== '%PDF-') throw new Error('Preview response is not a PDF.');
-      controller.signal.throwIfAborted();
+      if (!response.ok) throw new Error('Seller disclosure preview is unavailable.');
+      const blob = await readSellerDisclosurePdf(response, controller.signal);
       if (!isCurrent()) return false;
       if (!root.hofShowPdfPreview) throw new Error('Preview viewer is unavailable.');
       root.hofShowPdfPreview(blob, 'Seller disclosure preview', button === retry ? card.querySelector('#hofSaveSellerDraft') : button);
@@ -26991,6 +27025,8 @@ function hofSpreadsheetCsvCell(value) {
     activeDraftLoad = null;
     activeSellerDisclosurePreview?.abort();
     activeSellerDisclosurePreview = null;
+    activeSellerSigningActions.forEach(controller => controller.abort());
+    activeSellerSigningActions.clear();
     draftCache.clear();
     document.getElementById('hofSellerDisclosureCard')?.remove();
   };
@@ -27031,8 +27067,8 @@ function hofSpreadsheetCsvCell(value) {
       list.querySelectorAll('.hof-seller-preview').forEach(button => button.addEventListener('click', () => previewSellerDisclosure(button.dataset.id, button)));
       list.querySelectorAll('.hof-seller-load').forEach(button => button.addEventListener('click', () => root.loadSellerDisclosureDraft(button.dataset.id)));
       list.querySelectorAll('.hof-seller-send-signing').forEach(button => button.addEventListener('click', () => openSellerDisclosureSignature(draftCache.get(String(button.dataset.id)))));
-      list.querySelectorAll('.hof-seller-refresh-signing').forEach(button => button.addEventListener('click', () => refreshSellerDisclosureSigning(draftCache.get(String(button.dataset.id)))));
-      list.querySelectorAll('.hof-seller-download-signed').forEach(button => button.addEventListener('click', () => refreshSellerDisclosureSigning(draftCache.get(String(button.dataset.id)), true)));
+      list.querySelectorAll('.hof-seller-refresh-signing').forEach(button => button.addEventListener('click', () => refreshSellerDisclosureSigning(draftCache.get(String(button.dataset.id)), button)));
+      list.querySelectorAll('.hof-seller-download-signed').forEach(button => button.addEventListener('click', () => refreshSellerDisclosureSigning(draftCache.get(String(button.dataset.id)), button, true)));
       list.querySelectorAll('.hof-seller-followup').forEach(button => button.addEventListener('click', () => {
         const draft = draftCache.get(String(button.dataset.id));
         const requested = Number(draft?.sellerReviewProgress?.requested || 0);
