@@ -17,8 +17,15 @@ const notice = {hidden: true};
 const document = {getElementById: id => ({myOffersList:list, myOffersRefreshNotice:notice})[id]};
 const hofAuth = {session:{user:{id:'first'},access_token:'token-first'}, myOffers:[{id:'current'}], myOffersNextOffset:25};
 const pending = [];
+const retryButton = {
+  textContent: 'Retry offers',
+  attrs: new Map(),
+  getAttribute(name) { return this.attrs.get(name); },
+  setAttribute(name, value) { this.attrs.set(name, value); },
+  removeAttribute(name) { this.attrs.delete(name); }
+};
 const renderMyOffers = offers => offers.map(offer=>offer.id).join(',');
-const window = {hofAuth};
+const window = {hofAuth, refreshSignWellStatus() { assert.fail('Offer retry must not call SignWell'); }};
 const root = window;
 const fetch=(url,{headers,signal})=>{
   const params = new URLSearchParams(url.split('?')[1]);
@@ -48,9 +55,14 @@ const clearTimeout = callback => { if (expire===callback) expire=null; };
   assert.equal(notice.hidden,false);
 
   const stale = loadMyOffers();
-  const retry = loadMyOffers();
+  const retry = window.hofRetryOfferHistory(retryButton);
+  assert.equal(retryButton.getAttribute('aria-disabled'), 'true');
+  await window.hofRetryOfferHistory(retryButton);
+  assert.equal(pending.length, 3);
   pending[2]({data:[{id:'updated'}]});
   await retry;
+  assert.equal(retryButton.getAttribute('aria-disabled'), undefined);
+  assert.equal(retryButton.textContent, 'Retry offers');
   pending[1]({error:new Error('older failure')});
   await stale;
   assert.equal(list.innerHTML,'updated');

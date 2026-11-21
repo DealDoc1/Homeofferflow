@@ -12,7 +12,7 @@ class OfferWorkspaceRetryTests(unittest.TestCase):
         end = HTML.index("function formatOfferDate", start)
         loader = HTML[start:end]
         self.assertIn("Could not load offers yet.", loader)
-        self.assertIn('onclick="loadMyOffers()"', loader)
+        self.assertIn('onclick="hofRetryOfferHistory(this)"', loader)
         self.assertIn("Retry offers", loader)
 
     def test_workspace_loads_older_offer_history_without_replacing_recent_records(self):
