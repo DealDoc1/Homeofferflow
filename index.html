@@ -3382,8 +3382,11 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       <div class="account-card">
         <h4>My Offers</h4>
         <p id="myOffersSigningSyncStatus" class="offer-workspace-note" role="status" aria-atomic="true"></p>
-        <p id="myOffersRefreshNotice" class="offer-workspace-note" role="status" hidden>Couldn’t refresh offers. You’re viewing the last loaded results. Use Sync signing status to try again.</p>
-        <div id="myOffersList" class="offer-empty">No saved offers yet. Create your first offer and future work will appear here.</div>
+        <div id="myOffersRefreshNotice" hidden>
+          <p class="offer-workspace-note" role="status">Couldn’t refresh offers. You’re viewing the last loaded results.</p>
+          <button type="button" class="btn-secondary" onclick="hofRetryOfferHistory(this)">Retry offers</button>
+        </div>
+        <div id="myOffersList" class="offer-empty" tabindex="-1">No saved offers yet. Create your first offer and future work will appear here.</div>
         <div class="account-actions-row">
           <button class="btn-primary" type="button" onclick="startAccountTransaction()">Choose Transaction</button>
         </div>
@@ -9131,7 +9134,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       hofAuth.myOffersLoadMoreError = false;
       hofAuth.myOffersNextOffset = 0;
       list.className = 'offer-empty';
-      list.innerHTML = 'Could not load offers yet. <button type="button" class="btn-secondary" style="margin-top:.65rem" onclick="loadMyOffers()">Retry offers</button>';
+      list.innerHTML = 'Could not load offers yet. <button id="retryInitialOfferHistory" type="button" class="btn-secondary" style="margin-top:.65rem" onclick="hofRetryOfferHistory(this)">Retry offers</button>';
       console.warn('Offers load failed:', err);
       try { renderAgentActivationCard(); } catch (e) {}
       return [];
@@ -9139,6 +9142,32 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       if (activeOfferHistoryRequest === request) activeOfferHistoryRequest = null;
     }
   }
+
+  window.hofRetryOfferHistory = async function hofRetryOfferHistory(button) {
+    if (button.getAttribute('aria-disabled') === 'true' || !hofAuth.session?.access_token) return;
+    const userId = hofAuth.session.user?.id;
+    const epoch = window.__hofAccountProfileEpoch || 0;
+    const hadFocus = document.activeElement === button;
+    const label = button.textContent;
+    button.setAttribute('aria-disabled', 'true');
+    button.textContent = 'Loading offers…';
+    try {
+      const offers = await loadMyOffers();
+      if (!Array.isArray(offers) || !hadFocus || hofAuth.session?.user?.id !== userId ||
+          (window.__hofAccountProfileEpoch || 0) !== epoch) return;
+      if (document.activeElement !== button && document.activeElement !== document.body) return;
+      const list = document.getElementById('myOffersList');
+      if (hofAuth.myOffersRefreshError) {
+        document.getElementById('retryInitialOfferHistory')?.focus();
+      } else {
+        const target = list.querySelector('.offer-workspace-result-summary') || list;
+        target.focus();
+      }
+    } finally {
+      button.removeAttribute('aria-disabled');
+      button.textContent = label;
+    }
+  };
 
   window.loadOlderOffers = async function loadOlderOffers() {
     const button = document.getElementById('loadOlderOffersButton');
@@ -21004,6 +21033,8 @@ function routeAfterMagicLinkIfNeeded(returningFromSignIn = false) {
   .offer-workspace-tags span { display:inline-flex; border-radius:999px; padding:.24rem .55rem; background:rgba(255,255,255,.055); border:1px solid rgba(255,255,255,.11); color:var(--gray-light); font-size:.67rem; font-weight:900; }
   .offer-workspace-tags span.good { border-color:rgba(74,140,111,.34); color:var(--sage-light); background:rgba(74,140,111,.08); }
   .offer-workspace-note { margin-top:.64rem; color:var(--gray); font-size:.72rem; line-height:1.4; }
+  #myOffersRefreshNotice { margin-bottom:.75rem; }
+  #myOffersRefreshNotice button { margin-top:.35rem; }
   #myOffersSigningSyncStatus:not(:empty) { margin:.5rem 0 .85rem; color:var(--white); font-size:.875rem; }
   .offer-workspace-actions { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:.45rem; padding:.75rem .92rem .92rem; border-top:1px solid rgba(255,255,255,.07); background:rgba(0,0,0,.12); }
   .offer-workspace-actions .offer-action-btn { width:100%; justify-content:center; min-height:38px; }
