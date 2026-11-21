@@ -26335,12 +26335,15 @@ function hofSpreadsheetCsvCell(value) {
   };
 
   let pdfPreviewOpener;
+  let previewBackground = [];
   root.hofClosePdfPreview = function hofClosePdfPreview(restoreFocus = true) {
     const modal = document.getElementById('hofPdfPreviewModal');
     if (!modal) return;
     const blobUrl = modal.dataset.blobUrl;
     modal.querySelector('iframe')?.setAttribute('src', 'about:blank');
     modal.remove();
+    previewBackground.forEach(element => { element.inert = false; });
+    previewBackground = [];
     if (blobUrl) URL.revokeObjectURL(blobUrl);
     const opener = pdfPreviewOpener;
     pdfPreviewOpener = undefined;
@@ -26388,6 +26391,7 @@ function hofSpreadsheetCsvCell(value) {
     frame.className = 'hof-pdf-preview-frame';
     frame.title = `${formCode || 'Form'} PDF preview`;
     frame.src = blobUrl;
+    frame.tabIndex = -1;
     header.append(title, actions);
     dialog.appendChild(header);
     if (navigator.pdfViewerEnabled === false) {
@@ -26400,12 +26404,21 @@ function hofSpreadsheetCsvCell(value) {
     modal.appendChild(dialog);
     modal.addEventListener('click', event => { if (event.target === modal) root.hofClosePdfPreview(); });
     modal.addEventListener('keydown', event => {
-      if (event.key !== 'Escape') return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        root.hofClosePdfPreview();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const boundary = event.shiftKey ? open : close;
+      if (document.activeElement !== boundary) return;
       event.preventDefault();
-      event.stopPropagation();
-      root.hofClosePdfPreview();
+      (event.shiftKey ? close : open).focus();
     });
+    previewBackground = Array.from(document.body.children).filter(element => !element.inert);
     document.body.appendChild(modal);
+    previewBackground.forEach(element => { element.inert = true; });
     close.focus();
   };
 

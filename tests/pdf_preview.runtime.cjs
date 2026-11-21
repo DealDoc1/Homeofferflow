@@ -12,13 +12,14 @@ const source = html.slice(start, end);
 
 function previewContext(pdfViewerEnabled) {
   let body;
+  const document = {activeElement: null};
   class Element {
     constructor(tag) { this.tag = tag; this.children = []; this.dataset = {}; this.listeners = {}; }
     append(...children) { children.forEach(child => this.appendChild(child)); }
     appendChild(child) { child.parent = this; this.children.push(child); }
     setAttribute(key, value) { this[key] = value; }
     addEventListener(event, handler) { this.listeners[event] = handler; }
-    focus() { this.focused = true; }
+    focus() { this.focused = true; document.activeElement = this; }
     remove() { this.parent.children = this.parent.children.filter(child => child !== this); }
     querySelector(tag) { return this.children.find(child => child.tag === tag) || this.children.map(child => child.querySelector(tag)).find(Boolean); }
   }
@@ -27,7 +28,8 @@ function previewContext(pdfViewerEnabled) {
   let sequence = 0;
   const context = {
     root: {}, navigator: { pdfViewerEnabled },
-    document: { body, createElement: tag => new Element(tag), getElementById: id => body.children.find(child => child.id === id) },
+    document: Object.assign(document, {body, createElement: tag => new Element(tag),
+      getElementById: id => body.children.find(child => child.id === id)}),
     URL: { createObjectURL: () => `blob:qa-${++sequence}`, revokeObjectURL: url => revoked.push(url) },
   };
   vm.runInNewContext(source, context);
@@ -81,6 +83,31 @@ test('Escape returns focus to the opener and account cleanup leaves focus alone'
   context.root.hofShowPdfPreview({}, 'TXR-1508', opener);
   context.root.hofClosePdfPreview(false);
   assert.equal(focusCount,1);
+});
+
+test('Tab stays in the viewer and closing restores only the background it changed', () => {
+  const {document, root} = previewContext(true);
+  const workspace = document.createElement('main');
+  const inactive = document.createElement('aside');
+  workspace.inert = false;
+  inactive.inert = true;
+  document.body.append(workspace, inactive);
+  root.hofShowPdfPreview({}, 'TXR-1508');
+  const modal = document.getElementById('hofPdfPreviewModal');
+  const [open, , close] = modal.querySelector('h4').parent.children[1].children;
+  assert.equal(workspace.inert, true);
+  assert.equal(inactive.inert, true);
+  assert.equal(modal.querySelector('iframe').tabIndex, -1);
+  assert.equal(document.activeElement, close);
+  let wraps = 0;
+  modal.listeners.keydown({key: 'Tab', preventDefault() { wraps++; }});
+  assert.equal(document.activeElement, open);
+  modal.listeners.keydown({key: 'Tab', shiftKey: true, preventDefault() { wraps++; }});
+  assert.equal(document.activeElement, close);
+  assert.equal(wraps, 2);
+  root.hofClosePdfPreview(false);
+  assert.equal(workspace.inert, false);
+  assert.equal(inactive.inert, true);
 });
 
 const actorStart = html.indexOf('  const captureViewer =');
