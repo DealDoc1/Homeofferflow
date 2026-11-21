@@ -4829,6 +4829,7 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     window.hofUnderContract?.dismiss?.();
     window.hofClearNativeOfferDuplicatePrompt?.();
     window.hofClearNativeDocumentHandoffStatus?.();
+    window.hofCancelPrivateDraftPreview?.();
     document.getElementById('privateFormDraftsCard')?.remove();
     window.__hofAccountProfileEpoch = (window.__hofAccountProfileEpoch || 0) + 1;
     window.__hofListingWorkspaceCreateAttempts?.clear();
@@ -25817,6 +25818,8 @@ function hofSpreadsheetCsvCell(value) {
     }
   }
 
+  root.hofReadAgreementPdf = readAgreementPdf;
+
   let latestAgreementPreview;
   async function previewAgreementPdf(agreement, button) {
     const request = latestAgreementPreview = {};
@@ -26424,6 +26427,51 @@ function hofSpreadsheetCsvCell(value) {
     return data;
   }
 
+  let activePrivateDraftPreview;
+  root.hofCancelPrivateDraftPreview = () => {
+    activePrivateDraftPreview?.abort();
+    activePrivateDraftPreview = null;
+  };
+
+  async function previewPrivateDraft(draft, button) {
+    const session = root.hofAuth?.session;
+    const epoch = root.__hofAccountProfileEpoch;
+    const status = document.getElementById('privateFormDraftsStatus');
+    if (!session?.user?.id || !session.access_token || !draft?.id || button.disabled || !status) return;
+    root.hofCancelPrivateDraftPreview();
+    const controller = new AbortController();
+    activePrivateDraftPreview = controller;
+    const timeout = setTimeout(() => controller.abort(), 30000);
+    const isCurrent = () => activePrivateDraftPreview === controller && button.isConnected &&
+      root.hofAuth?.session?.user?.id === session.user.id && root.__hofAccountProfileEpoch === epoch;
+    const label = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Opening PDF…';
+    status.textContent = '';
+    try {
+      const response = await fetch('/api/admin-dashboard?preview_agreement=' + encodeURIComponent(draft.id), {
+        headers: {Authorization: 'Bearer ' + session.access_token},
+        signal: controller.signal
+      });
+      if (!isCurrent()) return;
+      if (!response.ok) throw new Error('Preview is unavailable.');
+      const blob = await root.hofReadAgreementPdf(response, controller.signal);
+      if (!isCurrent()) return;
+      root.hofShowPdfPreview(blob, draft?.form_code, button);
+    } catch (error) {
+      if (!isCurrent()) return;
+      console.warn('Private draft preview failed:', error);
+      status.textContent = controller.signal.aborted
+        ? 'Opening the PDF took too long. Select Preview PDF to try again.'
+        : 'We couldn’t open the preview. Select Preview PDF to try again.';
+    } finally {
+      clearTimeout(timeout);
+      if (activePrivateDraftPreview === controller) activePrivateDraftPreview = null;
+      button.disabled = false;
+      button.textContent = label;
+    }
+  }
+
   let activePrivateDraftLoad;
   async function refreshPrivateDrafts() {
     const list = document.getElementById('privateFormDraftsList');
@@ -26496,33 +26544,8 @@ function hofSpreadsheetCsvCell(value) {
         search.oninput();
       }
       list.querySelectorAll('.hof-private-draft-preview').forEach(button => {
-        button.addEventListener('click', async () => {
-          const token = root.hofAuth?.session?.access_token;
-          if (!token) return;
-          const session = root.hofAuth?.session;
-          const epoch = root.__hofAccountProfileEpoch;
-          const isCurrent = () => root.hofAuth?.session === session &&
-            root.__hofAccountProfileEpoch === epoch && (!button || button.isConnected);
-          const original = button.textContent;
-          button.disabled = true; button.textContent = 'Loading…';
-          try {
-            const response = await fetch('/api/admin-dashboard?preview_agreement=' + encodeURIComponent(button.dataset.agreementId), { headers: { Authorization: `Bearer ${token}` } });
-            if (!response.ok) throw new Error('Preview is unavailable.');
-            const blob = await response.blob();
-            if (!isCurrent()) return;
-            const draft = drafts.find(item => item.id === button.dataset.agreementId);
-            root.hofShowPdfPreview(blob, draft?.form_code, button);
-          } catch (error) {
-            if (!isCurrent()) return;
-            console.error('Private draft preview failed:', error);
-            const status = document.getElementById('privateFormDraftsStatus');
-            console.error('Form preview failed:', error);
-            if (status) status.textContent = window.hofCustomerActionError?.(error, 'We couldn’t open the preview. Please try again.') || 'We couldn’t open the preview. Please try again.';
-            else window.announceWorkspaceStatus?.(window.hofCustomerActionError?.(error, 'We couldn’t open the preview. Please try again.') || 'We couldn’t open the preview. Please try again.');
-          } finally {
-            button.disabled = false; button.textContent = original;
-          }
-        });
+        const draft = drafts.find(item => String(item.id) === button.dataset.agreementId);
+        button.addEventListener('click', () => void previewPrivateDraft(draft, button));
       });
       finish();
     } catch (error) {
