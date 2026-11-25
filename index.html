@@ -5624,7 +5624,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       'listing-lead': ['ListingLead', 'send_listing_lead_signing_test', 'check_listing_lead_signing_test'],
       'listing-package': ['ListingPackage', 'send_listing_package_signing_test', 'check_listing_package_signing_test'],
       'lease-listing': ['LeaseListing', 'send_lease_listing_signing_test', 'check_lease_listing_signing_test'],
-      'buyer-package': ['BuyerPackage', 'send_buyer_package_signing_test', 'check_buyer_package_signing_test']
+      'buyer-package': ['BuyerPackage', 'send_buyer_package_signing_test', 'check_buyer_package_signing_test'],
+      'buyer-default-message': ['BuyerDefaultMessage', 'create_buyer_package_default_message_draft', 'check_buyer_package_default_message_draft']
     };
     if (!Object.prototype.hasOwnProperty.call(controls, scope)) return;
     const [widget, sendAction, checkAction] = controls[scope];
@@ -5632,9 +5633,15 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
     if (!status || !hofAuth.session) return;
     const sendButton = document.getElementById(`admin${widget}SigningTestSend`);
     const originalLabel = button?.textContent;
-    if (button) { button.disabled = true; button.textContent = send ? 'Sending test…' : 'Checking…'; }
+    const draftOnly = scope === 'buyer-default-message';
+    if (button) {
+      button.disabled = true;
+      button.textContent = send ? (draftOnly ? 'Creating draft…' : 'Sending test…') : 'Checking…';
+    }
     if (sendButton) sendButton.disabled = true;
-    status.textContent = send ? 'Preparing one nonbinding test for the two approved inboxes…' : 'Checking the recorded test without sending another…';
+    status.textContent = draftOnly
+      ? (send ? 'Preparing one private SignWell draft…' : 'Checking the recorded draft…')
+      : (send ? 'Preparing one nonbinding test for the two approved inboxes…' : 'Checking the recorded test without sending another…');
     try {
       const response = await fetch('/api/admin-dashboard', {
         method: 'POST',
@@ -5647,7 +5654,9 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       status.textContent = test.message || 'The test status is unavailable. Nothing else was sent.';
       if (sendButton) sendButton.disabled = test.phase !== 'not_started';
     } catch (error) {
-      status.textContent = 'The test result could not be confirmed. Use Check test status; do not send another test.';
+      status.textContent = draftOnly
+        ? 'The draft result could not be confirmed. Use Check draft before doing anything else.'
+        : 'The test result could not be confirmed. Use Check test status; do not send another test.';
     } finally {
       if (button && button !== sendButton) button.disabled = false;
       if (button) button.textContent = originalLabel;
@@ -6179,6 +6188,12 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <button id="adminBuyerPackageSigningTestSend" type="button" class="admin-contact-action" style="min-height:44px" onclick="runPurchaseSigningTest(true, this, 'buyer-package')" disabled>Send one buyer package test</button>
             <button type="button" class="admin-contact-action" style="min-height:44px" onclick="runPurchaseSigningTest(false, this, 'buyer-package')">Check buyer package test</button>
             <div id="adminBuyerPackageSigningTestStatus" class="admin-empty" role="status" aria-live="polite">Check first. Only the recorded attempt will be used.</div>
+          </details><details style="margin-top:1rem;">
+            <summary style="color:var(--gray-light);cursor:pointer;">Buyer package default-message test draft</summary>
+            <p class="admin-muted">Creates one private, fictional SignWell draft with the default invitation message. This control sends no invitations.</p>
+            <button id="adminBuyerDefaultMessageSigningTestSend" type="button" class="admin-contact-action" style="min-height:44px" onclick="runPurchaseSigningTest(true, this, 'buyer-default-message')" disabled>Create one test draft</button>
+            <button type="button" class="admin-contact-action" style="min-height:44px" onclick="runPurchaseSigningTest(false, this, 'buyer-default-message')">Check draft</button>
+            <div id="adminBuyerDefaultMessageSigningTestStatus" class="admin-empty" style="margin-top:.5rem;" role="status" aria-live="polite">Check draft first.</div>
           </details>` : ''}
         </div>
 

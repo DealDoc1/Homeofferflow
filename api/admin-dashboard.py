@@ -1338,6 +1338,8 @@ def _purchase_qa_receipt(run, qa_revision=None, reviewed_source_commit=None):
     if not isinstance(receipt, dict) or receipt.get("qa_revision") != qa_revision:
         receipt = {}
     message = "A test attempt is recorded. Check its status; it will not be sent again."
+    if receipt.get("phase") == "draft_created":
+        message = "The private test draft was created. No invitations were requested. Use Check draft to verify the saved packet."
     if receipt.get("phase") == "unconfirmed":
         message = "The test outcome is unconfirmed. Check SignWell before taking any further action; it will not be sent again."
         http_status = receipt.get("http_status")
@@ -1347,7 +1349,7 @@ def _purchase_qa_receipt(run, qa_revision=None, reviewed_source_commit=None):
             "phase": receipt.get("phase") or "unconfirmed",
             "document_id": receipt.get("document_id") or "",
             "provider_status": _purchase_qa_provider_status(receipt.get("provider_status")),
-            "test_mode": receipt.get("phase") == "created" and receipt.get("test_mode") is True,
+            "test_mode": receipt.get("phase") in {"created", "draft_created"} and receipt.get("test_mode") is True,
             "visual_review_passed": receipt.get("phase") == "created" and receipt.get("test_mode") is True
                 and receipt.get("visual_review") == "passed"
                 and receipt.get("reviewed_source_commit") == reviewed_source_commit
@@ -1407,6 +1409,10 @@ async def _purchase_signing_qa(user, *, send=False, _spec=None):
     title = getattr(spec, "QA_TITLE", "Purchase provider placement")
     description = getattr(spec, "QA_DESCRIPTION", "Synthetic one/two-buyer execution and Unicode contact continuation; completed PDF visual review required.")
     test_label = getattr(spec, "TEST_LABEL", "purchase signing")
+    draft_only = getattr(spec, "DRAFT_ONLY", False)
+    not_started = {"phase": "not_started", "message": (
+        "No default-message buyer test draft has been created." if draft_only
+        else f"No {test_label} test has been sent.")}
     receipt_for = lambda run: _purchase_qa_receipt(run, QA_REVISION, REVIEWED_SOURCE_COMMIT)
     if not user or user.get("email") not in QA_OPERATOR_EMAILS or not await _is_platform_admin(user):
         raise PermissionError("This signing test is available only to the approved owner account.")
@@ -1426,7 +1432,7 @@ async def _purchase_signing_qa(user, *, send=False, _spec=None):
             raise ValueError("The test tracker could not be prepared. Nothing was sent.")
         scenarios = await _get(f"hof_qa_scenarios?scenario_key=eq.{QA_SCENARIO}&select=id&limit=1")
     if not scenarios:
-        return {"phase": "not_started", "message": f"No {test_label} test has been sent."}
+        return not_started
     query = f"scenario_id=eq.{scenarios[0]['id']}&release_name=eq.{QA_REVISION}&environment=eq.production"
     runs = await _get(f"hof_qa_runs?{query}&select=id,notes&limit=1")
     if runs:
@@ -1492,7 +1498,7 @@ async def _purchase_signing_qa(user, *, send=False, _spec=None):
             result["message"] = "The test is awaiting completion in the two approved inboxes."
         return result
     if not send:
-        return {"phase": "not_started", "message": f"No {test_label} test has been sent."}
+        return not_started
     # Prebuilt CLI deployments do not guarantee Git system environment values.
     # Pin the reviewed renderer tree separately from any available runtime SHA.
     release_sha = os.environ.get("VERCEL_GIT_COMMIT_SHA", "")
@@ -1503,7 +1509,7 @@ async def _purchase_signing_qa(user, *, send=False, _spec=None):
     packet, fields, cases = await built if inspect.isawaitable(built) else built
     payload = build_payload(packet, fields, REVIEWED_SOURCE_COMMIT)
     validate_test_payload(payload)
-    if getattr(spec,"VERIFY_DRAFT",False) and (payload.get('draft') is not True or payload.get('test_mode') is not True):
+    if (draft_only or getattr(spec,"VERIFY_DRAFT",False)) and payload.get('draft') is not True:
         raise ValueError('This completion-control test must start as a private test draft. Nothing was sent.')
     now = datetime.now(timezone.utc).isoformat()
     receipt = {"qa_revision": QA_REVISION, "phase": "started", "test_mode": True,
@@ -1550,7 +1556,10 @@ async def _purchase_signing_qa(user, *, send=False, _spec=None):
                     receipt["document_id"] = document_id
                     receipt["provider_status"] = _purchase_qa_provider_status(document.get("status"))
                 if document_id and document.get("test_mode") is True:
-                    if getattr(spec,"VERIFY_DRAFT",False):
+                    if draft_only:
+                        if receipt["provider_status"] in {"draft", "created"}:
+                            receipt["phase"] = "draft_created"
+                    elif getattr(spec,"VERIFY_DRAFT",False):
                         await _verify_and_send_fixed_qa_draft(client,run['id'],receipt,payload)
                     else:receipt["phase"] = "created"
             else:
@@ -1718,7 +1727,7 @@ async def _agent_iabs_profile_pdf(user, *, expected_id, expected_updated_at):
     return response.content, row
 
 
-async def _buyer_package_signing_qa(user, *, send=False):
+async def _buyer_package_signing_qa(user, *, send=False, draft_only=False):
     """One fixed buyer/notice/IABS specimen through the protected QA journal."""
     from types import SimpleNamespace
     from lib import buyer_representation_signing_qa as qa
@@ -1771,6 +1780,11 @@ async def _buyer_package_signing_qa(user, *, send=False):
         'REVIEWED_SOURCE_COMMIT', 'DOCUMENT_PREFIX', 'QA_TITLE', 'QA_DESCRIPTION',
         'RENDER_REVISION', 'TEST_LABEL', 'VERIFY_DRAFT', 'LAYOUT_SHA256')},
         build_packet=build, build_payload=qa.build_payload)
+    if draft_only:
+        spec.QA_REVISION = qa.DEFAULT_MESSAGE_QA_REVISION
+        spec.DOCUMENT_PREFIX = qa.DEFAULT_MESSAGE_DOCUMENT_PREFIX
+        spec.DRAFT_ONLY = True
+        spec.build_payload = qa.build_default_message_draft_payload
     return await _purchase_signing_qa(user, send=send, _spec=spec)
 
 
@@ -9876,6 +9890,13 @@ class handler(BaseHTTPRequestHandler):
                 if set(data) != {"action"}:
                     raise ValueError("The signing test does not accept custom recipients or document settings.")
                 result = asyncio.run(_buyer_package_signing_qa(user, send=data["action"] == "send_buyer_package_signing_test"))
+                _json(self, 200, {"ok": True, "signingTest": result})
+                return
+            if data.get("action") in {"create_buyer_package_default_message_draft", "check_buyer_package_default_message_draft"}:
+                if set(data) != {"action"}:
+                    raise ValueError("The signing test does not accept custom recipients or document settings.")
+                result = asyncio.run(_buyer_package_signing_qa(
+                    user, send=data["action"] == "create_buyer_package_default_message_draft", draft_only=True))
                 _json(self, 200, {"ok": True, "signingTest": result})
                 return
             if data.get("action") == "create_platform_partner_placement":
