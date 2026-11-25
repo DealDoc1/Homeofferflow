@@ -1558,7 +1558,8 @@ async def _purchase_signing_qa(user, *, send=False, _spec=None):
                 # Keep only the existing bounded, value-free classifier. Raw
                 # provider bodies can echo PDF data, recipient details or keys.
                 from lib.signwell_rejections import rejection_diagnostic
-                receipt["create_rejection"] = rejection_diagnostic(response)
+                receipt["create_rejection"] = rejection_diagnostic(
+                    response, include_invitation_message_reasons=True)
     except Exception as error:
         # Never persist/log provider bodies, exception text, keys or signing URLs.
         receipt.update(phase="unconfirmed", error_type=type(error).__name__)
