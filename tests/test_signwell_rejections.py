@@ -46,6 +46,17 @@ class SignWellRejectionTests(unittest.TestCase):
         self.assertIn('No invitation was requested',str(error))
         self.assertNotIn('private',str(error))
 
+    def test_message_reasons_are_opt_in_and_require_an_exact_field(self):
+        rejected = response(400, [
+            {'field': 'files.0.name', 'message': 'is too long (maximum is 255 characters)'},
+            {'field': 'message', 'message': "can't be blank"},
+            {'path': 'message', 'message': 'is invalid (private@example.test)'},
+        ])
+        self.assertNotIn('invitation_message_reasons', rejection_diagnostic(rejected))
+        private = rejection_diagnostic(rejected, include_invitation_message_reasons=True)
+        self.assertEqual(private['invitation_message_reasons'], ['blank'])
+        self.assertNotIn('private@example.test', json.dumps(private))
+
     def test_path_and_output_limits(self):
         self.assertIsNone(safe_field_path('x'*10000))
         result=rejection_diagnostic(response(errors={f'fields.0.{i}.page':'private' for i in range(64)}))

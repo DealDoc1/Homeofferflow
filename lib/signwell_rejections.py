@@ -18,6 +18,34 @@ MEMBERS = frozenset({'id', 'name', 'email', 'recipient_id', 'type', 'page',
     'validation_regex', 'label', 'delivery_method', 'phone_number', 'fields',
     'min', 'max', 'selection_requirement', 'field_ids'})
 
+MESSAGE_VALIDATION = {
+    "can't be blank": 'blank',
+    'is invalid': 'invalid',
+}
+MESSAGE_LENGTH_ERROR = re.compile(r'is too long \(maximum is [0-9]{1,6} characters?\)')
+
+
+def _invitation_message_reasons(errors):
+    if isinstance(errors, dict):
+        messages = errors.get('message')
+        messages = messages[:16] if isinstance(messages, list) else [messages]
+    elif isinstance(errors, list):
+        messages = [error.get('message') for error in errors[:64]
+                    if isinstance(error, dict) and (error.get('field') or error.get('path')) == 'message']
+    else:
+        return []
+    reasons = set()
+    for message in messages:
+        if not isinstance(message, str) or len(message) > 96:
+            continue
+        normalized = message.strip().lower().removeprefix('message ')
+        reason = MESSAGE_VALIDATION.get(normalized)
+        if reason:
+            reasons.add(reason)
+        elif MESSAGE_LENGTH_ERROR.fullmatch(normalized):
+            reasons.add('too_long')
+    return sorted(reasons)
+
 
 def safe_field_path(value):
     if not isinstance(value, str) or len(value) > 160:
@@ -32,9 +60,10 @@ def safe_field_path(value):
     return '.'.join(parts)
 
 
-def rejection_diagnostic(response):
+def rejection_diagnostic(response, *, include_invitation_message_reasons=False):
     status = int(response.status_code)
     fields = set()
+    errors = None
     try:
         # No raw body, provider message, exception, headers, or values are logged.
         raw = getattr(response, 'content', b'')
@@ -96,7 +125,12 @@ def rejection_diagnostic(response):
         elif 'recipients' in roots: category = 'signer_details'
         elif 'files' in roots: category = 'packet_file'
         else: category = 'request_validation'
-    return {'http_status': status, 'category': category, 'fields': fields}
+    diagnostic = {'http_status': status, 'category': category, 'fields': fields}
+    if include_invitation_message_reasons and status in {400, 422} and 'message' in fields:
+        reasons = _invitation_message_reasons(errors)
+        if reasons:
+            diagnostic['invitation_message_reasons'] = reasons
+    return diagnostic
 
 
 class SigningCreateRejected(DeliveryUnsent):

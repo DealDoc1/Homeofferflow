@@ -77,10 +77,12 @@ def build_case(sources, case):
 
 IABS_SHA256 = '81fd0005afc341aeceb2af0f9446db566bd8f3bf2479306763c03be3788806ff'
 QA_REVISION = 'ordinary-buyer-notice-iabs-2026-11-04-v2'
+DEFAULT_MESSAGE_QA_REVISION = 'ordinary-buyer-notice-iabs-default-message-draft-v1'
 QA_SCENARIO = 'ordinary-buyer-package-provider-placement'
 REVIEWED_SOURCE_COMMIT = '0e1e390bbd328980023ed983b9d7fc6052c8da01'
 RENDER_REVISION = 'txr1507-v3-txr1506-composed-2026-11-04'
 DOCUMENT_PREFIX = 'QA ONLY - ordinary buyer package wire v2 - '
+DEFAULT_MESSAGE_DOCUMENT_PREFIX = 'QA ONLY - ordinary buyer package default message draft - '
 QA_TITLE = 'Ordinary buyer representation, consumer notice and saved IABS'
 QA_DESCRIPTION = 'One fictional buyer and associate, parallel invitations; IABS information only.'
 TEST_LABEL = 'buyer representation package signing'
@@ -133,3 +135,12 @@ def build_payload(packet, fields, release_sha):
             'qa_revision': QA_REVISION, 'release_sha': release_sha,
             'qa_transport_revision': TRANSPORT_REVISION,
             'layout_sha256': LAYOUT_SHA256}}
+
+
+def build_default_message_draft_payload(packet, fields, release_sha):
+    """Change only the optional message and the specimen's tracking identity."""
+    payload = build_payload(packet, fields, release_sha)
+    del payload['message']
+    payload['name'] = DEFAULT_MESSAGE_DOCUMENT_PREFIX + release_sha[:12]
+    payload['metadata']['qa_revision'] = DEFAULT_MESSAGE_QA_REVISION
+    return payload
