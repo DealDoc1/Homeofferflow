@@ -1469,6 +1469,12 @@ async def _purchase_signing_qa(user, *, send=False, _spec=None):
             return result
         status = _purchase_qa_provider_status(document.get("status"))
         result["provider_status"] = status
+        if draft_only and status not in {"draft", "created"}:
+            result["message"] = (
+                "SignWell did not confirm that the recorded test is still a draft. "
+                "Inspect the recorded document before taking any further action."
+            )
+            return result
         if getattr(spec, "VERIFY_DRAFT", False) and status in {"draft", "created"}:
             from lib.signwell_qa_readback import readback_report
             import inspect

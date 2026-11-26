@@ -106,6 +106,44 @@ class BuyerQADraftOnlyTests(unittest.IsolatedAsyncioTestCase):
         client.get.assert_not_called()
 
 
+    async def test_draft_only_status_does_not_treat_an_unexpected_state_as_signing_qa(self):
+        spec = SimpleNamespace(
+            QA_OPERATOR_EMAILS=buyer.QA_OPERATOR_EMAILS, QA_SCENARIO=buyer.QA_SCENARIO,
+            QA_RECIPIENTS=buyer.QA_RECIPIENTS, QA_REVISION=buyer.DEFAULT_MESSAGE_QA_REVISION,
+            REVIEWED_SOURCE_COMMIT=buyer.REVIEWED_SOURCE_COMMIT, LAYOUT_SHA256=buyer.LAYOUT_SHA256,
+            DOCUMENT_PREFIX=buyer.DEFAULT_MESSAGE_DOCUMENT_PREFIX, VERIFY_DRAFT=True,
+            DRAFT_ONLY=True, build_packet=AsyncMock(), build_payload=buyer.build_default_message_draft_payload)
+        notes = json.dumps({
+            'qa_revision': spec.QA_REVISION, 'reviewed_source_commit': spec.REVIEWED_SOURCE_COMMIT,
+            'test_mode': True, 'phase': 'draft_created', 'document_id': DOCUMENT_ID,
+            'visual_review_passed': True,
+        })
+        document = {
+            'id': DOCUMENT_ID, 'test_mode': True, 'recipients': list(spec.QA_RECIPIENTS),
+            'name': spec.DOCUMENT_PREFIX + spec.REVIEWED_SOURCE_COMMIT[:12],
+            'metadata': {'qa_revision': spec.QA_REVISION, 'layout_sha256': spec.LAYOUT_SHA256,
+                         'release_sha': spec.REVIEWED_SOURCE_COMMIT},
+            'apply_signing_order': False,
+        }
+        client = AsyncMock()
+        client.__aenter__.return_value = client
+        with patch.object(MODULE, 'SIGNWELL_ENABLED', True), \
+             patch.object(MODULE, 'SIGNWELL_API_KEY', 'fictional-key'), \
+             patch.object(MODULE, '_is_platform_admin', AsyncMock(return_value=True)), \
+             patch.object(MODULE, '_get', AsyncMock()) as get, \
+             patch.object(MODULE.httpx, 'AsyncClient', return_value=client):
+            for status in ('sent', 'completed', 'expired', 'unknown'):
+                with self.subTest(status=status):
+                    get.side_effect = [SCENARIO, [{'id': 'draft-run', 'notes': notes}]]
+                    client.get.return_value = response(200, {**document, 'status': status})
+                    result = await MODULE._purchase_signing_qa(USER, _spec=spec)
+                    self.assertEqual(result['provider_status'], status)
+                    self.assertFalse(result['visual_review_passed'])
+                    self.assertIn('did not confirm', result['message'])
+        spec.build_packet.assert_not_awaited()
+        client.post.assert_not_called()
+
+
 class BuyerQAIabsHelperTests(unittest.IsolatedAsyncioTestCase):
     def row(self):
         return {'id': 'saved-iabs', 'user_id': USER['id'], 'document_type': 'iabs',
