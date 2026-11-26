@@ -1,7 +1,12 @@
 import importlib.util
+from io import BytesIO
+import json
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
+
+import httpx
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,6 +26,89 @@ class AiReviewServerEndpointTests(unittest.TestCase):
 
         def json(self):
             return self.payload
+
+    def test_model_selection_moves_the_legacy_flash_alias_and_retains_other_overrides(self):
+        for value in (None, "", "gemini-2.5-flash", " gemini-2.5-flash "):
+            with self.subTest(value=value):
+                self.assertEqual(MODULE._offer_review_model(value), "gemini-3.1-flash-lite")
+        self.assertEqual(MODULE._offer_review_model("gemini-3.5-flash-lite"), "gemini-3.5-flash-lite")
+        self.assertEqual(MODULE._offer_review_model(None, "fixture-model"), "fixture-model")
+
+    def run_live_review(self, provider):
+        body = b'{"offer":{"offerPrice":350000}}'
+        request = SimpleNamespace(rfile=BytesIO(body), headers={
+            "Content-Length": str(len(body)), "Authorization": "Bearer fixture",
+        })
+        with patch.object(MODULE, "_verified_user", return_value={"id": "agent"}), \
+             patch.object(MODULE, "GEMINI_API_KEY", "private-fixture-key"), \
+             patch.object(MODULE, "_post_gemini", side_effect=provider) as post, \
+             patch.object(MODULE, "_json_response") as send:
+            MODULE.handler.do_POST(request)
+        return send.call_args.args[1:], post
+
+    def test_live_review_uses_complete_answer_parts_and_retains_the_response_contract(self):
+        response = self._Response({"candidates": [{"finishReason": "STOP", "content": {"parts": [
+            {"thought": True, "text": "internal analysis"},
+            {"text": '{"score": 70,'},
+            {"text": '"summary":"Review the entered terms."}'},
+        ]}}]})
+        (status, result), post = self.run_live_review([response])
+        self.assertEqual(status, 200)
+        self.assertEqual(result["source"], "gemini")
+        self.assertEqual(result["model"], MODULE.GEMINI_MODEL)
+        self.assertIn("components", result)
+        self.assertNotIn("internal analysis", json.dumps(result))
+        post.assert_called_once()
+        config = post.call_args.args[1]["generationConfig"]
+        self.assertEqual(config["maxOutputTokens"], 1200)
+        self.assertEqual(config["responseMimeType"], "application/json")
+        self.assertTrue({"temperature", "topP", "topK"}.isdisjoint(config))
+
+    def test_incomplete_or_rejected_review_uses_rules_without_provider_detail(self):
+        stopped = self._Response({"candidates": [{"finishReason": "MAX_TOKENS", "content": {
+            "parts": [{"text": '{"score":100}'}],
+        }}]})
+        rejected = self._Response({})
+        rejected.status_code = 400
+        rejected.text = "private provider response"
+        for provider, source in ((stopped, "rules_fallback_parse_error"),
+                                 (rejected, "rules_fallback_gemini_error"),
+                                 (httpx.ConnectError("private transport detail"), "rules_fallback_gemini_error")):
+            with self.subTest(source=source):
+                (status, result), post = self.run_live_review([provider])
+                self.assertEqual(status, 200)
+                self.assertEqual(result["source"], source)
+                self.assertNotIn("private", json.dumps(result))
+                post.assert_called_once()
+
+    def test_provider_key_is_only_in_a_request_header(self):
+        client = Mock()
+        context = Mock()
+        context.__enter__ = Mock(return_value=client)
+        context.__exit__ = Mock(return_value=False)
+        with patch.object(MODULE, "GEMINI_API_KEY", "private-fixture-key"), \
+             patch.object(MODULE.httpx, "Client", return_value=context):
+            MODULE._post_gemini(MODULE.DEFAULT_GEMINI_MODEL, {"contents": []}, timeout=18)
+        self.assertNotIn("private-fixture-key", client.post.call_args.args[0])
+        self.assertEqual(client.post.call_args.kwargs["headers"], {"x-goog-api-key": "private-fixture-key"})
+
+    def test_optional_search_keeps_both_controls_and_uses_the_compatible_request(self):
+        response = self._Response({"candidates": [{"finishReason": "STOP", "content": {"parts": [
+            {"thought": True, "text": "ignored"},
+            {"text": '{"found": true, "confidence": "medium"}'},
+        ]}}]})
+        with patch.object(MODULE, "ENABLE_PROPERTY_CONTEXT", True), \
+             patch.object(MODULE, "GEMINI_API_KEY", "fixture-key"), \
+             patch.object(MODULE, "_post_gemini", return_value=response) as post:
+            offer = {"propertyAddress": "1 Fictional Lane"}
+            self.assertFalse(MODULE._grounded_property_context(offer)["found"])
+            post.assert_not_called()
+            self.assertTrue(MODULE._grounded_property_context(offer, True)["found"])
+            post.assert_called_once()
+            model, body = post.call_args.args
+            self.assertEqual(model, MODULE.GEMINI_GROUNDING_MODEL)
+            self.assertEqual(body["tools"], [{"google_search": {}}])
+            self.assertEqual(body["generationConfig"], {"maxOutputTokens": 1200})
 
     def test_snapshot_parser_bounds_score_and_keeps_server_owned_fields_out(self):
         parsed = MODULE._parse_snapshot(

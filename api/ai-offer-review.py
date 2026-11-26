@@ -7,8 +7,16 @@ from datetime import datetime, timezone
 import httpx
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or ""
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL") or "gemini-2.5-flash"
-GEMINI_GROUNDING_MODEL = os.environ.get("GEMINI_GROUNDING_MODEL") or GEMINI_MODEL
+DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite"
+
+
+def _offer_review_model(configured, fallback=DEFAULT_GEMINI_MODEL):
+    model = (configured or "").strip() or fallback
+    return DEFAULT_GEMINI_MODEL if model == "gemini-2.5-flash" else model
+
+
+GEMINI_MODEL = _offer_review_model(os.environ.get("GEMINI_MODEL"))
+GEMINI_GROUNDING_MODEL = _offer_review_model(os.environ.get("GEMINI_GROUNDING_MODEL"), GEMINI_MODEL)
 # Public-web grounding is useful when an authorized product tier calls for it,
 # but it is a second model request and it is not MLS data.  Keep it off unless
 # deliberately enabled in the deployment environment so every ordinary offer
@@ -607,6 +615,27 @@ def _rules_fallback(offer, property_context=None):
     }
 
 
+def _post_gemini(model, request_body, *, timeout):
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+    with httpx.Client(timeout=timeout) as client:
+        return client.post(url, headers={"x-goog-api-key": GEMINI_API_KEY}, json=request_body)
+
+
+def _gemini_candidate_text(data):
+    candidates = data.get("candidates") if isinstance(data, dict) else None
+    if not isinstance(candidates, list) or not candidates or not isinstance(candidates[0], dict):
+        return ""
+    candidate = candidates[0]
+    if candidate.get("finishReason") not in (None, "STOP"):
+        return ""
+    content = candidate.get("content")
+    parts = content.get("parts") if isinstance(content, dict) else None
+    if not isinstance(parts, list):
+        return ""
+    return "".join(part["text"] for part in parts
+                   if isinstance(part, dict) and not part.get("thought") and isinstance(part.get("text"), str))
+
+
 def _grounded_property_context(offer, include_public_context=False):
     if not (include_public_context and ENABLE_PROPERTY_CONTEXT and GEMINI_API_KEY):
         return {"found": False, "reason": "property_context_disabled_or_no_api_key"}
@@ -659,30 +688,24 @@ Rules:
         "contents": [{"parts": [{"text": prompt}]}],
         "tools": [{"google_search": {}}],
         "generationConfig": {
-            "temperature": 0.15,
-            "topP": 0.8,
             "maxOutputTokens": 1200
         }
     }
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_GROUNDING_MODEL}:generateContent?key={GEMINI_API_KEY}"
     try:
-        with httpx.Client(timeout=16.0) as client:
-            resp = client.post(url, json=request_body)
+        resp = _post_gemini(GEMINI_GROUNDING_MODEL, request_body, timeout=16.0)
         if resp.status_code >= 400:
-            return {"found": False, "reason": "grounding_error", "detail": resp.text[:300]}
+            return {"found": False, "reason": "grounding_error"}
         data = resp.json()
-        candidate = (data.get("candidates") or [{}])[0]
-        text = (((candidate.get("content") or {}).get("parts") or [{}])[0].get("text") or "")
-        parsed = _try_json_from_text(text) or {"found": False, "rawText": _safe_text(text, 900)}
+        parsed = _try_json_from_text(_gemini_candidate_text(data)) or {"found": False}
         sources, queries = _extract_grounding_sources(data)
         parsed["sources"] = sources
         parsed["searchQueries"] = queries
         parsed["sourceType"] = "public_web_google_grounding"
         parsed["notMlsVerified"] = True
         return parsed
-    except Exception as exc:
-        return {"found": False, "reason": "grounding_exception", "detail": str(exc)[:300]}
+    except (httpx.HTTPError, ValueError, TypeError, AttributeError):
+        return {"found": False, "reason": "grounding_exception"}
 
 
 def _select_property_context(offer, *, include_public_context=False):
@@ -821,8 +844,6 @@ class handler(BaseHTTPRequestHandler):
             request_body = {
                 "contents": [{"parts": [{"text": json.dumps(prompt, ensure_ascii=False)}]}],
                 "generationConfig": {
-                    "temperature": 0.22,
-                    "topP": 0.9,
                     # The fixed response schema is intentionally concise. A
                     # 1,200-token ceiling leaves room for all review sections
                     # while avoiding needless output cost on every request.
@@ -832,17 +853,18 @@ class handler(BaseHTTPRequestHandler):
                 }
             }
 
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
-            with httpx.Client(timeout=18.0) as client:
-                resp = client.post(url, json=request_body)
-            if resp.status_code >= 400:
-                return _json_response(self, 200, {**fallback, "source": "rules_fallback_gemini_error", "gemini_error": resp.text[:500]})
-
-            data = resp.json()
-            text = (((data.get("candidates") or [{}])[0].get("content") or {}).get("parts") or [{}])[0].get("text") or ""
             try:
-                review = json.loads(text)
-            except Exception:
+                resp = _post_gemini(GEMINI_MODEL, request_body, timeout=18.0)
+            except httpx.HTTPError:
+                return _json_response(self, 200, {**fallback, "source": "rules_fallback_gemini_error",
+                    "gemini_error": "Offer Review could not reach the AI provider."})
+            if resp.status_code >= 400:
+                return _json_response(self, 200, {**fallback, "source": "rules_fallback_gemini_error",
+                    "gemini_error": "The AI provider could not complete the offer review."})
+
+            try:
+                review = json.loads(_gemini_candidate_text(resp.json()))
+            except ValueError:
                 return _json_response(self, 200, {**fallback, "source": "rules_fallback_parse_error"})
 
             review = _normalize_live_review(review, fallback, property_context)
