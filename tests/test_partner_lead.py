@@ -356,6 +356,32 @@ class PartnerLeadTests(unittest.TestCase):
         self.assertEqual(title_rows, [])
         self.assertNotIn("partner_type=eq.title", PlacementClient.last_url)
 
+    def test_market_filtered_workflow_never_promotes_a_different_premier(self):
+        placements = [
+            {"id":"global-top","partner_type":"insurance","partner_name":"Top Premier",
+             "placement_tier":"exclusive_market","market_area":"Austin", "created_at":"2025-01-01"},
+            {"id":"dallas-second","partner_type":"title","partner_name":"Dallas Premier",
+             "placement_tier":"exclusive_market","market_area":"Dallas", "created_at":"2025-02-01"},
+        ]
+
+        class PlacementClient:
+            last_url = ""
+            def __init__(self, *args, **kwargs): pass
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def get(self, url, headers=None):
+                PlacementClient.last_url = url
+                response = FakeResponse()
+                response.status_code = 200
+                response.text = "[]"
+                response.json = lambda: placements
+                return response
+
+        with patch.object(fsbo_lead.httpx, "Client", PlacementClient):
+            rows = fsbo_lead._list_public_partner_placements(market="Dallas", view="workflow")
+        self.assertEqual(rows, [])
+        self.assertNotIn("market_area=", PlacementClient.last_url)
+
     def test_directory_keeps_category_founder_even_when_market_filter_excludes_them(self):
         placements = [
             {"id":"older-outside-market","partner_type":"title","partner_name":"Older","placement_tier":"founding","market_area":"Austin","created_at":"2024-01-01T00:00:00Z"},
