@@ -1596,10 +1596,8 @@ def _list_public_partner_placements(category=None, market=None, view=None):
     # callers filter by category. Directory results retain category scoping.
     if category in ALLOWED_PARTNER_TYPES and view == "directory":
         params["partner_type"] = f"eq.{category}"
-    if market and view == "directory":
-        safe_market = re.sub(r"[^a-zA-Z0-9 ,.&/-]", "", market)[:100]
-        if safe_market:
-            params["market_area"] = f"ilike.*{safe_market}*"
+    # Resolve category founder and workflow Premier before filtering by market.
+    # The selector applies market relevance after those identities are known.
     headers = {
         "apikey": SUPABASE_SERVICE_ROLE_KEY,
         "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
