@@ -87,7 +87,8 @@ begin
   select pg_catalog.pg_get_constraintdef(c.oid) into form_code_definition
   from pg_catalog.pg_constraint c
   where c.conrelid = pg_catalog.to_regclass('public.hof_standalone_agreements')
-    and c.conname = 'hof_standalone_agreements_form_code_check' and c.contype = 'c';
+    and c.conname = 'hof_standalone_agreements_form_code_check' and c.contype = 'c'
+    and c.convalidated;
   foreach supported_form_code in array array['TXR-1101','TXR-1501','TXR-1506','TXR-1507','TXR-1508','TXR-1905','TXR-1914','TXR-1917','TXR-1919','TXR-1948','TXR-1953','TXR-1954','TREC-62-0','TREC-38-8','TREC-39-11'] loop
     if form_code_definition is null
       or pg_catalog.strpos(form_code_definition, pg_catalog.quote_literal(supported_form_code)) = 0 then
@@ -97,6 +98,9 @@ begin
   return pg_catalog.jsonb_build_object(
     'contract', 'homeofferflow-release-schema-v1',
     'ready', coalesce(pg_catalog.array_length(missing, 1), 0) = 0,
+    'sale_listing_ready', coalesce(
+      pg_catalog.strpos(form_code_definition, 'CHECK ((form_code = ANY (ARRAY[') = 1
+      and pg_catalog.strpos(form_code_definition, pg_catalog.quote_literal('TXR-1101')) > 0, false),
     'missing', pg_catalog.to_jsonb(missing)
   );
 end;
