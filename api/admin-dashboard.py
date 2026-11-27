@@ -613,7 +613,7 @@ async def _agent_offer_activity_timeline(user, offer_id, offer_verified=False, *
 
 _AGENT_OFFER_WORKSPACE_FIELDS = (
     "id", "role", "property_address", "property_city", "property_state", "property_zip",
-    "buyer_name", "buyer_email", "offer_price", "status", "last_updated", "created_at",
+    "buyer_name", "buyer2_name", "buyer_email", "offer_price", "status", "last_updated", "created_at",
     "generated_at", "signwell_document_id", "signwell_status",
 )
 _AGENT_OFFER_WORKSPACE_SELECT = ",".join((*_AGENT_OFFER_WORKSPACE_FIELDS, "offer_data", "option_days"))
@@ -686,6 +686,13 @@ def _project_agent_offer_workspace_row(row):
         if safe_tracking:
             offer_data["transactionTracking"] = safe_tracking
     projected = {key: row.get(key) for key in _AGENT_OFFER_WORKSPACE_FIELDS}
+    # Canonical summary field also supports clients reading historical drafts.
+    # Keep secondary contact details out of this read-only projection.
+    projected["buyer2_name"] = next((
+        value.strip()[:200] for value in (
+            row.get("buyer2_name"), raw_data.get("buyer2"), raw_data.get("buyer2Name")
+        ) if isinstance(value, str) and value.strip()
+    ), "")
     projected["offer_data"] = offer_data
     return projected
 

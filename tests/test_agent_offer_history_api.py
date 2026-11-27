@@ -108,6 +108,26 @@ class AgentOfferHistoryAPITests(unittest.TestCase):
         self.assertNotIn("privateField", projected["offer_data"]["transactionTracking"])
         self.assertEqual((result["offset"], result["nextOffset"], result["hasMore"]), (25, 26, False))
 
+    def test_history_includes_bounded_co_buyer_names_without_extra_contact_data(self):
+        cases = [
+            ({"buyer2_name": "  QA María  ", "offer_data": {"buyer2": "stale name"}}, "QA María"),
+            ({"offer_data": {"buyer2": "  QA André  "}}, "QA André"),
+            ({"buyer2_name": " ", "offer_data": {"buyer2Name": "QA Taylor"}}, "QA Taylor"),
+            ({"buyer2_name": {"unexpected": "value"}, "offer_data": {"buyer2": ["invalid"], "buyer2Name": "QA Legacy"}}, "QA Legacy"),
+            ({"buyer2_name": "X" * 500}, "X" * 200),
+            ({}, ""),
+        ]
+        for values, expected in cases:
+            row = {"id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "buyer2_email": "private@example.test", **values}
+            row.setdefault("offer_data", {})["buyer2Email"] = "private@example.test"
+            with self.subTest(expected=expected), patch.object(API, "_get", AsyncMock(return_value=[row])) as get:
+                result = asyncio.run(API._agent_offer_history({"id": OWNER}))
+            offer = result["offers"][0]
+            self.assertEqual(offer["buyer2_name"], expected)
+            self.assertIn("buyer2_name", get.await_args.args[0])
+            self.assertNotIn("buyer2_email", offer)
+            self.assertNotIn("buyer2Email", offer["offer_data"])
+
     def test_reloaded_timeline_version_can_update_the_same_offer_again(self):
         offer_id = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
         owner_row = {

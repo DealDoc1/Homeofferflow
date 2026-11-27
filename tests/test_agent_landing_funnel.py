@@ -67,7 +67,7 @@ class AgentLandingFunnelTests(unittest.TestCase):
         self.assertIn("emailInput?.focus();", entry)
 
     def test_returning_agent_has_a_clear_workspace_sign_in_without_preselecting_a_transaction(self):
-        self.assertIn('class="workspace-sign-in" href="/?agent=1&amp;utm_source=agent_workspace&amp;utm_medium=agent_page&amp;utm_campaign=returning_workspace">Sign in</a>', AGENTS)
+        self.assertIn('class="workspace-sign-in" href="/?agent=1&amp;utm_source=agent_workspace&amp;utm_medium=agent_page&amp;utm_campaign=returning_workspace">Open agent workspace</a>', AGENTS)
         self.assertIn('.workspace-sign-in:focus-visible', AGENTS)
         self.assertNotIn('workflow=', AGENTS[AGENTS.index('class="workspace-sign-in"'):AGENTS.index('</a>', AGENTS.index('class="workspace-sign-in"'))])
 
