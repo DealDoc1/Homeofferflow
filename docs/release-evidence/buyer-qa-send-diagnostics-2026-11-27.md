@@ -66,6 +66,9 @@ release suite and current capacity/cost gates once for that candidate.
 
 Preserve this exact draft and all reservations. The original send response
 was not retained beyond status, so obtain provider-side details for this
-document before changing or retrying the request. An unsent support follow-up
-is in docs/support/signwell-buyer-send-followup-2026-11-27.md. Sending requires
-the owner's instruction; prior approval covered the original support request.
+document before changing or retrying the request. The follow-up in
+docs/support/signwell-buyer-send-followup-2026-11-27.md was subsequently sent
+after explicit owner approval at 22:00:44 UTC. Independent Gmail metadata
+confirms SENT message 1a21f066b21837d4 in the original thread. No attachments,
+CC, BCC, credentials or customer data were included. It asks the provider to
+inspect without sending or modifying the draft. Explanation remains pending.

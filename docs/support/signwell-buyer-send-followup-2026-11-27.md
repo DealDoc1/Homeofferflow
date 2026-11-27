@@ -1,8 +1,11 @@
-# Unsent SignWell support follow-up
+# SignWell support follow-up — sent
 
 To: support@signwell.com
 Reply in existing thread: 1a21ee4a66323da6
-Status: prepared locally; not sent
+Status: sent after explicit owner approval, November 27, 2026 at 22:00:44 UTC
+Gmail message: 1a21f066b21837d4; SENT independently confirmed by metadata readback
+In reply to: 1a21ee812f12cf19; existing thread confirmed unchanged
+No attachments, CC, BCC, credentials or customer data supplied
 
 Hi Krijn,
 
