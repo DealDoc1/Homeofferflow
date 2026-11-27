@@ -21379,7 +21379,7 @@ function hofSpreadsheetCsvCell(value) {
     const terms = normalizeOfferSearch(state.query).split(/\s+/).filter(Boolean);
     if (!terms.length) return true;
     const d = o.offer_data || {};
-    const hay = normalizeOfferSearch([o.property_address, o.property_city, o.buyer_name, o.buyer_email, o.status, d.propertyAddress, d.propAddress, d.buyerName, d.buyerEmail, d.email, d.offerPrice, d.financing].join(' '));
+    const hay = normalizeOfferSearch([o.property_address, o.property_city, o.buyer_name, o.buyer2_name, d.buyer2, d.buyer2Name, o.buyer_email, o.status, d.propertyAddress, d.propAddress, d.buyerName, d.buyerEmail, d.email, d.offerPrice, d.financing].join(' '));
     return terms.every(term => hay.includes(term));
   }
 

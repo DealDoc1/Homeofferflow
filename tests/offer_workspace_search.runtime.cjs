@@ -123,3 +123,28 @@ const reconciled = root.hofRenderOfferWorkspaceV10([{
 }]);
 assert.doesNotMatch(reconciled,/Delivery unconfirmed/);
 assert.match(reconciled,/Awaiting signature/);
+
+// The shared history API supplies one bounded canonical co-buyer name.
+root.hofOfferWorkspaceV10.filter = 'all';
+root.hofOfferWorkspaceV10.sort = 'updated_desc';
+root.hofSetOfferWorkspaceSearch('');
+root.hofRenderOfferWorkspaceV10([
+ {id:'co-buyer-current', property_address:'19 Cypress Lane', buyer_name:'QA Alex', buyer2_name:'QA María O’Neal', status:'Draft'},
+ {id:'co-buyer-legacy', property_address:'72 Cedar Court', buyer_name:'QA Jordan', offer_data:{buyer2Name:'QA André Taylor'}, status:'Draft'}
+]);
+for (const [query, expected, excluded] of [
+ ['Maria Cypress','19 Cypress Lane','72 Cedar Court'],
+ ["ONEAL Alex",'19 Cypress Lane','72 Cedar Court'],
+ ['Andre Cedar','72 Cedar Court','19 Cypress Lane']
+]) {
+ input.focus();
+ root.hofSetOfferWorkspaceSearch(query);
+ assert.match(cards.innerHTML, new RegExp(expected));
+ assert.doesNotMatch(cards.innerHTML, new RegExp(excluded));
+ assert.match(summary.innerHTML, /<strong>1<\/strong> of 2/);
+ assert.equal(document.activeElement,input);
+}
+root.hofSetOfferWorkspaceSearch('Maria Cedar');
+assert.match(summary.innerHTML, /<strong>0<\/strong> of 2/);
+root.hofSetOfferWorkspaceSearch('');
+assert.match(summary.innerHTML, /<strong>2<\/strong> of 2/);
