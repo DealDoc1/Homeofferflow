@@ -49,10 +49,14 @@ def _git_commit_author_email() -> str:
     return result.stdout.strip().lower()
 
 
+TXR1101_ACTIVATION = "supabase/migrations/20261017131634_add_txr1101_listing_drafts.sql"
+
+
 def _is_packet_or_form_change(path: str) -> bool:
     normalized = path.replace("\\", "/").lower()
     return (
-        normalized.endswith(".pdf")
+        normalized == TXR1101_ACTIVATION
+        or normalized.endswith(".pdf")
         or normalized in {"api/fill-pdf.py", "api/fill_pdf_20_19_staging.py"}
         or normalized.startswith("api/fill_pdf_20_19_staging_release")
         or normalized.startswith(("api/txr_", "api/trec_"))
@@ -80,6 +84,8 @@ def _required_scope_marker_groups(changed_files: list[str]) -> tuple[tuple[str, 
     """
     normalized = {path.replace("\\", "/").lower() for path in changed_files}
     groups: list[tuple[str, ...]] = []
+    if TXR1101_ACTIVATION in normalized:
+        groups.append(("txr 1101", "txr1101"))
     if any(
         path.endswith("api/fill_pdf_20_19_staging.py")
         or path.startswith("api/fill_pdf_20_19_staging_release")
@@ -126,7 +132,8 @@ def _missing_restricted_form_evidence(evidence_text: str, changed_files: list[st
     """Require the stronger gates for restricted TXR renderer/source changes."""
     normalized_files = {path.replace("\\", "/").lower() for path in changed_files}
     restricted_change = any(
-        path.startswith(("api/txr_", "api/trec_"))
+        path == TXR1101_ACTIVATION
+        or path.startswith(("api/txr_", "api/trec_"))
         or path.startswith(("lib/txr_", "lib/trec_"))
         or "brokerage_form_source" in path
         or "standalone_agreement" in path

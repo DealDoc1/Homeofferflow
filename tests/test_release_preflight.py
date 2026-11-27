@@ -38,6 +38,28 @@ class ReleasePreflightTests(unittest.TestCase):
         result = release_preflight.main(["--changed-file", "api/fill-pdf.py"])
         self.assertEqual(result, 2)
 
+    def test_txr1101_activation_requires_completed_listing_signature_evidence(self):
+        args = [
+            "--changed-file",
+            "supabase/migrations/20261017131634_add_txr1101_listing_drafts.sql",
+        ]
+        self.assertEqual(release_preflight.main(args), 2)
+        with tempfile.TemporaryDirectory() as directory:
+            evidence = Path(directory) / "listing.md"
+            args.extend(["--evidence-file", str(evidence)])
+            restricted_evidence = (
+                "\nAuthenticated QA: listing draft and signer review verified.\n"
+                "Completed signature visual QA: provider PDF checked.\n"
+                "Source revision: approved private source.\n"
+                "Agent attestation: verified.\n"
+            )
+            evidence.write_text(self._completed_evidence() + restricted_evidence)
+            self.assertEqual(release_preflight.main(args), 2)
+            evidence.write_text(self._completed_evidence() + "\nScope: TXR-1101.\n")
+            self.assertEqual(release_preflight.main(args), 2)
+            evidence.write_text(evidence.read_text() + restricted_evidence)
+            self.assertEqual(release_preflight.main(args), 0)
+
     def test_packet_change_accepts_completed_evidence(self):
         with tempfile.TemporaryDirectory() as directory:
             evidence = Path(directory) / "buyer-rep.md"

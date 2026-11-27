@@ -23,6 +23,15 @@ SPEC.loader.exec_module(MODULE)
 
 
 class ProductionSchemaReadinessTests(unittest.TestCase):
+    def test_listing_migration_preserves_the_core_contract_used_by_disclosure(self):
+        migrations = ROOT / "supabase/migrations"
+        listing = (migrations / "20261017131634_add_txr1101_listing_drafts.sql").read_text()
+        seller = (migrations / "20261018134817_seller_disclosure_questionnaire_access.sql").read_text()
+        self.assertIn("'contract', 'homeofferflow-release-schema-v1'", listing)
+        self.assertIn("'sale_listing_ready'", listing)
+        self.assertIn("and c.convalidated", listing)
+        self.assertIn("baseline ->> 'contract' is distinct from 'homeofferflow-release-schema-v1'", seller)
+
     def test_readiness_probes_new_public_profile_columns_without_reading_rows(self):
         import json
         from contextlib import contextmanager
@@ -37,11 +46,13 @@ class ProductionSchemaReadinessTests(unittest.TestCase):
                 body = {'contract':'homeofferflow-rental-source-schema-v1','ready':True,'missing':[]}
             if request.full_url.endswith('/rpc/hof_listing_workspace_creation_schema_ready'):
                 body = True
+            if request.full_url.endswith('/rpc/hof_release_schema_readiness'):
+                body = {'contract':'homeofferflow-release-schema-v1','ready':True,'missing':[], 'sale_listing_ready':True}
             yield io.StringIO(json.dumps(body))
         with patch.object(MODULE, 'urlopen', side_effect=open_fixture):
             result = MODULE.fetch_readiness('https://fixture.supabase.co', 'sb_secret_fixture')
         self.assertTrue(result['ready'])
-        self.assertEqual(len(requests), 7)
+        self.assertEqual(len(requests), 8)
         self.assertTrue(requests[0].full_url.endswith('/rpc/hof_seller_disclosure_schema_readiness'))
         self.assertEqual(requests[1].method, 'GET')
         self.assertIn('onboarding_public_contact_phone', requests[1].full_url)
@@ -53,6 +64,39 @@ class ProductionSchemaReadinessTests(unittest.TestCase):
         self.assertTrue(requests[3].full_url.endswith('/rpc/hof_purchase_disclosure_schema_readiness'))
         self.assertIn('select=signature_offer_id&limit=0', requests[4].full_url)
         self.assertTrue(requests[5].full_url.endswith('/rpc/hof_rental_source_schema_readiness'))
+        self.assertTrue(requests[7].full_url.endswith('/rpc/hof_release_schema_readiness'))
+
+    def test_listing_candidate_requires_the_validated_form_capability_even_when_existing_gates_pass(self):
+        import json
+        from contextlib import contextmanager
+
+        core = {'contract':'homeofferflow-release-schema-v1','ready':True,'missing':[]}
+        @contextmanager
+        def open_fixture(request, timeout):
+            rpc = request.full_url.rsplit('/', 1)[-1]
+            contracts = {
+                'hof_seller_disclosure_schema_readiness': MODULE.EXPECTED_CONTRACT,
+                'hof_purchase_disclosure_schema_readiness': 'homeofferflow-purchase-disclosure-v1',
+                'hof_rental_source_schema_readiness': 'homeofferflow-rental-source-schema-v1',
+            }
+            if rpc in contracts:
+                result = {'contract': contracts[rpc], 'ready': True, 'missing': []}
+            elif rpc == 'hof_listing_workspace_creation_schema_ready':
+                result = True
+            elif rpc == 'hof_release_schema_readiness':
+                result = core
+            else:
+                result = []
+            yield io.StringIO(json.dumps(result))
+
+        with patch.object(MODULE, 'urlopen', side_effect=open_fixture):
+            for marker in ({}, {'sale_listing_ready': False}, {'sale_listing_ready': 'true'}):
+                core.update(marker)
+                result = MODULE.fetch_readiness('https://fixture.supabase.co', 'fixture')
+                self.assertFalse(result['ready'])
+                self.assertEqual(result['missing'], ['sale-listing-txr1101:not-ready'])
+            core['sale_listing_ready'] = True
+            self.assertTrue(MODULE.fetch_readiness('https://fixture.supabase.co', 'fixture')['ready'])
 
     def test_disabled_purchase_binding_guard_cannot_pass_release_readiness(self):
         import json

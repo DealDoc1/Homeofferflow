@@ -123,6 +123,19 @@ def fetch_readiness(url: str, service_key: str) -> dict:
             if json.load(response) is not True:
                 payload['ready'] = False
                 payload['missing'] = [*(payload.get('missing') or []), 'listing-workspace-creation:not-ready']
+        # The existing disclosure wrapper can be ready before TXR-1101 is
+        # admitted. Require the capability in the core v1 response as well.
+        sale_listing = Request(
+            f"{url.rstrip('/')}/rest/v1/rpc/hof_release_schema_readiness",
+            data=b'{}', headers=request_headers(service_key), method='POST',
+        )
+        with urlopen(sale_listing, timeout=30) as response:
+            core = json.load(response)
+        if (not isinstance(core, dict) or core.get('contract') != 'homeofferflow-release-schema-v1'
+                or core.get('ready') is not True or core.get('missing') != []
+                or core.get('sale_listing_ready') is not True):
+            payload['ready'] = False
+            payload['missing'] = [*(payload.get('missing') or []), 'sale-listing-txr1101:not-ready']
     return payload
 
 
