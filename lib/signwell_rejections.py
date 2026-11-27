@@ -70,6 +70,12 @@ def rejection_diagnostic(response, *, include_invitation_message_reasons=False):
         data = response.json() if not isinstance(raw, bytes) or len(raw) <= 65536 else {}
         errors = data.get('errors') if isinstance(data, dict) else None
         if isinstance(errors, dict):
+            # SignWell uses invalid_keys for rejected top-level options. Retain
+            # only exact known field names; never arbitrary provider values.
+            invalid_keys = errors.get('invalid_keys')
+            if isinstance(invalid_keys, list):
+                fields.update(key for key in invalid_keys[:64]
+                              if isinstance(key, str) and key in ROOTS)
             remaining = 64
 
             def visit(value, prefix=''):

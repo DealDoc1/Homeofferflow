@@ -5628,7 +5628,8 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
       'listing-package': ['ListingPackage', 'send_listing_package_signing_test', 'check_listing_package_signing_test'],
       'lease-listing': ['LeaseListing', 'send_lease_listing_signing_test', 'check_lease_listing_signing_test'],
       'buyer-package': ['BuyerPackage', 'send_buyer_package_signing_test', 'check_buyer_package_signing_test'],
-      'buyer-default-message': ['BuyerDefaultMessage', 'create_buyer_package_default_message_draft', 'check_buyer_package_default_message_draft']
+      'buyer-default-message': ['BuyerDefaultMessage', 'create_buyer_package_default_message_draft', 'check_buyer_package_default_message_draft'],
+      'buyer-empty-groups': ['BuyerEmptyGroups', 'send_buyer_package_empty_groups_signing_test', 'check_buyer_package_empty_groups_signing_test']
     };
     if (!Object.prototype.hasOwnProperty.call(controls, scope)) return;
     const [widget, sendAction, checkAction] = controls[scope];
@@ -6197,6 +6198,13 @@ window.addEventListener('load', () => { try { if (typeof checkBillingReturn === 
             <button id="adminBuyerDefaultMessageSigningTestSend" type="button" class="admin-contact-action" style="min-height:44px" onclick="runPurchaseSigningTest(true, this, 'buyer-default-message')" disabled>Create one test draft</button>
             <button type="button" class="admin-contact-action" style="min-height:44px" onclick="runPurchaseSigningTest(false, this, 'buyer-default-message')">Check draft</button>
             <div id="adminBuyerDefaultMessageSigningTestStatus" class="admin-empty" style="margin-top:.5rem;" role="status" aria-live="polite">Check draft first.</div>
+          </details>
+          <details style="margin-top:1rem;">
+            <summary style="color:var(--gray-light);cursor:pointer;">Buyer package corrected request test</summary>
+            <p class="admin-muted">Uses the reviewed fictional packet and omits empty checkbox groups, as confirmed by SignWell support. Creates and verifies one private test draft before inviting the two approved QA inboxes. Existing failed attempts are preserved.</p>
+            <button id="adminBuyerEmptyGroupsSigningTestSend" type="button" class="admin-contact-action" style="min-height:44px" onclick="runPurchaseSigningTest(true, this, 'buyer-empty-groups')" disabled>Send one corrected test</button>
+            <button type="button" class="admin-contact-action" style="min-height:44px" onclick="runPurchaseSigningTest(false, this, 'buyer-empty-groups')">Check corrected test</button>
+            <div id="adminBuyerEmptyGroupsSigningTestStatus" class="admin-empty" style="margin-top:.5rem;" role="status" aria-live="polite">Check corrected test first.</div>
           </details>` : ''}
         </div>
 

@@ -1393,7 +1393,7 @@ async def _verify_and_send_fixed_qa_draft(client, run_id, receipt, payload):
             or any((document.get('metadata') or {}).get(k)!=v for k,v in payload['metadata'].items())
             or not _signwell_document_matches_signing_request(document,payload['fields'],payload['recipients'])
             or not required_flags_match(document, payload['fields'])
-            or not controls_match(document,payload['fields'],payload['checkbox_groups'],payload['conditional_rules'])):
+            or not controls_match(document,payload['fields'],payload.get('checkbox_groups', []),payload.get('conditional_rules', []))):
         return
     receipt.update(controls_verified=True,phase='send_started')
     await _patch('hof_qa_runs', f'id=eq.{run_id}', {'notes': json.dumps(receipt)}, expected_id=run_id)
@@ -1544,7 +1544,7 @@ async def _purchase_signing_qa(user, *, send=False, _spec=None):
     if getattr(spec,"VERIFY_DRAFT",False):
         receipt['layout_sha256']=spec.LAYOUT_SHA256
         receipt['completion_controls_sha256']=hashlib.sha256(json.dumps({
-            name:payload[name] for name in ('checkbox_groups','conditional_rules')},
+            name:payload.get(name, []) for name in ('checkbox_groups','conditional_rules')},
             sort_keys=True,separators=(',',':')).encode()).hexdigest()
     async with httpx.AsyncClient(timeout=12) as client:
         response = await client.post(
@@ -1750,7 +1750,7 @@ async def _agent_iabs_profile_pdf(user, *, expected_id, expected_updated_at):
     return response.content, row
 
 
-async def _buyer_package_signing_qa(user, *, send=False, draft_only=False):
+async def _buyer_package_signing_qa(user, *, send=False, draft_only=False, empty_groups=False):
     """One fixed buyer/notice/IABS specimen through the protected QA journal."""
     from types import SimpleNamespace
     from lib import buyer_representation_signing_qa as qa
@@ -1803,7 +1803,12 @@ async def _buyer_package_signing_qa(user, *, send=False, draft_only=False):
         'REVIEWED_SOURCE_COMMIT', 'DOCUMENT_PREFIX', 'QA_TITLE', 'QA_DESCRIPTION',
         'RENDER_REVISION', 'TEST_LABEL', 'VERIFY_DRAFT', 'LAYOUT_SHA256')},
         build_packet=build, build_payload=qa.build_payload)
-    if draft_only:
+    if empty_groups:
+        spec.QA_REVISION = qa.EMPTY_GROUPS_QA_REVISION
+        spec.DOCUMENT_PREFIX = qa.EMPTY_GROUPS_DOCUMENT_PREFIX
+        spec.TEST_LABEL = 'buyer package without empty checkbox groups'
+        spec.build_payload = qa.build_empty_groups_payload
+    elif draft_only:
         spec.QA_REVISION = qa.DEFAULT_MESSAGE_QA_REVISION
         spec.DOCUMENT_PREFIX = qa.DEFAULT_MESSAGE_DOCUMENT_PREFIX
         spec.DRAFT_ONLY = True
@@ -10220,6 +10225,13 @@ class handler(BaseHTTPRequestHandler):
                     raise ValueError("The signing test does not accept custom recipients or document settings.")
                 result = asyncio.run(_buyer_package_signing_qa(
                     user, send=data["action"] == "create_buyer_package_default_message_draft", draft_only=True))
+                _json(self, 200, {"ok": True, "signingTest": result})
+                return
+            if data.get("action") in {"send_buyer_package_empty_groups_signing_test", "check_buyer_package_empty_groups_signing_test"}:
+                if set(data) != {"action"}:
+                    raise ValueError("The signing test does not accept custom recipients or document settings.")
+                result = asyncio.run(_buyer_package_signing_qa(
+                    user, send=data["action"] == "send_buyer_package_empty_groups_signing_test", empty_groups=True))
                 _json(self, 200, {"ok": True, "signingTest": result})
                 return
             if data.get("action") == "create_platform_partner_placement":
