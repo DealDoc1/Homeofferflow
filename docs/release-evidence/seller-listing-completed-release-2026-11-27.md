@@ -14,7 +14,7 @@ receive simultaneous invitations. Both final Agree & Finish actions were
 separately approved at action time November 27 and submitted. SignWell
 reports Document complete. No real customer packet was used.
 
-Authenticated QA used the existing approved inbox invitations. Completed
+Rendered signed-PDF QA and authenticated QA used the existing approved inbox invitations. Completed
 signature visual QA inspected the downloaded final twelve-page PDF on pages
 1, 2, 9, 10, 11 and 12. Seller and Associate initials, execution signatures
 and dates sit on their intended lines. Single-seller unused rows remain
