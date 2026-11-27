@@ -34,6 +34,16 @@ class SignWellRejectionTests(unittest.TestCase):
         self.assertEqual(result['fields'],['fields.0.1.page','recipients.0.email'])
         self.assertNotIn('private',json.dumps(result))
 
+    def test_invalid_keys_retain_only_known_schema_names(self):
+        result = rejection_diagnostic(response(400, {
+            'message': 'The request contains invalid key values.',
+            'invalid_keys': ['checkbox_groups', 'PRIVATE', 'https://private.test/token',
+                             {'secret': 'value'}, 'checkbox_groups'],
+        }))
+        self.assertEqual(result['fields'], ['checkbox_groups', 'message'])
+        self.assertNotIn('PRIVATE', json.dumps(result))
+        self.assertNotIn('private.test', json.dumps(result))
+
     def test_malformed_or_large_provider_responses_do_not_leak(self):
         malformed=SimpleNamespace(status_code=422,content=b'not json',json=lambda:(_ for _ in ()).throw(ValueError('private')))
         large=SimpleNamespace(status_code=422,content=b'x'*65537,json=lambda:(_ for _ in ()).throw(AssertionError('Do not parse large body')))
