@@ -1405,7 +1405,10 @@ async def _verify_and_send_fixed_qa_draft(client, run_id, receipt, payload):
         sent=response.json();status=_purchase_qa_provider_status(sent.get('status'))
         if sent.get('id')==document_id and sent.get('test_mode') is True and status in {'sent','viewed','pending','in_progress','completed'}:
             receipt.update(phase='created',provider_status=status)
-    else:receipt['http_status']=response.status_code
+    else:
+        from lib.signwell_rejections import rejection_diagnostic
+        receipt['http_status'] = response.status_code
+        receipt['send_rejection'] = rejection_diagnostic(response)
 
 
 async def _purchase_signing_qa(user, *, send=False, _spec=None):
