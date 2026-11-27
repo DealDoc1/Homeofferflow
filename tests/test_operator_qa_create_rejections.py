@@ -53,6 +53,21 @@ class OperatorQACreateRejectionTests(unittest.IsolatedAsyncioTestCase):
             'category': 'request_rejected', 'fields': []})
         self.assertNotIn('PRIVATE_BODY', json.dumps(notes))
 
+    async def test_400_records_only_recognized_invitation_message_reasons(self):
+        rejected = response(400, {'errors': {'message': [
+            'Message is too long (maximum is 255 characters)',
+            'is invalid',
+            'is invalid: PRIVATE_ECHO@example.test',
+            'PRIVATE_VALUE',
+        ]}})
+        notes = await self.invoke(rejected)
+        self.assertEqual(notes['create_rejection'], {'http_status': 400,
+            'category': 'request_rejected', 'fields': ['message'],
+            'invitation_message_reasons': ['invalid', 'too_long']})
+        serialized = json.dumps(notes)
+        for raw_value in ('255', 'PRIVATE_ECHO', 'PRIVATE_VALUE'):
+            self.assertNotIn(raw_value, serialized)
+
 
 if __name__ == '__main__':
     unittest.main()

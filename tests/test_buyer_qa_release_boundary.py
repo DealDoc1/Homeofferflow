@@ -1,12 +1,16 @@
 """Keep this release a protected test capability, without customer activation."""
 import ast
 from copy import deepcopy
+from hashlib import sha256
+import json
 from pathlib import Path
+from types import SimpleNamespace
 import unittest
 from unittest.mock import AsyncMock, patch
 
+from lib import buyer_representation_signing_qa as buyer
 from lib.signwell_qa_readback import required_flags_match
-from tests.test_operator_purchase_signing_qa import MODULE, USER, response
+from tests.test_operator_purchase_signing_qa import DOCUMENT_ID, MODULE, SCENARIO, USER, response
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -29,6 +33,24 @@ class BuyerQAReleaseBoundaryTests(unittest.TestCase):
         button = html[html.index('<button id="adminBuyerPackageSigningTestSend"'):]
         self.assertIn('disabled>', button[:button.index('</button>')])
         self.assertIn("runPurchaseSigningTest(false, this, 'buyer-package')", html)
+        draft = html[html.index('<button id="adminBuyerDefaultMessageSigningTestSend"'):]
+        self.assertIn('disabled>', draft[:draft.index('</button>')])
+        self.assertIn("runPurchaseSigningTest(false, this, 'buyer-default-message')", html)
+
+    def test_default_message_draft_preserves_the_reviewed_packet_and_only_changes_message_and_identity(self):
+        packet, fields = b'%PDF-fictional', [[{'type': 'signature'}]]
+        with patch.object(buyer, 'PACKET_SHA256', sha256(packet).hexdigest()), \
+             patch.object(buyer, 'layout_fingerprint', return_value=buyer.LAYOUT_SHA256):
+            original = buyer.build_payload(packet, fields, buyer.REVIEWED_SOURCE_COMMIT)
+            draft = buyer.build_default_message_draft_payload(packet, fields, buyer.REVIEWED_SOURCE_COMMIT)
+        self.assertIs(draft['draft'], True)
+        self.assertIs(draft['test_mode'], True)
+        self.assertNotIn('message', draft)
+        self.assertTrue(draft['name'].startswith(buyer.DEFAULT_MESSAGE_DOCUMENT_PREFIX))
+        self.assertEqual(draft['metadata']['qa_revision'], buyer.DEFAULT_MESSAGE_QA_REVISION)
+        self.assertNotEqual(draft['metadata']['qa_revision'], original['metadata']['qa_revision'])
+        self.assertEqual({**draft, 'message': original['message'], 'name': original['name'],
+                          'metadata': {**draft['metadata'], 'qa_revision': buyer.QA_REVISION}}, original)
 
     def test_required_flags_match_exact_booleans_including_optional_fields(self):
         fields = [[{'api_id': 'a', 'required': True}, {'api_id': 'b', 'required': False}]]
@@ -42,6 +64,84 @@ class BuyerQAReleaseBoundaryTests(unittest.TestCase):
         self.assertFalse(required_flags_match(document, fields))
         for rows in (None, {}, [{}], [[None]], [[{'api_id': 'a'}, {'api_id': 'a'}]]):
             self.assertFalse(required_flags_match({'fields': rows}, fields))
+
+
+class BuyerQADraftOnlyTests(unittest.IsolatedAsyncioTestCase):
+    async def test_draft_only_reserves_once_and_cannot_send_the_new_document(self):
+        packet, fields = b'%PDF-fictional', [[{'type': 'signature'}]]
+        spec = SimpleNamespace(
+            QA_OPERATOR_EMAILS=buyer.QA_OPERATOR_EMAILS, QA_SCENARIO=buyer.QA_SCENARIO,
+            QA_RECIPIENTS=buyer.QA_RECIPIENTS, QA_REVISION=buyer.DEFAULT_MESSAGE_QA_REVISION,
+            REVIEWED_SOURCE_COMMIT=buyer.REVIEWED_SOURCE_COMMIT, LAYOUT_SHA256=buyer.LAYOUT_SHA256,
+            VERIFY_DRAFT=True, DRAFT_ONLY=True, build_packet=lambda: (packet, fields, []),
+            build_payload=buyer.build_default_message_draft_payload)
+        client = AsyncMock()
+        client.__aenter__.return_value = client
+        client.post.side_effect = [
+            response(201, [{'id': 'draft-run'}]),
+            response(201, {'id': DOCUMENT_ID, 'test_mode': True, 'status': 'draft'}),
+        ]
+        with patch.object(MODULE, 'SIGNWELL_ENABLED', True), \
+             patch.object(MODULE, 'SIGNWELL_API_KEY', 'fictional-key'), \
+             patch.object(MODULE, '_is_platform_admin', AsyncMock(return_value=True)), \
+             patch.object(MODULE, '_get', AsyncMock(side_effect=[SCENARIO, []])) as get, \
+             patch.object(MODULE, '_patch', AsyncMock()) as checkpoint, \
+             patch.object(MODULE, '_verify_and_send_fixed_qa_draft', AsyncMock()) as send, \
+             patch.object(MODULE.httpx, 'AsyncClient', return_value=client), \
+             patch.object(buyer, 'PACKET_SHA256', sha256(packet).hexdigest()), \
+             patch.object(buyer, 'layout_fingerprint', return_value=buyer.LAYOUT_SHA256):
+            result = await MODULE._purchase_signing_qa(USER, send=True, _spec=spec)
+            notes = checkpoint.await_args.args[2]['notes']
+            get.side_effect = [SCENARIO, [{'id': 'draft-run', 'notes': notes}]]
+            repeated = await MODULE._purchase_signing_qa(USER, send=True, _spec=spec)
+            send.assert_not_awaited()
+        self.assertEqual(result, repeated)
+        self.assertEqual(result['phase'], 'draft_created')
+        self.assertIn('No invitations were requested', result['message'])
+        self.assertEqual(json.loads(notes)['qa_revision'], buyer.DEFAULT_MESSAGE_QA_REVISION)
+        self.assertEqual(client.post.await_count, 2)
+        self.assertIn('/rest/v1/hof_qa_runs', client.post.await_args_list[0].args[0])
+        self.assertTrue(client.post.await_args_list[1].args[0].endswith('/api/v1/documents'))
+        self.assertNotIn('message', client.post.await_args_list[1].kwargs['json'])
+        client.get.assert_not_called()
+
+
+    async def test_draft_only_status_does_not_treat_an_unexpected_state_as_signing_qa(self):
+        spec = SimpleNamespace(
+            QA_OPERATOR_EMAILS=buyer.QA_OPERATOR_EMAILS, QA_SCENARIO=buyer.QA_SCENARIO,
+            QA_RECIPIENTS=buyer.QA_RECIPIENTS, QA_REVISION=buyer.DEFAULT_MESSAGE_QA_REVISION,
+            REVIEWED_SOURCE_COMMIT=buyer.REVIEWED_SOURCE_COMMIT, LAYOUT_SHA256=buyer.LAYOUT_SHA256,
+            DOCUMENT_PREFIX=buyer.DEFAULT_MESSAGE_DOCUMENT_PREFIX, VERIFY_DRAFT=True,
+            DRAFT_ONLY=True, build_packet=AsyncMock(), build_payload=buyer.build_default_message_draft_payload)
+        notes = json.dumps({
+            'qa_revision': spec.QA_REVISION, 'reviewed_source_commit': spec.REVIEWED_SOURCE_COMMIT,
+            'test_mode': True, 'phase': 'draft_created', 'document_id': DOCUMENT_ID,
+            'visual_review_passed': True,
+        })
+        document = {
+            'id': DOCUMENT_ID, 'test_mode': True, 'recipients': list(spec.QA_RECIPIENTS),
+            'name': spec.DOCUMENT_PREFIX + spec.REVIEWED_SOURCE_COMMIT[:12],
+            'metadata': {'qa_revision': spec.QA_REVISION, 'layout_sha256': spec.LAYOUT_SHA256,
+                         'release_sha': spec.REVIEWED_SOURCE_COMMIT},
+            'apply_signing_order': False,
+        }
+        client = AsyncMock()
+        client.__aenter__.return_value = client
+        with patch.object(MODULE, 'SIGNWELL_ENABLED', True), \
+             patch.object(MODULE, 'SIGNWELL_API_KEY', 'fictional-key'), \
+             patch.object(MODULE, '_is_platform_admin', AsyncMock(return_value=True)), \
+             patch.object(MODULE, '_get', AsyncMock()) as get, \
+             patch.object(MODULE.httpx, 'AsyncClient', return_value=client):
+            for status in ('sent', 'completed', 'expired', 'unknown'):
+                with self.subTest(status=status):
+                    get.side_effect = [SCENARIO, [{'id': 'draft-run', 'notes': notes}]]
+                    client.get.return_value = response(200, {**document, 'status': status})
+                    result = await MODULE._purchase_signing_qa(USER, _spec=spec)
+                    self.assertEqual(result['provider_status'], status)
+                    self.assertFalse(result['visual_review_passed'])
+                    self.assertIn('did not confirm', result['message'])
+        spec.build_packet.assert_not_awaited()
+        client.post.assert_not_called()
 
 
 class BuyerQAIabsHelperTests(unittest.IsolatedAsyncioTestCase):
