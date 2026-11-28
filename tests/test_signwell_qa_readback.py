@@ -24,6 +24,18 @@ class SignwellQAReadbackTests(unittest.TestCase):
         self.assertTrue(all(self.report()["checks"].values()))
         self.assertEqual(self.document, before)
 
+    def test_omitted_optional_controls_are_empty_without_mutating_payload(self):
+        for name in ('checkbox_groups', 'conditional_rules'):
+            self.payload.pop(name)
+            self.document.pop(name)
+        before = deepcopy(self.payload)
+        self.assertTrue(all(self.report()['checks'].values()))
+        self.assertEqual(self.payload, before)
+        _, groups, _ = specimen()
+        self.document['checkbox_groups'] = groups
+        self.assertFalse(self.report()['checks']['completion_controls'])
+        self.assertNotIn('checkbox_groups', self.payload)
+
     def test_identifies_changed_geometry_and_text_constraint(self):
         self.document["fields"][0][0]["x"] = 30
         self.document["fields"][0][2]["fixed_width"] = False

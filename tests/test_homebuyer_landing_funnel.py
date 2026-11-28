@@ -113,9 +113,9 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
         ):
             self.assertIn(expected, ADMIN)
         self.assertIn("Homebuyer $99 Funnel", INDEX)
-        self.assertIn("homebuyerLandingCtaRate", INDEX)
-        self.assertIn("homebuyerLandingOfferStartRate", INDEX)
-        self.assertIn("Homebuyer channel conversion:", INDEX)
+        self.assertIn("adminLandingEventRate(metrics.homebuyerLandingCtaCount, metrics.homebuyerLandingViewCount)", INDEX)
+        self.assertIn("adminLandingEventRate(metrics.homebuyerLandingOfferStartedCount, metrics.homebuyerLandingViewCount)", INDEX)
+        self.assertIn("Homebuyer channel activity:", INDEX)
         self.assertIn("homebuyerCheckoutRecoveryStartRate", INDEX)
         self.assertIn("recordHomebuyerCheckoutEvent", INDEX)
         self.assertIn('"pwaBuyerOfferShortcutCount"', ADMIN)
@@ -131,7 +131,7 @@ class HomebuyerLandingFunnelTests(unittest.TestCase):
             "(homebuyer_landing_offer_started_count / homebuyer_landing_cta_count)",
             ADMIN,
         )
-        self.assertIn("% of landing views", INDEX)
+        self.assertIn("per 100 landing views", INDEX)
 
     def test_cancelled_buyer_checkout_explains_required_confirmations_before_restart(self):
         self.assertIn('id="paymentCheckoutResumeHelp"', INDEX)

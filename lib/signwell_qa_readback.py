@@ -36,6 +36,10 @@ def readback_report(document, payload):
     and exception messages never enter the result. Malformed shapes stay a
     failed check rather than breaking the operator's read-only inspection.
     """
+    # Optional completion controls may be omitted on the wire. Normalize a
+    # local copy so diagnostics retain strict comparison without mutating it.
+    payload = {"checkbox_groups": [], "conditional_rules": [], **payload}
+
     def scalar(value):
         if value is None or type(value) is bool:
             return value

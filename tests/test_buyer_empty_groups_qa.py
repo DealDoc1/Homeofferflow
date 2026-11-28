@@ -122,3 +122,20 @@ class BuyerEmptyGroupsProtocolTests(unittest.IsolatedAsyncioTestCase):
                 self.assertTrue(receipt['controls_verified'])
                 self.assertEqual(receipt['phase'], 'created')
                 client.post.assert_awaited_once()
+
+
+class BuyerQASendDiagnosticsTests(unittest.IsolatedAsyncioTestCase):
+    async def test_failed_send_preserves_bounded_diagnostics_without_retry_or_private_text(self):
+        _, payload = specimens()
+        document = {**deepcopy(payload), 'id': DOCUMENT_ID, 'status': 'draft'}
+        client = AsyncMock()
+        client.get.return_value = response(200, document)
+        client.post.return_value = response(422, {'errors': {'recipients': ['private@example.test']}})
+        receipt = {'document_id': DOCUMENT_ID}
+        with patch.object(MODULE, '_patch', AsyncMock()), patch.object(MODULE, 'SIGNWELL_API_KEY', 'fictional-key'):
+            await MODULE._verify_and_send_fixed_qa_draft(client, 'fictional-run', receipt, payload)
+        client.post.assert_awaited_once()
+        self.assertEqual(receipt['phase'], 'unconfirmed')
+        self.assertEqual(receipt['http_status'], 422)
+        self.assertEqual(receipt['send_rejection']['fields'], ['recipients'])
+        self.assertNotIn('private@example.test', json.dumps(receipt))
